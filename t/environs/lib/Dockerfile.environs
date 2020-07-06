@@ -1,0 +1,22 @@
+#!BuildTag: serviced
+FROM opensuse/leap:15.1
+ENV container docker
+
+ENV LANG en_US.UTF-8
+
+RUN zypper -n install git-core wget tar m4
+WORKDIR /opt
+RUN git clone -b mirror_cache https://github.com/andrii-suse/environs
+WORKDIR /opt/environs
+
+RUN zypper -n install perl-DBIx-Class perl-Data-Dumper-Concise perl-Digest-MD5
+RUN zypper -n install perl-Mojolicious 
+RUN zypper -n install perl-Mojo-Pg
+RUN zypper -n install sudo vim
+RUN zypper -n install postgresql postgresql-server
+RUN zypper -n install curl apache2
+RUN zypper -n install perl-Mojolicious-Plugin-RenderFile perl-Minion perl-DateTime perl-DBIx-Class-DynamicDefault
+RUN zypper -n install perl-DateTime-Format-Pg
+RUN ln /usr/sbin/httpd /sbin/httpd 
+
+ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]

@@ -1,0 +1,18 @@
+version: 2.1
+
+jobs:
+  environs:
+    machine:
+      image: ubuntu-1604:201903-01
+    steps:
+      - checkout
+      - run:
+          command: |
+            git clone https://github.com/coryb/osht ~/osht
+            cd t/environs && OSHT_LOCATION=~/osht/osht.sh ./01-smoke.sh
+
+workflows:
+  version: 2.1
+  test:
+    jobs:
+      - environs
