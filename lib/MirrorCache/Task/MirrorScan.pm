@@ -31,26 +31,25 @@ sub _scan {
     my $schema = $app->schema;
     my $minion = $app->minion;
 
+    my $localdir = $app->mc->root($path);
+    my $localfiles = Mojo::File->new($localdir)->list->map( 'basename' )->to_array;
+    my %fileids = ();
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($folder) {
         my $guard = $app->minion->guard('create_folder' . $path, 60);
         $folder = $schema->resultset('Folder')->find_or_create({path => $path});
-        my $mcroot = $app->mc->root;
-        foreach my $file (Mojo::File->new($mcroot, $path)->list->map( 'basename' )->each) {
+        foreach my $file (@$localfiles) {
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         }
     };
     return undef unless $folder && $folder->id;
 
     my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id);
-    my $ua  = Mojo::UserAgent->new;
-    # my $i=0;
+    my $ua = Mojo::UserAgent->new;
     my $folder_id = $folder->id;
     for my $folder_on_mirror (@$folder_on_mirrors) {
         my $url = $folder_on_mirror->{url};
         my $promise = $ua->get_p($url)->then(sub {
-            # $i = $i+1;
-            # $job->note($i => $url, "x$i" => $folder_on_mirror->{server_id}, "f$i" => $folder_id, xx => 1, yy => $folder_id);
             my $tx = shift;
             # return $schema->resultset('Server')->forget_folder($folder_on_mirror->{server_id}, $folder_on_mirror->{folder_diff_id}) if $tx->result->code == 404;
             # return undef if $tx->result->code == 404;
@@ -59,10 +58,15 @@ sub _scan {
 
             my $dom = $tx->result->dom;
             my $ctx = Digest::MD5->new;
+            my %mirrorfiles = ();
+
             for my $i (sort { $a->attr->{href} cmp $b->attr->{href} } $dom->find('a')->each) {
                 my $href = $i->attr->{href};
                 my $text = $i->text;
-                $ctx->add($href) if $text eq $href; # TODO skip files if they are not on the main server
+                if ($text eq $href && -f $localdir . $text) {
+                    $ctx->add($href);
+                    $mirrorfiles{$href} = 1;
+                }
             }
             my $digest = $ctx->hexdigest;
             my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest});
@@ -71,15 +75,23 @@ sub _scan {
                 $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder_id, hash => $digest});
                 unless($folder_diff->in_storage) {
                     $folder_diff->insert;
-                    # TODO add missing files to folder_diff_file
+                    
+                    foreach my $file (@$localfiles) {
+                        next if $mirrorfiles{$file};
+                        my $id = $fileids{$file};
+                        unless ($id) {
+                            $id = $schema->resultset('File')->find({folder_id => $folder_id, name => $file})->id;
+                            $fileids{$file} = $id; # cache here for other mirrors just in case
+                        }
+                        $schema->resultset('FolderDiffFile')->create({diff_id => $folder_diff->id, file_id => $id});
+                    }
                 }
             }
-            # do nothing in diff_id is the same
+            # do nothing if diff_id is the same
             return undef if $folder_on_mirror->{folder_diff_id} && $folder_diff->id eq $folder_on_mirror->{folder_diff_id};
 
             # $schema->resultset('FolderDiffServer')->update_or_create_by_folder_id({folder_diff_id => $folder_diff->{id}, server_id => $folder_on_mirror->{server_id}});
-            my $fds = $schema->resultset('FolderDiffServer')->new({folder_diff_id => $folder_diff->id, server_id => $folder_on_mirror->{server_id}});
-            $fds->insert;
+            $schema->resultset('FolderDiffServer')->create({folder_diff_id => $folder_diff->id, server_id => $folder_on_mirror->{server_id}});
 
         })->catch(sub {
             my $err = shift;

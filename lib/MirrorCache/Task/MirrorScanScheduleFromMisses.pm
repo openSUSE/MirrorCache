@@ -17,7 +17,6 @@ package MirrorCache::Task::MirrorScanScheduleFromMisses;
 use Mojo::Base 'Mojolicious::Plugin';
 
 use DateTime;
-use Data::Dumper;
 
 sub register {
     my ($self, $app) = @_;
@@ -25,7 +24,7 @@ sub register {
 }
 
 sub _run {
-    my ($app, $job, $args) = @_;
+    my ($app, $job, $prev_event_log_id) = @_;
 
     # prevent multiple scheduling tasks to run in parallel
     return $job->finish('Previous schedule_from_misses job is still active')
@@ -33,7 +32,6 @@ sub _run {
 
     my $schema = $app->schema;
     my $minion = $app->minion;
-    my $prev_event_log_id = $args->[0];
     my $limit = 1000;
 
     my ($event_log_id, $paths) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
@@ -45,7 +43,7 @@ sub _run {
         $paths = $schema->resultset('AuditEvent')->path_misses($event_log_id, $limit);
     }
     
-    $minion->enqueue(mirror_scan_schedule_from_misses => [$event_log_id] => {delay => 30});
+    $minion->enqueue(mirror_scan_schedule_from_misses => [$event_log_id] => {delay => 5});
 }
 
 1;

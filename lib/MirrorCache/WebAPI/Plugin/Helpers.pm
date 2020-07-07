@@ -26,7 +26,12 @@ sub register {
     my $root  = $args->{root};
     my $route = $args->{route};
     
-    $app->helper( 'mc.root' => sub { $root });
+    $app->helper( 'mc.root' => sub {
+        shift; # $c
+        my $path = shift;
+        return $root unless $path;
+        return $root . $path;
+    });
     $app->helper( 'mc.route' => sub { $route });
 
     $app->helper(

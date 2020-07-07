@@ -31,19 +31,24 @@ ap8*/curl.sh folder1/ | grep file1.dat
 
 
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','/','t','de',''" mc_test
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','/','t','us',''" mc_test
 
-# mc9*/curl.sh download/folder1/ | grep file1.dat
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat
+# remove folder1/file1.dt from ap8
+rm ap8-system2/dt/folder1/file2.dat
 
-# pg9*/sql.sh -c "select * from audit_event" mc_test
+curl -Is http://127.0.0.1:3190/download/folder1/file2.dat
 
 mc9*/backstage/job.sh mirror_scan_schedule_from_misses
 mc9*/backstage/shoot.sh
 
-# let backstage pick up the jobs
-sleep 2;
+curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 302
 
-pg9*/sql.sh -c "select * from minion_jobs order by id" mc_test
+mv ap7-system2/dt/folder1/file2.dat ap8-system2/dt/folder1/
 
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 302
+curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 200
+
+mc9*/backstage/shoot.sh
+sleep 5
+mc9*/backstage/shoot.sh
+
+curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 302
