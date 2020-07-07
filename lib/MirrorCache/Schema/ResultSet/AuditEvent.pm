@@ -42,7 +42,6 @@ sub path_misses {
     my @paths = ();
     foreach my $miss ( @$arrayref ) {
         $id = $miss->{id} unless $id;
-        # push @paths, unquote(unquote($miss->{event_data}));
         push @paths, from_json($miss->{event_data});
     }
     return ($id, \@paths);

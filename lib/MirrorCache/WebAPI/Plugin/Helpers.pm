@@ -22,7 +22,12 @@ use MirrorCache::Events;
 
 sub register {
 
-    my ($self, $app) = @_;
+    my ($self, $app, $args ) = @_;
+    my $root  = $args->{root};
+    my $route = $args->{route};
+    
+    $app->helper( 'mc.root' => sub { $root });
+    $app->helper( 'mc.route' => sub { $route });
 
     $app->helper(
         format_time => sub {

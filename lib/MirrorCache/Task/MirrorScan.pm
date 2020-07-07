@@ -35,9 +35,9 @@ sub _scan {
     unless ($folder) {
         my $guard = $app->minion->guard('create_folder' . $path, 60);
         $folder = $schema->resultset('Folder')->find_or_create({path => $path});
-        # hack - must scan "$root$folder" insted
-        if ($path eq '/folder1') {
-            $schema->resultset('File')->find_or_create({folder_id => $folder->id, name => 'file1.dat'});
+        my $mcroot = $app->mc->root;
+        foreach my $file (Mojo::File->new($mcroot, $path)->list->map( 'basename' )->each) {
+            $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         }
     };
     return undef unless $folder && $folder->id;

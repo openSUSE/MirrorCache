@@ -56,7 +56,7 @@ sub startup {
     $self->plugin('RenderFile');
     push @{$self->plugins->namespaces}, 'MirrorCache::WebAPI::Plugin';
 
-    $self->plugin('Helpers');
+    $self->plugin('Helpers', root => $root, route => '/download');
     $self->plugin('Backstage');
     $self->plugin('AuditLog');
     $self->plugin('Dir', root => $root, route => '/download');
