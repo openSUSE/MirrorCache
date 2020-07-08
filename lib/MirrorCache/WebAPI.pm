@@ -18,9 +18,7 @@ use Mojo::Base 'Mojolicious';
 
 
 use MirrorCache::Schema;
-# use MirrorCache::WebAPI::Plugin::Helpers;
-# use MirrorCache::Log 'setup_log';
-# use MirrorCache::Setup;
+use MaxMind::DB::Reader;
 
 use Mojolicious::Commands;
 
@@ -28,35 +26,27 @@ use Mojolicious::Commands;
 sub startup {
     my $self = shift;
     my $root = $ENV{MIRRORCACHE_ROOT};
+    my $city_mmdb = $ENV{MIRRORCACHE_CITY_MMDB};
 
     die("MIRRORCACHE_ROOT is not set") unless $root;
-    die("MIRRORCACHE_ROOT has incorrect value") unless -d $root;
-
-    # "templates/webapi" prefix
-    # $self->renderer->paths->[0] = path($self->renderer->paths->[0])->child('webapi')->to_string;
-
-    # MirrorCache::Setup::read_config($self);
-    # setup_log($self);
-    # MirrorCache::Setup::setup_app_defaults($self);
-    # MirrorCache::Setup::setup_mojo_tmpdir();
-    # MirrorCache::Setup::add_build_tx_time_header($self);
+    die("MIRRORCACHE_ROOT is not a directory") unless -d $root;
+    die("MIRRORCACHE_CITY_MMDB is not set") unless $city_mmdb;
+    die("MIRRORCACHE_CITY_MMDB is not a file") unless -f $city_mmdb;
+    my $reader = MaxMind::DB::Reader->new( file => $city_mmdb );
 
     # take care of DB deployment or migration before starting the main app
     MirrorCache::Schema->singleton;
-
-    # register basic routes
-    # my $r         = $self->routes;
-
-    # register routes
-    # $r->get('/download')-a>to('directory#download');
 
     push @{$self->commands->namespaces}, 'MirrorCache::WebAPI::Command';
 
     $self->plugin('DefaultHelpers');
     $self->plugin('RenderFile');
+    $self->plugin('ClientIP');
+
     push @{$self->plugins->namespaces}, 'MirrorCache::WebAPI::Plugin';
 
     $self->plugin('Helpers', root => $root, route => '/download');
+    $self->plugin('Mmdb', $reader);
     $self->plugin('Backstage');
     $self->plugin('AuditLog');
     $self->plugin('Dir', root => $root, route => '/download');

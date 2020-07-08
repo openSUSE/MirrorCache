@@ -33,16 +33,10 @@ ap8*/curl.sh folder1/ | grep file1.dat
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test 
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','/','t','de',''" mc_test
 
-# mc9*/curl.sh download/folder1/ | grep file1.dat
 curl -Is http://127.0.0.1:3190/download/folder1/file1.dat
-
-# pg9*/sql.sh -c "select * from audit_event" mc_test
 
 mc9*/backstage/job.sh mirror_scan_schedule_from_misses
 mc9*/backstage/shoot.sh
-
-# let backstage pick up the jobs
-sleep 2;
 
 pg9*/sql.sh -c "select * from minion_jobs order by id" mc_test
 

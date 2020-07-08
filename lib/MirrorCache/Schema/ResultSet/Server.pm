@@ -37,7 +37,7 @@ join file fl on fl.folder_id = f.id and fl.name = ? and fl.dt <= fd.dt
 left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
 where fdf.file_id is NULL
 and cap_asn_only.server_id is NULL
-and s.country = ?
+and s.country = lower(?)
 and s.enabled
 END_SQL
     my $prep = $dbh->prepare($sql);

@@ -52,7 +52,7 @@ sub register {
         my $f = Mojo::File->new($filepath);
     
         my $dirname = $f->dirname;
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country('us', $dirname, $f->basename);
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($c->mmdb->country(), $dirname, $f->basename);
         my $ua  = Mojo::UserAgent->new;
 
         for my $mirrorhash (@$mirrors) {
