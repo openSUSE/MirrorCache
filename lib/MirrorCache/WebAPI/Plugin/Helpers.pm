@@ -30,7 +30,8 @@ sub register {
         shift; # $c
         my $path = shift;
         return $root unless $path;
-        return $root . $path;
+        return $root . $path if ((substr $path, -1) eq '/');
+        return $root . $path . '/';
     });
     $app->helper( 'mc.route' => sub { $route });
 

@@ -19,6 +19,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use DateTime;
 use Digest::MD5;
 use Mojo::UserAgent;
+use Mojo::Util ('trim');
 
 sub register {
     my ($self, $app) = @_;
@@ -33,7 +34,6 @@ sub _scan {
 
     my $localdir = $app->mc->root($path);
     my $localfiles = Mojo::File->new($localdir)->list->map( 'basename' )->to_array;
-    my %fileids = ();
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($folder) {
         my $guard = $app->minion->guard('create_folder' . $path, 60);
@@ -43,10 +43,18 @@ sub _scan {
         }
     };
     return undef unless $folder && $folder->id;
+    my $folder_id = $folder->id;
+    my @dbfiles = ();
+    my %dbfileids = ();
+    for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
+        my $basename = $file->name;
+        next unless $basename && -f $localdir . $basename; # skip deleted files
+        push @dbfiles, $basename;
+        $dbfileids{$basename} = $file->id;
+    }
 
     my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id);
     my $ua = Mojo::UserAgent->new;
-    my $folder_id = $folder->id;
     for my $folder_on_mirror (@$folder_on_mirrors) {
         my $url = $folder_on_mirror->{url};
         my $promise = $ua->get_p($url)->then(sub {
@@ -54,7 +62,7 @@ sub _scan {
             # return $schema->resultset('Server')->forget_folder($folder_on_mirror->{server_id}, $folder_on_mirror->{folder_diff_id}) if $tx->result->code == 404;
             # return undef if $tx->result->code == 404;
 
-            return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, err => $tx->result->code}, $folder_on_mirror->{server_id}) if $tx->result->code > 299;
+            return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $tx->result->code}, $folder_on_mirror->{server_id}) if $tx->result->code > 299;
 
             my $dom = $tx->result->dom;
             my $ctx = Digest::MD5->new;
@@ -62,7 +70,7 @@ sub _scan {
 
             for my $i (sort { $a->attr->{href} cmp $b->attr->{href} } $dom->find('a')->each) {
                 my $href = $i->attr->{href};
-                my $text = $i->text;
+                my $text = trim $i->text;
                 if ($text eq $href && -f $localdir . $text) {
                     $ctx->add($href);
                     $mirrorfiles{$href} = 1;
@@ -78,12 +86,8 @@ sub _scan {
                     
                     foreach my $file (@$localfiles) {
                         next if $mirrorfiles{$file};
-                        my $id = $fileids{$file};
-                        unless ($id) {
-                            $id = $schema->resultset('File')->find({folder_id => $folder_id, name => $file})->id;
-                            $fileids{$file} = $id; # cache here for other mirrors just in case
-                        }
-                        $schema->resultset('FolderDiffFile')->create({diff_id => $folder_diff->id, file_id => $id});
+                        my $id = $dbfileids{$file};
+                        $schema->resultset('FolderDiffFile')->create({folder_diff_id => $folder_diff->id, file_id => $id});
                     }
                 }
             }
@@ -95,7 +99,7 @@ sub _scan {
 
         })->catch(sub {
             my $err = shift;
-            return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, err => $err}, $folder_on_mirror->{server_id});
+            return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $err}, $folder_on_mirror->{server_id});
         })->wait;
     }
     

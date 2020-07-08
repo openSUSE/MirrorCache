@@ -24,10 +24,7 @@ for x in mc9 ap7-system2 ap8-system2; do
 done
 
 ap7*/status.sh >& /dev/null || ap7*/start.sh
-ap7*/curl.sh folder1/ | grep file1.dat
-
 ap8*/status.sh >& /dev/null || ap8*/start.sh
-ap8*/curl.sh folder1/ | grep file1.dat
 
 
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test 
@@ -41,14 +38,35 @@ curl -Is http://127.0.0.1:3190/download/folder1/file2.dat
 mc9*/backstage/job.sh mirror_scan_schedule_from_misses
 mc9*/backstage/shoot.sh
 
+pg9*/sql.sh -c "select * from file" mc_test
+test 2 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff" mc_test)
+test 1 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff_file" mc_test)
+
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 302
 
 mv ap7-system2/dt/folder1/file2.dat ap8-system2/dt/folder1/
 
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 200
 
-mc9*/backstage/shoot.sh
-sleep 5
+mc9*/backstage/job.sh mirror_scan_schedule_from_misses
 mc9*/backstage/shoot.sh
 
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 302
+curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 302
+
+# now add new file everywhere
+for x in mc9 ap7-system2 ap8-system2; do
+    touch mc9/dt/folder1/file3.dat
+done
+
+# first request will miss
+curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep 200
+exit 0
+# force rescan
+mc9*/backstage/job.sh mirror_scan_schedule_from_misses
+mc9*/backstage/shoot.sh
+# now expect to hit 
+curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep 302
+
+
+
