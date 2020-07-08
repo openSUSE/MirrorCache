@@ -35,14 +35,15 @@ sub _scan {
     my $localdir = $app->mc->root($path);
     my $localfiles = Mojo::File->new($localdir)->list->map( 'basename' )->to_array;
     my $folder = $schema->resultset('Folder')->find({path => $path});
-    unless ($folder) {
-        my $guard = $app->minion->guard('create_folder' . $path, 60);
-        $folder = $schema->resultset('Folder')->find_or_create({path => $path});
-        foreach my $file (@$localfiles) {
-            $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
-        }
-    };
-    return undef unless $folder && $folder->id;
+    return undef unless $folder && $folder->id; # folder is not added to db yet
+    # we collect max(dt) here to avoid race with new files added to DB
+    my $latestdt = $schema->resultset('File')->find({folder_id => $folder->id}, {
+        columns => [ { max_dt => { max => "dt" } }, ]
+    })->get_column('max_dt');
+
+    unless ($latestdt) {
+        return $job->note(skip_reason => 'latestdt empty', folder_id => $folder->id);
+    }
     my $folder_id = $folder->id;
     my @dbfiles = ();
     my %dbfileids = ();
@@ -77,7 +78,7 @@ sub _scan {
                 }
             }
             my $digest = $ctx->hexdigest;
-            my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest});
+            my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest}, dt => $latestdt );
             unless ($folder_diff) {
                 my $guard = $app->minion->guard("create_folder_diff_${folder_id}_$digest" , 60);
                 $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder_id, hash => $digest});

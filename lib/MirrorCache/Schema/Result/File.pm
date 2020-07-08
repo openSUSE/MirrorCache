@@ -14,12 +14,14 @@ use strict;
 use warnings;
 
 use base 'DBIx::Class::Core';
+use DBIx::Class::Timestamps;
 
 =head1 TABLE: C<file>
 
 =cut
 
 __PACKAGE__->table("file");
+__PACKAGE__->load_components(qw(InflateColumn::DateTime DynamicDefault));
 
 =head1 ACCESSORS
 
@@ -42,6 +44,11 @@ __PACKAGE__->table("file");
   is_nullable: 1
   size: 512
 
+=head2 name
+
+  data_type: 'dt'
+  is_nullable: 0
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -56,6 +63,12 @@ __PACKAGE__->add_columns(
   { data_type => "bigint", is_foreign_key => 1, is_nullable => 1 },
   "name",
   { data_type => "varchar", is_nullable => 1, size => 512 },
+  "dt", 
+  {
+    data_type   => 'timestamp',
+    dynamic_default_on_create => 'DBIx::Class::Timestamps::now',
+    is_nullable => 0
+  }
 );
 
 =head1 PRIMARY KEY

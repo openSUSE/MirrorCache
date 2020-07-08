@@ -42,6 +42,7 @@ sub register_tasks {
         # qw(MirrorCache::Task::AuditEvents::Limit), # TODO task for deleting old audit events
         qw(MirrorCache::Task::MirrorScanScheduleFromMisses),
         qw(MirrorCache::Task::MirrorScan),
+        qw(MirrorCache::Task::FolderScan),
       );
 }
 

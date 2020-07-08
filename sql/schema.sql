@@ -10,6 +10,7 @@ create table file (
     id bigserial primary key,
     folder_id bigint references folder,
     name varchar(512),
+    dt timestamp,
     unique(folder_id, name)
 );
 
@@ -30,7 +31,8 @@ create table server (
 create table folder_diff (
     id bigserial primary key,
     folder_id bigint references folder on delete cascade,
-    hash varchar(40)
+    hash varchar(40),
+    dt timestamp
 );
 
 create table folder_diff_file (

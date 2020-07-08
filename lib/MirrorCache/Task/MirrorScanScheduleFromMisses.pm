@@ -38,7 +38,7 @@ sub _run {
 
     while (scalar(@$paths)) {
         for my $path (@$paths) {
-            $minion->enqueue('mirror_scan' => [$path]);
+            $minion->enqueue('folder_scan' => [$path] => {priority => 20});
         }
         $paths = $schema->resultset('AuditEvent')->path_misses($event_log_id, $limit);
     }

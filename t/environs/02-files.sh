@@ -56,17 +56,15 @@ curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 302
 
 # now add new file everywhere
 for x in mc9 ap7-system2 ap8-system2; do
-    touch mc9/dt/folder1/file3.dat
+    touch $x/dt/folder1/file3.dat
 done
 
 # first request will miss
 curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep 200
-exit 0
+
 # force rescan
 mc9*/backstage/job.sh mirror_scan_schedule_from_misses
 mc9*/backstage/shoot.sh
 # now expect to hit 
 curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep 302
-
-
 

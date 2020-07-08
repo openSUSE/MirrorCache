@@ -90,6 +90,11 @@ __PACKAGE__->belongs_to(
     on_delete     => "CASCADE",
     on_update     => "NO ACTION",
   },
+  "dt", 
+  {
+    data_type   => 'timestamp',
+    is_nullable => 0
+  },
 );
 
 =head2 folder_diff_file_servers
