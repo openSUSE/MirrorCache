@@ -42,6 +42,7 @@ sub _scan {
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         }
         $job->note(created => $path, count => scalar(@$localfiles));
+        $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
         $minion->enqueue('mirror_scan' => [$path] => {priority => 10});
         return;
     };
@@ -65,6 +66,7 @@ sub _scan {
     }
     $job->note(updated => $path, count => $cnt);
     $minion->enqueue('mirror_scan' => [$path] => {priority => 10});
+    $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }
 
 1;

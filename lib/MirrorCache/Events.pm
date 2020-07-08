@@ -23,13 +23,11 @@ sub singleton { state $events = shift->SUPER::new }
 #       to emit events from a controller.
 sub emit_event {
     my ($self, $type, %args) = @_;
-    print STDERR "aaaaaaaaaaaa1\n";
     die 'missing event type' unless $type;
 
     my $data    = $args{data};
     my $user_id = $args{user_id};
     my $tag     = $args{tag};
-    print STDERR "aaaaaaaaaaaa2 $type\n";
 
     return $self->emit($type, [$user_id, $type, $data, $tag]);
 }

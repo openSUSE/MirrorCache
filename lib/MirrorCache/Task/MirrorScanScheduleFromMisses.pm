@@ -36,14 +36,16 @@ sub _run {
 
     my ($event_log_id, $paths) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
 
+    my $cnt = 0;
     while (scalar(@$paths)) {
         for my $path (@$paths) {
             $minion->enqueue('folder_scan' => [$path] => {priority => 20});
+            $cnt = $cnt + 1;
         }
         $paths = $schema->resultset('AuditEvent')->path_misses($event_log_id, $limit);
     }
-    
-    $minion->enqueue(mirror_scan_schedule_from_misses => [$event_log_id] => {delay => 5});
+    $job->note(count => $cnt);
+    $app->backstage->enqueue_unless_scheduled(mirror_scan_schedule_from_misses => [$event_log_id] => {delay => 5});
 }
 
 1;

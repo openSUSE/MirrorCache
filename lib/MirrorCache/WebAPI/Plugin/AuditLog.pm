@@ -20,8 +20,8 @@ use Mojo::IOLoop;
 use Mojo::JSON 'to_json';
 use MirrorCache::Events;
 
-my @path_events = qw(path_miss path_hit);
-my @mirror_events = qw(mirror_pick mirror_probe);
+my @path_events = qw(path_miss path_hit path_scan_complete);
+my @mirror_events = qw(mirror_pick mirror_probe mirror_scan_complete);
 my @error_events = qw(best_mirror_error mirror_probe_error);
 my @other_events = qw(debug);
 
@@ -39,7 +39,7 @@ sub register {
     # log restart
     my $schema = $app->schema;
     $schema->resultset('AuditEvent')
-      ->create({user_id => 0, name => 'startup', event_data => 'service restarted'});
+      ->create({user_id => 0, name => 'startup', event_data => 'AuditLog registered'});
 }
 
 sub on_event {

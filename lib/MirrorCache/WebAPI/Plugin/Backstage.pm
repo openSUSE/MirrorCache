@@ -20,8 +20,6 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Minion;
 use DBIx::Class::Timestamps 'now';
 use MirrorCache::Schema;
-# use MirrorCache::WebAPI::MinionJob;
-# use MirrorCache::Log 'log_info';
 use Mojo::Pg;
 
 has app => undef, weak => 1;
@@ -39,7 +37,6 @@ sub register_tasks {
     my $app = $self->app;
     $app->plugin($_)
       for (
-        # qw(MirrorCache::Task::AuditEvents::Limit), # TODO task for deleting old audit events
         qw(MirrorCache::Task::MirrorScanScheduleFromMisses),
         qw(MirrorCache::Task::MirrorScan),
         qw(MirrorCache::Task::FolderScan),
@@ -70,21 +67,6 @@ sub register {
     # }
 
     $app->plugin(Minion => {Pg => $conn});
-
-    # # We use a custom job class (for legacy reasons)
-    # $app->minion->on(
-    #    worker => sub {
-    #        my ($minion, $worker) = @_;
-    #        $worker->on(
-    #            dequeue => sub {
-    #                my ($worker, $job) = @_;
-
-    #                # Reblessing the job is fine for now, but in the future it would be nice
-    #                # to use a role instead
-    #                bless $job, 'MirrorCache::WebAPI::MinionJob';
-    #            });
-    #    });
-
     $self->register_tasks;
 
     # Enable the Minion Admin interface under /minion
@@ -101,6 +83,17 @@ sub count_jobs {
     my $res = $self->app->minion->backend->list_jobs(0, undef, {tasks => [$task], states => $states});
     return ($res && exists $res->{total}) ? $res->{total} : 0;
 }
+
+# rase condition here souldn't be big issue
+sub enqueue_unless_scheduled {
+    my ($self, $task, @args) = @_;
+    my $minion = $self->app->minion;
+    my $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive']});
+    return 0 unless ($res && exists $res->{total} && $res->{total} == 0);
+    $minion->enqueue($task, @args);
+}
+
+
 
 1;
 

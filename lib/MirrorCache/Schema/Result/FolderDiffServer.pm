@@ -39,10 +39,22 @@ __PACKAGE__->table("folder_diff_server");
 
 __PACKAGE__->add_columns(
   "folder_diff_id",
-  { data_type => "bigint", is_foreign_key => 1, is_nullable => 1 },
+  { data_type => "bigint", is_foreign_key => 1, is_nullable => 0 },
   "server_id",
-  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
 );
+
+=head1 PRIMARY KEY
+
+=over 4
+
+=item * L</id>
+
+=back
+
+=cut
+
+__PACKAGE__->set_primary_key("server_id");
 
 =head1 RELATIONS
 

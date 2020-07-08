@@ -57,6 +57,7 @@ sub _scan {
     my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id);
     my $ua = Mojo::UserAgent->new;
     for my $folder_on_mirror (@$folder_on_mirrors) {
+        my $server_id = $folder_on_mirror->{server_id};
         my $url = $folder_on_mirror->{url};
         my $promise = $ua->get_p($url)->then(sub {
             my $tx = shift;
@@ -78,33 +79,36 @@ sub _scan {
                 }
             }
             my $digest = $ctx->hexdigest;
-            my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest}, dt => $latestdt );
+            my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest});
             unless ($folder_diff) {
                 my $guard = $app->minion->guard("create_folder_diff_${folder_id}_$digest" , 60);
                 $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder_id, hash => $digest});
                 unless($folder_diff->in_storage) {
+                    $folder_diff->dt($latestdt);
                     $folder_diff->insert;
                     
                     foreach my $file (@$localfiles) {
                         next if $mirrorfiles{$file};
                         my $id = $dbfileids{$file};
-                        $schema->resultset('FolderDiffFile')->create({folder_diff_id => $folder_diff->id, file_id => $id});
+                        $schema->resultset('FolderDiffFile')->create({folder_diff_id => $folder_diff->id, file_id => $id}) if $id;
                     }
                 }
             }
+            $job->note("hash$server_id" => $digest);
             # do nothing if diff_id is the same
             return undef if $folder_on_mirror->{folder_diff_id} && $folder_diff->id eq $folder_on_mirror->{folder_diff_id};
 
             # $schema->resultset('FolderDiffServer')->update_or_create_by_folder_id({folder_diff_id => $folder_diff->{id}, server_id => $folder_on_mirror->{server_id}});
-            $schema->resultset('FolderDiffServer')->create({folder_diff_id => $folder_diff->id, server_id => $folder_on_mirror->{server_id}});
-
+            my $fds = $schema->resultset('FolderDiffServer')->find_or_new(server_id => $folder_on_mirror->{server_id});
+            $fds->folder_diff_id($folder_diff->id);
+            $fds->update_or_insert;
         })->catch(sub {
             my $err = shift;
             return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $err}, $folder_on_mirror->{server_id});
         })->wait;
     }
     
-    ;
+    $app->emit_event('mc_mirror_scan_complete', {path => $path, tag => $folder->id});
 }
 
 1;

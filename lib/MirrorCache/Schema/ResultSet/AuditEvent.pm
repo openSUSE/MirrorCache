@@ -19,8 +19,6 @@ use strict;
 use warnings;
 
 use base 'DBIx::Class::ResultSet';
-
-# use Mojo::Util ('unquote');
 use Mojo::JSON 'from_json';
 
 sub path_misses {
@@ -40,9 +38,13 @@ sub path_misses {
     my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     my $id;
     my @paths = ();
+    my %seen  = ();
     foreach my $miss ( @$arrayref ) {
+        my $event_data = $miss->{event_data};
+        next if $seen{$event_data};
         $id = $miss->{id} unless $id;
-        push @paths, from_json($miss->{event_data});
+        $seen{$event_data} = 1;
+        push @paths, from_json($event_data);
     }
     return ($id, \@paths);
 }

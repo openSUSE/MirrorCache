@@ -56,6 +56,11 @@ __PACKAGE__->add_columns(
   { data_type => "bigint", is_foreign_key => 1, is_nullable => 1 },
   "hash",
   { data_type => "varchar", is_nullable => 1, size => 40 },
+  "dt", 
+  {
+    data_type   => 'timestamp',
+    is_nullable => 0
+  },
 );
 
 =head1 PRIMARY KEY
@@ -89,11 +94,6 @@ __PACKAGE__->belongs_to(
     join_type     => "LEFT",
     on_delete     => "CASCADE",
     on_update     => "NO ACTION",
-  },
-  "dt", 
-  {
-    data_type   => 'timestamp',
-    is_nullable => 0
   },
 );
 

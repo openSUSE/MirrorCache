@@ -59,7 +59,6 @@ sub register {
             my $mirror = $mirrorhash->{url};
             my $ok = 0;
             my $err = 'Timeout';
-            print(STDERR "ssss $mirror$filepath\n");
             # Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
             # $ua->head_p($mirror . $filepath)->then(sub {
             #    my $tx = shift;
@@ -75,14 +74,13 @@ sub register {
             my $tx = $ua->head($mirror . $filepath);
             $ok = 1 unless ($tx->result->code < 200 or $tx->result->code > 299);
 
-            print (STDERR "OK: $ok\n");
             if ($ok) {
-                $c->emit_event('mc_mirror_probe', {mirror => $mirror}, 0);
+                $c->emit_event('mc_mirror_probe', {mirror => $mirror, tag => 0});
                 $c->emit_event('mc_mirror_pick', {mirror => $mirror});
                 $c->emit_event('mc_path_hit', {path => $dirname, mirror => $mirror});
                 return $mirror;
             } else {
-                $c->emit_event('mc_mirror_probe', {mirror => $mirror, error => $err}, 1);
+                $c->emit_event('mc_mirror_probe', {mirror => $mirror, error => $err, tag => 1});
             }
         }
 
