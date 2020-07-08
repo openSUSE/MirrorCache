@@ -77,11 +77,12 @@ mc9*/backstage/shoot.sh
 
 test 2 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff_server" mc_test)
 # delete old noise
-pg9*/sql.sh -c "delete from audit_event" mc_test
-pg9*/sql.sh -c "delete from minion_jobs" mc_test
+
+cnt="$(pg9*/sql.sh -t -c "select count(*) from audit_event" mc_test)"
+# pg9*/sql.sh -c "delete from minion_jobs" mc_test
 
 curl -Is http://127.0.0.1:3190/download/folder1/file4.dat | grep 200
 
 # it shouldn't try to probe yet, because scanner didn't find files on the mirrors
-# test 0 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name = 'mirror_probe' -- and tag = 1" mc_test)
+test 0 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name = 'mirror_probe' and id > $cnt" mc_test)
 

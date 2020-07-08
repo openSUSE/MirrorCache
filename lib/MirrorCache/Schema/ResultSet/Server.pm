@@ -33,7 +33,7 @@ left join server_capability cap_asn_only on s.id = cap_asn_only.server_id and ca
 join folder_diff_server fds on fds.server_id = s.id
 join folder_diff fd on fd.id = fds.folder_diff_id
 join folder f on f.id = fd.folder_id and f.path = ?
-join file fl on fl.folder_id = f.id and fl.name = ?
+join file fl on fl.folder_id = f.id and fl.name = ? and fl.dt <= fd.dt
 left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
 where fdf.file_id is NULL
 and cap_asn_only.server_id is NULL
