@@ -72,11 +72,9 @@ sub indx {
     return undef unless 0 eq rindex($c->req->url->path, $route, 0);
 
     my $file = Mojo::Util::url_unescape(substr($c->req->url->path, $route_len));
-    if ( $root->is_file($file) ) {
-        return $c->mirrorcache->render_file($file);
-    }
-    return undef unless $root->is_dir($file);
-    return render_dir($c, $file);
+    return render_dir($c, $file) if $root->is_dir($file);
+    return $c->mirrorcache->render_file($file) if $root->is_file($file);
+    return undef;
 }
 
 sub render_dir {

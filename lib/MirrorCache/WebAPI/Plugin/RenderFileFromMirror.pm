@@ -23,8 +23,6 @@ use Mojo::File;
 use Mojolicious::Static;
 use Mojo::IOLoop::Subprocess;
 
-use Data::Dumper;
-
 sub register {
     my ($self, $app) = @_;
  
