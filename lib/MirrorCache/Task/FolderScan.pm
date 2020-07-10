@@ -32,8 +32,7 @@ sub _scan {
     my $schema = $app->schema;
     my $minion = $app->minion;
 
-    my $localdir = $app->mc->root($path);
-    my $localfiles = Mojo::File->new($localdir)->list->map( 'basename' )->to_array;
+    my $localfiles = $app->mc->root->list_filenames($path);
     my $guard = $app->minion->guard('scan_folder' . $path, 60);
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($folder) {
@@ -53,7 +52,8 @@ sub _scan {
     my %dbfileids = ();
     for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
         my $basename = $file->name;
-        next unless $basename && -f $localdir . $basename; # skip deleted files for now
+        # next unless $basename && -f $localdir . $basename; # skip deleted files for now
+        next unless $basename;
         push @dbfiles, $basename;
         $dbfileids{$basename} = $file->id;
     }

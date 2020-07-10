@@ -26,7 +26,7 @@ sub register {
     my $root  = $args->{root};
     my $route = $args->{route};
     
-    $app->helper( 'mc.root' => sub {
+    $app->helper( 'mc.rootlocation' => sub {
         shift; # $c
         my $path = shift;
         return $root unless $path;

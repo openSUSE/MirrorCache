@@ -32,8 +32,7 @@ sub _scan {
     my $schema = $app->schema;
     my $minion = $app->minion;
 
-    my $localdir = $app->mc->root($path);
-    my $localfiles = Mojo::File->new($localdir)->list->map( 'basename' )->to_array;
+    my $localfiles = $app->mc->root->list_filenames($path);
     my $folder = $schema->resultset('Folder')->find({path => $path});
     return undef unless $folder && $folder->id; # folder is not added to db yet
     # we collect max(dt) here to avoid race with new files added to DB
@@ -49,7 +48,7 @@ sub _scan {
     my %dbfileids = ();
     for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
         my $basename = $file->name;
-        next unless $basename && -f $localdir . $basename; # skip deleted files
+        next unless $basename; # && -f $localdir . $basename; # skip deleted files
         push @dbfiles, $basename;
         $dbfileids{$basename} = $file->id;
     }
@@ -73,7 +72,7 @@ sub _scan {
             for my $i (sort { $a->attr->{href} cmp $b->attr->{href} } $dom->find('a')->each) {
                 my $href = $i->attr->{href};
                 my $text = trim $i->text;
-                if ($text eq $href && -f $localdir . $text) {
+                if ($text eq $href) { # && -f $localdir . $text) {
                     $ctx->add($href);
                     $mirrorfiles{$href} = 1;
                 }

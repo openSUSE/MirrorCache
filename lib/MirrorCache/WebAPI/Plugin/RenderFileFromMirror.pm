@@ -26,29 +26,25 @@ use Mojo::IOLoop::Subprocess;
 use Data::Dumper;
 
 sub register {
-    my ($self, $app, $args) = @_;
-
-    my $root = $args->{root};
-    push @{$app->static->paths}, $root;
+    my ($self, $app) = @_;
  
     $app->helper( 'mirrorcache.render_file' => sub {
-        my ($c, $filepath, $route) = @_;
+        my ($c, $filepath) = @_;
    
         my $mirror = "";
         eval {
-            # my $ip = $c->get_client_ip();
-            my $ip = '';
-            $mirror = $c->mirrorcache->best_mirror( $ip, $filepath );
+            $mirror = $c->mirrorcache->best_mirror( $filepath );
             1;
         } or $c->emit_event('mc_best_mirror_error', {path => $filepath, err => $@});
 
         return $c->redirect_to($mirror) if $mirror;
-        my $res = $c->reply->static($filepath);
-        return !!$res;
+        
+        $c->emit_event('mc_debug', {path => $filepath, c => $c, d => 1});
+        return $c->mc->root->render_file($c, $filepath);
     });
 
     $app->helper( 'mirrorcache.best_mirror' => sub {
-        my ($c, $ip, $filepath) = @_;
+        my ($c, $filepath) = @_;
         my $f = Mojo::File->new($filepath);
     
         my $dirname = $f->dirname;
@@ -75,8 +71,6 @@ sub register {
             $ok = 1 unless ($tx->result->code < 200 or $tx->result->code > 299);
 
             if ($ok) {
-                $c->emit_event('mc_mirror_probe', {mirror => $mirror, tag => 0});
-                $c->emit_event('mc_mirror_pick', {mirror => $mirror});
                 $c->emit_event('mc_path_hit', {path => $dirname, mirror => $mirror});
                 return $mirror;
             } else {

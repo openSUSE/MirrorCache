@@ -29,9 +29,8 @@ sub startup {
     my $city_mmdb = $ENV{MIRRORCACHE_CITY_MMDB};
 
     die("MIRRORCACHE_ROOT is not set") unless $root;
-    die("MIRRORCACHE_ROOT is not a directory") unless -d $root;
     die("MIRRORCACHE_CITY_MMDB is not set") unless $city_mmdb;
-    die("MIRRORCACHE_CITY_MMDB is not a file") unless -f $city_mmdb;
+    die("MIRRORCACHE_CITY_MMDB is not a file ($city_mmdb)") unless -f $city_mmdb;
     my $reader = MaxMind::DB::Reader->new( file => $city_mmdb );
 
     # take care of DB deployment or migration before starting the main app
@@ -46,11 +45,19 @@ sub startup {
     push @{$self->plugins->namespaces}, 'MirrorCache::WebAPI::Plugin';
 
     $self->plugin('Helpers', root => $root, route => '/download');
+    # check prefix
+    if (-1 == rindex $root, 'http', 0) {
+        die("MIRRORCACHE_ROOT is not a directory ($root)") unless -d $root;
+        $self->plugin('RootLocal');
+    } else {
+        $self->plugin('RootRemote');
+    }
+
     $self->plugin('Mmdb', $reader);
     $self->plugin('Backstage');
     $self->plugin('AuditLog');
-    $self->plugin('Dir', root => $root, route => '/download');
-    $self->plugin('RenderFileFromMirror', root => $root);
+    $self->plugin('Dir');
+    $self->plugin('RenderFileFromMirror');
 }
 
 sub schema { MirrorCache::Schema->singleton }
