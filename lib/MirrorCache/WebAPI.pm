@@ -58,6 +58,11 @@ sub startup {
     $self->plugin('AuditLog');
     $self->plugin('Dir');
     $self->plugin('RenderFileFromMirror');
+
+    $self->routes->get('/')->to(cb => sub {
+        my $c = shift;
+        $c->render(text => 'Hello from MirrorCache.');
+    });
 }
 
 sub schema { MirrorCache::Schema->singleton }

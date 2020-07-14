@@ -15,6 +15,8 @@ use warnings;
 
 use base 'DBIx::Class::Core';
 
+use DBIx::Class::Timestamps;
+
 =head1 TABLE: C<folder>
 
 =cut
@@ -47,7 +49,7 @@ __PACKAGE__->table("folder");
   is_nullable: 1
 
 =cut
-
+__PACKAGE__->load_components(qw(InflateColumn::DateTime DynamicDefault));
 __PACKAGE__->add_columns(
   "id",
   {
@@ -58,6 +60,16 @@ __PACKAGE__->add_columns(
   },
   "path",
   { data_type => "varchar", is_nullable => 0, size => 512 },
+  db_sync_last => {
+        data_type   => 'timestamp',
+        is_nullable => 1
+  },    
+  db_sync_scheduled => {
+        data_type   => 'timestamp',
+        dynamic_default_on_create => 'DBIx::Class::Timestamps::now',
+        is_nullable => 1
+  },
+  db_sync_priority => { data_type => "integer", is_nullable => 1 },
   "files",
   { data_type => "integer", is_nullable => 1 },
   "size",

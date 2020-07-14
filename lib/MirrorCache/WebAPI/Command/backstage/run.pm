@@ -18,7 +18,7 @@ use Mojo::Base 'Minion::Command::minion::worker';
 
 use Mojo::Util 'getopt';
 
-has description => 'Start Gru worker';
+has description => 'Start Backstage worker';
 has usage       => sub { shift->extract_usage };
 
 sub run {
@@ -42,7 +42,7 @@ sub run {
 
 =head1 NAME
 
-MirrorCache::WebAPI::Command::backstage::run - Gru run command
+MirrorCache::WebAPI::Command::backstage::run - Backstage worker run command
 
 =head1 SYNOPSIS
 
@@ -61,7 +61,7 @@ MirrorCache::WebAPI::Command::backstage::run - Gru run command
 =head1 DESCRIPTION
 
 L<MirrorCache::WebAPI::Command::backstage::run> is a subclass of
-L<Minion::Command::minion::worker> that adds Gru features with
+L<Minion::Command::minion::worker> that adds Backstage worker features with
 L<MirrorCache::WebAPI::MinionJob>.
 
 =cut

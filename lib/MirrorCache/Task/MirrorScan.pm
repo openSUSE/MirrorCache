@@ -28,11 +28,13 @@ sub register {
 
 sub _scan {
     my ($app, $job, $path) = @_;
+    return $job->fail('Empty path is not allowed') unless $path;
+    return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
 
     my $schema = $app->schema;
     my $minion = $app->minion;
 
-    my $localfiles = $app->mc->root->list_filenames($path);
+    # my $localfiles = $app->mc->root->list_filenames($path);
     my $folder = $schema->resultset('Folder')->find({path => $path});
     return undef unless $folder && $folder->id; # folder is not added to db yet
     # we collect max(dt) here to avoid race with new files added to DB
@@ -86,7 +88,7 @@ sub _scan {
                     $folder_diff->dt($latestdt);
                     $folder_diff->insert;
                     
-                    foreach my $file (@$localfiles) {
+                    foreach my $file (@dbfiles) {
                         next if $mirrorfiles{$file};
                         my $id = $dbfileids{$file};
                         $schema->resultset('FolderDiffFile')->create({folder_diff_id => $folder_diff->id, file_id => $id}) if $id;

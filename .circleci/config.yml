@@ -9,7 +9,7 @@ jobs:
       - run:
           command: |
             git clone https://github.com/coryb/osht ~/osht
-            cd t/environs && OSHT_LOCATION=~/osht/osht.sh ./01-smoke.sh && OSHT_LOCATION=~/osht/osht.sh ./02*.sh && OSHT_LOCATION=~/osht/osht.sh ./03*.sh
+            cd t/environs && OSHT_LOCATION=~/osht/osht.sh ./01-smoke.sh && OSHT_LOCATION=~/osht/osht.sh ./02*.sh && OSHT_LOCATION=~/osht/osht.sh ./03*.sh && OSHT_LOCATION=~/osht/osht.sh ./04*.sh
 
 workflows:
   version: 2.1

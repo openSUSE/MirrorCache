@@ -34,6 +34,10 @@ sub register {
     $app->helper( 'mc.root' => sub { $self->singleton; });
 }
 
+sub is_remote {
+    return 1;
+}
+
 sub is_file {
     my $urlpath = $url . $_[1];
     my $ua = Mojo::UserAgent->new;
@@ -53,6 +57,7 @@ sub is_dir {
         # $res = Mojo::UserAgent->new->head($urlpath)->result->code;
         
     } or $app->emit_event('mc_debug', {url => "u$urlpath", err => $@});
+    $app->emit_event('mc_debug', {url => "u$urlpath", is_dir => $res});
 
     return $res == 200 || $res == 302;
 }
@@ -65,7 +70,7 @@ sub render_file {
 sub list_filenames {
     my $self    = shift;
     my $dir     = shift;
-    my $tx = Mojo::UserAgent->new->get($url . $dir);
+    my $tx = Mojo::UserAgent->new->get($url . $dir . '/');
     my @res = ();
     return \@res unless $tx->result->code == 200;
     my $dom = $tx->result->dom;
@@ -73,11 +78,46 @@ sub list_filenames {
         my $href = $i->attr->{href};
         my $text = trim $i->text;
         if ($text eq $href) { # && -f $localdir . $text) {
-            $text =~ s/\/$//;
+            # $text =~ s/\/$//;
             push @res, $text;
         }
     }
     return \@res;
+}
+
+sub list_files_from_db {
+    my $self    = shift;
+    my $urlpath = shift;
+    my $folder_id = shift;
+    my $dir = shift;
+    my @files   =
+        ( $urlpath eq '/' )
+        ? ()
+        : ( { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' } );
+    my @childrenfiles = $app->schema->resultset('File')->search({folder_id => $folder_id});
+
+    my $cur_path = Encode::decode_utf8( Mojo::Util::url_unescape( $urlpath ) );
+    for my $child ( @childrenfiles ) {
+        my $basename = $child->name;
+        my $url  = Mojo::Path->new($cur_path)->trailing_slash(0);
+        my $is_dir = '/' eq substr($basename, -1)? 1 : 0;
+        $basename = substr($basename, 0, -1) if $is_dir;
+        push @{ $url->parts }, $basename;
+        if ($is_dir) {
+            $basename .= '/';
+            $url->trailing_slash(1);
+        }
+        my $mime_type = $types->type( _get_ext($basename) || 'txt' ) || 'text/plain';
+
+        push @files, {
+            url   => $url,
+            name  => $basename,
+            size  => 0,
+            type  => $mime_type,
+            mtime => '',
+        };
+    }
+    return \@files;
 }
 
 sub list_files {

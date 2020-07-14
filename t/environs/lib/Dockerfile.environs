@@ -9,6 +9,9 @@ WORKDIR /opt
 RUN git clone -b mirror_cache https://github.com/andrii-suse/environs
 WORKDIR /opt/environs
 
+RUN zypper ar -f http://download.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.1 perl
+RUN zypper --gpg-auto-import-keys ref
+
 RUN zypper -n install perl-DBIx-Class perl-Data-Dumper-Concise perl-Digest-MD5 perl-Mojolicious perl-Mojo-Pg sudo vim postgresql postgresql-server \
   curl apache2 perl-Mojolicious-Plugin-RenderFile perl-Minion perl-DateTime perl-DBIx-Class-DynamicDefault perl-DateTime-Format-Pg
 

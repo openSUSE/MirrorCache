@@ -21,7 +21,7 @@ use warnings;
 use base 'DBIx::Class::ResultSet';
 
 sub mirrors_country {
-    my ($self, $country, $folder, $file) = @_;
+    my ($self, $country, $folder_id, $file) = @_;
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
@@ -32,8 +32,7 @@ from server s
 left join server_capability cap_asn_only on s.id = cap_asn_only.server_id and cap_asn_only.capability = 'as_only'
 join folder_diff_server fds on fds.server_id = s.id
 join folder_diff fd on fd.id = fds.folder_diff_id
-join folder f on f.id = fd.folder_id and f.path = ?
-join file fl on fl.folder_id = f.id and fl.name = ? and fl.dt <= fd.dt
+join file fl on fl.folder_id = ? and fl.name = ? and fl.dt <= fd.dt
 left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
 where fdf.file_id is NULL
 and cap_asn_only.server_id is NULL
@@ -41,7 +40,7 @@ and s.country = lower(?)
 and s.enabled
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($folder, $file, $country);
+    $prep->execute($folder_id, $file, $country);
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
 }

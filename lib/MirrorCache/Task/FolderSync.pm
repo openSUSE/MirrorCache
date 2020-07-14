@@ -13,39 +13,43 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-package MirrorCache::Task::FolderScan;
+package MirrorCache::Task::FolderSync;
 use Mojo::Base 'Mojolicious::Plugin';
 
 use DateTime;
-use Digest::MD5;
-use Mojo::UserAgent;
-use Mojo::Util ('trim');
 
 sub register {
     my ($self, $app) = @_;
-    $app->minion->add_task(folder_scan => sub { _scan($app, @_) });
+    $app->minion->add_task(folder_sync => sub { _sync($app, @_) });
 }
 
-sub _scan {
+sub _sync {
     my ($app, $job, $path) = @_;
+    return $job->fail('Empty path is not allowed') unless $path;
+    return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
 
     my $schema = $app->schema;
     my $minion = $app->minion;
+    my $root   = $app->mc->root;
+    return $job->finish("$path is not a dir") unless $root->is_dir($path);
 
     my $localfiles = $app->mc->root->list_filenames($path);
-    my $guard = $app->minion->guard('scan_folder' . $path, 60);
+    my $guard = $app->minion->guard('sync_folder' . $path, 360);
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($folder) {
         $folder = $schema->resultset('Folder')->find_or_create({path => $path});
         foreach my $file (@$localfiles) {
+            $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
+            $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         }
         $job->note(created => $path, count => scalar(@$localfiles));
+        $folder->update({db_sync_last => $schema->storage->datetime_parser->format_datetime(DateTime->now())}, {db_sync_priority => 10});
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
         $minion->enqueue('mirror_scan' => [$path] => {priority => 10});
         return;
     };
-    return $job->fail("Couldnt find folder $path") unless $folder && $folder->id;
+    return $job->fail("Couldn't create folder $path") unless $folder && $folder->id;
 
     my $folder_id = $folder->id;
     my @dbfiles = ();
@@ -60,12 +64,16 @@ sub _scan {
 
     my $cnt = 0;
     for my $file (@$localfiles) {
-        next if $dbfileids{$file};
+        next if $dbfileids{$file}; # || '/' eq substr($file, -1);
+        $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
+        $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
         $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         $cnt = $cnt + 1;
     }
+    $schema->storage->datetime_parser;
+    $folder->update({db_sync_last => $schema->storage->datetime_parser->format_datetime(DateTime->now())}, {db_sync_priority => 10});
     $job->note(updated => $path, count => $cnt);
-    $minion->enqueue('mirror_scan' => [$path] => {priority => 10});
+    $minion->enqueue('mirror_scan' => [$path] => {priority => 10}) if $cnt;
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }
 

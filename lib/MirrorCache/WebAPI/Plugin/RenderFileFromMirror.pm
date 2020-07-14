@@ -34,6 +34,7 @@ sub register {
             $mirror = $c->mirrorcache->best_mirror( $filepath );
             1;
         } or $c->emit_event('mc_best_mirror_error', {path => $filepath, err => $@});
+        $c->emit_event('mc_debug', {path => $filepath, best_mirror => $mirror});
 
         return $c->redirect_to($mirror) if $mirror;
         
@@ -45,10 +46,24 @@ sub register {
         my ($c, $filepath) = @_;
         my $f = Mojo::File->new($filepath);
     
-        my $dirname = $f->dirname;
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country($c->mmdb->country(), $dirname, $f->basename);
+        my $dirname  = $f->dirname;
+        my $basename = $f->basename;
+        # TODO move these checks to Dir ?
+        my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
+        unless ($folder) {
+            $c->emit_event('mc_path_miss', $dirname);
+            return undef;
+        }
+        my $file   = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename});
+        unless ($file) {
+            $c->emit_event('mc_path_miss', $dirname) unless $file;
+            return undef
+        }
+
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($c->mmdb->country(), $folder->id, $basename);
         my $ua  = Mojo::UserAgent->new;
 
+        my $emit = 0;
         for my $mirrorhash (@$mirrors) {
             my $mirror = $mirrorhash->{url};
             my $ok = 0;
@@ -72,11 +87,13 @@ sub register {
                 $c->emit_event('mc_path_hit', {path => $dirname, mirror => $mirror});
                 return $mirror;
             } else {
-                $c->emit_event('mc_mirror_probe', {mirror => $mirror, error => $err, tag => 1});
+                $emit = 1;
+                # $c->emit_event('mc_mirror_probe', {mirror => $mirror, error => $err, tag => 1});
+                # $c->emit_event('mc_mirror_probe', $dirname);
             }
         }
 
-        $c->emit_event('mc_path_miss', $dirname);
+        $c->emit_event('mc_mirror_probe', $dirname) if $emit;
         return undef;
     });
     return $app;

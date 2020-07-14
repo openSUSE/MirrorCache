@@ -2,6 +2,12 @@
 create table folder (
     id serial NOT NULL PRIMARY KEY,
     path varchar(512) UNIQUE NOT NULL,
+    db_sync_last timestamp,
+    db_sync_scheduled timestamp,
+    db_sync_priority int NOT NULL DEFAULT 10,
+    -- scan_last timestamp,
+    -- scan_scheduled timestamp,
+    -- scan_priority int,
     files int,
     size bigint
 );

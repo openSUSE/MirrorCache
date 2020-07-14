@@ -37,9 +37,11 @@ sub register_tasks {
     my $app = $self->app;
     $app->plugin($_)
       for (
-        qw(MirrorCache::Task::MirrorScanScheduleFromMisses),
+        qw(MirrorCache::Task::MirrorScanScheduleFromProbeErrors),
         qw(MirrorCache::Task::MirrorScan),
-        qw(MirrorCache::Task::FolderScan),
+        qw(MirrorCache::Task::FolderSyncScheduleFromMisses),
+        qw(MirrorCache::Task::FolderSyncSchedule),
+        qw(MirrorCache::Task::FolderSync),
       );
 }
 
@@ -84,15 +86,25 @@ sub count_jobs {
     return ($res && exists $res->{total}) ? $res->{total} : 0;
 }
 
-# rase condition here souldn't be big issue
+# raсe condition here souldn't be big issue
 sub enqueue_unless_scheduled {
     my ($self, $task, @args) = @_;
     my $minion = $self->app->minion;
     my $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive']});
-    return 0 unless ($res && exists $res->{total} && $res->{total} == 0);
+    return 0 unless ($res || !exists $res->{total} || $res->{total} > 0);
     $minion->enqueue($task, @args);
 }
 
+# raсe condition here souldn't be big issue
+sub enqueue_unless_scheduled_with_parameter_or_limit {
+    my ($self, $task, $arg) = @_;
+    my $minion = $self->app->minion;
+    my $res = $minion->backend->list_jobs(0, 1000, {tasks => [$task], states => ['inactive','active']});
+    return (0, 'limit') unless ($res || !exists $res->{total} || $res->{total} > 1000);
+    $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive','active'], notes => [$arg] });
+    return (0, 'already scheduled') unless ($res || !exists $res->{total} || $res->{total} > 0);
+    return $minion->enqueue($task => [($arg)] => {notes => { $arg => 1 }} );
+}
 
 
 1;
@@ -101,15 +113,15 @@ sub enqueue_unless_scheduled {
 
 =head1 NAME
 
-MirrorCache::WebAPI::Plugin::Minion - The Minion job queue
+MirrorCache::WebAPI::Plugin::Backstage - The Minion job queue
 
 =head1 SYNOPSIS
 
-    $app->plugin('MirrorCache::WebAPI::Plugin::Minion');
+    $app->plugin('MirrorCache::WebAPI::Plugin::Backstage');
 
 =head1 DESCRIPTION
 
-L<MirrorCache::WebAPI::Plugin::Minion> is the WebAPI job queue (and a tiny wrapper
+L<MirrorCache::WebAPI::Plugin::Backstage> is the WebAPI job queue (and a tiny wrapper
 around L<Minion>).
 
 =cut
