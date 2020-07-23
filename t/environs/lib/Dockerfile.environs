@@ -1,5 +1,5 @@
 #!BuildTag: serviced
-FROM opensuse/leap:15.1
+FROM opensuse/leap:15.2
 ENV container docker
 
 ENV LANG en_US.UTF-8
@@ -9,7 +9,7 @@ WORKDIR /opt
 RUN git clone -b mirror_cache https://github.com/andrii-suse/environs
 WORKDIR /opt/environs
 
-RUN zypper ar -f http://download.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.1 perl
+RUN zypper ar -f http://download.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.2 perl
 RUN zypper --gpg-auto-import-keys ref
 
 RUN zypper -n install perl-DBIx-Class perl-Data-Dumper-Concise perl-Digest-MD5 perl-Mojolicious perl-Mojo-Pg sudo vim postgresql postgresql-server \
