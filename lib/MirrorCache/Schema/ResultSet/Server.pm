@@ -32,7 +32,7 @@ from server s
 left join server_capability cap_asn_only on s.id = cap_asn_only.server_id and cap_asn_only.capability = 'as_only'
 join folder_diff_server fds on fds.server_id = s.id
 join folder_diff fd on fd.id = fds.folder_diff_id
-join file fl on fl.folder_id = ? and fl.name = ? and fl.dt <= fd.dt
+join file fl on fl.folder_id = ? and fl.name = ? and fl.folder_id = fd.folder_id and fl.dt <= fd.dt
 left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
 where fdf.file_id is NULL
 and cap_asn_only.server_id is NULL
@@ -51,7 +51,7 @@ sub folder {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = "select s.id as server_id, concat('http://',s.hostname,s.urldir,f.path) as url from server s join folder f on f.id=? left join folder_diff fd on fd.folder_id = f.id left join folder_diff_server fds on fd.id = fds.folder_diff_id and server_id=s.id";
+    my $sql = "select s.id as server_id, concat('http://',s.hostname,s.urldir,f.path) as url, fd.id as diff_id from server s join folder f on f.id=? left join folder_diff fd on fd.folder_id = f.id left join folder_diff_server fds on fd.id = fds.folder_diff_id and server_id=s.id";
 
     my $prep = $dbh->prepare($sql);
     $prep->execute($id);

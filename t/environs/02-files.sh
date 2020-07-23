@@ -71,9 +71,9 @@ mc9*/backstage/shoot.sh
 curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep 302
 
 # now add new file only on main server and make sure it doesn't try to redirect
-touch mc9/dt/folder1/file4.dat
+touch mc9/dt/folder2/file4.dat
 
-curl -Is http://127.0.0.1:3190/download/folder1/file4.dat | grep 200
+curl -Is http://127.0.0.1:3190/download/folder2/file4.dat | grep 200
 mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
@@ -82,7 +82,8 @@ test 2 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff_server" mc_test)
 
 cnt="$(pg9*/sql.sh -t -c "select count(*) from audit_event" mc_test)"
 
-curl -Is http://127.0.0.1:3190/download/folder1/file4.dat | grep 200
+curl -Is http://127.0.0.1:3190/download/folder2/file4.dat | grep 200
+curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 302
 
 # it shouldn't try to probe yet, because scanner didn't find files on the mirrors
 test 0 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name = 'mirror_probe' and id > $cnt" mc_test)
