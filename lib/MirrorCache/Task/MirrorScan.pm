@@ -100,7 +100,15 @@ sub _scan {
             return undef if $folder_on_mirror->{folder_diff_id} && $folder_diff->id eq $folder_on_mirror->{folder_diff_id};
 
             # $schema->resultset('FolderDiffServer')->update_or_create_by_folder_id({folder_diff_id => $folder_diff->{id}, server_id => $folder_on_mirror->{server_id}});
-            my $fds = $schema->resultset('FolderDiffServer')->find_or_new(server_id => $folder_on_mirror->{server_id});
+            my $fds;
+            my $old_diff_id = $folder_on_mirror->{diff_id} || 0;
+            if ($old_diff_id) {
+                # we need update existing entry
+                $fds = $schema->resultset('FolderDiffServer')->find( {server_id => $folder_on_mirror->{server_id}, folder_diff_id => $old_diff_id} );
+            } else {
+                # need new entry
+                $fds = $schema->resultset('FolderDiffServer')->new( {server_id => $folder_on_mirror->{server_id} } );
+            }
             $fds->folder_diff_id($folder_diff->id);
             $fds->update_or_insert;
         })->catch(sub {
