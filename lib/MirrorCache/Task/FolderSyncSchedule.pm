@@ -35,12 +35,12 @@ sub _run {
     my $schema = $app->schema;
     my $limit = 1000;
 
-    # retry later if some sync_folder jobs are active (TODO improve it)
+    # retry later if some folder_sync jobs are active (TODO improve it)
     my $cnt = $minion->jobs({states => ['inactive', 'active'], tasks => ['sync_folder']})->total;
     return $job->retry({delay => 30}) if $cnt;
 
     my @folders = $schema->resultset('Folder')->search({
-        db_sync_scheduled => { '!=', undef } 
+        db_sync_scheduled => { '>', \"COALESCE(db_sync_last - 1*interval '1 second', db_sync_scheduled - 1*interval '1 second')" }
     }, {
         order_by => { -asc => [qw/db_sync_scheduled -db_sync_priority/] },
         rows => $limit
@@ -51,8 +51,7 @@ sub _run {
         $cnt = $cnt + 1;
     }
     $job->note(count => $cnt);
-    $app->backstage->enqueue_unless_scheduled(folder_sync_schedule => [] => {delay => 30});
-    return $job->finish($cnt);
+    return $job->retry({delay => 10});
 }
 
 1;

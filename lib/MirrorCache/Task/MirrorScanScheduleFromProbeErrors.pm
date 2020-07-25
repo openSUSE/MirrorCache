@@ -26,12 +26,15 @@ sub register {
 sub _run {
     my ($app, $job, $prev_event_log_id) = @_;
 
+    my $id_in_notes = $job->info->{notes}{event_log_id};
+    $prev_event_log_id = $id_in_notes if $id_in_notes;
+
+    my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
     return $job->finish('Previous schedule_from_probe_errors job is still active')
-      unless my $guard = $app->minion->guard('mirror_scan_schedule_from_probe_errors', 86400);
+      unless my $guard = $minion->guard('mirror_scan_schedule_from_probe_errors', 86400);
 
     my $schema = $app->schema;
-    my $minion = $app->minion;
     my $limit = 1000;
 
     my ($event_log_id, $paths) = $schema->resultset('AuditEvent')->mirror_probe_errors($prev_event_log_id, $limit);
@@ -44,8 +47,8 @@ sub _run {
         }
         $paths = $schema->resultset('AuditEvent')->mirror_probe_errors($event_log_id, $limit);
     }
-    $job->note(count => $cnt);
-    $app->backstage->enqueue_unless_scheduled(mirror_scan_schedule_from_probe_errors => [$event_log_id] => {delay => 5});
+    $job->note({event_log_id => $event_log_id});
+    return $job->retry({delay => 5});
 }
 
 1;
