@@ -26,6 +26,9 @@ sub register {
 sub _run {
     my ($app, $job, $prev_event_log_id) = @_;
 
+    my $id_in_notes = $job->info->{notes}{event_log_id};
+    $prev_event_log_id = $id_in_notes if $id_in_notes;
+
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
     return $job->finish('Previous schedule_from_misses job is still active')
@@ -52,8 +55,8 @@ sub _run {
         }
         $paths = $schema->resultset('AuditEvent')->path_misses($event_log_id, $limit);
     }
-    $job->note(count => $cnt);
-    $app->backstage->enqueue_unless_scheduled(folder_sync_schedule_from_misses => [$event_log_id] => {delay => 5});
+    $job->note({event_log_id => $event_log_id});
+    return $job->retry({delay => 5});
 }
 
 1;
