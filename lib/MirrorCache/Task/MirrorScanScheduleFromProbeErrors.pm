@@ -25,9 +25,12 @@ sub register {
 
 sub _run {
     my ($app, $job, $prev_event_log_id) = @_;
-
+    my $job_id = $job->id;
+    my $pref = "[scan_from_probe_errors $job_id]";
     my $id_in_notes = $job->info->{notes}{event_log_id};
     $prev_event_log_id = $id_in_notes if $id_in_notes;
+    print(STDERR "$pref read id from notes: $id_in_notes\n") if $id_in_notes;
+    print(STDERR "$pref use id from param: $prev_event_log_id\n") if $prev_event_log_id && (!$id_in_notes || $prev_event_log_id != $id_in_notes);
 
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
@@ -39,15 +42,19 @@ sub _run {
 
     my ($event_log_id, $paths) = $schema->resultset('AuditEvent')->mirror_probe_errors($prev_event_log_id, $limit);
 
-    my $cnt = 0;
     while (scalar(@$paths)) {
+        my $cnt = 0;
+        $prev_event_log_id = $event_log_id;
+        print(STDERR "$pref read id from event log up to: $event_log_id\n");
         for my $path (@$paths) {
             $minion->enqueue('mirror_scan' => [$path] => {priority => 10});
             $cnt = $cnt + 1;
         }
-        $paths = $schema->resultset('AuditEvent')->mirror_probe_errors($event_log_id, $limit);
+        last unless $cnt;
+        ($event_log_id, $paths) = $schema->resultset('AuditEvent')->mirror_probe_errors($prev_event_log_id, $limit);
     }
-    $job->note({event_log_id => $event_log_id});
+    print(STDERR "$pref will retry with id: $prev_event_log_id\n");
+    $job->note(event_log_id => $prev_event_log_id);
     return $job->retry({delay => 5});
 }
 

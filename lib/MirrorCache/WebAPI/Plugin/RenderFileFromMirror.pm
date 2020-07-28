@@ -46,7 +46,7 @@ sub register {
             $c->emit_event('mc_path_miss', $dirname);
             return $c->mc->root->render_file($c, $filepath); # TODO we still can check file on mirrors even if it is missing
         }
-        $c->render_later;
+        my $tx = $c->render_later->tx;
         my $mirrors = $c->schema->resultset('Server')->mirrors_country($c->mmdb->country(), $folder->id, $basename);
         my $ua  = Mojo::UserAgent->new;
         my $emit = 0;
@@ -75,6 +75,7 @@ sub register {
                 $emit = 1;
             })->finally(sub {
                 return $recurs1->($code);
+                my $reftx = $tx;
             })->wait;
         };
         $recurs1 = $recurs;

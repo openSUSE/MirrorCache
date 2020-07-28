@@ -51,7 +51,7 @@ sub folder {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = "select s.id as server_id, concat('http://',s.hostname,s.urldir,f.path) as url, fd.id as diff_id from server s join folder f on f.id=? left join folder_diff fd on fd.folder_id = f.id left join folder_diff_server fds on fd.id = fds.folder_diff_id and server_id=s.id";
+    my $sql = "select s.id as server_id, concat('http://',s.hostname,s.urldir,f.path) as url, fd.id as diff_id from server s join folder f on f.id=? left join folder_diff fd on fd.folder_id = f.id left join folder_diff_server fds on fd.id = fds.folder_diff_id and server_id=s.id and fds.server_id=s.id  where fds.folder_diff_id IS NOT DISTINCT FROM fd.id order by s.id";
 
     my $prep = $dbh->prepare($sql);
     $prep->execute($id);

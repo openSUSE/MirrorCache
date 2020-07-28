@@ -59,7 +59,7 @@ sub _scan {
     my $ua = Mojo::UserAgent->new;
     for my $folder_on_mirror (@$folder_on_mirrors) {
         my $server_id = $folder_on_mirror->{server_id};
-        my $url = $folder_on_mirror->{url};
+        my $url = $folder_on_mirror->{url} . '/';
         my $promise = $ua->get_p($url)->then(sub {
             my $tx = shift;
             # return $schema->resultset('Server')->forget_folder($folder_on_mirror->{server_id}, $folder_on_mirror->{folder_diff_id}) if $tx->result->code == 404;
@@ -74,7 +74,7 @@ sub _scan {
             for my $i (sort { $a->attr->{href} cmp $b->attr->{href} } $dom->find('a')->each) {
                 my $href = $i->attr->{href};
                 my $text = trim $i->text;
-                if ($text eq $href) { # && -f $localdir . $text) {
+                if (substr($text, 0, 42) eq substr($href, 0, 42)) {
                     $ctx->add($href);
                     $mirrorfiles{$href} = 1;
                 }
@@ -96,21 +96,17 @@ sub _scan {
                 }
             }
             $job->note("hash$server_id" => $digest);
-            # do nothing if diff_id is the same
-            return undef if $folder_on_mirror->{folder_diff_id} && $folder_diff->id eq $folder_on_mirror->{folder_diff_id};
-
-            # $schema->resultset('FolderDiffServer')->update_or_create_by_folder_id({folder_diff_id => $folder_diff->{id}, server_id => $folder_on_mirror->{server_id}});
-            my $fds;
             my $old_diff_id = $folder_on_mirror->{diff_id} || 0;
+            # do nothing if diff_id is the same
+            return undef if $folder_diff->id == $old_diff_id;
+
             if ($old_diff_id) {
                 # we need update existing entry
-                $fds = $schema->resultset('FolderDiffServer')->find( {server_id => $folder_on_mirror->{server_id}, folder_diff_id => $old_diff_id} );
+                $schema->resultset('FolderDiffServer')->update_diff_id($folder_diff->id, $folder_on_mirror->{server_id}, $old_diff_id);
             } else {
                 # need new entry
-                $fds = $schema->resultset('FolderDiffServer')->new( {server_id => $folder_on_mirror->{server_id} } );
+                $schema->resultset('FolderDiffServer')->create( {server_id => $folder_on_mirror->{server_id}, folder_diff_id => $folder_diff->id } );
             }
-            $fds->folder_diff_id($folder_diff->id);
-            $fds->update_or_insert;
         })->catch(sub {
             my $err = shift;
             return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $err}, $folder_on_mirror->{server_id});

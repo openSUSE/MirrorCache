@@ -6,7 +6,7 @@ ENV LANG en_US.UTF-8
 
 RUN zypper -n install git-core wget tar m4
 WORKDIR /opt
-RUN git clone -b mirror_cache https://github.com/andrii-suse/environs
+RUN git clone https://github.com/andrii-suse/environs
 WORKDIR /opt/environs
 
 RUN zypper ar -f http://download.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.2 perl
