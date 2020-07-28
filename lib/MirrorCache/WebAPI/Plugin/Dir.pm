@@ -129,7 +129,8 @@ sub indx {
             $c->mirrorcache->render_file($path);
         })->catch(sub {
             $c->mirrorcache->render_file($path);
-            $tx;
+            my $reftx = $tx;
+            my $refua = $ua;
         })->timeout(2)->wait;
     })->catch(sub {
         $c->render(status => 404, text => Dumper(\@_)); # TODO proper code?

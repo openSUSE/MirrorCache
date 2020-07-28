@@ -72,7 +72,6 @@ done
 curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep -E "$(ap9*/print_address.sh)"
 
 # force rescan
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
 # now expect to hit 
@@ -82,7 +81,6 @@ curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep -E "$(ap8*/prin
 touch ap9-system2/dt/folder1/file4.dat
 
 curl -Is http://127.0.0.1:3190/download/folder1/file4.dat | grep -E "$(ap9*/print_address.sh)"
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
 
@@ -100,11 +98,11 @@ for x in ap9-system2 ap7-system2 ap8-system2; do
     touch $x/dt/folder1/folder11/file1.dat
 done
 
+# sleep 5 # this is needed for schedule jobs to retry on next shoot
 curl -Is http://127.0.0.1:3190/download/folder1/folder11/file1.dat
 mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
-
 
 curl -Is http://127.0.0.1:3190/download/folder1/folder11/file1.dat
 curl -s http://127.0.0.1:3190/download/folder1/folder11/ | grep file1.dat

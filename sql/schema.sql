@@ -48,8 +48,10 @@ create table folder_diff_file (
 
 create table folder_diff_server (
     folder_diff_id bigint references folder_diff not null,
-    server_id int references server on delete cascade primary key not null
+    server_id int references server on delete cascade not null
 );
+
+ALTER TABLE folder_diff_server ADD PRIMARY KEY (server_id, folder_diff_id);
 
 create type server_capability_t as enum('http', 'https', 'ftp', 'rsync',
 'no_ipv4', 'no_ipv6',

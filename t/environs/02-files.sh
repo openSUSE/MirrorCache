@@ -78,7 +78,7 @@ mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
 
-test 2 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff_server" mc_test)
+test 4 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff_server" mc_test)
 
 cnt="$(pg9*/sql.sh -t -c "select count(*) from audit_event" mc_test)"
 
