@@ -31,10 +31,11 @@ sub _scan {
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
 
-    my $schema = $app->schema;
     my $minion = $app->minion;
+    return $job->finish('Previous mirror scan job is still active')
+        unless my $guard = $minion->guard('mirror_scan' . $path, 360);
 
-    # my $localfiles = $app->mc->root->list_filenames($path);
+    my $schema = $app->schema;
     my $folder = $schema->resultset('Folder')->find({path => $path});
     return undef unless $folder && $folder->id; # folder is not added to db yet
     # we collect max(dt) here to avoid race with new files added to DB
@@ -82,7 +83,6 @@ sub _scan {
             my $digest = $ctx->hexdigest;
             my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest});
             unless ($folder_diff) {
-                my $guard = $app->minion->guard("create_folder_diff_${folder_id}_$digest" , 60);
                 $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder_id, hash => $digest});
                 unless($folder_diff->in_storage) {
                     $folder_diff->dt($latestdt);

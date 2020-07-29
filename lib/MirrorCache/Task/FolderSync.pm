@@ -28,13 +28,15 @@ sub _sync {
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
 
-    my $schema = $app->schema;
     my $minion = $app->minion;
+    return $job->finish('Previous folder sync job is still active')
+        unless my $guard = $minion->guard('folder_sync' . $path, 360);
+
+    my $schema = $app->schema;
     my $root   = $app->mc->root;
     return $job->finish("$path is not a dir") unless $root->is_dir($path);
 
     my $localfiles = $app->mc->root->list_filenames($path);
-    my $guard = $app->minion->guard('sync_folder' . $path, 360);
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($folder) {
         $folder = $schema->resultset('Folder')->find_or_create({path => $path});
