@@ -16,6 +16,7 @@ create table file (
     id bigserial primary key,
     folder_id bigint references folder,
     name varchar(512),
+    size varchar(64),
     dt timestamp,
     unique(folder_id, name)
 );
@@ -73,5 +74,19 @@ create table audit_event (
     event_data text,
     tag int,
     dt timestamp
+);
+
+create table acc (
+  id serial NOT NULL,
+  username varchar(64) NOT NULL,
+  email varchar(128),
+  fullname varchar(128),
+  nickname varchar(64),
+  is_operator integer DEFAULT 0 NOT NULL,
+  is_admin integer DEFAULT 0 NOT NULL,
+  t_created timestamp NOT NULL,
+  t_updated timestamp NOT NULL,
+  PRIMARY KEY (id),
+  CONSTRAINT acc_username UNIQUE (username)
 );
 

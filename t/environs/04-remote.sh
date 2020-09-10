@@ -104,5 +104,5 @@ mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
 
-curl -Is http://127.0.0.1:3190/download/folder1/folder11/file1.dat
+curl -Is http://127.0.0.1:3190/download/folder1/folder11/file1.dat | grep -E '1314|1304'
 curl -s http://127.0.0.1:3190/download/folder1/folder11/ | grep file1.dat
