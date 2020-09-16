@@ -20,6 +20,10 @@ RUN zypper -n install gzip gcc make
 RUN cpanm Mojolicious::Plugin::ClientIP --sudo
 RUN cpanm MaxMind::DB::Reader --sudo || :
 
+RUN zypper -n install perl-Mojolicious-Plugin-AssetPack perl-Net-OpenID-Consumer perl-LWP-Protocol-https perl-URI
+
+RUN zypper -n install ruby ruby-devel ruby2.5-rubygem-sass
+
 RUN ln /usr/sbin/httpd /sbin/httpd 
 
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]

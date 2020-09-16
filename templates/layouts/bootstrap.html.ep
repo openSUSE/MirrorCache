@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <!-- Meta, title, CSS, favicons, etc. -->
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+      <meta name="csrf-token" content="<%= csrf_token %>" />
+      <meta name="csrf-param" content="csrf_token" />
+
+      <title><%= "MirrorCache" %></title>
+      <!-- Bootstrap core CSS -->
+      %= asset 'bootstrap.css'
+      %= asset 'bootstrap.js'
+
+      %= content_for 'head'
+
+      %= javascript begin
+          %= content_for 'head_javascript'
+          $(function() {
+            setupForAll();
+            %= content_for 'ready_function'
+          } );
+      % end
+
+  </head>
+  <body>
+      %= include 'layouts/navbar'
+      <div class="container-fluid" id="content">
+          %= content
+      </div>
+
+      <footer class='footer'>
+          <div class='container-fluid'>
+              <div id="footer-links">
+                  <span class="left">
+                      %= include 'links_footer_left'
+                  </span>
+                  <span class="right">
+                      %= include 'links_footer_right'
+                  </span>
+              </div>
+              <div id='footer-legal' class="text-center">
+              </div>
+            </div>
+      </footer>
+  </body>
+</html>

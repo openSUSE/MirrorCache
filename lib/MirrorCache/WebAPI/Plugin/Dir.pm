@@ -21,39 +21,6 @@ use Mojo::JSON qw(encode_json);
 use POSIX;
 use Data::Dumper;
 
-# Stolen from Plack::App::Direcotry
-my $dir_page = <<'PAGE';
-<html><head>
-  <title>Index of <%= $cur_path %></title>
-  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-  <style type='text/css'>
-table { width:100%%; }
-.name { text-align:left; }
-.size, .mtime { text-align:right; }
-.type { width:11em; }
-.mtime { width:15em; }
-  </style>
-</head><body>
-<h1>Index of <%= $cur_path %></h1>
-<hr />
-<table>
-  <tr>
-    <th class='name'>Name</th>
-    <th class='size'>Size</th>
-    <th class='type'>Type</th>
-    <th class='mtime'>Last Modified</th>
-  </tr>
-  % for my $file (@$files) {
-  <tr><td class='name'><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td><td class='size'><%= $file->{size} %></td><td class='type'><%= $file->{type} %></td><td class='mtime'><%= $file->{mtime} %></td></tr>
-  % }
-  % if (!$files || @$files == 0) {
-  <tr>Folder is empty</tr>
-  % }
-</table>
-<hr />
-</body></html>
-PAGE
-
 my $root;
 
 sub register {
@@ -178,14 +145,13 @@ sub render_dir {
     $folder    = $rsFolder->find({path => $dir}) unless $folder;
 
     if ($folder) {
+        my $files;
         if ($folder->db_sync_last) {
-            my $files  = $root->list_files_from_db($c->req->url->path, $folder->id, $dir);
-            my $any = { inline => $dir_page, files => $files, cur_path => $dir };
-            return $c->render( %$any );
+            $files  = $root->list_files_from_db($c->req->url->path, $folder->id, $dir);
+            return $c->render( 'dir', files => $files, cur_path => $dir );
         } elsif (!$root->is_remote) { # for local root we can list content of directory
-            my $files  = $root->list_files($c->req->url->path, $dir);
-            my $any = { inline => $dir_page, files => $files, cur_path => $dir };
-            return $c->render( %$any );
+            $files  = $root->list_files($c->req->url->path, $dir);
+            return $c->render( 'dir', files => $files, cur_path => $dir );
         }
    }
    my $pos = $rsFolder->get_db_sync_queue_position($dir);

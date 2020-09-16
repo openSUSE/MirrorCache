@@ -48,15 +48,9 @@ MirrorCache::WebAPI::Command::backstage::run - Backstage worker run command
 
   Usage: APPLICATION backstage run [OPTIONS]
 
-    script/openqa backstage run
-    script/openqa backstage run -o
-
   Options:
     -o, --oneshot       Perform all currently enqueued jobs and then exit
         --reset-locks   Reset all remaining locks before startup
-
-    See 'script/openqa backstage worker -h' for all available options.
-
 
 =head1 DESCRIPTION
 

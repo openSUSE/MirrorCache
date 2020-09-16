@@ -38,7 +38,7 @@ sub emit_event {
 
 =head1 NAME
 
-MirrorCache::Events - A global event emitter for openQA
+MirrorCache::Events - A global event emitter
 
 =head1 SYNOPSIS
 

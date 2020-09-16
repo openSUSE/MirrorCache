@@ -1,0 +1,4 @@
+% layout 'bootstrap';
+% title '';
+
+%= include 'layouts/info'

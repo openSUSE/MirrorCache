@@ -10,25 +10,15 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, see <http://www.gnu.org/licenses/>.
 
-package MirrorCache::Utils;
+package MirrorCache::WebAPI::Controller::App::Table;
+use Mojo::Base 'Mojolicious::Controller';
 
-use strict;
-use warnings;
-
-use Exporter 'import';
-
-our @EXPORT_OK = qw(
-  random_string
-);
-
-
-sub random_string {
-    my ($length, $chars) = @_;
-    $length //= 16;
-    $chars  //= ['a' .. 'z', 'A' .. 'Z', '0' .. '9', '_'];
-    return join('', map { $chars->[rand @$chars] } 1 .. $length);
+sub admintable {
+    my ($self, $template) = @_;
+    $self->render("admin/$template/index");
 }
 
 1;

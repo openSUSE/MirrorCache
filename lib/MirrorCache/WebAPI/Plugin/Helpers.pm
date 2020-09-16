@@ -53,6 +53,41 @@ sub register {
             my $user = 0; # TBD
             return MirrorCache::Events->singleton->emit($name, [$user, $name, $data, $tag]);
         });
+
+    $app->helper(current_user     => \&_current_user);
+    $app->helper(is_operator      => \&_is_operator);
+    $app->helper(is_admin         => \&_is_admin);
+
+    $app->helper(is_admin_js    => sub { Mojo::ByteStream->new(shift->helpers->is_admin    ? 'true' : 'false') });
 }
+
+sub _current_user {
+    my $c = shift;
+
+    # If the value is not in the stash
+    my $current_user = $c->stash('current_user');
+    unless ($current_user && ($current_user->{no_user} || defined $current_user->{user})) {
+        my $id   = $c->session->{user};
+        my $user = $id ? $c->schema->resultset("Acc")->find({username => $id}) : undef;
+        $c->stash(current_user => $current_user = $user ? {user => $user} : {no_user => 1});
+    }
+
+    return $current_user && defined $current_user->{user} ? $current_user->{user} : undef;
+}
+
+sub _is_operator {
+    my $c    = shift;
+    my $user = shift || $c->current_user;
+
+    return ($user && $user->is_operator);
+}
+
+sub _is_admin {
+    my $c    = shift;
+    my $user = shift || $c->current_user;
+
+    return ($user && $user->is_admin);
+}
+
 
 1;

@@ -16,11 +16,13 @@
 package MirrorCache::WebAPI;
 use Mojo::Base 'Mojolicious';
 
-
 use MirrorCache::Schema;
 use MaxMind::DB::Reader;
 
 use Mojolicious::Commands;
+use Mojo::Loader 'load_class';
+
+use MirrorCache::Utils 'random_string';
 
 # This method will run once at server start
 sub startup {
@@ -36,7 +38,46 @@ sub startup {
     # take care of DB deployment or migration before starting the main app
     MirrorCache::Schema->singleton;
 
+    # load auth module
+    my $auth_method = $self->config->{auth}->{method} || "OpenID";
+    my $auth_module = "MirrorCache::Auth::$auth_method";
+    if (my $err = load_class $auth_module) {
+        $err = 'Module not found' unless ref $err;
+        die "Unable to load auth module $auth_module: $err";
+    }
+    $self->config->{_openid_secret} = random_string(16);
+
+    # Optional initialization with access to the app
+
     push @{$self->commands->namespaces}, 'MirrorCache::WebAPI::Command';
+    my $r = $self->routes->namespaces(['MirrorCache::WebAPI::Controller']);
+    $r->post('/session')->to('session#create');
+    $r->delete('/session')->to('session#destroy');
+    $r->get('/login')->name('login')->to('session#create');
+    $r->post('/login')->to('session#create');
+    $r->post('/logout')->name('logout')->to('session#destroy');
+    $r->get('/logout')->to('session#destroy');
+    $r->get('/response')->to('session#response');
+    $r->post('/response')->to('session#response');
+
+    my $rest = $r->any('/rest');
+    my $rest_r    = $rest->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
+    $rest_r->get('/server')->name('rest_server')->to('table#list', table => 'Server');
+    $rest_r->get('/server/:id')->to('table#list', table => 'Server');
+    $rest_r->post('/server')->to('table#create', table => 'Server');
+    $rest_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
+    $rest_r->delete('/server/:id')->to('table#destroy', table => 'Server');
+
+    my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
+    my $app_admin = $app_r->under('/')->to('session#ensure_admin')->name('ensure_admin');
+    my $app_admin_r = $app_admin->any('/');
+    $app_r->get('/server')->name('server')->to('server#index');
+
+    $r->get('/index' => sub { shift->render('main/index') });
+    $r->get('/' => sub { shift->render('main/index') })->name('index');
+
+    $self->plugin(AssetPack => {pipes => [qw(Sass Css JavaScript Fetch Combine)]});
+    $self->asset->process;
 
     $self->plugin('DefaultHelpers');
     $self->plugin('RenderFile');
@@ -58,6 +99,7 @@ sub startup {
     $self->plugin('AuditLog');
     $self->plugin('Dir');
     $self->plugin('RenderFileFromMirror');
+    $self->plugin('HashedParams');
 
     $self->routes->get('/')->to(cb => sub {
         my $c = shift;
