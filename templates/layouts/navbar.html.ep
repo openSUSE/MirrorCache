@@ -9,6 +9,9 @@
          <li class='nav-item' id="download_root">
             %= link_to 'Downloads' => url_for('/download/') => class => 'nav-link'
          </li>
+         <li class='nav-item' id="server">
+            %= link_to 'Servers' => url_for('server') => class => 'nav-link'
+         </li>
         </ul>
         <ul class="navbar-nav ml-auto">
         % if (current_user) {
@@ -18,8 +21,11 @@
                     <span class="caret"></span>
                 </a>
                 <div class="dropdown-menu">
-                  %= tag 'h3' => class => 'dropdown-header' => 'Operators Menu'
+                  %= tag 'h3' => class => 'dropdown-header' => 'Forms'
                   %= link_to 'Servers' => url_for('server') => class => 'dropdown-item'
+                  % if (is_operator) {
+                  %= link_to 'Background jobs' => url_for('minion') => class => 'dropdown-item'
+                  % } 
                   %= link_to 'Logout' => url_for('logout') => class => 'dropdown-item'
                 </div>
             </li>

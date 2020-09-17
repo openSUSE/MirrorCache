@@ -62,17 +62,11 @@ sub register {
     }
     $conn->dsn($self->dsn());
 
-    # # set the search path in accordance with the test setup done in MirrorCache::Test::Database
-    # if (my $search_path = $schema->search_path_for_tests) {
-    #     log_info("setting database search path to $search_path when registering Minion plugin\n");
-    #     $conn->search_path([$search_path]);
-    # }
-
     $app->plugin(Minion => {Pg => $conn});
     $self->register_tasks;
 
     # Enable the Minion Admin interface under /minion
-    my $auth = $app->routes->under('/minion'); # ->to('session#ensure_admin'); TODO only authorized users
+    my $auth = $app->routes->under('/minion')->to('session#ensure_operator');
     $app->plugin('Minion::Admin' => {route => $auth});
 
     my $backstage = MirrorCache::WebAPI::Plugin::Backstage->new($app);
