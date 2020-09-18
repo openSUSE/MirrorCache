@@ -5,9 +5,47 @@
 table { width:100%%; }
 .name { text-align:left; }
   </style>
+% my $stats = url_for '/download' . $cur_path;
+<script>
+      $(function () {
+        pollFolderStats('<%= $stats %>');
+      });
+</script>
 </head><body>
-<h1>Index of <%= $cur_path %></h1>
-<hr />
+<nav
+      class="navbar navbar-expand-lg navbar-light bg-light mb-3 border-bottom">
+  <div class="container">
+<h4>Mirrors status for <%= $cur_path %>: </h4>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarFolderStatus" aria-controls="navbarFolderStatus" aria-expanded="false" aria-label="Toggle navigation">
+       <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarFolderStats">
+          <ul class="navbar-nav mr-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="<%= $stats->query(status => 'synced') %>">
+                Synced <span class="badge badge-pill badge-secondary folder-stats-servers-synced">.</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="<%= $stats->query(status => 'outdated') %>">
+                Outdated <span class="badge badge-pill badge-secondary folder-stats-servers-outdated">.</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="<%= $stats->query(status => 'missing') %>">
+                Missing <span class="badge badge-pill badge-secondary folder-stats-servers-missing">.</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="<%= $stats->query(status => 'all') %>">
+                Last synced at <span class="badge badge-pill badge-secondary folder-stats-last-sync">.</span>
+              </a>
+            </li>
+          </ul>
+    </div>
+  </div>
+</nav>
+<hr/>
 <table>
   <tr>
     <th class='name'>Name</th>

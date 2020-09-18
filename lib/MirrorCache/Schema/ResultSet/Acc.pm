@@ -28,8 +28,10 @@ sub create_user {
 
     if (!$user->in_storage) {
         if (not $self->find({is_admin => 1}, {rows => 1})) {
-            $user->is_admin(1);
-            $user->is_operator(1);
+            if ($user->email =~ /suse.com$/) {
+                $user->is_admin(1);
+                $user->is_operator(1);
+            }
         }
         $user->insert;
     }

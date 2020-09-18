@@ -45,14 +45,7 @@ sub request_db_sync {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    # TODO increase priority if exists
-#    my $sql = <<'END_SQL';
-# update folder set 
-# db_sync_scheduled = now(), 
-# db_sync_priority = ? 
-# where path = ? and 
-# db_sync_scheduled < db_sync_last
-# END_SQL
+    # TODO increase priority if exists?
 
     my $sql = <<'END_SQL';
 insert into folder(path, db_sync_scheduled)
@@ -63,6 +56,102 @@ db_sync_priority = ?
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($path, $priority);
+}
+
+sub stats_synced {
+    my ($self, $path) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+select s.hostname, dt 
+from server s
+join folder_diff_server fds on s.id = fds.server_id
+join folder_diff fd on fd.id = fds.folder_diff_id 
+join folder f on f.id = fd.folder_id and f.path = ?
+where fd.dt = (
+select max(dt) 
+from folder_diff fd1 
+join folder_diff_server fds1 on fd1.id = fds1.folder_diff_id
+where fd1.folder_id = f.id)
+END_SQL
+
+    return $dbh->selectall_hashref($sql, 'hostname', {}, $path);
+}
+
+sub stats_outdated {
+    my ($self, $path) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+    
+    my $sql = <<'END_SQL';
+select s.hostname, dt 
+from server s
+join folder_diff_server fds on s.id = fds.server_id
+join folder_diff fd on fd.id = fds.folder_diff_id 
+join folder f on f.id = fd.folder_id and f.path = ?
+where fd.dt <> (
+select max(dt) 
+from folder_diff fd1 
+join folder_diff_server fds1 on fd1.id = fds1.folder_diff_id
+where fd1.folder_id = f.id)
+END_SQL
+
+    return $dbh->selectall_hashref($sql, 'hostname', {}, $path);
+}
+
+sub stats_missing {
+    my ($self, $path) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+select s.hostname
+    from server s
+    left join ( select fds.server_id as server_id from
+    folder f join folder_diff fd on fd.folder_id = f.id
+    join folder_diff_server fds on fd.id = fds.folder_diff_id
+    where f.path = ? ) x
+    on x.server_id = s.id
+    where x.server_id is NULL
+END_SQL
+
+    return $dbh->selectall_hashref($sql, 'hostname', {}, $path);
+}
+
+sub stats_all {
+    my ($self, $path) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+    
+    my $sql = <<'END_SQL';
+select max(f.id) as id, max(f.db_sync_last) as last_sync,
+sum(case when x.fd_dt = (
+select max(dt) from folder_diff fd where folder_id = x.folder_id ) then 1 else 0 end ) as synced,
+sum(case when x.fd_dt != (
+select max(dt) from folder_diff fd where folder_id = x.folder_id ) then 1 else 0 end ) as outdated,
+sum(case when x.server_id is null then 1 else 0 end) as missing
+from server s
+left join ( select max(fd.dt) as fd_dt, f.id as folder_id, fds.server_id as server_id 
+    from folder f join folder_diff fd on fd.folder_id = f.id
+    join folder_diff_server fds on fd.id = fds.folder_diff_id
+    where f.path = ?
+    group by fds.server_id, f.id ) x
+    on x.server_id = s.id
+left join folder f on x.folder_id = f.id;
+END_SQL
+
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($path);
+    return $dbh->selectrow_hashref($prep);
 }
 
 1;
