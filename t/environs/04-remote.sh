@@ -106,3 +106,9 @@ mc9*/backstage/shoot.sh
 
 curl -Is http://127.0.0.1:3190/download/folder1/folder11/file1.dat | grep -E '1314|1304'
 curl -s http://127.0.0.1:3190/download/folder1/folder11/ | grep file1.dat
+
+
+curl -s http://127.0.0.1:3190/download/folder1?status=all | grep '"synced":2'| grep '"missing":0' | grep '"outdated":0'
+curl -s http://127.0.0.1:3190/download/folder1?status=synced | grep 127.0.0.1:1304 | grep 127.0.0.1:1314
+test {} == $(curl -s http://127.0.0.1:3190/download/folder1?status=outdated)
+test {} == $(curl -s http://127.0.0.1:3190/download/folder1?status=missing)

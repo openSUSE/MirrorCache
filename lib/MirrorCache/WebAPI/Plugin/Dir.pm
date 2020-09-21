@@ -17,7 +17,6 @@
 package MirrorCache::WebAPI::Plugin::Dir;
 use Mojo::Base 'Mojolicious::Plugin';
 
-use Mojo::JSON qw(encode_json);
 use POSIX;
 use Data::Dumper;
 
@@ -48,15 +47,19 @@ sub indx {
     my $is_dir   = '/' eq substr($path, -1) ? 1 : 0;
     # trim trailing slash
     $path = substr($path,0,-1) if $is_dir && $path ne '/';
+    if ($status) {
+        return _render_stats_all($c, $path) if $status eq 'all';
+        return _render_stats_synced($c, $path) if $status eq 'synced';
+        return _render_stats_outdated($c, $path) if $status eq 'outdated';
+        return _render_stats_missing($c, $path) if $status eq 'missing';
+        return $c->render(text => 1) if $root->is_file($path) || $root->is_dir($path);
+        return $c->render(status => 404, message => "path $path not found");
+    }
+
     my $schema   = $c->app->schema;
     unless ($root->is_remote) {
-        unless ($status) {
-            return render_dir($c, $path) if $root->is_dir($path);
-            return $c->mirrorcache->render_file($path) if !$is_dir && $root->is_file($path);
-        } else {
-            return $c->render(text => 1) if $root->is_file($path) || $root->is_dir($path);
-            return $c->render(status => 404, message => "path $path not found");
-        }
+        return _render_dir($c, $path) if $root->is_dir($path);
+        return $c->mirrorcache->render_file($path) if !$is_dir && $root->is_file($path);
         return undef;
     }
     # after this we are on remote root only
@@ -78,7 +81,7 @@ sub indx {
         }
     } else {
         my $folder   = $rsFolder->find({path => $path});
-        return render_dir($c, $path, $rsFolder, $folder) if $folder && ($folder->db_sync_last);
+        return _render_dir($c, $path, $rsFolder, $folder) if $folder && ($folder->db_sync_last);
     }
 
     my $tx = $c->render_later->tx;
@@ -112,24 +115,24 @@ sub render_dir_remote {
     my $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir);
     unless ($job_id) {
         $c->emit_event('mc_path_miss', $dir);
-        return render_dir($c, $dir, $rsFolder) unless $job_id;
+        return _render_dir($c, $dir, $rsFolder) unless $job_id;
     }
 
     $c->minion->result_p($job_id)->then(sub {
         $c->emit_event('mc_debug', "promiseok: $job_id");
-        render_dir($c, $dir, $rsFolder);
+        _render_dir($c, $dir, $rsFolder);
     })->catch(sub {
         $c->emit_event('mc_debug', "promisefail: $job_id " . Dumper(\@_));
         
         my $reason = $_;
         if ($reason eq 'Promise timeout') {
-            return render_dir($c, $dir, $rsFolder);
+            return _render_dir($c, $dir, $rsFolder);
         }
         $c->render(status => 500, text => Dumper($reason));
     })->timeout(10)->wait;
 }
 
-sub render_dir {
+sub _render_dir {
     my $c      = shift;
     my $dir    = shift;
     my $rsFolder = shift;
@@ -156,6 +159,46 @@ sub render_dir {
    }
    my $pos = $rsFolder->get_db_sync_queue_position($dir);
    $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
+}
+
+sub _render_stats_all {
+    my $c      = shift;
+    my $dir    = shift;
+
+    my $schema   = $c->app->schema;
+    my $rsFolder = $schema->resultset('Folder');
+
+    return $c->render(json => $rsFolder->stats_all($dir));
+}
+    
+sub _render_stats_synced {
+    my $c      = shift;
+    my $dir    = shift;
+
+    my $schema   = $c->app->schema;
+    my $rsFolder = $schema->resultset('Folder');
+
+    return $c->render(json => $rsFolder->stats_synced($dir));
+}
+
+sub _render_stats_outdated {
+    my $c      = shift;
+    my $dir    = shift;
+
+    my $schema   = $c->app->schema;
+    my $rsFolder = $schema->resultset('Folder');
+
+    return $c->render(json => $rsFolder->stats_outdated($dir));
+}
+
+sub _render_stats_missing {
+    my $c      = shift;
+    my $dir    = shift;
+
+    my $schema   = $c->app->schema;
+    my $rsFolder = $schema->resultset('Folder');
+
+    return $c->render(json => $rsFolder->stats_missing($dir));
 }
 
 1;

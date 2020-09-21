@@ -98,3 +98,14 @@ function htmlEscape(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 }
+
+function pollFolderStats(url) {
+  url = url.concat('?status=all');
+  $.get(url).done(function (data) {
+    $('.folder-stats-servers-synced').text(data.synced);
+    $('.folder-stats-servers-outdated').text(data.outdated);
+    $('.folder-stats-servers-missing').text(data.missing);
+    $('.folder-stats-last-sync').text(data.last_sync);
+    // setTimeout(function () { pollFolderStats(url) }, 3000);
+  }); // ).fail( function () { setTimeout(function () { pollStats(url) }, 3000) });
+}
