@@ -25,12 +25,14 @@ use Data::Dumper;
 sub singleton { state $root = shift->SUPER::new; return $root; };
 
 my $url;
+my $urllen;
 my $types = Mojolicious::Types->new;
 my $app;
 
 sub register {
     (my $self, $app) = @_;
     $url = $app->mc->rootlocation;
+    $urllen = length $url;
     $app->helper( 'mc.root' => sub { $self->singleton; });
 }
 
@@ -42,24 +44,48 @@ sub is_file {
     my $urlpath = $url . $_[1];
     my $ua = Mojo::UserAgent->new;
     my $tx = $ua->head($urlpath);
-    my $res = $tx->result->code; 
-    # my $res = Mojo::UserAgent->new->head($url . $_[1])->result->code;
-    return $res == 200 || $res == 302;
+    my $res = $tx->result; 
+    return ($res && !$res->is_error);
 }
 
 sub is_dir {
     my $urlpath = $url . $_[1] . '/';
-    my $res = 404;
+    my $res;
     eval {
         my $ua = Mojo::UserAgent->new;
         my $tx = $ua->head($urlpath);
-        $res = $tx->result->code;
-        # $res = Mojo::UserAgent->new->head($urlpath)->result->code;
-        
+        $res = $tx->result;
     } or $app->emit_event('mc_debug', {url => "u$urlpath", err => $@});
-    $app->emit_event('mc_debug', {url => "u$urlpath", is_dir => $res});
+    $app->emit_event('mc_debug', {url => "u$urlpath", code => ($res && !$res->is_error)});
 
-    return $res == 200 || $res == 302;
+    return ($res && !$res->is_error);
+}
+
+sub is_self_redirect {
+    my ($self, $path) = @_;
+    $path = $path . '/';
+    my $urlpath = $url . $path;
+    $app->emit_event('mc_debug', {url => "r$urlpath"});
+    my $res;
+    eval {
+        my $ua = Mojo::UserAgent->new;
+        my $tx = $ua->head($urlpath);
+        
+        $res = $tx->result;
+    } or $app->emit_event('mc_debug', {url => "r$urlpath", err => $@});
+    $app->emit_event('mc_debug', {url => "r$urlpath", code => $res->code});
+
+    return "" unless $res && !$res->is_error && $res->is_redirect && $res->headers;
+    my $location = $res->headers->location;
+    return "" unless $location && $path ne substr($location, -length($path));
+
+    my $i = rindex($location, $url, 0);
+    $app->emit_event('mc_debug', {url => "$urlpath", location => $location, i => $i});
+    if ($i ne -1) {
+        $app->emit_event('mc_debug', {url => "$urlpath", location => substr($location, $urllen)});
+        return substr $location, $urllen; 
+    }
+    return "";
 }
 
 sub render_file {

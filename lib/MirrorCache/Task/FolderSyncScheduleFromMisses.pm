@@ -61,6 +61,7 @@ sub _run {
         last unless $cnt;
         ($event_log_id, $paths) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
     }
+    $prev_event_log_id = 0 unless $prev_event_log_id;
     print(STDERR "$pref will retry with id: $prev_event_log_id\n");
     $job->note(event_log_id => $prev_event_log_id);
     return $job->retry({delay => 5});

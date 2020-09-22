@@ -34,10 +34,14 @@ sub _sync {
 
     my $schema = $app->schema;
     my $root   = $app->mc->root;
-    return $job->finish("$path is not a dir") unless $root->is_dir($path);
+
+    my $folder = $schema->resultset('Folder')->find({path => $path});
+    unless ($root->is_dir($path)) {
+        $folder->update({db_sync_last => $schema->storage->datetime_parser->format_datetime(DateTime->now())},  {db_sync_priority => 10}) if $folder; # prevent further sync attempts
+        return $job->finish("$path is not a dir");
+    }
 
     my $localfiles = $app->mc->root->list_filenames($path);
-    my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($folder) {
         $folder = $schema->resultset('Folder')->find_or_create({path => $path});
         foreach my $file (@$localfiles) {
