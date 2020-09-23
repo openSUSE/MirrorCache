@@ -46,6 +46,7 @@ sub indx {
     my $path     = Mojo::Util::url_unescape(substr($c->req->url->path, $route_len));
     my $is_dir   = '/' eq substr($path, -1) ? 1 : 0;
     # trim trailing slash
+    $path = "/" unless $path;
     $path = substr($path,0,-1) if $is_dir && $path ne '/';
     if ($status) {
         return _render_stats_all($c, $path) if $status eq 'all';

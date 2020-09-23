@@ -23,6 +23,10 @@ sub register {
     $app->minion->add_task(folder_sync => sub { _sync($app, @_) });
 }
 
+sub _now() {
+    return DateTime->now( time_zone => 'local' );
+}
+
 sub _sync {
     my ($app, $job, $path) = @_;
     return $job->fail('Empty path is not allowed') unless $path;
@@ -37,7 +41,7 @@ sub _sync {
 
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($root->is_dir($path)) {
-        $folder->update({db_sync_last => $schema->storage->datetime_parser->format_datetime(DateTime->now())},  {db_sync_priority => 10}) if $folder; # prevent further sync attempts
+        $folder->update({db_sync_last => _now()}, {db_sync_priority => 10}) if $folder; # prevent further sync attempts
         return $job->finish("$path is not a dir");
     }
 
@@ -50,7 +54,7 @@ sub _sync {
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         }
         $job->note(created => $path, count => scalar(@$localfiles));
-        $folder->update({db_sync_last => $schema->storage->datetime_parser->format_datetime(DateTime->now())}, {db_sync_priority => 10});
+        $folder->update({db_sync_last => _now()}, {db_sync_priority => 10});
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
         $minion->enqueue('mirror_scan' => [$path] => {priority => 10});
         return;
@@ -77,7 +81,7 @@ sub _sync {
         $cnt = $cnt + 1;
     }
     $schema->storage->datetime_parser;
-    $folder->update({db_sync_last => $schema->storage->datetime_parser->format_datetime(DateTime->now())}, {db_sync_priority => 10});
+    $folder->update({db_sync_last => _now()}, {db_sync_priority => 10});
     $job->note(updated => $path, count => $cnt);
     $minion->enqueue('mirror_scan' => [$path] => {priority => 10}) if $cnt;
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});

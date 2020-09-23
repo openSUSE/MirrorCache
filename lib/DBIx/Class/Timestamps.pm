@@ -29,7 +29,7 @@ sub add_timestamps {
 }
 
 sub now {
-    DateTime->now(time_zone => 'UTC');
+    DateTime->now(time_zone => 'local');
 }
 
 1;
