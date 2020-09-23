@@ -46,6 +46,7 @@ sub indx {
     my $path     = Mojo::Util::url_unescape(substr($c->req->url->path, $route_len));
     my $is_dir   = '/' eq substr($path, -1) ? 1 : 0;
     # trim trailing slash
+    $path = "/" unless $path;
     $path = substr($path,0,-1) if $is_dir && $path ne '/';
     if ($status) {
         return _render_stats_all($c, $path) if $status eq 'all';
@@ -65,25 +66,25 @@ sub indx {
     # after this we are on remote root only
     # first try to render from DB, then check in $root
     my $rsFolder = $schema->resultset('Folder');
+    my $folder = $rsFolder->find({path => $path});
 
-    unless ($is_dir) {
+    if ($folder) {
+        return _render_dir($c, $path, $rsFolder, $folder) if ($folder->db_sync_last);
+    } else {
         my $f = Mojo::File->new($path);
-        my $folder = $rsFolder->find({path => $f->dirname});
+        $folder = $rsFolder->find({path => $f->dirname});
         unless ($folder) {
-            $c->emit_event('mc_path_miss', $f->dirname) unless $folder;
+            $c->emit_event('mc_path_miss', $f->dirname);
         } else {
             my $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $folder->id });
             if ($file) {
-                $c->mirrorcache->render_file($path);
+                return $c->mirrorcache->render_file($path);
             } else {
                 $c->emit_event('mc_path_miss', $f->dirname);
             }
         }
-    } else {
-        my $folder   = $rsFolder->find({path => $path});
-        return _render_dir($c, $path, $rsFolder, $folder) if $folder && ($folder->db_sync_last);
     }
-
+    # Now try to get content asynchronically
     my $tx = $c->render_later->tx;
     my $url = $c->app->mc->rootlocation;
     my $ua = Mojo::UserAgent->new;
@@ -92,10 +93,15 @@ sub indx {
         $c->emit_event('mc_debug', "head_p: $url, $path, $code, $is_dir");
         return $c->render(status => $code, text => "Error trying to check $url$path : $code") unless $code == 200 || $code == 301 || $code == 302;
         $c->emit_event('mc_debug', "head_p: $url, $path, $code, 2");
+
+        my $redir = $root->is_self_redirect($path);
+        return $c->redirect_to($route . $redir) if $redir;
+
         return render_dir_remote($c, $path, $rsFolder) if $is_dir;
 
         $ua->head_p($url . $path . '/')->then(sub {
-            return render_dir_remote($c, $path, $rsFolder) unless $code == 200 || $code == 301 || $code == 302;
+            $code = shift->res->code;
+            return render_dir_remote($c, $path, $rsFolder) if $code == 200 || $code == 301 || $code == 302;
             $c->mirrorcache->render_file($path);
         })->catch(sub {
             $c->mirrorcache->render_file($path);
@@ -104,13 +110,14 @@ sub indx {
         })->timeout(2)->wait;
     })->catch(sub {
         $c->render(status => 404, text => Dumper(\@_)); # TODO proper code?
-    })->timeout(2)->wait;
+    })->timeout(12)->wait;
 }
 
 sub render_dir_remote { 
     my $c      = shift;
     my $dir    = shift;
     my $rsFolder = shift;
+    my $tx = $c->render_later->tx;
 
     my $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir);
     unless ($job_id) {
@@ -121,6 +128,7 @@ sub render_dir_remote {
     $c->minion->result_p($job_id)->then(sub {
         $c->emit_event('mc_debug', "promiseok: $job_id");
         _render_dir($c, $dir, $rsFolder);
+        my $reftx = $tx;
     })->catch(sub {
         $c->emit_event('mc_debug', "promisefail: $job_id " . Dumper(\@_));
         
@@ -129,7 +137,8 @@ sub render_dir_remote {
             return _render_dir($c, $dir, $rsFolder);
         }
         $c->render(status => 500, text => Dumper($reason));
-    })->timeout(10)->wait;
+        my $reftx = $tx;
+    })->timeout(5)->wait;
 }
 
 sub _render_dir {

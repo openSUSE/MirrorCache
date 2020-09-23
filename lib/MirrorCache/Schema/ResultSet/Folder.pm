@@ -49,9 +49,9 @@ sub request_db_sync {
 
     my $sql = <<'END_SQL';
 insert into folder(path, db_sync_scheduled)
-values (?, now() at time zone 'UTC')
+values (?, now())
 on conflict(path) do update set
-db_sync_scheduled = case when folder.db_sync_scheduled > folder.db_sync_last then now() at time zone 'UTC' else folder.db_sync_scheduled end,
+db_sync_scheduled = CASE WHEN folder.db_sync_scheduled > folder.db_sync_last THEN folder.db_sync_scheduled ELSE now() end,
 db_sync_priority = ?
 END_SQL
     my $prep = $dbh->prepare($sql);
