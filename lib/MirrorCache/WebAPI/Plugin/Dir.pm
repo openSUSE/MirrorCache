@@ -157,17 +157,19 @@ sub _render_dir {
     $folder    = $rsFolder->find({path => $dir}) unless $folder;
 
     if ($folder) {
-        my $files;
         if ($folder->db_sync_last) {
-            $files  = $root->list_files_from_db($c->req->url->path, $folder->id, $dir);
-            return $c->render( 'dir', files => $files, cur_path => $dir );
-        } elsif (!$root->is_remote) { # for local root we can list content of directory
-            $files  = $root->list_files($c->req->url->path, $dir);
+            my $files  = $root->list_files_from_db($c->req->url->path, $folder->id, $dir);
             return $c->render( 'dir', files => $files, cur_path => $dir );
         }
-   }
-   my $pos = $rsFolder->get_db_sync_queue_position($dir);
-   $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
+    } 
+
+    if (!$root->is_remote) { # for local root we can list content of directory
+        my $files  = $root->list_files($c->req->url->path, $dir);
+        return $c->render( 'dir', files => $files, cur_path => $dir );
+    }
+
+    my $pos = $rsFolder->get_db_sync_queue_position($dir);
+    $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
 }
 
 sub _render_stats_all {
