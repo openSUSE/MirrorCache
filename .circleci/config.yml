@@ -4,12 +4,19 @@ jobs:
   environs:
     machine:
       image: ubuntu-1604:201903-01
+    environment:
+      OSHT_LOCATION: /home/circleci/osht/osht.sh
+    working_directory: ~/project/t/environs
     steps:
-      - checkout
+      - checkout:
+          path: ~/project
+      - run: git clone https://github.com/coryb/osht ~/osht
+      - run: echo OSHT_LOCATION=$OSHT_LOCATION
       - run:
           command: |
-            git clone https://github.com/coryb/osht ~/osht
-            cd t/environs && OSHT_LOCATION=~/osht/osht.sh ./01-smoke.sh && OSHT_LOCATION=~/osht/osht.sh ./02*.sh && OSHT_LOCATION=~/osht/osht.sh ./03*.sh && OSHT_LOCATION=~/osht/osht.sh ./04-remote.sh && OSHT_LOCATION=~/osht/osht.sh ./04-remote-link.sh && OSHT_LOCATION=~/osht/osht.sh ./05*.sh
+            for f in ./*.sh; do \
+                $f ;\
+            done
 
 workflows:
   version: 2.1
