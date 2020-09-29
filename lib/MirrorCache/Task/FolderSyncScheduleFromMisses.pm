@@ -40,14 +40,14 @@ sub _run {
     my $schema = $app->schema;
     my $limit = 1000;
 
-    my ($event_log_id, $paths) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
+    my ($event_log_id, $path_country_map) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
 
     my $rs = $schema->resultset('Folder');
-    while (scalar(@$paths)) {
+    while (scalar(%$path_country_map)) {
         my $cnt = 0;
         $prev_event_log_id = $event_log_id;
         print(STDERR "$pref read id from event log up to: $event_log_id\n");
-        for my $path (@$paths) {
+        for my $path (sort keys %$path_country_map) {
             my $folder = $rs->find({ path => $path });
             if (!$folder) {
                 if (!$app->mc->root->is_dir($path)) {
@@ -55,11 +55,11 @@ sub _run {
                     next unless $app->mc->root->is_dir($path);
                 }
             }
-            $rs->request_db_sync( $path );
+            $rs->request_db_sync( $path, $path_country_map->{$path} );
             $cnt = $cnt + 1;
         }
         last unless $cnt;
-        ($event_log_id, $paths) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
+        ($event_log_id, $path_country_map) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
     }
     $prev_event_log_id = 0 unless $prev_event_log_id;
     print(STDERR "$pref will retry with id: $prev_event_log_id\n");

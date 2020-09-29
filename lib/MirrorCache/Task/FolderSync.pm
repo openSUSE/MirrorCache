@@ -41,8 +41,8 @@ sub _sync {
 
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($root->is_dir($path)) {
-        $folder->update({db_sync_last => _now()}, {db_sync_priority => 10}) if $folder; # prevent further sync attempts
-        return $job->finish("$path is not a dir");
+        $folder->update({db_sync_last => _now()}, {db_sync_priority => 10}, {db_sync_for_country => ''}) if $folder; # prevent further sync attempts
+        return $job->finish("$path is not a dir anymore");
     }
 
     my $localfiles = $app->mc->root->list_filenames($path);
@@ -54,12 +54,13 @@ sub _sync {
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         }
         $job->note(created => $path, count => scalar(@$localfiles));
-        $folder->update({db_sync_last => _now()}, {db_sync_priority => 10});
+        my $country = $folder->db_sync_for_country;
+        $folder->update({db_sync_last => _now()}, {db_sync_priority => 10}, {db_sync_for_country => ''});
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
-        $minion->enqueue('mirror_scan' => [$path] => {priority => 10});
+        $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 10});
         return;
     };
-    return $job->fail("Couldn't create folder $path") unless $folder && $folder->id;
+    return $job->fail("Couldn't create folder $path in DB") unless $folder && $folder->id;
 
     my $folder_id = $folder->id;
     my @dbfiles = ();
@@ -80,10 +81,10 @@ sub _sync {
         $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         $cnt = $cnt + 1;
     }
-    $schema->storage->datetime_parser;
-    $folder->update({db_sync_last => _now()}, {db_sync_priority => 10});
-    $job->note(updated => $path, count => $cnt);
-    $minion->enqueue('mirror_scan' => [$path] => {priority => 10}) if $cnt;
+    my $country = $folder->db_sync_for_country;
+    $folder->update({db_sync_last => _now()}, {db_sync_priority => 10}, {db_sync_for_country => ''});
+    $job->note(updated => $path, count => $cnt, for_country => $country );
+    $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 10} ) if $cnt;
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }
 

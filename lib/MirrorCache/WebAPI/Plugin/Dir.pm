@@ -74,13 +74,13 @@ sub indx {
         my $f = Mojo::File->new($path);
         $folder = $rsFolder->find({path => $f->dirname});
         unless ($folder) {
-            $c->emit_event('mc_path_miss', $f->dirname);
+            $c->emit_event('mc_path_miss', { path => $f->dirname, country => $c->mmdb->country } );
         } else {
             my $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $folder->id });
             if ($file) {
                 return $c->mirrorcache->render_file($path);
             } else {
-                $c->emit_event('mc_path_miss', $f->dirname);
+                $c->emit_event('mc_path_miss', { path => $f->dirname, country => $c->mmdb->country } );
             }
         }
     }
@@ -121,7 +121,7 @@ sub render_dir_remote {
 
     my $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir);
     unless ($job_id) {
-        $c->emit_event('mc_path_miss', $dir);
+        $c->emit_event('mc_path_miss', { path => $dir, country => $c->mmdb->country } );
         return _render_dir($c, $dir, $rsFolder) unless $job_id;
     }
 

@@ -70,6 +70,7 @@ __PACKAGE__->add_columns(
         is_nullable => 1
   },
   db_sync_priority => { data_type => "integer", is_nullable => 1 },
+  db_sync_for_country => { data_type => "varchar", is_nullable => 0, size => 2 },
   "files",
   { data_type => "integer", is_nullable => 1 },
   "size",

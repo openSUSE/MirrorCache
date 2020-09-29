@@ -27,9 +27,10 @@ sub register {
 }
 
 sub _scan {
-    my ($app, $job, $path) = @_;
+    my ($app, $job, $path, $country) = @_;
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
+    $country = "" unless $country;
 
     my $minion = $app->minion;
     return $job->finish('Previous mirror scan job is still active')
@@ -56,7 +57,7 @@ sub _scan {
         $dbfileids{$basename} = $file->id;
     }
 
-    my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id);
+    my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id, $country);
     my $ua = Mojo::UserAgent->new;
     for my $folder_on_mirror (@$folder_on_mirrors) {
         my $server_id = $folder_on_mirror->{server_id};
@@ -113,7 +114,7 @@ sub _scan {
         })->wait;
     }
     
-    $app->emit_event('mc_mirror_scan_complete', {path => $path, tag => $folder->id});
+    $app->emit_event('mc_mirror_scan_complete', {path => $path, tag => $folder->id, country => $country});
 }
 
 1;
