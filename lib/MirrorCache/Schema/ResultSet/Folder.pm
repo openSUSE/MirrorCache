@@ -38,7 +38,8 @@ END_SQL
 }
 
 sub request_db_sync {
-    my ($self, $path, $priority) = @_;
+    my ($self, $path, $country, $priority) = @_;
+    $country  = "" unless $country;
     $priority = 10 unless $priority;
 
     my $rsource = $self->result_source;
@@ -48,14 +49,15 @@ sub request_db_sync {
     # TODO increase priority if exists?
 
     my $sql = <<'END_SQL';
-insert into folder(path, db_sync_scheduled)
-values (?, now())
+insert into folder(path, db_sync_scheduled, db_sync_priority, db_sync_for_country)
+values (?, now(), ?, ?)
 on conflict(path) do update set
-db_sync_scheduled = CASE WHEN folder.db_sync_scheduled > folder.db_sync_last THEN folder.db_sync_scheduled ELSE now() end,
-db_sync_priority = ?
+db_sync_scheduled = CASE WHEN folder.db_sync_scheduled > folder.db_sync_last THEN folder.db_sync_scheduled ELSE now() END,
+db_sync_priority = ?,
+db_sync_for_country = CASE WHEN folder.db_sync_for_country != ? THEN '' ELSE folder.db_sync_for_country END
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($path, $priority);
+    $prep->execute($path, $priority, $country, $priority, $country);
 }
 
 sub stats_synced {

@@ -5,9 +5,7 @@ create table folder (
     db_sync_last timestamp,
     db_sync_scheduled timestamp,
     db_sync_priority int NOT NULL DEFAULT 10,
-    -- scan_last timestamp,
-    -- scan_scheduled timestamp,
-    -- scan_priority int,
+    db_sync_for_country varchar(2), -- empty means all mirrors needs to be rescanned, otherwise - only one country
     files int,
     size bigint
 );
@@ -26,7 +24,7 @@ create table server (
     hostname  varchar(128) NOT NULL,
     urldir    varchar(128) NOT NULL,
     enabled  boolean NOT NULL,
-    region  varchar(2) NOT NULL,
+    region  varchar(2),
     country varchar(2) NOT NULL,
     score   smallint,
     comment text,

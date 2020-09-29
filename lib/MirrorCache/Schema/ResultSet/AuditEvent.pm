@@ -19,7 +19,7 @@ use strict;
 use warnings;
 
 use base 'DBIx::Class::ResultSet';
-use Mojo::JSON 'from_json';
+use Mojo::JSON qw/from_json decode_json/;
 
 sub path_misses {
     my ($self, $prev_event_log_id, $limit) = @_;
@@ -38,7 +38,7 @@ sub path_misses {
     $prep->execute();
     my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     my $id;
-    my @paths = ();
+    my %path_country = ();
     my %seen  = ();
     foreach my $miss ( @$arrayref ) {
         my $event_data = $miss->{event_data};
@@ -46,9 +46,18 @@ sub path_misses {
         $id = $miss->{id} unless $id;
         next if $event_data eq '-max_id';
         $seen{$event_data} = 1;
-        push @paths, from_json($event_data);
+        my $data = decode_json($event_data);
+        my $path = $data->{path};
+        next unless $path;
+        my $country = $data->{country};
+        if (exists($path_country{$path})) {
+            # let's do for all countries if at least two coutries requested it recently
+            $path_country{$path} = "" unless $path_country{$path} eq $country;
+        } else {
+            $path_country{$path} = $country;
+        }
     }
-    return ($id, \@paths);
+    return ($id, \%path_country);
 }
 
 sub mirror_probe_errors {
