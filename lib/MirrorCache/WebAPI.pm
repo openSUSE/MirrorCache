@@ -68,10 +68,14 @@ sub startup {
     $rest_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
     $rest_r->delete('/server/:id')->to('table#destroy', table => 'Server');
 
+    $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
+
     my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
     my $app_admin = $app_r->under('/')->to('session#ensure_admin')->name('ensure_admin');
     my $app_admin_r = $app_admin->any('/');
     $app_r->get('/server')->name('server')->to('server#index');
+    $app_r->get('/folder')->name('folder')->to('folder#index');
+    $app_r->get('/folder/<id:num>')->name('folder_show')->to('folder#show');
 
     $r->get('/index' => sub { shift->render('main/index') });
     $r->get('/' => sub { shift->render('main/index') })->name('index');

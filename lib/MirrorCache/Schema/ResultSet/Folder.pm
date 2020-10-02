@@ -135,20 +135,27 @@ sub stats_all {
     my $dbh     = $schema->storage->dbh;
     
     my $sql = <<'END_SQL';
-select max(f.id) as id, max(f.db_sync_last) as last_sync,
+select x.folder_id as id, x.db_sync_last as last_sync,
 sum(case when x.fd_dt = (
 select max(dt) from folder_diff fd where folder_id = x.folder_id ) then 1 else 0 end ) as synced,
 sum(case when x.fd_dt != (
 select max(dt) from folder_diff fd where folder_id = x.folder_id ) then 1 else 0 end ) as outdated,
-sum(case when x.server_id is null then 1 else 0 end) as missing
+sum(case when x.server_id is null then 1 else 0 end) as missing,
+case when x.db_sync_scheduled > x.db_sync_last then (select 1+count(*)
+      from folder f1  
+      where f1.db_sync_scheduled > f1.db_sync_last 
+      and f1.id <> x.folder_id 
+      and ((f1.db_sync_scheduled < x.db_sync_scheduled and f1.db_sync_priority = x.db_sync_priority) or (f1.db_sync_priority > x.db_sync_priority)) 
+) else NULL end as sync_job_position
 from server s
-left join ( select max(fd.dt) as fd_dt, f.id as folder_id, fds.server_id as server_id 
+left join ( select max(fd.dt) as fd_dt, f.id as folder_id, fds.server_id as server_id, f.db_sync_last, f.db_sync_scheduled, f.db_sync_priority
     from folder f join folder_diff fd on fd.folder_id = f.id
     join folder_diff_server fds on fd.id = fds.folder_diff_id
     where f.path = ?
-    group by fds.server_id, f.id ) x
+    group by fds.server_id, f.id, f.db_sync_last, f.db_sync_scheduled, f.db_sync_priority ) x
     on x.server_id = s.id
-left join folder f on x.folder_id = f.id;
+left join folder f on x.folder_id = f.id  
+group by x.folder_id, x.db_sync_last, x.db_sync_scheduled, x.db_sync_priority;
 END_SQL
 
     my $prep = $dbh->prepare($sql);

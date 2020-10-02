@@ -28,6 +28,10 @@ my %tables = (
         required => ['id', 'hostname', 'urldir'],
         defaults => {urldir => '/'},
     },
+    Folder => {
+        keys     => [['id'], ['path'],],
+        cols     => ['id', 'path', 'db sync last', 'db sync scheduled', 'db sync priority', 'db sync for country'],
+    },
 );
 
 sub list {

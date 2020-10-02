@@ -159,13 +159,13 @@ sub _render_dir {
     if ($folder) {
         if ($folder->db_sync_last) {
             my $files  = $root->list_files_from_db($c->req->url->path, $folder->id, $dir);
-            return $c->render( 'dir', files => $files, cur_path => $dir );
+            return $c->render( 'dir', files => $files, cur_path => $dir, folder_id => $folder->id );
         }
-    } 
+    }
 
     if (!$root->is_remote) { # for local root we can list content of directory
         my $files  = $root->list_files($c->req->url->path, $dir);
-        return $c->render( 'dir', files => $files, cur_path => $dir );
+        return $c->render( 'dir', files => $files, cur_path => $dir, folder_id => "" );
     }
 
     my $pos = $rsFolder->get_db_sync_queue_position($dir);

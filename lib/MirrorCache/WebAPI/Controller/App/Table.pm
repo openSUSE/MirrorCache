@@ -18,7 +18,7 @@ use Mojo::Base 'Mojolicious::Controller';
 
 sub admintable {
     my ($self, $template) = @_;
-    $self->render("admin/$template/index");
+    $self->render("app/$template/index");
 }
 
 1;

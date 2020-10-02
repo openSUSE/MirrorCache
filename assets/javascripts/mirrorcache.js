@@ -106,6 +106,11 @@ function pollFolderStats(url) {
     $('.folder-stats-servers-outdated').text(data.outdated);
     $('.folder-stats-servers-missing').text(data.missing);
     $('.folder-stats-last-sync').text(data.last_sync);
+    if (data.sync_job_position) {
+        $('.folder-sync-job-position').text('Position in queue: '.concat(data.sync_job_position));
+    } else {
+        $('.folder-sync-job-position').text('Not scheduled');
+    }
     // setTimeout(function () { pollFolderStats(url) }, 3000);
   }); // ).fail( function () { setTimeout(function () { pollStats(url) }, 3000) });
 }
