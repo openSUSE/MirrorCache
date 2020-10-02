@@ -36,8 +36,9 @@ curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat
 test 0 == "$(grep -c Poll mc9/.cerr)"
 
 # currently it takes some time, need to improve somehow
-sleep 15
+sleep 20
 
+curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat
 curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1324
 curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1314
 curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1304

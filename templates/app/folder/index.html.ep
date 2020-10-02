@@ -1,0 +1,32 @@
+% layout 'bootstrap';
+% title 'Folders';
+
+% content_for 'ready_function' => begin
+    setupAdminTable(<%= is_admin_js %>);
+% end
+
+<div class="row">
+    <div class="col-sm-12">
+        <h2><%= title %></h2>
+
+        %= include 'layouts/info'
+
+        <table class="admintable table table-striped" id='folders'>
+            <col style="visibility:hidden"/>
+            <thead>
+                <tr>
+                    <th class="col_value">Id</th>
+                    <th class="col_value">Path</th>
+                    <th class="col_value">Db Sync Last</th>
+                    <th class="col_value">Db Sync Scheduled</th>
+                    <th class="col_value">Db Sync Priority</th>
+                    <th class="col_value">Db Sync For Country</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <input type="hidden" id="admintable_api_url" value="/rest/folder"/>
+    </div>
+
+</div>

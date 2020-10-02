@@ -1,0 +1,23 @@
+% layout 'bootstrap';
+% title 'Status of ' . $folder->{path};
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <style type='text/css'>
+table { width:100%%; }
+.name { text-align:left; }
+  </style>
+</head>
+<div class="row">
+<div class="col-sm-12">
+    <h4>Folder status : <%= $folder->{path} %></h4>
+
+    <div class="card">
+        <div class="card-body status-info">
+            <div><span>Id: </span><%= $folder->{id} %></div>
+            <div><span>Path: </span><%= $folder->{path} %></div>
+            <div><span>Last sync: </span><%= $folder->{db_sync_last} %></div>
+            <div><span>Sync Scheduled: </span><%= $folder->{db_sync_scheduled} %></div>
+            <div><span>Sync Priority: </span><%= $folder->{db_sync_priority} %></div>
+        </div>
+    </div>
+</div>
+</div>

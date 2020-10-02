@@ -41,7 +41,7 @@ sub _sync {
 
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($root->is_dir($path)) {
-        $folder->update({db_sync_last => _now()}, {db_sync_priority => 10}, {db_sync_for_country => ''}) if $folder; # prevent further sync attempts
+        $folder->update({db_sync_last => _now(), db_sync_priority => 10, db_sync_for_country => ''}) if $folder; # prevent further sync attempts
         return $job->finish("$path is not a dir anymore");
     }
 
@@ -55,7 +55,7 @@ sub _sync {
         }
         $job->note(created => $path, count => scalar(@$localfiles));
         my $country = $folder->db_sync_for_country;
-        $folder->update({db_sync_last => _now()}, {db_sync_priority => 10}, {db_sync_for_country => ''});
+        $folder->update({db_sync_last => _now(), db_sync_priority => 10, db_sync_for_country => ''});
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
         $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 10});
         return;
@@ -82,7 +82,7 @@ sub _sync {
         $cnt = $cnt + 1;
     }
     my $country = $folder->db_sync_for_country;
-    $folder->update({db_sync_last => _now()}, {db_sync_priority => 10}, {db_sync_for_country => ''});
+    $folder->update({db_sync_last => _now(), db_sync_priority => 10, db_sync_for_country => ''});
     $job->note(updated => $path, count => $cnt, for_country => $country );
     $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 10} ) if $cnt;
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
