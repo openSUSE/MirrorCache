@@ -5,6 +5,11 @@
 table { width:100%%; }
 .name { text-align:left; }
   </style>
+<script>
+      $(function () {
+        pollFolderJobStats('<%= $folder->{id} %>');
+      });
+</script>
 </head>
 <div class="row">
 <div class="col-sm-12">
@@ -17,6 +22,26 @@ table { width:100%%; }
             <div><span>Last sync: </span><%= $folder->{db_sync_last} %></div>
             <div><span>Sync Scheduled: </span><%= $folder->{db_sync_scheduled} %></div>
             <div><span>Sync Priority: </span><%= $folder->{db_sync_priority} %></div>
+        </div>
+    </div>
+</div>
+<div class="col-sm-12">
+    <h4>Job status :</h4>
+
+    <div class="card">
+        <div class="card-body job-status-info">
+              <a class="nav-link" href="<%= url_for("/minion/jobs?&task=folder_sync&note=" . $folder->{path}) %>">
+                Folder sync latest job id: <span class="badge badge-pill badge-secondary folder-job-sync-latest-id">retrieving...</span>
+              </a>
+              <a class="nav-link" href="<%= url_for("/minion/jobs?&task=folder_sync&note=" . $folder->{path}) %>">
+                Folder sync running jobs count: <span class="badge badge-pill badge-secondary folder-job-sync-running-count">retrieving...</span>
+              </a>
+              <a class="nav-link" href="<%= url_for("/minion/jobs?&task=mirror_scan&note=" . $folder->{path}) %>">
+                Mirror scan latest job id: <span class="badge badge-pill badge-secondary folder-job-scan-latest-id">retrieving...</span>
+              </a>
+              <a class="nav-link" href="<%= url_for("/minion/jobs?&task=mirror_scan&note=" . $folder->{path}) %>">
+                Mirror scan running jobs count: <span class="badge badge-pill badge-secondary folder-job-scan-running-count">retrieving...</span>
+              </a>
         </div>
     </div>
 </div>
