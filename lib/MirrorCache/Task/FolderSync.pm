@@ -38,6 +38,7 @@ sub _sync {
 
     my $schema = $app->schema;
     my $root   = $app->mc->root;
+    $job->note($path => 1);
 
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($root->is_dir($path)) {

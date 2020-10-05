@@ -114,3 +114,12 @@ function pollFolderStats(url) {
     // setTimeout(function () { pollFolderStats(url) }, 3000);
   }); // ).fail( function () { setTimeout(function () { pollStats(url) }, 3000) });
 }
+function pollFolderJobStats(id) {
+    var url = '/rest/folder_jobs/' + id;
+    $.get(url).done(function (data) {
+        $('.folder-job-sync-latest-id')    .text(data.sync_latest_id);
+        $('.folder-job-sync-running-count').text(data.sync_running_count);
+        $('.folder-job-scan-latest-id')    .text(data.scan_latest_id);
+        $('.folder-job-scan-running-count').text(data.scan_running_count);
+    });
+}

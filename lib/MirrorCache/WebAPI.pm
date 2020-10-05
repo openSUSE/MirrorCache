@@ -70,6 +70,8 @@ sub startup {
 
     $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
 
+    $rest_r->get('/folder_jobs/:id')->name('rest_folder_jobs')->to('folder_jobs#list');
+
     my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
     my $app_admin = $app_r->under('/')->to('session#ensure_admin')->name('ensure_admin');
     my $app_admin_r = $app_admin->any('/');

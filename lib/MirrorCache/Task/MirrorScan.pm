@@ -36,6 +36,7 @@ sub _scan {
     return $job->finish('Previous mirror scan job is still active')
         unless my $guard = $minion->guard('mirror_scan' . $path, 360);
 
+    $job->note($path => 1);
     my $schema = $app->schema;
     my $folder = $schema->resultset('Folder')->find({path => $path});
     return undef unless $folder && $folder->id; # folder is not added to db yet
