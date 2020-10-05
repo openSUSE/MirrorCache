@@ -3,7 +3,13 @@
 MirrorCache is a Web Server for files download, which will route download requests to an appropriate mirror.
 MirrorCache doesn't store files and instead keeps in DB list of files from the `Main Server` .
 
-Requests to unknown files will be redirected to the `Main Server` (in this case download.opensuse.org):
+According to Wikipedia "Cache - is a component that stores data so that future requests for that data can be served faster".
+In this regard MirrorCache is a cache of (meta)information about geographical location of files.
+
+"Cache hit" means that MirrorCache was able to redirect to proper (the closest) mirror.
+"Cache miss" means that MirrorCache had to redirect request to the `Main Server`.
+
+Output below domonstrates a cache miss, so the download request will be redirected to the `Main Server` (in this case download.opensuse.org):
 
 [source,bash]
 -----------------
