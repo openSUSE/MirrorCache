@@ -41,7 +41,7 @@ sub list {
         {tasks => ['folder_sync'], notes => [$path]})->{jobs};
 
     for my $job (@$jobs) {
-        $sync_running_count = $sync_running_count+1 if ($job->{status} eq 'active' || $job->{status} eq 'inactive');
+        $sync_running_count = $sync_running_count+1 if ($job->{state} eq 'active' || $job->{state} eq 'inactive');
         $sync_latest_id     = $job->{id} if $job->{id} > $sync_latest_id;
     }
 
@@ -51,7 +51,7 @@ sub list {
         {tasks => ['mirror_scan'], notes => [$path]})->{jobs};
 
     for my $job (@$jobs) {
-        $scan_running_count = $scan_running_count+1 if ($job->{status} eq 'active' || $job->{status} eq 'inactive');
+        $scan_running_count = $scan_running_count+1 if ($job->{state} eq 'active' || $job->{state} eq 'inactive');
         $scan_latest_id     = $job->{id} if $job->{id} > $scan_latest_id;
     }
 
