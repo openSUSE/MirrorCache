@@ -71,6 +71,7 @@ sub startup {
     $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
 
     $rest_r->get('/folder_jobs/:id')->name('rest_folder_jobs')->to('folder_jobs#list');
+    $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show');
 
     my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
     my $app_admin = $app_r->under('/')->to('session#ensure_admin')->name('ensure_admin');
