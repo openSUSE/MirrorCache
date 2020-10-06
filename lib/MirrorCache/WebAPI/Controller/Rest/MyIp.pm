@@ -11,26 +11,23 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# with this program; if not, see <http://www.gnu.org/licenses/>.
 
-package MirrorCache::WebAPI::Plugin::Mmdb;
-use Mojo::Base 'Mojolicious::Plugin';
+package MirrorCache::WebAPI::Controller::Rest::MyIp;
+use Mojo::Base 'Mojolicious::Controller';
 
-use MaxMind::DB::Reader;
+sub show {
+    my ($c) = @_;
 
-my $reader;
+    my $ip      = $c->client_ip;
+    my $country = $c->mmdb->country($ip) || 'Unknown';
 
-sub register {
-    (my $self, my $app, $reader) = @_;
-    
-    $app->helper( 'mmdb.country' => sub {
-        my ($c, $ip) = @_;
-        $ip = shift->client_ip unless $ip; 
-        my $record = $reader->record_for_address($ip);
-        return $record->{country}->{iso_code} if $record;
-        return undef;
-    });
+    $c->render(
+        json => {
+            ip      => $ip,
+            country => $country,
+        }
+    );
 }
 
 1;
