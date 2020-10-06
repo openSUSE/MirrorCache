@@ -135,6 +135,8 @@ sub stats_all {
     my $dbh     = $schema->storage->dbh;
     
     my $sql = <<'END_SQL';
+select max(id) as id, max(last_sync) as last_sync, max(synced) as synced, max(outdated) as outdated, max(missing) as missing, max(sync_job_position) as sync_job_position
+from (
 select x.folder_id as id, x.db_sync_last as last_sync,
 sum(case when x.fd_dt = (
 select max(dt) from folder_diff fd where folder_id = x.folder_id ) then 1 else 0 end ) as synced,
@@ -155,7 +157,8 @@ left join ( select max(fd.dt) as fd_dt, f.id as folder_id, fds.server_id as serv
     group by fds.server_id, f.id, f.db_sync_last, f.db_sync_scheduled, f.db_sync_priority ) x
     on x.server_id = s.id
 left join folder f on x.folder_id = f.id  
-group by x.folder_id, x.db_sync_last, x.db_sync_scheduled, x.db_sync_priority;
+group by x.folder_id, x.db_sync_last, x.db_sync_scheduled, x.db_sync_priority
+) q;
 END_SQL
 
     my $prep = $dbh->prepare($sql);
