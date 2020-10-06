@@ -23,7 +23,7 @@ use MirrorCache::Events;
 my @path_events = qw(path_miss path_hit path_scan_complete);
 my @mirror_events = qw(mirror_pick mirror_probe mirror_scan_complete);
 my @error_events = qw(best_mirror_error mirror_probe_error);
-my @other_events = qw(debug);
+my @other_events = qw(unknown_ip debug);
 
 sub register {
     my ($self, $app) = @_;

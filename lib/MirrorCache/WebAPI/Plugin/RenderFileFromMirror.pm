@@ -42,18 +42,16 @@ sub register {
         }
 
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
-        unless ($folder) {
-            $c->emit_event('mc_path_miss', { path => $dirname, country => $c->mmdb->country } );
+        my ($file, $country);
+        $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename}) if $folder;
+        $country = $c->mmdb->country if $file;
+        unless ($country) {
+            $c->mmdb->emit_miss($dirname);
             return $c->mc->root->render_file($c, $filepath); # TODO we still can check file on mirrors even if it is missing in DB
         }
-
-        my $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename});
-        unless ($file) {
-            $c->emit_event('mc_path_miss', { path => $dirname, country => $c->mmdb->country } );
-            return $c->mc->root->render_file($c, $filepath); # TODO we still can check file on mirrors even if it is missing in DB
-        }
+        
         my $tx = $c->render_later->tx;
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country($c->mmdb->country(), $folder->id, $basename);
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename);
         my $ua  = Mojo::UserAgent->new;
         my $emit = 0;
         my $recurs1;
@@ -75,9 +73,7 @@ sub register {
                     return $c->redirect_to($url);
                 }
                 $emit = 1;
-                # $c->emit_event('mc_mirror_probe', {mirror => $url, error => $code}, 1);
             })->catch(sub {
-                # $c->emit_event('mc_mirror_probe', {mirror => $url, error => shift}, 1);
                 $emit = 1;
             })->finally(sub {
                 return $recurs1->($code);
