@@ -73,16 +73,10 @@ sub indx {
     } else {
         my $f = Mojo::File->new($path);
         $folder = $rsFolder->find({path => $f->dirname});
-        unless ($folder) {
-            $c->emit_event('mc_path_miss', { path => $f->dirname, country => $c->mmdb->country } );
-        } else {
-            my $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $folder->id });
-            if ($file) {
-                return $c->mirrorcache->render_file($path);
-            } else {
-                $c->emit_event('mc_path_miss', { path => $f->dirname, country => $c->mmdb->country } );
-            }
-        }
+        my $file;
+        $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $folder->id }) if $folder;
+        return $c->mirrorcache->render_file($path) if $file;
+        $c->mmdb->emit_miss($f->dirname);
     }
     # Now try to get content asynchronically
     my $tx = $c->render_later->tx;
@@ -121,7 +115,7 @@ sub render_dir_remote {
 
     my $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir);
     unless ($job_id) {
-        $c->emit_event('mc_path_miss', { path => $dir, country => $c->mmdb->country } );
+        $c->mmdb->emit_miss($dir);
         return _render_dir($c, $dir, $rsFolder) unless $job_id;
     }
 

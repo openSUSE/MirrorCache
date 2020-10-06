@@ -31,6 +31,17 @@ sub register {
         return $record->{country}->{iso_code} if $record;
         return undef;
     });
+
+    $app->helper( 'mmdb.emit_miss' => sub {
+        my ($c, $path) = @_;
+        my $ip = $c->client_ip;
+        my $country = $c->mmdb->country($ip);
+        if ($country) {
+            $c->emit_event('mc_path_miss', { path => $path, country => $country } );
+        } else {
+            $c->emit_event('mc_unknown_ip', $ip);
+        }
+    });
 }
 
 1;
