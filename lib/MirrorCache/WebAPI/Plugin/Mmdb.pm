@@ -33,9 +33,9 @@ sub register {
     });
 
     $app->helper( 'mmdb.emit_miss' => sub {
-        my ($c, $path) = @_;
+        my ($c, $path, $country) = @_;
         my $ip = $c->client_ip;
-        my $country = $c->mmdb->country($ip);
+        $country = $country || $c->mmdb->country($ip);
         if ($country) {
             $c->emit_event('mc_path_miss', { path => $path, country => $country } );
         } else {
