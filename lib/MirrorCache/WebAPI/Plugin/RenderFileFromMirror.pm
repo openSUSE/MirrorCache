@@ -28,7 +28,7 @@ sub register {
  
     $app->helper( 'mirrorcache.render_file' => sub {
    
-        my ($c, $filepath, $route) = @_;
+        my ($c, $filepath) = @_;
         $c->emit_event('mc_dispatch', $filepath);
         my $mirror = "";
         my $f = Mojo::File->new($filepath);
