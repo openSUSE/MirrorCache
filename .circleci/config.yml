@@ -6,6 +6,7 @@ jobs:
       image: ubuntu-1604:201903-01
     environment:
       OSHT_LOCATION: /home/circleci/osht/osht.sh
+      CLIENTIP_PLUGGABLE_ALLOW_LOOPBACK: 1
     working_directory: ~/project/t/environs
     steps:
       - checkout:

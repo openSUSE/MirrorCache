@@ -88,9 +88,12 @@ sub startup {
 
     $self->plugin('DefaultHelpers');
     $self->plugin('RenderFile');
-    $self->plugin('ClientIP');
-
     push @{$self->plugins->namespaces}, 'MirrorCache::WebAPI::Plugin';
+
+    $self->plugin('ClientIP::Pluggable',
+       analyze_headers => [qw/cf-pseudo-ipv4 cf-connecting-ip true-client-ip/],
+       fallbacks       => [qw/rfc-7239 x-forwarded-for remote_address/]);
+
 
     $self->plugin('Helpers', root => $root, route => '/download');
     # check prefix

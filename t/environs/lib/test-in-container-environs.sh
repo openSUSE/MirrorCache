@@ -82,6 +82,6 @@ echo "$*"
 [ -z $initscript ] || echo "bash -xe /opt/project/t/$initscript" | docker exec -i "$containername" bash -x
 
 set +ex
-docker exec -e TESTCASE="$testcase"  -i "$containername" bash -c "useradd $(id -nu) -u $(id -u) || :; chown $(id -nu) /opt/environs; sudo -u \#$(id -u) bash" < "$testcase"
+docker exec -e TESTCASE="$testcase" -e CLIENTIP_PLUGGABLE_ALLOW_LOOPBACK=1 -i "$containername" bash -c "useradd $(id -nu) -u $(id -u) || :; chown $(id -nu) /opt/environs; sudo -E -u \#$(id -u) bash" < "$testcase"
 ret=$?
 IS $ret == 0 # test execution
