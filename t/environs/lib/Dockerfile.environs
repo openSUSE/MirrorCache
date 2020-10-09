@@ -19,6 +19,7 @@ RUN zypper -n install perl-App-cpanminus
 RUN zypper -n install gzip gcc make
 RUN cpanm Mojolicious::Plugin::ClientIP --sudo
 RUN cpanm MaxMind::DB::Reader --sudo || :
+RUN cpanm URI::Encode --sudo || :
 
 RUN zypper -n install perl-Mojolicious-Plugin-AssetPack perl-Net-OpenID-Consumer perl-LWP-Protocol-https perl-URI
 

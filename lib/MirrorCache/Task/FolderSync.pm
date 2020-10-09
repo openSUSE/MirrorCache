@@ -28,7 +28,7 @@ sub _now() {
 }
 
 sub _sync {
-    my ($app, $job, $path) = @_;
+    my ($app, $job, $path, $country) = @_;
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
 
@@ -55,7 +55,15 @@ sub _sync {
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         }
         $job->note(created => $path, count => scalar(@$localfiles));
-        my $country = $folder->db_sync_for_country;
+
+        # Task may be explicitly scheduled for particular country or have country in the DB
+        if ($folder->db_sync_for_country) {
+            if ($country) {
+                $country = '' unless $country eq $folder->db_sync_for_country;
+            } else {
+                $country = $folder->db_sync_for_country;
+            }
+        }
         $folder->update({db_sync_last => _now(), db_sync_priority => 10, db_sync_for_country => ''});
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
         $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 10});
@@ -82,7 +90,15 @@ sub _sync {
         $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         $cnt = $cnt + 1;
     }
-    my $country = $folder->db_sync_for_country;
+
+    # Task may be explicitly scheduled for particular country or have country in the DB
+    if ($folder->db_sync_for_country) {
+        if ($country) {
+            $country = '' unless $country eq $folder->db_sync_for_country;
+        } else {
+            $country = $folder->db_sync_for_country;
+        }
+    }
     $folder->update({db_sync_last => _now(), db_sync_priority => 10, db_sync_for_country => ''});
     $job->note(updated => $path, count => $cnt, for_country => $country );
     $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 10} ) if $cnt;
