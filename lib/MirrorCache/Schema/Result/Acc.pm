@@ -20,7 +20,6 @@ use warnings;
 
 use base 'DBIx::Class::Core';
 
-use URI::Escape 'uri_escape';
 use Digest::MD5 'md5_hex';
 
 __PACKAGE__->table('acc');

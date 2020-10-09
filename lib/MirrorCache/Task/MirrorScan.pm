@@ -20,10 +20,19 @@ use DateTime;
 use Digest::MD5;
 use Mojo::UserAgent;
 use Mojo::Util ('trim');
+use URI;
+use URI::Encode ('uri_decode');
+use File::Basename;
 
 sub register {
     my ($self, $app) = @_;
     $app->minion->add_task(mirror_scan => sub { _scan($app, @_) });
+}
+
+# many html pages truncate file names
+# use last 42 characters to compare for now
+sub _reliable_prefix {
+    substr(shift, 0, 42);
 }
 
 sub _scan {
@@ -51,9 +60,11 @@ sub _scan {
     my $folder_id = $folder->id;
     my @dbfiles = ();
     my %dbfileids = ();
+    my %dbfileprefixes = ();
     for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
         my $basename = $file->name;
         next unless $basename; # && -f $localdir . $basename; # skip deleted files
+        $dbfileprefixes{_reliable_prefix($basename)} = 1;
         push @dbfiles, $basename;
         $dbfileids{$basename} = $file->id;
     }
@@ -75,9 +86,13 @@ sub _scan {
             my %mirrorfiles = ();
 
             for my $i (sort { $a->attr->{href} cmp $b->attr->{href} } $dom->find('a')->each) {
-                my $href = $i->attr->{href};
                 my $text = trim $i->text;
-                if (substr($text, 0, 42) eq substr($href, 0, 42)) {
+                my $href = basename($i->attr->{href});
+                $href = uri_decode(URI->new($href));
+                # we can do _reliable_prefix() only after uri_decode
+                my $href1 = _reliable_prefix($href);
+                my $text1 = _reliable_prefix($text);
+                if ($href1 eq $text1 && $dbfileprefixes{$text1}) {
                     $ctx->add($href);
                     $mirrorfiles{$href} = 1;
                 }
@@ -112,7 +127,7 @@ sub _scan {
         })->catch(sub {
             my $err = shift;
             return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $err}, $folder_on_mirror->{server_id});
-        })->wait;
+        })->timeout(120)->wait;
     }
     
     $app->emit_event('mc_mirror_scan_complete', {path => $path, tag => $folder->id, country => $country});
