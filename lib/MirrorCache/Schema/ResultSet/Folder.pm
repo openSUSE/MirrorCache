@@ -166,4 +166,35 @@ END_SQL
     return $dbh->selectrow_hashref($prep);
 }
 
+sub delete_cascade {
+    my ($self, $id, $only_diff) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    $schema->txn_do(
+        sub {
+            $dbh->prepare("DELETE FROM folder_diff_server 
+    USING folder_diff
+    WHERE folder_diff_id = folder_diff.id
+        AND folder_id = ?")->execute($id);
+
+            $dbh->prepare("DELETE FROM folder_diff_file 
+    USING folder_diff
+    WHERE folder_diff_id = folder_diff.id
+        AND folder_id = ?")->execute($id);
+
+            $dbh->prepare("DELETE FROM folder_diff WHERE folder_id = ?")->execute($id);
+
+            $dbh->prepare("DELETE FROM file WHERE folder_id = ?")->execute($id) unless $only_diff;
+            $dbh->prepare("DELETE FROM folder WHERE id = ?")->execute($id) unless $only_diff;
+        });
+}
+
+sub delete_diff {
+    my ($self, $id) = @_;
+    $self->delete_cascade($id, 1);
+}
+
 1;

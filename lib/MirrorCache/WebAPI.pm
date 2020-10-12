@@ -74,11 +74,24 @@ sub startup {
     $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show');
 
     my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
-    my $app_admin = $app_r->under('/')->to('session#ensure_admin')->name('ensure_admin');
-    my $app_admin_r = $app_admin->any('/');
+
     $app_r->get('/server')->name('server')->to('server#index');
     $app_r->get('/folder')->name('folder')->to('folder#index');
     $app_r->get('/folder/<id:num>')->name('folder_show')->to('folder#show');
+
+    my $admin = $r->any('/admin');
+    my $admin_auth;
+    if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH}) { 
+        $admin_auth = $admin->under('/')->name('ensure_admin');
+    } else {
+        $admin_auth = $admin->under('/')->to('session#ensure_admin')->name('ensure_admin');
+    }
+    
+    # my $admin_r = $admin->to(namespace => 'MirrorCache::WebAPI::Controller::Admin')->any('/');
+    my $admin_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Admin');
+
+    $admin_r->delete('/folder/<id:num>')->to('folder#delete_cascade');
+    $admin_r->delete('/folder_diff/<id:num>')->to('folder#delete_diff');
 
     $r->get('/index' => sub { shift->render('main/index') });
     $r->get('/' => sub { shift->render('main/index') })->name('index');
@@ -107,11 +120,6 @@ sub startup {
     $self->plugin('Dir');
     $self->plugin('RenderFileFromMirror');
     $self->plugin('HashedParams');
-
-    $self->routes->get('/')->to(cb => sub {
-        my $c = shift;
-        $c->render(text => 'Hello from MirrorCache.');
-    });
 }
 
 sub schema { MirrorCache::Schema->singleton }
