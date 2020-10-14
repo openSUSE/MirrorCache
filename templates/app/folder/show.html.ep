@@ -13,7 +13,7 @@ table { width:100%%; }
 </head>
 <div class="row">
 <div class="col-sm-12">
-    <h4>Folder status : <%= $folder->{path} %></h4>
+    <h4>Folder status: <%= $folder->{path} %></h4>
 
     <div class="card">
         <div class="card-body status-info">
@@ -26,7 +26,7 @@ table { width:100%%; }
     </div>
 </div>
 <div class="col-sm-12">
-    <h4>Job status :</h4>
+    <h4>Jobs status:</h4>
 
     <div class="card">
         <div class="card-body job-status-info">
@@ -45,4 +45,25 @@ table { width:100%%; }
         </div>
     </div>
 </div>
+% if (is_admin) {
+<div class="col-sm-12">
+    <h4>Folder actions:</h4>
+    <div class="btn-group mr-2" role="group">
+        <button class='btn btn-warning'
+            type='submit'
+            title='Clear all cached info about content of the folder'
+            data-deleteurl="/admin/folder/<%=$folder->{id}%>"
+            onclick='deleteAndRedirect(this, "/download<%=$parent_path%>")'>Clear all cached info
+        </button>
+    </div>
+    <div class="btn-group mr-2" role="group">
+        <button class='btn btn-warning' 
+            type='submit' 
+            title='Clear all cached info about state of the folder on all mirrors'
+            data-deleteurl="/admin/folder_diff/<%=$folder->{id}%>"
+            onclick='deleteAndRedirect(this, "/download<%=$parent_path%>")'>Clear cached info about mirrors 
+        </button>
+    </div>
+</div>
+% }
 </div>

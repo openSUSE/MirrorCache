@@ -16,6 +16,8 @@
 package MirrorCache::WebAPI::Controller::App::Folder;
 use Mojo::Base 'MirrorCache::WebAPI::Controller::App::Table';
 
+use File::Basename;
+
 sub index {
     shift->SUPER::admintable('folder');
 }
@@ -36,11 +38,13 @@ sub show {
         db_sync_for_country => $f->db_sync_for_country,
     };
 
+    my $parent_path = dirname($f->path);
+
     # for my $x ($f->files->all) {
     #    $info->{files}->{$x->key} = $x->value;
     # }
     
-    return $self->render('app/folder/show', folder => $info);
+    return $self->render('app/folder/show', folder => $info, parent_path => $parent_path);
 }
 
 1;

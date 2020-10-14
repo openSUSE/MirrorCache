@@ -114,6 +114,7 @@ function pollFolderStats(url) {
     // setTimeout(function () { pollFolderStats(url) }, 3000);
   }); // ).fail( function () { setTimeout(function () { pollStats(url) }, 3000) });
 }
+
 function pollFolderJobStats(id) {
     var url = '/rest/folder_jobs/' + id;
     $.get(url).done(function (data) {
@@ -121,5 +122,27 @@ function pollFolderJobStats(id) {
         $('.folder-job-sync-running-count').text(data.sync_running_count);
         $('.folder-job-scan-latest-id')    .text(data.scan_latest_id);
         $('.folder-job-scan-running-count').text(data.scan_running_count);
+    });
+}
+
+function handleAjaxError(request, code, error) {
+    if (request.responseJSON != undefined && request.responseJSON.error) {
+        error += ': ' + request.responseJSON.error;
+    } else if (request.responseText != undefined && request.responseText) {
+        error += ': ' + request.responseText.error;
+    }
+        
+    addFlash('danger', 'Error: ' + error);
+}
+
+function deleteAndRedirect(btn, redir) {
+    $.ajax({
+        url: btn.dataset.deleteurl,
+        method: 'DELETE',
+        dataType: 'json',
+        success: function(data) {
+            location.href = redir;
+        },
+        error: handleAjaxError,
     });
 }
