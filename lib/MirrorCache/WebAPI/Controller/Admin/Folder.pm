@@ -28,7 +28,7 @@ sub delete_cascade {
         sub {
             my ($self, $err, @result) = @_;
             return $c->render(text => $err, status => 500) if $err;
-            return $c->render(text => 'ok');
+            return $c->render(json => {text => 'ok'});
             my $txkeep = $tx;
         }
     );
