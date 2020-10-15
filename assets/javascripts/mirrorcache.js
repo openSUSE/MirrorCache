@@ -102,9 +102,9 @@ function htmlEscape(str) {
 function pollFolderStats(url) {
   url = url.concat('?status=all');
   $.get(url).done(function (data) {
-    $('.folder-stats-servers-synced').text(data.synced);
+    $('.folder-stats-servers-recent').text(data.recent);
     $('.folder-stats-servers-outdated').text(data.outdated);
-    $('.folder-stats-servers-missing').text(data.missing);
+    $('.folder-stats-servers-not-scanned').text(data.not_scanned);
     $('.folder-stats-last-sync').text(data.last_sync);
     if (data.sync_job_position) {
         $('.folder-sync-job-position').text('Position in queue: '.concat(data.sync_job_position));
