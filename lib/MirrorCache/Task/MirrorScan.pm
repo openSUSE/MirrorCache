@@ -20,7 +20,6 @@ use DateTime;
 use Digest::MD5;
 use Mojo::UserAgent;
 use Mojo::Util ('trim');
-use URI;
 use URI::Encode ('uri_decode');
 use File::Basename;
 
@@ -87,11 +86,22 @@ sub _scan {
 
             for my $i (sort { $a->attr->{href} cmp $b->attr->{href} } $dom->find('a')->each) {
                 my $text = trim $i->text;
-                my $href = basename($i->attr->{href});
-                $href = uri_decode(URI->new($href));
+                my $href = $i->attr->{href};
+                if ('/' eq substr($href, -1)) {
+                    $href = basename($href) . '/';
+                } else {
+                    $href = basename($href);
+                }
+                $href = uri_decode($href);
                 # we can do _reliable_prefix() only after uri_decode
                 my $href1 = _reliable_prefix($href);
-                my $text1 = _reliable_prefix($text);
+                my $text1 = basename(_reliable_prefix($text));
+                my $text1;
+                if ('/' eq substr($text, -1)) {		
+                    $text1 =  basename(_reliable_prefix($text)) . '/';
+                }  else {
+                    $text1 =  basename(_reliable_prefix($text));
+                }
                 if ($href1 eq $text1 && $dbfileprefixes{$text1}) {
                     $ctx->add($href);
                     $mirrorfiles{$href} = 1;
