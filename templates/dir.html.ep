@@ -22,18 +22,18 @@ table { width:100%%; }
     <div class="collapse navbar-collapse" id="navbarFolderStats">
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
-              <a class="nav-link" href="<%= $stats->query(status => 'synced') %>">
-                Synced <span class="badge badge-pill badge-secondary folder-stats-servers-synced">.</span>
+              <a class="nav-link" href="<%= $stats->query(status => 'recent') %>">
+                Recently scanned: <span class="badge badge-pill badge-secondary folder-stats-servers-recent">.</span>
               </a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="<%= $stats->query(status => 'outdated') %>">
-                Outdated <span class="badge badge-pill badge-secondary folder-stats-servers-outdated">.</span>
+                Outdated: <span class="badge badge-pill badge-secondary folder-stats-servers-outdated">.</span>
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="<%= $stats->query(status => 'missing') %>">
-                Missing <span class="badge badge-pill badge-secondary folder-stats-servers-missing">.</span>
+              <a class="nav-link" href="<%= $stats->query(status => 'not_scanned') %>">
+                Not scanned: <span class="badge badge-pill badge-secondary folder-stats-servers-not-scanned">.</span>
               </a>
             </li>
             <li class="nav-item">

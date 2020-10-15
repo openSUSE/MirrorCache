@@ -60,7 +60,7 @@ END_SQL
     $prep->execute($path, $priority, $country, $priority, $country);
 }
 
-sub stats_synced {
+sub stats_recent {
     my ($self, $path) = @_;
 
     my $rsource = $self->result_source;
@@ -68,16 +68,18 @@ sub stats_synced {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select s.hostname, dt 
+select s.hostname, dt, count(distinct file_id) as missing_files 
 from server s
 join folder_diff_server fds on s.id = fds.server_id
 join folder_diff fd on fd.id = fds.folder_diff_id 
 join folder f on f.id = fd.folder_id and f.path = ?
-where fd.dt = (
-select max(dt) 
-from folder_diff fd1 
+left join folder_diff_file fdf on fdf.folder_diff_id = fd.id 
+where 360 >= extract(epoch from fd.dt - (
+select max(dt)
+from folder_diff fd1
 join folder_diff_server fds1 on fd1.id = fds1.folder_diff_id
-where fd1.folder_id = f.id)
+where fd1.folder_id = f.id)) 
+group by s.id, dt;
 END_SQL
 
     return $dbh->selectall_hashref($sql, 'hostname', {}, $path);
@@ -91,22 +93,24 @@ sub stats_outdated {
     my $dbh     = $schema->storage->dbh;
     
     my $sql = <<'END_SQL';
-select s.hostname, dt 
+select s.hostname, dt, count(distinct file_id) as missing_files 
 from server s
 join folder_diff_server fds on s.id = fds.server_id
 join folder_diff fd on fd.id = fds.folder_diff_id 
 join folder f on f.id = fd.folder_id and f.path = ?
-where fd.dt <> (
-select max(dt) 
-from folder_diff fd1 
+left join folder_diff_file fdf on fdf.folder_diff_id = fd.id 
+where 360 < extract(epoch from fd.dt - (
+select max(dt)
+from folder_diff fd1
 join folder_diff_server fds1 on fd1.id = fds1.folder_diff_id
-where fd1.folder_id = f.id)
+where fd1.folder_id = f.id)) 
+group by s.id, dt;
 END_SQL
 
     return $dbh->selectall_hashref($sql, 'hostname', {}, $path);
 }
 
-sub stats_missing {
+sub stats_not_scanned {
     my ($self, $path) = @_;
 
     my $rsource = $self->result_source;
@@ -135,14 +139,14 @@ sub stats_all {
     my $dbh     = $schema->storage->dbh;
     
     my $sql = <<'END_SQL';
-select max(id) as id, max(last_sync) as last_sync, max(synced) as synced, max(outdated) as outdated, max(missing) as missing, max(sync_job_position) as sync_job_position
+select max(id) as id, max(last_sync) as last_sync, max(recent) as recent, max(outdated) as outdated, max(not_scanned) as not_scanned, max(sync_job_position) as sync_job_position
 from (
 select x.folder_id as id, x.db_sync_last as last_sync,
-sum(case when x.fd_dt = (
-select max(dt) from folder_diff fd where folder_id = x.folder_id ) then 1 else 0 end ) as synced,
-sum(case when x.fd_dt != (
-select max(dt) from folder_diff fd where folder_id = x.folder_id ) then 1 else 0 end ) as outdated,
-sum(case when x.server_id is null then 1 else 0 end) as missing,
+sum(case when 360 >= extract(epoch from x.fd_dt - (
+select max(dt) from folder_diff fd where folder_id = x.folder_id )) then 1 else 0 end ) as recent,
+sum(case when 360 <  extract(epoch from x.fd_dt - (
+select max(dt) from folder_diff fd where folder_id = x.folder_id )) then 1 else 0 end ) as outdated,
+sum(case when x.server_id is null then 1 else 0 end) as not_scanned,
 case when x.db_sync_scheduled > x.db_sync_last then (select 1+count(*)
       from folder f1  
       where f1.db_sync_scheduled > f1.db_sync_last 

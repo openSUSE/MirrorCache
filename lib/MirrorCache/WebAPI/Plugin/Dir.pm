@@ -50,9 +50,9 @@ sub indx {
     $path = substr($path,0,-1) if $is_dir && $path ne '/';
     if ($status) {
         return _render_stats_all($c, $path) if $status eq 'all';
-        return _render_stats_synced($c, $path) if $status eq 'synced';
+        return _render_stats_recent($c, $path) if $status eq 'recent';
         return _render_stats_outdated($c, $path) if $status eq 'outdated';
-        return _render_stats_missing($c, $path) if $status eq 'missing';
+        return _render_stats_not_scanned($c, $path) if $status eq 'not_scanned';
         return $c->render(text => 1) if $root->is_file($path) || $root->is_dir($path);
         return $c->render(status => 404, message => "path $path not found");
     }
@@ -178,14 +178,14 @@ sub _render_stats_all {
     return $c->render(json => $rsFolder->stats_all($dir));
 }
     
-sub _render_stats_synced {
+sub _render_stats_recent {
     my $c      = shift;
     my $dir    = shift;
 
     my $schema   = $c->app->schema;
     my $rsFolder = $schema->resultset('Folder');
 
-    return $c->render(json => $rsFolder->stats_synced($dir));
+    return $c->render(json => $rsFolder->stats_recent($dir));
 }
 
 sub _render_stats_outdated {
@@ -198,14 +198,14 @@ sub _render_stats_outdated {
     return $c->render(json => $rsFolder->stats_outdated($dir));
 }
 
-sub _render_stats_missing {
+sub _render_stats_not_scanned {
     my $c      = shift;
     my $dir    = shift;
 
     my $schema   = $c->app->schema;
     my $rsFolder = $schema->resultset('Folder');
 
-    return $c->render(json => $rsFolder->stats_missing($dir));
+    return $c->render(json => $rsFolder->stats_not_scanned($dir));
 }
 
 1;
