@@ -39,6 +39,7 @@ sub register_tasks {
       for (
         qw(MirrorCache::Task::MirrorScanScheduleFromProbeErrors),
         qw(MirrorCache::Task::MirrorScan),
+        qw(MirrorCache::Task::MirrorProbe),
         qw(MirrorCache::Task::FolderSyncScheduleFromMisses),
         qw(MirrorCache::Task::FolderSyncSchedule),
         qw(MirrorCache::Task::FolderSync),

@@ -29,7 +29,7 @@ sub mirrors_country {
     my $sql = <<'END_SQL';
 select concat('http://',s.hostname,s.urldir) as url
 from server s
-left join server_capability cap_asn_only on s.id = cap_asn_only.server_id and cap_asn_only.capability = 'as_only'
+left join server_capability_declaration cap_asn_only on s.id = cap_asn_only.server_id and cap_asn_only.capability = 'as_only'
 join folder_diff_server fds on fds.server_id = s.id
 join folder_diff fd on fd.id = fds.folder_diff_id
 join file fl on fl.folder_id = ? and fl.name = ? and fl.folder_id = fd.folder_id and fl.dt <= fd.dt

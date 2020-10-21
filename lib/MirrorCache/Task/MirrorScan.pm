@@ -95,7 +95,6 @@ sub _scan {
                 $href = uri_decode($href);
                 # we can do _reliable_prefix() only after uri_decode
                 my $href1 = _reliable_prefix($href);
-                my $text1 = basename(_reliable_prefix($text));
                 my $text1;
                 if ('/' eq substr($text, -1)) {		
                     $text1 =  basename(_reliable_prefix($text)) . '/';
