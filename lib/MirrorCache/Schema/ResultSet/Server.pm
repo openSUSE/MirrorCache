@@ -31,12 +31,17 @@ sub mirrors_country {
 select 
     concat(
        x.capability,
-       '://',s.hostname,s.urldir) as url
+       '://',s.hostname,s.urldir) as url,
+case when chk.success then 0 when chk.success is null then 1 else 2 end as rank1,
+case when (x.capability = ?) then 0 else 1 end as rank2,
+now() - chk.dt as rank3
 from
 (select 'http'::server_capability_t as capability union select 'https'::server_capability_t) x
 join server s on s.enabled
 left join server_capability_declaration cap on cap.server_id  = s.id and cap.capability = x.capability and not cap.enabled
 left join server_capability_force      fcap on fcap.server_id  = s.id and fcap.capability = x.capability
+left join server_capability_check chk on chk.server_id = s.id and chk.capability = x.capability
+left join server_capability_check chk_old on chk_old.server_id = s.id and chk_old.capability = x.capability and chk_old.dt > chk.dt
 left join server_capability_declaration cap_asn_only on s.id = cap_asn_only.server_id and cap_asn_only.capability = 'as_only'
 join folder_diff_server fds on fds.server_id = s.id
 join folder_diff fd on fd.id = fds.folder_diff_id
@@ -47,10 +52,11 @@ and fcap.server_id is NULL
 and cap.server_id is NULL
 and cap_asn_only.server_id is NULL
 and s.country = lower(?)
-order by case when (x.capability = ?) then 0 else 1 end
+and chk_old.server_id IS NULL
+order by rank1, rank2, rank3
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($folder_id, $file, $country, $capability);
+    $prep->execute($capability, $folder_id, $file, $country);
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
 }
