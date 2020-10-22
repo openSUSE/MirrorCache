@@ -21,26 +21,36 @@ use warnings;
 use base 'DBIx::Class::ResultSet';
 
 sub mirrors_country {
-    my ($self, $country, $folder_id, $file) = @_;
+    my ($self, $country, $folder_id, $file, $capability) = @_;
+    $capability = 'http' unless $capability;
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select concat('http://',s.hostname,s.urldir) as url
-from server s
+select 
+    concat(
+       x.capability,
+       '://',s.hostname,s.urldir) as url
+from
+(select 'http'::server_capability_t as capability union select 'https'::server_capability_t) x
+join server s on s.enabled
+left join server_capability_declaration cap on cap.server_id  = s.id and cap.capability = x.capability and not cap.enabled
+left join server_capability_force      fcap on fcap.server_id  = s.id and fcap.capability = x.capability
 left join server_capability_declaration cap_asn_only on s.id = cap_asn_only.server_id and cap_asn_only.capability = 'as_only'
 join folder_diff_server fds on fds.server_id = s.id
 join folder_diff fd on fd.id = fds.folder_diff_id
 join file fl on fl.folder_id = ? and fl.name = ? and fl.folder_id = fd.folder_id and fl.dt <= fd.dt
 left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
 where fdf.file_id is NULL
+and fcap.server_id is NULL
+and cap.server_id is NULL
 and cap_asn_only.server_id is NULL
 and s.country = lower(?)
-and s.enabled
+order by case when (x.capability = ?) then 0 else 1 end
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($folder_id, $file, $country);
+    $prep->execute($folder_id, $file, $country, $capability);
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
 }
@@ -55,7 +65,27 @@ sub folder {
     my $country_condition = "";
     $country_condition = "and s.country = lower(?)" if $country;
 
-    my $sql = "select s.id as server_id, concat('http://',s.hostname,s.urldir,f.path) as url, fd.id as diff_id from server s join folder f on f.id=? left join folder_diff fd on fd.folder_id = f.id left join folder_diff_server fds on fd.id = fds.folder_diff_id and server_id=s.id and fds.server_id=s.id  where fds.folder_diff_id IS NOT DISTINCT FROM fd.id $country_condition order by s.id";
+    my $sql = <<'END_SQL';
+select s.id as server_id, 
+concat(
+    case 
+        when (cap_http.server_id is null and cap_fhttp.server_id is null) then 'http'
+        else 'https'
+    end
+,'://',s.hostname,s.urldir,f.path) as url, fd.id as diff_id 
+from server s join folder f on f.id=? 
+left join server_capability_declaration cap_http  on cap_http.server_id  = s.id and cap_http.capability  = 'http' and not cap_http.enabled
+left join server_capability_declaration cap_https on cap_https.server_id = s.id and cap_https.capability = 'https' and not cap_https.enabled
+left join server_capability_force cap_fhttp  on cap_fhttp.server_id  = s.id and cap_fhttp.capability  = 'http'
+left join server_capability_force cap_fhttps on cap_fhttps.server_id = s.id and cap_fhttps.capability = 'https'
+left join folder_diff fd on fd.folder_id = f.id
+left join folder_diff_server fds on fd.id = fds.folder_diff_id and fds.server_id=s.id  
+where 
+fds.folder_diff_id IS NOT DISTINCT FROM fd.id
+AND (cap_fhttp.server_id IS NULL or cap_fhttps.server_id IS NULL)
+END_SQL
+
+    $sql = $sql . $country_condition . " order by s.id";
 
     my $prep = $dbh->prepare($sql);
     if ($country) {
