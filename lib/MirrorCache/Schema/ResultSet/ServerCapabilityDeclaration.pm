@@ -67,4 +67,72 @@ END_SQL
     $prep->execute($server_id, $capability, $success, $error);
 }
 
+sub search_all_downs {
+    my ($self, $country) = @_;
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+select c.server_id as id, c.capability, concat(s.hostname,s.urldir) as uri
+from server_capability_check c
+    join server s on c.server_id = s.id
+    left join server_capability_force f on f.server_id  = s.id and f.capability  = c.capability
+where 't'
+    AND f.server_id IS NULL
+    AND c.dt > now() - interval '2 hour'
+    AND s.enabled
+group by c.server_id, c.capability, s.hostname, s.urldir
+having   sum(case when not c.success then 1 else 0 end) >= 5 and 
+         sum(case when c.success then 1 else -1 end) < 0
+END_SQL
+    return $dbh->selectall_hashref($sql, 'id', {});
+}
+
+sub force_down {
+    my ($self, $server_id, $capability, $error) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+insert into server_capability_force(server_id, capability, dt, extra)
+values (?, ?, now(), ?);
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($server_id, $capability, $error);
+}
+
+sub search_all_forced {
+    my ($self, $country) = @_;
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+select f.server_id as id, f.capability, concat(s.hostname,s.urldir) as uri
+from server_capability_force f
+    join server s on f.server_id = s.id
+where 't'
+    AND f.dt < now() - interval '2 hour'
+    AND s.enabled
+END_SQL
+    return $dbh->selectall_hashref($sql, 'id', {});
+}
+
+sub force_up {
+    my ($self, $server_id, $capability) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+delete from server_capability_force where server_id = ? and capability = ?
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($server_id, $capability);
+}
+
 1;

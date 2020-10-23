@@ -20,7 +20,9 @@ use Net::URIProtocols qw/ProbeHttp ProbeHttps ProbeIpv4 ProbeIpv6/;
 
 sub register {
     my ($self, $app) = @_;
-    $app->minion->add_task(mirror_probe => sub { _probe($app, @_) });
+    $app->minion->add_task(mirror_probe       => sub { _probe($app, @_) });
+    $app->minion->add_task(mirror_force_downs => sub { _force_downs($app, @_) });
+    $app->minion->add_task(mirror_force_ups   => sub { _force_ups($app, @_) });
 }
 
 use constant SERVER_CAPABILITIES => (qw(http https ipv4 ipv6));
@@ -46,6 +48,48 @@ sub _probe {
             $success = 0 if $error;
             $rs->log_probe_outcome($data->{'id'}, $capability, $success, $error);
         }
+    }
+}
+
+sub _force_downs {
+    my ($app, $job) = @_;
+
+    my $minion = $app->minion;
+    return $job->finish("Previous job is still active")
+        unless my $guard = $minion->guard('mirror_force_downs', 600);
+
+    my $schema = $app->schema;
+    my $rs = $schema->resultset('ServerCapabilityDeclaration');
+    my $href = $rs->search_all_downs();
+    
+    for my $id (sort keys %$href) {
+        my $data = $href->{$id};
+        my $capability = $data->{capability};
+        next unless $capability;
+        my $error = _probe_capability($data->{'uri'}, $capability);
+        next unless $error;
+        $rs->force_down($data->{'id'}, $capability, $error);
+    }
+}
+
+sub _force_ups {
+    my ($app, $job) = @_;
+
+    my $minion = $app->minion;
+    return $job->finish("Previous job is still active")
+        unless my $guard = $minion->guard('mirror_force_ups', 600);
+
+    my $schema = $app->schema;
+    my $rs = $schema->resultset('ServerCapabilityDeclaration');
+    my $href = $rs->search_all_forced();
+    
+    for my $id (sort keys %$href) {
+        my $data = $href->{$id};
+        my $capability = $data->{capability};
+        next unless $capability;
+        my $error = _probe_capability($data->{'uri'}, $capability);
+        next if $error;
+        $rs->force_up($data->{'id'}, $capability);
     }
 }
 

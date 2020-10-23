@@ -76,7 +76,8 @@ create table server_capability_check (
 create table server_capability_force (
     server_id int references server on delete cascade,
     capability server_capability_t,
-    dt timestamp
+    dt timestamp,
+    extra varchar(1024)
 );
 
 create table audit_event (
