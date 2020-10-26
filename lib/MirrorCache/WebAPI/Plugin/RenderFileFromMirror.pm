@@ -51,15 +51,17 @@ sub register {
         }
         
         my $tx = $c->render_later->tx;
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename);
+        my $scheme = 'http';
+        $scheme = 'https' if $c->req->is_secure;
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename, $scheme);
         my $ua  = Mojo::UserAgent->new;
         my $emit = 0;
         my $recurs1;
         my $recurs = sub {
             my $prev = shift;
-            $c->emit_event('mc_mirror_probe', $dirname) if $prev && ($prev == 302) && $emit;
-            return if $prev && $prev == 302;
-            my $mirror = pop @$mirrors;
+            $c->emit_event('mc_mirror_probe', $dirname) if $prev && ($prev == 200 || $prev == 302 || $prev == 301) && $emit;
+            return if $prev && ($prev == 200 || $prev == 302 || $prev == 301);
+            my $mirror = shift @$mirrors;
             unless ($mirror) {
                 $c->emit_event('mc_mirror_probe', $dirname) if $emit;
                 return $c->mc->root->render_file($c, $filepath);
@@ -68,12 +70,13 @@ sub register {
             my $code;
             $ua->head_p($url)->then(sub {
                 $code = shift->result->code;
-                if ($code == 200) {
+                if ($code == 200 || $code == 302 || $code == 301) {
                     $c->emit_event('mc_path_hit', {path => $dirname, mirror => $url});
                     return $c->redirect_to($url);
                 }
                 $emit = 1;
             })->catch(sub {
+                $c->emit_event('mc_debug', {error => shift, mirror => $url});
                 $emit = 1;
             })->finally(sub {
                 return $recurs1->($code);

@@ -52,18 +52,33 @@ create table folder_diff_server (
 
 ALTER TABLE folder_diff_server ADD PRIMARY KEY (server_id, folder_diff_id);
 
-create type server_capability_t as enum('http', 'https', 'ftp', 'rsync',
-'no_ipv4', 'no_ipv6',
-'yes_country', 'no_country',
-'yes_region',
-'as_only', 'prefix_only');
+create type server_capability_t as enum('http', 'https', 'ftp', 'ftps', 'rsync',
+'ipv4', 'ipv6',
+'country',
+'region',
+'as_only', 'prefix');
 
-create table server_capability (
-    server_id int,
+create table server_capability_declaration (
+    server_id int references server on delete cascade,
     capability server_capability_t,
+    enabled boolean,
     extra varchar(256)
 );
 
+create table server_capability_check (
+    server_id int references server on delete cascade,
+    capability server_capability_t,
+    dt timestamp,
+    success boolean,
+    extra varchar(1024)
+);
+
+create table server_capability_force (
+    server_id int references server on delete cascade,
+    capability server_capability_t,
+    dt timestamp,
+    extra varchar(1024)
+);
 
 create table audit_event (
     id bigserial primary key,

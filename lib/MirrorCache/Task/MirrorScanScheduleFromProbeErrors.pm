@@ -55,6 +55,15 @@ sub _run {
     }
     print(STDERR "$pref will retry with id: $prev_event_log_id\n");
     $job->note(event_log_id => $prev_event_log_id);
+
+    if ($minion->lock('schedule_mirror_force_ups', 9000)) {
+        $minion->enqueue('mirror_force_ups' => [] => {priority => 10});
+    }
+
+    if ($minion->lock('schedule_mirror_force_downs', 300)) {
+        $minion->enqueue('mirror_force_downs' => [] => {priority => 10});
+    }
+
     return $job->retry({delay => 5});
 }
 
