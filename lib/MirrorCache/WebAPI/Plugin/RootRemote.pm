@@ -26,6 +26,8 @@ sub singleton { state $root = shift->SUPER::new; return $root; };
 
 my $url;
 my $urllen;
+my $urls; # same as $url just s/http:/https:
+my $urlslen;
 my $types = Mojolicious::Types->new;
 my $app;
 
@@ -33,6 +35,8 @@ sub register {
     (my $self, $app) = @_;
     $url = $app->mc->rootlocation;
     $urllen = length $url;
+    $urls = $url =~ s/http:/https:/r;
+    $urlslen = length $urls;
     $app->helper( 'mc.root' => sub { $self->singleton; });
 }
 
@@ -90,6 +94,7 @@ sub is_self_redirect {
 
 sub render_file {
     my ($self, $c, $filepath) = @_;
+    return $c->redirect_to($urls . $filepath) if $c->req->is_secure;
     return $c->redirect_to($url . $filepath);
 }
 
