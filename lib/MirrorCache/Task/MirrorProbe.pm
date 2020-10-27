@@ -49,6 +49,7 @@ sub _probe {
             $rs->log_probe_outcome($data->{'id'}, $capability, $success, $error);
         }
     }
+    $minion->unlock('mirror_probe_incomplete_for_' . $country);
 }
 
 sub _force_downs {

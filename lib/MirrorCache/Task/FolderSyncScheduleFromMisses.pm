@@ -40,9 +40,10 @@ sub _run {
     my $schema = $app->schema;
     my $limit = 1000;
 
-    my ($event_log_id, $path_country_map) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
+    my ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
 
     my $rs = $schema->resultset('Folder');
+    my $last_run = 0;
     while (scalar(%$path_country_map)) {
         my $cnt = 0;
         $prev_event_log_id = $event_log_id;
@@ -58,12 +59,32 @@ sub _run {
             $rs->request_db_sync( $path, $path_country_map->{$path} );
             $cnt = $cnt + 1;
         }
+        for my $country (@$country_list) {
+            next unless $minion->lock('mirror_probe_scheduled_' . $country, 60); # don't schedule if schedule hapened in last 60 sec
+            next unless $minion->lock('mirror_probe_incomplete_for_' . $country, 6000); # don't schedule until probe job completed
+            $minion->unlock('mirror_force_done');
+            $minion->enqueue('mirror_probe' => [$country] => {priority => 9});
+        }
         last unless $cnt;
-        ($event_log_id, $path_country_map) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
+        $last_run = $last_run + $cnt;
+        ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
     }
+
+    if ($minion->lock('mirror_force_done', 9000)) {
+        if ($minion->lock('schedule_mirror_force_ups', 9000)) {
+            $minion->enqueue('mirror_force_ups' => [] => {priority => 10});
+        }
+
+        if ($minion->lock('schedule_mirror_force_downs', 300)) {
+            $minion->enqueue('mirror_force_downs' => [] => {priority => 10});
+        }
+    }
+
     $prev_event_log_id = 0 unless $prev_event_log_id;
     print(STDERR "$pref will retry with id: $prev_event_log_id\n");
-    $job->note(event_log_id => $prev_event_log_id);
+    my $total = $job->info->{notes}{total};
+    $total = 0 unless $total;
+    $job->note(event_log_id => $prev_event_log_id, total => $total, last_run => $last_run);
     return $job->retry({delay => 5});
 }
 

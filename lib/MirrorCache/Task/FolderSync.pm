@@ -66,7 +66,7 @@ sub _sync {
         }
         $folder->update({db_sync_last => _now(), db_sync_priority => 10, db_sync_for_country => ''});
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
-        $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 10});
+        $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7});
         return;
     };
     return $job->fail("Couldn't create folder $path in DB") unless $folder && $folder->id;

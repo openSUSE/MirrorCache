@@ -39,6 +39,7 @@ sub path_misses {
     my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     my $id;
     my %path_country = ();
+    my %countries = ();
     my %seen  = ();
     foreach my $miss ( @$arrayref ) {
         my $event_data = $miss->{event_data};
@@ -56,8 +57,10 @@ sub path_misses {
         } else {
             $path_country{$path} = $country;
         }
+        $countries{$country} = 1 if $country;
     }
-    return ($id, \%path_country);
+    my @country_list = (keys %countries);
+    return ($id, \%path_country, \@country_list);
 }
 
 sub mirror_probe_errors {
