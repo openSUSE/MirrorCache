@@ -53,7 +53,10 @@ sub register {
         my $tx = $c->render_later->tx;
         my $scheme = 'http';
         $scheme = 'https' if $c->req->is_secure;
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename, $scheme);
+        my $ipv = 'ipv4';
+        my $ip = $c->client_ip;
+        $ipv = 'ipv6' if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1';
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename, $scheme, $ipv);
         my $ua  = Mojo::UserAgent->new;
         my $emit = 0;
         my $recurs1;
