@@ -41,8 +41,9 @@ sub ProbeHttps {
 
 sub ProbeIpv4 {
     my ($uri) = @_;
-    my ($domain) = $uri =~ m!([^:/]+)!;
-    return 0 if $domain eq '127.0.0.1'; # rather workaround for now
+    my $domain = _parse_uri($uri);
+    return 0 if $domain eq '127.0.0.1' || $domain eq '::ffff:127.0.0.1'; # rather workaround for now
+    return 1 if $domain eq '::1'; # rather workaround for now
     my $a = nslookup(type => "A", domain => $domain);
     return 0 if $a;
     return 1;
@@ -50,7 +51,8 @@ sub ProbeIpv4 {
 
 sub ProbeIpv6 {
     my ($uri) = @_;
-    my ($domain) = $uri =~ m!([^:/]+)!;
+    my $domain = _parse_uri($uri);
+    return 0 if $domain eq '::1' || $domain eq '::ffff:127.0.0.1'; # rather workaround for now
     return 1 if $domain eq '127.0.0.1'; # rather workaround for now
     my $a = nslookup(type => "AAAA", domain => $domain);
     return 0 if $a;
@@ -84,6 +86,16 @@ sub _probe_url {
 
     return 0 if ($code > 199 && $code < 300);
     return $code;
+}
+
+sub _parse_uri {
+    my $uri = shift;
+    my $domain;
+    if ($uri =~ /^(\[?(\d+)?(::\d+)+\]?|[^:\/]+)/) {
+        $domain = $3 || $1;
+        return $domain;
+    }
+    return $uri;
 }
 
 1;

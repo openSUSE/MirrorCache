@@ -27,6 +27,7 @@ sub register {
     $app->helper( 'mmdb.country' => sub {
         my ($c, $ip) = @_;
         $ip = shift->client_ip unless $ip; 
+        return 'us' if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
         my $record = $reader->record_for_address($ip);
         return $record->{country}->{iso_code} if $record;
         return undef;
