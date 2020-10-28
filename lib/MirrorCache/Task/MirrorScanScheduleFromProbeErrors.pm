@@ -47,21 +47,15 @@ sub _run {
         $prev_event_log_id = $event_log_id;
         print(STDERR "$pref read id from event log up to: $event_log_id\n");
         for my $path (@$paths) {
-            $minion->enqueue('mirror_scan' => [$path] => {priority => 10});
+            $minion->enqueue('mirror_scan' => [$path] => {priority => 7});
             $cnt = $cnt + 1;
         }
         last unless $cnt;
         ($event_log_id, $paths) = $schema->resultset('AuditEvent')->mirror_probe_errors($prev_event_log_id, $limit);
     }
-    print(STDERR "$pref will retry with id: $prev_event_log_id\n");
-    $job->note(event_log_id => $prev_event_log_id);
-
-    if ($minion->lock('schedule_mirror_force_ups', 9000)) {
-        $minion->enqueue('mirror_force_ups' => [] => {priority => 10});
-    }
-
-    if ($minion->lock('schedule_mirror_force_downs', 300)) {
-        $minion->enqueue('mirror_force_downs' => [] => {priority => 10});
+    if ($prev_event_log_id) {
+        print(STDERR "$pref will retry with id: $prev_event_log_id\n");
+        $job->note(event_log_id => $prev_event_log_id);
     }
 
     return $job->retry({delay => 5});

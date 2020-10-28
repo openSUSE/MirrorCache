@@ -84,9 +84,10 @@ sub _scan {
             my $ctx = Digest::MD5->new;
             my %mirrorfiles = ();
 
-            for my $i (sort { $a->attr->{href} cmp $b->attr->{href} } $dom->find('a')->each) {
+            for my $i (sort { ($a->attr->{href} || '') cmp ($b->attr->{href} || '') } $dom->find('a')->each) {
                 my $text = trim $i->text;
                 my $href = $i->attr->{href};
+                next unless $href;
                 if ('/' eq substr($href, -1)) {
                     $href = basename($href) . '/';
                 } else {

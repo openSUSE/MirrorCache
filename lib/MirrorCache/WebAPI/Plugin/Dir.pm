@@ -114,11 +114,11 @@ sub render_dir_remote {
     my $tx = $c->render_later->tx;
     my $country  = $c->mmdb->country;
 
-    my $job_id;
-    $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir, $country) if $country;
-    unless ($job_id) {
+    my $job_id = 0;
+    $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir, $country);
+    unless ($job_id > 0) {
         $c->mmdb->emit_miss($dir, $country);
-        return _render_dir($c, $dir, $rsFolder) unless $job_id;
+        return _render_dir($c, $dir, $rsFolder);
     }
 
     $c->minion->result_p($job_id)->then(sub {

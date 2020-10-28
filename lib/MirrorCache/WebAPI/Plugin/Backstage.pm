@@ -86,9 +86,9 @@ sub enqueue_unless_scheduled_with_parameter_or_limit {
     my ($self, $task, $arg1, $arg2) = @_;
     my $minion = $self->app->minion;
     my $res = $minion->backend->list_jobs(0, 1000, {tasks => [$task], states => ['inactive','active']});
-    return (0, 'limit') unless ($res || !exists $res->{total} || $res->{total} > 1000-1);
+    return 0 unless ($res || !exists $res->{total} || $res->{total} > 1000-1);
     $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive','active'], notes => [$arg1] });
-    return (0, 'already scheduled') unless ($res || !exists $res->{total} || $res->{total} > 0);
+    return -1 unless ($res || !exists $res->{total} || $res->{total} > 0);
     return $minion->enqueue($task => [($arg1, $arg2)] => {notes => { $arg1 => 1 }} );
 }
 

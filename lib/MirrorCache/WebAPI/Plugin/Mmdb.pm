@@ -40,6 +40,7 @@ sub register {
             $c->emit_event('mc_path_miss', { path => $path, country => $country } );
         } else {
             $c->emit_event('mc_unknown_ip', $ip);
+            $c->emit_event('mc_path_miss', { path => $path } );
         }
     });
 }
