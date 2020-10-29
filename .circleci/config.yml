@@ -12,6 +12,10 @@ jobs:
           path: ~/project
       - run: git clone https://github.com/coryb/osht ~/osht
       - run: echo OSHT_LOCATION=$OSHT_LOCATION
+      - run: 
+          command: |
+            echo '{ "ipv6": true,  "fixed-cidr-v6": "fd00::/80" }' | sudo tee /etc/docker/daemon.json
+            sudo systemctl restart docker
       - run:
           command: |
             for f in ./*.sh; do \
