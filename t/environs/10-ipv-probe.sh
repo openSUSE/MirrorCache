@@ -1,5 +1,7 @@
 #!lib/test-in-container-environs.sh
 
+# TODO: THIS TEST REQUIRES IPv6 enabled in DOCKER !!!
+
 # Smoke test for https-only mirrors
 set -ex
 
