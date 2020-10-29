@@ -35,22 +35,23 @@ select
     concat(
        x.capability,
        '://',s.hostname,s.urldir) as url,
-case when chk.success then 0 when chk.success is null then 1 else 2 end as rank1,
-case when (y.capability = ?) then 0 else 1 end as rank2,
-case when (x.capability = ?) then 0 else 1 end as rank3,
-now() - chk.dt as rank4
+case when (y.capability = a.cap and chk6.success) then 0 when (y.capability = a.cap and chk6.success is NULL) then 1 when (y.capability = a.cap) then 2 when chk6.success then 3 when chk6.success is NULL then 4 else 5 end as rank1,
+case when (x.capability = b.cap and chk.success) then 0 when (x.capability = b.cap and chk.success is NULL) then 1 when chk.success then 3 when chk.success is NULL then 4 else 5 end as rank2,
+now() - chk.dt as rank3
 from
-(select 'http'::server_capability_t as capability union select 'https'::server_capability_t) x
+(select ?::server_capability_t as cap) a
+join (select ?::server_capability_t as cap) b on 1 = 1
+join (select 'http'::server_capability_t as capability union select 'https'::server_capability_t) x on 1 = 1
 join (select 'ipv4'::server_capability_t as capability union select 'ipv6'::server_capability_t) y on 1 = 1
 join server s on s.enabled
-left join server_capability_declaration cap  on cap.server_id   = s.id and cap.capability   = x.capability and not cap.enabled
-left join server_capability_declaration cap6 on cap6.server_id  = s.id and cap6.capability  = y.capability and not cap6.enabled
-left join server_capability_force      fcap  on fcap.server_id  = s.id and fcap.capability  = x.capability
-left join server_capability_force      fcap6 on fcap6.server_id = s.id and fcap6.capability = y.capability
 left join server_capability_check chk on chk.server_id = s.id and chk.capability = x.capability
 left join server_capability_check chk_old on chk_old.server_id = s.id and chk_old.capability = x.capability and chk_old.dt > chk.dt
 left join server_capability_check chk6 on chk6.server_id = s.id and chk6.capability = y.capability
 left join server_capability_check chk_old6 on chk_old6.server_id = s.id and chk_old6.capability = y.capability and chk_old6.dt > chk6.dt
+left join server_capability_declaration cap  on cap.server_id   = s.id and cap.capability   = x.capability and not cap.enabled
+left join server_capability_declaration cap6 on cap6.server_id  = s.id and cap6.capability  = y.capability and not cap6.enabled
+left join server_capability_force      fcap  on fcap.server_id  = s.id and fcap.capability  = x.capability
+left join server_capability_force      fcap6 on fcap6.server_id = s.id and fcap6.capability = y.capability
 left join server_capability_declaration cap_asn_only on s.id = cap_asn_only.server_id and cap_asn_only.capability = 'as_only'
 join folder_diff_server fds on fds.server_id = s.id
 join folder_diff fd on fd.id = fds.folder_diff_id
@@ -64,6 +65,7 @@ and cap6.server_id is NULL
 and cap_asn_only.server_id is NULL
 and s.country = lower(?)
 and chk_old.server_id IS NULL
+and chk_old6.server_id IS NULL
 order by rank1, rank2, rank3
 END_SQL
     my $prep = $dbh->prepare($sql);
@@ -89,7 +91,7 @@ concat(
         when (cap_http.server_id is null and cap_fhttp.server_id is null) then 'http'
         else 'https'
     end
-,'://',s.hostname,s.urldir,f.path) as url, fd.id as diff_id 
+,'://',s.hostname,s.urldir,f.path) as url, max(fds.folder_diff_id) as diff_id 
 from server s join folder f on f.id=? 
 left join server_capability_declaration cap_http  on cap_http.server_id  = s.id and cap_http.capability  = 'http' and not cap_http.enabled
 left join server_capability_declaration cap_https on cap_https.server_id = s.id and cap_https.capability = 'https' and not cap_https.enabled
@@ -98,11 +100,11 @@ left join server_capability_force cap_fhttps on cap_fhttps.server_id = s.id and 
 left join folder_diff fd on fd.folder_id = f.id
 left join folder_diff_server fds on fd.id = fds.folder_diff_id and fds.server_id=s.id  
 where 
-fds.folder_diff_id IS NOT DISTINCT FROM fd.id
+(fds.folder_diff_id IS NOT DISTINCT FROM fd.id OR fds.server_id is null)
 AND (cap_fhttp.server_id IS NULL or cap_fhttps.server_id IS NULL)
 END_SQL
 
-    $sql = $sql . $country_condition . " order by s.id";
+    $sql = $sql . $country_condition . ' group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id order by s.id';
 
     my $prep = $dbh->prepare($sql);
     if ($country) {

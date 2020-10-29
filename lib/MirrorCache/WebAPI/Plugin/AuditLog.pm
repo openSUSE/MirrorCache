@@ -21,8 +21,12 @@ use Mojo::JSON 'to_json';
 use MirrorCache::Events;
 
 my @path_events = qw(path_miss path_hit path_scan_complete);
-my @mirror_events = qw(mirror_pick mirror_probe mirror_scan_complete);
-my @error_events = qw(best_mirror_error mirror_probe_error);
+my @mirror_events = qw(mirror_pick mirror_miss mirror_scan_complete);
+# reasons for mirror_scan_error and mirror_path_error and mirror_error are similar
+# mirror_scan_error means we were not able to find the file on the mirror, and we don't know if it ever existed
+# mirror_path_error means we know that the file did exist on the mirror, but are not able to access it anymore, getting a valid HTML response code
+# mirror_error means there was an error while trying to HEAD a file on a mirror (without valid HTML response)
+my @error_events = qw(mirror_scan_error mirror_path_error mirror_error);
 my @other_events = qw(unknown_ip debug);
 
 sub register {

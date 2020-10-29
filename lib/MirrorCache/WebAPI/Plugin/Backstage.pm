@@ -37,7 +37,8 @@ sub register_tasks {
     my $app = $self->app;
     $app->plugin($_)
       for (
-        qw(MirrorCache::Task::MirrorScanScheduleFromProbeErrors),
+        qw(MirrorCache::Task::MirrorScanScheduleFromMisses),
+        qw(MirrorCache::Task::MirrorScanScheduleFromPathErrors),
         qw(MirrorCache::Task::MirrorScan),
         qw(MirrorCache::Task::MirrorProbe),
         qw(MirrorCache::Task::FolderSyncScheduleFromMisses),

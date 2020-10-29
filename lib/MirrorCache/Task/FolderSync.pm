@@ -76,7 +76,6 @@ sub _sync {
     my %dbfileids = ();
     for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
         my $basename = $file->name;
-        # next unless $basename && -f $localdir . $basename; # skip deleted files for now
         next unless $basename;
         push @dbfiles, $basename;
         $dbfileids{$basename} = $file->id;
@@ -101,7 +100,7 @@ sub _sync {
     }
     $folder->update({db_sync_last => _now(), db_sync_priority => 10, db_sync_for_country => ''});
     $job->note(updated => $path, count => $cnt, for_country => $country );
-    $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 10} ) if $cnt;
+    $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7} ) if $cnt;
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }
 

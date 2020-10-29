@@ -57,7 +57,7 @@ mv ap7-system2/dt/folder1/file2.dat ap8-system2/dt/folder1/
 # gets redirected to root again
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap9*/print_address.sh)
 
-mc9*/backstage/job.sh mirror_scan_schedule_from_probe_errors
+mc9*/backstage/job.sh mirror_scan_schedule_from_misses
 mc9*/backstage/shoot.sh
 
 # now redirects to ap8
