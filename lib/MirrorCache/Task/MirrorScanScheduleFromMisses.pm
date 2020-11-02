@@ -13,18 +13,18 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-package MirrorCache::Task::FolderSyncScheduleFromMisses;
+package MirrorCache::Task::MirrorScanScheduleFromMisses;
 use Mojo::Base 'Mojolicious::Plugin';
 
 sub register {
     my ($self, $app) = @_;
-    $app->minion->add_task(folder_sync_schedule_from_misses => sub { _run($app, @_) });
+    $app->minion->add_task(mirror_scan_schedule_from_misses => sub { _run($app, @_) });
 }
 
 sub _run {
     my ($app, $job, $prev_event_log_id) = @_;
     my $job_id = $job->id;
-    my $pref = "[schedule_from_misses $job_id]";
+    my $pref = "[scan_from_misses $job_id]";
     my $id_in_notes = $job->info->{notes}{event_log_id};
     $prev_event_log_id = $id_in_notes if $id_in_notes;
     print(STDERR "$pref read id from notes: $id_in_notes\n") if $id_in_notes;
@@ -32,29 +32,20 @@ sub _run {
 
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
-    return $job->finish('Previous schedule_from_misses job is still active')
-      unless my $guard = $minion->guard('folder_sync_schedule_from_misses', 86400);
+    return $job->finish('Previous job is still active')
+      unless my $guard = $minion->guard('mirror_scan_schedule_from_misses', 86400);
 
     my $schema = $app->schema;
     my $limit = 1000;
 
-    my ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
-
-    my $rs = $schema->resultset('Folder');
+    my ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->mirror_misses($prev_event_log_id, $limit);
     my $last_run = 0;
     while (scalar(%$path_country_map)) {
         my $cnt = 0;
         $prev_event_log_id = $event_log_id;
         print(STDERR "$pref read id from event log up to: $event_log_id\n");
         for my $path (sort keys %$path_country_map) {
-            my $folder = $rs->find({ path => $path });
-            if (!$folder) {
-                if (!$app->mc->root->is_dir($path)) {
-                    $path = Mojo::File->new($path)->dirname;
-                    next unless $app->mc->root->is_dir($path);
-                }
-            }
-            $rs->request_db_sync( $path, $path_country_map->{$path} );
+            $minion->enqueue('mirror_scan' => [$path, $path_country_map->{$path}] => {priority => 7});
             $cnt = $cnt + 1;
         }
         for my $country (@$country_list) {
@@ -65,7 +56,7 @@ sub _run {
         }
         $last_run = $last_run + $cnt;
         last unless $cnt;
-        ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
+        ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->mirror_misses($prev_event_log_id, $limit);
     }
 
     if ($minion->lock('mirror_force_done', 9000)) {

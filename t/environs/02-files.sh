@@ -49,7 +49,7 @@ mv ap7-system2/dt/folder1/file2.dat ap8-system2/dt/folder1/
 
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 200
 
-mc9*/backstage/job.sh mirror_scan_schedule_from_probe_errors
+mc9*/backstage/job.sh mirror_scan_schedule_from_misses
 mc9*/backstage/shoot.sh
 
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 302
@@ -85,6 +85,6 @@ cnt="$(pg9*/sql.sh -t -c "select count(*) from audit_event" mc_test)"
 curl -Is http://127.0.0.1:3190/download/folder2/file4.dat | grep 200
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 302
 
-# it shouldn't try to probe yet, because scanner didn't find files on the mirrors
-test 0 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name = 'mirror_probe' and id > $cnt" mc_test)
+# it shouldn't try to reach file on mirrors yet, because scanner didn't find files
+test 0 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name like 'mirror_%error' and id > $cnt" mc_test)
 

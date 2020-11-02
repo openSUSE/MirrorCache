@@ -46,7 +46,7 @@ sub register {
         $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename}) if $folder;
         $country = $c->mmdb->country if $file;
         unless ($country) {
-            $c->mmdb->emit_miss($dirname);
+            $c->mmdb->emit_miss($dirname) unless $file;
             return $c->mc->root->render_file($c, $filepath); # TODO we still can check file on mirrors even if it is missing in DB
         }
         
@@ -58,15 +58,14 @@ sub register {
         $ipv = 'ipv6' if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1';
         my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename, $scheme, $ipv);
         my $ua  = Mojo::UserAgent->new;
-        my $emit = 0;
         my $recurs1;
         my $recurs = sub {
             my $prev = shift;
-            $c->emit_event('mc_mirror_probe', $dirname) if $prev && ($prev == 200 || $prev == 302 || $prev == 301) && $emit;
+            
             return if $prev && ($prev == 200 || $prev == 302 || $prev == 301);
             my $mirror = shift @$mirrors;
             unless ($mirror) {
-                $c->emit_event('mc_mirror_probe', $dirname) if $emit;
+                $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country});
                 return $c->mc->root->render_file($c, $filepath);
             }
             my $url = $mirror->{url} . $filepath;
@@ -77,10 +76,9 @@ sub register {
                     $c->emit_event('mc_path_hit', {path => $dirname, mirror => $url});
                     return $c->redirect_to($url);
                 }
-                $emit = 1;
+                $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, server => $mirror->{id}, folder => $folder->id});
             })->catch(sub {
-                $c->emit_event('mc_debug', {error => shift, mirror => $url});
-                $emit = 1;
+                $c->emit_event('mc_mirror_error', {path => $dirname, error => shift, url => $url, server => $mirror->{id}, folder => $folder->id});
             })->finally(sub {
                 return $recurs1->($code);
                 my $reftx = $tx;
