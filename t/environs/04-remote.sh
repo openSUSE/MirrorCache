@@ -14,11 +14,6 @@ pg9*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
 mc9*/configure_db.sh pg9
 export MIRRORCACHE_ROOT=http://$(ap9*/print_address.sh)
 
-# mc9*/backstage/start.sh
-# mc9*/backstage/job.sh folder_sync_schedule_from_misses
-# mc9*/backstage/job.sh folder_sync_schedule
-# mc9*/backstage/status.sh
-
 ./environ.sh ap8-system2
 ./environ.sh ap7-system2
 
@@ -33,8 +28,8 @@ pg9*/sql.sh -c "insert into folder(path, db_sync_last) select '/', now()" mc_tes
 mc9*/start.sh
 mc9*/status.sh
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','/','t','us',''" mc_test
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','us',''" mc_test
 
 # remove folder1/file1.dt from ap8
 rm ap8-system2/dt/folder1/file2.dat
@@ -112,3 +107,20 @@ curl -s http://127.0.0.1:3190/download/folder1?status=all | grep '"recent":2'| g
 curl -s http://127.0.0.1:3190/download/folder1?status=recent | grep 127.0.0.1:1304 | grep 127.0.0.1:1314
 test {} == $(curl -s http://127.0.0.1:3190/download/folder1?status=outdated)
 test {} == $(curl -s http://127.0.0.1:3190/download/folder1?status=not_scanned)
+
+##################################
+# let's test path distortions 
+# remember number of folders in DB
+cnt=$(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
+curl -Is http://127.0.0.1:3190/download//folder1//file1.dat
+mc9*/backstage/job.sh folder_sync_schedule_from_misses
+mc9*/backstage/job.sh folder_sync_schedule
+mc9*/backstage/shoot.sh
+test $cnt == $(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
+
+curl -Is http://127.0.0.1:3190/download//folder1//file1.dat              | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
+curl -Is http://127.0.0.1:3190/download//folder1///file1.dat             | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
+curl -Is http://127.0.0.1:3190/download/./folder1/././file1.dat          | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
+curl -Is http://127.0.0.1:3190/download/./folder1/../folder1/./file1.dat | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
+##################################
+

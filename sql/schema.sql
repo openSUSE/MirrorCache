@@ -73,7 +73,7 @@ create table server_capability_check (
     extra varchar(1024)
 );
 
-create index server_capability_check_1 on(server_id, capability, dt);
+create index server_capability_check_1 on server_capability_check(server_id, capability, dt);
 
 create table server_capability_force (
     server_id int references server on delete cascade,

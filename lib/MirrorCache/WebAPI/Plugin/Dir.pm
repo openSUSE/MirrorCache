@@ -48,6 +48,8 @@ sub indx {
     # trim trailing slash
     $path = "/" unless $path;
     $path = substr($path,0,-1) if $is_dir && $path ne '/';
+    my $normalized_path = _normalize_path($path);
+    return $c->redirect_to($normalized_path) unless $normalized_path eq $path;
     if ($status) {
         return _render_stats_all($c, $path) if $status eq 'all';
         return _render_stats_recent($c, $path) if $status eq 'recent';
@@ -206,6 +208,21 @@ sub _render_stats_not_scanned {
     my $rsFolder = $schema->resultset('Folder');
 
     return $c->render(json => $rsFolder->stats_not_scanned($dir));
+}
+
+# remove . and .. replace // from path to make sure DB has no duplicates
+sub _normalize_path {
+    my $path = shift;
+    my @c = reverse split m@/@, $path;
+    my @c_new;
+    while (@c) {
+        my $component = shift @c;
+        next unless length($component);
+        if ($component eq '.') { next; }
+        if ($component eq '..') { shift @c; next }
+        push @c_new, $component;
+    }
+    return '/'.join('/', reverse @c_new);
 }
 
 1;
