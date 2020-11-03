@@ -49,7 +49,7 @@ sub indx {
     $path = "/" unless $path;
     $path = substr($path,0,-1) if $is_dir && $path ne '/';
     my $normalized_path = _normalize_path($path);
-    return $c->redirect_to($normalized_path) unless $normalized_path eq $path;
+    return $c->redirect_to($route . $normalized_path) unless $normalized_path eq $path;
     if ($status) {
         return _render_stats_all($c, $path) if $status eq 'all';
         return _render_stats_recent($c, $path) if $status eq 'recent';
