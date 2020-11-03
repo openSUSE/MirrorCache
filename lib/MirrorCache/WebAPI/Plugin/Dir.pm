@@ -21,6 +21,7 @@ use POSIX;
 use Data::Dumper;
 
 my $root;
+my @top_folders;
 
 sub register {
     my $self = shift;
@@ -29,6 +30,10 @@ sub register {
     $root = $app->mc->root;
     my $route = $app->mc->route;
     my $route_len = length($route);
+
+    if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
+        @top_folders = split /[:,\s]+/, $ENV{MIRRORCACHE_TOP_FOLDERS};
+    }
 
     $app->hook(
         before_dispatch => sub {
@@ -40,10 +45,16 @@ sub register {
 
 sub indx {
     my ($c, $route, $route_len) = @_;
-    return undef unless 0 eq rindex($c->req->url->path, $route, 0);
+    my $reqpath = $c->req->url->path;
+    if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
+        my @found = grep { $reqpath =~ /^\/$_/ } @top_folders;
+
+        return $c->redirect_to($route . $reqpath) if @found;
+    }
+    return undef unless 0 eq rindex($reqpath, $route, 0);
     my $status = $c->param('status');
 
-    my $path     = Mojo::Util::url_unescape(substr($c->req->url->path, $route_len));
+    my $path     = Mojo::Util::url_unescape(substr($reqpath, $route_len));
     my $is_dir   = '/' eq substr($path, -1) ? 1 : 0;
     # trim trailing slash
     $path = "/" unless $path;
