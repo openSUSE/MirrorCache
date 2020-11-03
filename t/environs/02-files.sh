@@ -8,7 +8,7 @@ set -ex
 pg9*/status.sh 2 > /dev/null || pg9*/start.sh
 
 pg9*/create.sh db mc_test
-pg9*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
+pg9*/sql.sh -v ON_ERROR_STOP=1 -f $(pwd)/MirrorCache/sql/schema.sql mc_test
 
 mc9*/configure_db.sh pg9
 
@@ -27,8 +27,8 @@ ap7*/status.sh >& /dev/null || ap7*/start.sh
 ap8*/status.sh >& /dev/null || ap8*/start.sh
 
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','/','t','us',''" mc_test
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','us',''" mc_test
 
 # remove folder1/file1.dt from ap8
 rm ap8-system2/dt/folder1/file2.dat
@@ -88,3 +88,19 @@ curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 302
 # it shouldn't try to reach file on mirrors yet, because scanner didn't find files
 test 0 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name like 'mirror_%error' and id > $cnt" mc_test)
 
+
+##################################
+# let's test path distortions 
+# remember number of folders in DB
+cnt=$(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
+curl -Is http://127.0.0.1:3190/download//folder1//file1.dat
+mc9*/backstage/job.sh folder_sync_schedule_from_misses
+mc9*/backstage/job.sh folder_sync_schedule
+mc9*/backstage/shoot.sh
+test $cnt == $(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
+
+curl -Is http://127.0.0.1:3190/download//folder1//file1.dat              | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
+curl -Is http://127.0.0.1:3190/download//folder1///file1.dat             | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
+curl -Is http://127.0.0.1:3190/download/./folder1/././file1.dat          | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
+curl -Is http://127.0.0.1:3190/download/./folder1/../folder1/./file1.dat | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
+##################################
