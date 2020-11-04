@@ -21,6 +21,7 @@ use POSIX;
 use Data::Dumper;
 
 my $root;
+my @top_folders;
 
 sub register {
     my $self = shift;
@@ -29,6 +30,10 @@ sub register {
     $root = $app->mc->root;
     my $route = $app->mc->route;
     my $route_len = length($route);
+
+    if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
+        @top_folders = split /[:,\s]+/, $ENV{MIRRORCACHE_TOP_FOLDERS};
+    }
 
     $app->hook(
         before_dispatch => sub {
@@ -40,16 +45,22 @@ sub register {
 
 sub indx {
     my ($c, $route, $route_len) = @_;
-    return undef unless 0 eq rindex($c->req->url->path, $route, 0);
+    my $reqpath = $c->req->url->path;
+    if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
+        my @found = grep { $reqpath =~ /^\/$_/ } @top_folders;
+
+        return $c->redirect_to($route . $reqpath) if @found;
+    }
+    return undef unless 0 eq rindex($reqpath, $route, 0);
     my $status = $c->param('status');
 
-    my $path     = Mojo::Util::url_unescape(substr($c->req->url->path, $route_len));
+    my $path     = Mojo::Util::url_unescape(substr($reqpath, $route_len));
     my $is_dir   = '/' eq substr($path, -1) ? 1 : 0;
     # trim trailing slash
     $path = "/" unless $path;
     $path = substr($path,0,-1) if $is_dir && $path ne '/';
     my $normalized_path = _normalize_path($path);
-    return $c->redirect_to($normalized_path) unless $normalized_path eq $path;
+    return $c->redirect_to($route . $normalized_path) unless $normalized_path eq $path;
     if ($status) {
         return _render_stats_all($c, $path) if $status eq 'all';
         return _render_stats_recent($c, $path) if $status eq 'recent';
@@ -66,6 +77,9 @@ sub indx {
         return undef;
     }
     # after this we are on remote root only
+    my $redir = $root->is_self_redirect($path);
+    return $c->redirect_to($route . $redir) if $redir;
+
     # first try to render from DB, then check in $root
     my $rsFolder = $schema->resultset('Folder');
     my $folder = $rsFolder->find({path => $path});
@@ -77,22 +91,20 @@ sub indx {
         $folder = $rsFolder->find({path => $f->dirname});
         my $file;
         $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $folder->id }) if $folder;
+        return $root->render_file($c, $path . '/') if $is_dir && $file;        
         return $c->mirrorcache->render_file($path) if $file;
         $c->mmdb->emit_miss($f->dirname);
     }
     # Now try to get content asynchronically
     my $tx = $c->render_later->tx;
     my $url = $c->app->mc->rootlocation;
-    my $ua = Mojo::UserAgent->new;
+    my $ua = Mojo::UserAgent->new->max_redirects(10);
     $ua->head_p($url . $path)->then(sub {
         my $code = shift->res->code;
         $c->emit_event('mc_debug', "head_p: $url, $path, $code, $is_dir");
         return $c->render(status => $code, text => "Error trying to check $url$path : $code") unless $code == 200 || $code == 301 || $code == 302;
         $c->emit_event('mc_debug', "head_p: $url, $path, $code, 2");
-
-        my $redir = $root->is_self_redirect($path);
-        return $c->redirect_to($route . $redir) if $redir;
-
+        return $root->render_file($c, $path) if $is_dir && !$root->is_dir($path);
         return render_dir_remote($c, $path, $rsFolder) if $is_dir;
 
         $ua->head_p($url . $path . '/')->then(sub {

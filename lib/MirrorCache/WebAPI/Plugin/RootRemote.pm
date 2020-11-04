@@ -56,7 +56,7 @@ sub is_dir {
     my $urlpath = $url . $_[1] . '/';
     my $res;
     eval {
-        my $ua = Mojo::UserAgent->new;
+        my $ua = Mojo::UserAgent->new->max_redirects(10);
         my $tx = $ua->head($urlpath);
         $res = $tx->result;
     } or $app->emit_event('mc_debug', {url => "u$urlpath", err => $@});
@@ -87,7 +87,9 @@ sub is_self_redirect {
     $app->emit_event('mc_debug', {url => "$urlpath", location => $location, i => $i});
     if ($i ne -1) {
         $app->emit_event('mc_debug', {url => "$urlpath", location => substr($location, $urllen)});
-        return substr $location, $urllen; 
+        my $res = substr $location, $urllen;
+        chop $res; # remove trailing slash that we added in this function
+        return $res;
     }
     return "";
 }
