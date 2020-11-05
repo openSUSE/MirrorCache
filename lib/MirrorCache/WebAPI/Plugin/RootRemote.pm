@@ -24,19 +24,19 @@ use Data::Dumper;
 
 sub singleton { state $root = shift->SUPER::new; return $root; };
 
-my $url;
-my $urllen;
-my $urls; # same as $url just s/http:/https:
-my $urlslen;
+my $rooturl;
+my $rooturllen;
+my $rooturls; # same as $rooturl just s/http:/https:
+my $rooturlslen;
 my $types = Mojolicious::Types->new;
 my $app;
 
 sub register {
     (my $self, $app) = @_;
-    $url = $app->mc->rootlocation;
-    $urllen = length $url;
-    $urls = $url =~ s/http:/https:/r;
-    $urlslen = length $urls;
+    $rooturl = $app->mc->rootlocation;
+    $rooturllen = length $rooturl;
+    $rooturls = $rooturl =~ s/http:/https:/r;
+    $rooturlslen = length $rooturls;
     $app->helper( 'mc.root' => sub { $self->singleton; });
 }
 
@@ -45,65 +45,37 @@ sub is_remote {
 }
 
 sub is_file {
-    my $urlpath = $url . $_[1];
+    my $rooturlpath = $rooturl . $_[1];
     my $ua = Mojo::UserAgent->new;
-    my $tx = $ua->head($urlpath);
-    my $res = $tx->result; 
-    return ($res && !$res->is_error);
-}
-
-sub is_dir {
-    my $urlpath = $url . $_[1] . '/';
     my $res;
     eval {
         my $ua = Mojo::UserAgent->new->max_redirects(10);
-        my $tx = $ua->head($urlpath);
+        my $tx = $ua->head($rooturlpath);
         $res = $tx->result;
-    } or $app->emit_event('mc_debug', {url => "u$urlpath", err => $@});
-    $app->emit_event('mc_debug', {url => "u$urlpath", code => ($res && !$res->is_error)});
-
-    return ($res && !$res->is_error);
+    };
+    return ($res && !$res->is_error && !$res->is_redirect);
 }
 
-sub is_self_redirect {
-    my ($self, $path) = @_;
-    $path = $path . '/';
-    my $urlpath = $url . $path;
-    $app->emit_event('mc_debug', {url => "r$urlpath"});
-    my $res;
-    eval {
-        my $ua = Mojo::UserAgent->new;
-        my $tx = $ua->head($urlpath);
-        
-        $res = $tx->result;
-    } or $app->emit_event('mc_debug', {url => "r$urlpath", err => $@});
-    $app->emit_event('mc_debug', {url => "r$urlpath", code => $res->code});
-
-    return "" unless $res && !$res->is_error && $res->is_redirect && $res->headers;
-    my $location = $res->headers->location;
-    return "" unless $location && $path ne substr($location, -length($path));
-
-    my $i = rindex($location, $url, 0);
-    $app->emit_event('mc_debug', {url => "$urlpath", location => $location, i => $i});
-    if ($i ne -1) {
-        $app->emit_event('mc_debug', {url => "$urlpath", location => substr($location, $urllen)});
-        my $res = substr $location, $urllen;
-        chop $res; # remove trailing slash that we added in this function
-        return $res;
-    }
-    return "";
+sub is_dir {
+    return is_file($_[0], $_[1] . '/');
 }
 
 sub render_file {
     my ($self, $c, $filepath) = @_;
-    return $c->redirect_to($urls . $filepath) if $c->req->is_secure;
-    return $c->redirect_to($url . $filepath);
+    return $c->redirect_to($self->location($c, $filepath));
+}
+
+sub location {
+    my ($self, $c, $filepath) = @_;
+    $filepath = "" unless $filepath;
+    return $rooturls . $filepath if $c && $c->req->is_secure;
+    return $rooturl . $filepath;
 }
 
 sub list_filenames {
     my $self    = shift;
     my $dir     = shift;
-    my $tx = Mojo::UserAgent->new->get($url . $dir . '/');
+    my $tx = Mojo::UserAgent->new->get($rooturl . $dir . '/');
     my @res = ();
     return \@res unless $tx->result->code == 200;
     my $dom = $tx->result->dom;
@@ -166,7 +138,7 @@ sub list_files {
     my $cur_path = Encode::decode_utf8( Mojo::Util::url_unescape( $urlpath) );
     for my $basename ( sort { $a cmp $b } @$children ) {
         my $file = "$dir/$basename";
-        my $furl  = Mojo::Path->new($url . $cur_path)->trailing_slash(0);
+        my $furl  = Mojo::Path->new($rooturl . $cur_path)->trailing_slash(0);
         my $is_dir = (substr $file, -1) eq '/' || $self->is_dir($file);
         if ($is_dir) {
             # directory points to this server
