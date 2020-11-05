@@ -110,14 +110,16 @@ sub indx {
     }
 
     # Nothing found in DB,
+    $c->mmdb->emit_miss($path) unless $miss_emitted;
+
     my $tx   = $c->render_later->tx;
     my $rootlocation = $root->location($c);
     my $url  = $rootlocation . $path;
 
     my $ua = Mojo::UserAgent->new->max_redirects(0);
 
-    # try to guess if $path is regular file or directory
-    # with added slash possible oucome can be:
+    # try to guess if $path is a regular file or a directory
+    # with added slash possible outcome can be:
     # - 404 - may mean it is a regular file or non-existing name (don't care => just redirect to root)
     # - 200 - means it is a folder - try to render
     # - redirected to another route => we must redirect it as well
@@ -125,7 +127,6 @@ sub indx {
     my $url1  = $url  . '/';
     $ua->head_p($url1)->then(sub {
         my $res = shift->res;
-        $c->mmdb->emit_miss($path) unless $miss_emitted;
 
         if (!$res->is_error) {
             return render_dir_remote($c, $path, $rsFolder) if !$res->is_redirect;

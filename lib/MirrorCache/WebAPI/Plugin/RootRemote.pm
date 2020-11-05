@@ -19,6 +19,8 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojolicious::Types;
 use Mojo::Util ('trim');
 use Encode ();
+use URI::Encode ('uri_decode');
+use File::Basename;
 
 use Data::Dumper;
 
@@ -80,8 +82,15 @@ sub list_filenames {
     return \@res unless $tx->result->code == 200;
     my $dom = $tx->result->dom;
     for my $i (sort { $a->attr->{href} cmp $b->attr->{href} } $dom->find('a')->each) {
-        my $href = $i->attr->{href};
         my $text = trim $i->text;
+        my $href = $i->attr->{href};
+        next unless $href;
+        if ('/' eq substr($href, -1)) {
+            $href = basename($href) . '/';
+        } else {
+            $href = basename($href);
+        }
+        $href = uri_decode($href);
         if ($text eq $href) { # && -f $localdir . $text) {
             # $text =~ s/\/$//;
             push @res, $text;

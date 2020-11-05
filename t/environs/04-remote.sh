@@ -124,3 +124,25 @@ curl -Is http://127.0.0.1:3190/download/./folder1/././file1.dat          | grep 
 curl -Is http://127.0.0.1:3190/download/./folder1/../folder1/./file1.dat | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
 ##################################
 
+
+
+##################################
+# test file with colon ':'
+for x in ap9-system2 ap7-system2 ap8-system2; do
+    touch $x/dt/folder1/file:4.dat
+done
+
+# first request will miss
+curl -Is http://127.0.0.1:3190/download/folder1/file:4.dat | grep -E "$(ap9*/print_address.sh)"
+
+# force rescan
+mc9*/backstage/job.sh folder_sync_schedule_from_misses
+mc9*/backstage/job.sh folder_sync_schedule
+mc9*/backstage/shoot.sh
+# now expect to hit 
+curl -s http://127.0.0.1:3190/download/folder1/ | grep file1.dat
+curl -s http://127.0.0.1:3190/download/folder1/ | grep file:4.dat
+curl -Is http://127.0.0.1:3190/download/folder1/file:4.dat | grep -E "$(ap8*/print_address.sh)|$(ap7*/print_address.sh)"
+##################################
+
+
