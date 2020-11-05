@@ -19,6 +19,12 @@ create table file (
     unique(folder_id, name)
 );
 
+create table redirect (
+    id serial NOT NULL PRIMARY KEY,
+    pathfrom varchar(512) UNIQUE NOT NULL,
+    pathto   varchar(512) NOT NULL
+);
+
 create table server (
     id serial NOT NULL PRIMARY KEY,
     hostname  varchar(128) NOT NULL,

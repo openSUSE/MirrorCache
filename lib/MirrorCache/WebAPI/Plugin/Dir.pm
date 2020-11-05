@@ -54,11 +54,15 @@ sub indx {
     return undef unless 0 eq rindex($reqpath, $route, 0);
     my $status = $c->param('status');
 
-    my $path     = Mojo::Util::url_unescape(substr($reqpath, $route_len));
-    my $is_dir   = '/' eq substr($path, -1) ? 1 : 0;
-    # trim trailing slash
-    $path = "/" unless $path;
-    $path = substr($path,0,-1) if $is_dir && $path ne '/';
+    my $path = Mojo::Util::url_unescape(substr($reqpath, $route_len));
+    $path = '/' unless $path;
+
+    my $trailing_slash = '';
+    if($path ne '/' && '/' eq substr($path, -1)) {
+        $trailing_slash = '/';
+        $path = substr($path, 0, -1);
+    }
+
     my $normalized_path = _normalize_path($path);
     return $c->redirect_to($route . $normalized_path) unless $normalized_path eq $path;
     if ($status) {
@@ -73,52 +77,82 @@ sub indx {
     my $schema   = $c->app->schema;
     unless ($root->is_remote) {
         return _render_dir($c, $path) if $root->is_dir($path);
-        return $c->mirrorcache->render_file($path) if !$is_dir && $root->is_file($path);
+        return $c->mirrorcache->render_file($path) if !$trailing_slash && $root->is_file($path);
         return undef;
     }
     # after this we are on remote root only
-    my $redir = $root->is_self_redirect($path);
-    return $c->redirect_to($route . $redir) if $redir;
-
-    # first try to render from DB, then check in $root
+    # first try to render from DB
     my $rsFolder = $schema->resultset('Folder');
-    my $folder = $rsFolder->find({path => $path});
+    my $miss_emitted = 0;
 
-    if ($folder) {
-        return _render_dir($c, $path, $rsFolder, $folder) if ($folder->db_sync_last);
-    } else {
+    if (my $folder = $rsFolder->find_folder_or_redirect($path)) {
+        return $c->redirect_to($folder->{pathto}) if $folder->{pathto};
+        return _render_dir($c, $path, $rsFolder) if ($folder->{db_sync_last});
+    } elsif (!$trailing_slash && $path ne '/') {
         my $f = Mojo::File->new($path);
-        $folder = $rsFolder->find({path => $f->dirname});
+        my $parent_folder = $rsFolder->find({path => $f->dirname});
         my $file;
-        $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $folder->id }) if $folder;
-        return $root->render_file($c, $path . '/') if $is_dir && $file;        
-        return $c->mirrorcache->render_file($path) if $file;
-        $c->mmdb->emit_miss($f->dirname);
+        $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $parent_folder->id }) if $parent_folder && !$trailing_slash;
+        if ($file) {
+            # file has trailing slash? That is probably incorrect, so let the root handle it
+            return $root->render_file($c, $path . '/') if $trailing_slash;
+            # find a mirror for it
+            return $c->mirrorcache->render_file($path);
+        }
+        # signal to work on it later
+        if ($parent_folder) {
+            my $miss_folder = $f->dirname;
+            # check if $parent_folder is fine and has "$path/" in it
+            $miss_folder = $path if($schema->resultset('File')->find({ name => $f->basename . '/', folder_id => $parent_folder->id }));
+            $c->mmdb->emit_miss($miss_folder);
+            $miss_emitted = 1;
+        }
     }
-    # Now try to get content asynchronically
-    my $tx = $c->render_later->tx;
-    my $url = $c->app->mc->rootlocation;
-    my $ua = Mojo::UserAgent->new->max_redirects(10);
-    $ua->head_p($url . $path)->then(sub {
-        my $code = shift->res->code;
-        $c->emit_event('mc_debug', "head_p: $url, $path, $code, $is_dir");
-        return $c->render(status => $code, text => "Error trying to check $url$path : $code") unless $code == 200 || $code == 301 || $code == 302;
-        $c->emit_event('mc_debug', "head_p: $url, $path, $code, 2");
-        return $root->render_file($c, $path) if $is_dir && !$root->is_dir($path);
-        return render_dir_remote($c, $path, $rsFolder) if $is_dir;
 
-        $ua->head_p($url . $path . '/')->then(sub {
-            $code = shift->res->code;
-            return render_dir_remote($c, $path, $rsFolder) if $code == 200 || $code == 301 || $code == 302;
-            $c->mirrorcache->render_file($path);
-        })->catch(sub {
-            $c->mirrorcache->render_file($path);
-            my $reftx = $tx;
-            my $refua = $ua;
-        })->timeout(2)->wait;
+    # Nothing found in DB,
+    my $tx   = $c->render_later->tx;
+    my $rootlocation = $root->location($c);
+    my $url  = $rootlocation . $path;
+
+    my $ua = Mojo::UserAgent->new->max_redirects(0);
+
+    # try to guess if $path is regular file or directory
+    # with added slash possible oucome can be:
+    # - 404 - may mean it is a regular file or non-existing name (don't care => just redirect to root)
+    # - 200 - means it is a folder - try to render
+    # - redirected to another route => we must redirect it as well
+    my $path1 = $path . '/';
+    my $url1  = $url  . '/';
+    $ua->head_p($url1)->then(sub {
+        my $res = shift->res;
+        $c->mmdb->emit_miss($path) unless $miss_emitted;
+
+        if (!$res->is_error) {
+            return render_dir_remote($c, $path, $rsFolder) if !$res->is_redirect;
+            
+            # redirect on oneself
+            if ($res->is_redirect && $res->headers) {
+                my $location1 = $res->headers->location;
+                if ($location1 && $path1 ne substr($location1, -length($path1))) {
+                    my $i = rindex($location1, $rootlocation, 0);
+                    if ($i ne -1) {
+                        # remove trailing slash we added earlier
+                        my $location = substr($location1, 0, -1);
+                        if ($rootlocation eq substr($location, 0, length($rootlocation))) {
+                            $location = substr($location, length($rootlocation));
+                        }
+                        return $c->redirect_to($route . $location . $trailing_slash)
+                    }
+                }
+            }
+        }
+        # this should happen only if $url is a valid file or non-existing path
+        return $c->redirect_to($url . $trailing_slash);
     })->catch(sub {
-        $c->render(status => 404, text => Dumper(\@_)); # TODO proper code?
-    })->timeout(12)->wait;
+        return $c->redirect_to($url . $trailing_slash);
+        my $reftx = $tx;
+        my $refua = $ua;
+    })->timeout(2)->wait;
 }
 
 sub render_dir_remote { 
@@ -131,7 +165,6 @@ sub render_dir_remote {
     my $job_id = 0;
     $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir, $country);
     unless ($job_id > 0) {
-        $c->mmdb->emit_miss($dir, $country);
         return _render_dir($c, $dir, $rsFolder);
     }
 

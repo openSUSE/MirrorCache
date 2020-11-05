@@ -60,6 +60,28 @@ END_SQL
     $prep->execute($path, $priority, $country, $priority, $country);
 }
 
+sub find_folder_or_redirect {
+    my ($self, $path) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+select id, db_sync_last, '' as pathto
+from folder
+where path = ?
+union
+select id, NULL, pathto
+from redirect 
+where pathfrom = ?
+limit 1
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($path, $path);
+    return $dbh->selectrow_hashref($prep);
+}
+
 sub stats_recent {
     my ($self, $path) = @_;
 
