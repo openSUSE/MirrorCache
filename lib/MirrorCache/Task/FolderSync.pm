@@ -72,23 +72,34 @@ sub _sync {
     return $job->fail("Couldn't create folder $path in DB") unless $folder && $folder->id;
 
     my $folder_id = $folder->id;
-    my @dbfiles = ();
     my %dbfileids = ();
     for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
         my $basename = $file->name;
         next unless $basename;
-        push @dbfiles, $basename;
         $dbfileids{$basename} = $file->id;
     }
+    my %dbfileidstodelete = %dbfileids;
 
     my $cnt = 0;
     for my $file (@$localfiles) {
-        next if $dbfileids{$file}; # || '/' eq substr($file, -1);
+        if ($dbfileids{$file}) {
+            delete $dbfileidstodelete{$file};
+            next;
+        }
         $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
         $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
         $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         $cnt = $cnt + 1;
     }
+    my @idstodelete = values %dbfileidstodelete;
+    $schema->storage->dbh->do(
+      sprintf(
+        'DELETE FROM file WHERE id IN(%s)', 
+        join ',', ('?') x @idstodelete
+      ),
+      {},
+      @idstodelete,
+    ) if @idstodelete;
 
     # Task may be explicitly scheduled for particular country or have country in the DB
     if ($folder->db_sync_for_country) {

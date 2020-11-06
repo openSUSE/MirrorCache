@@ -81,7 +81,10 @@ sub list_filenames {
     my @res = ();
     return \@res unless $tx->result->code == 200;
     my $dom = $tx->result->dom;
-    for my $ul ($dom->find('ul')->each) {
+    # TODO move root html tag to config
+    my @items = $dom->find('main')->each;
+    @items = $dom->find('ul')->each unless @items;
+    for my $ul (@items) {
         for my $i ($ul->find('a')->each) {
             my $text = trim $i->text;
             my $href = $i->attr->{href};

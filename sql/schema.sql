@@ -48,7 +48,7 @@ create table folder_diff (
 
 create table folder_diff_file (
     folder_diff_id bigint references folder_diff,
-    file_id bigint references file
+    file_id bigint
 );
 
 create table folder_diff_server (
