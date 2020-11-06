@@ -81,21 +81,25 @@ sub list_filenames {
     my @res = ();
     return \@res unless $tx->result->code == 200;
     my $dom = $tx->result->dom;
-    for my $i (sort { $a->attr->{href} cmp $b->attr->{href} } $dom->find('a')->each) {
-        my $text = trim $i->text;
-        my $href = $i->attr->{href};
-        next unless $href;
-        if ('/' eq substr($href, -1)) {
-            $href = basename($href) . '/';
-        } else {
-            $href = basename($href);
-        }
-        $href = uri_decode($href);
-        if ($text eq $href) { # && -f $localdir . $text) {
-            # $text =~ s/\/$//;
-            push @res, $text;
+    for my $ul ($dom->find('ul')->each) {
+        for my $i ($ul->find('a')->each) {
+            my $text = trim $i->text;
+            my $href = $i->attr->{href};
+            next unless $href;
+            if ('/' eq substr($href, -1)) {
+                $href = basename($href) . '/';
+            } else {
+                $href = basename($href);
+            }
+            $href = uri_decode($href);
+            if ($text eq $href) { # && -f $localdir . $text) {
+                # $text =~ s/\/$//;
+                push @res, $text;
+            }
         }
     }
+    my %hash   = map { $_, 1 } @res;
+    @res = sort keys %hash;
     return \@res;
 }
 

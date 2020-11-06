@@ -90,7 +90,7 @@ sub enqueue_unless_scheduled_with_parameter_or_limit {
     return 0 unless ($res || !exists $res->{total} || $res->{total} > 1000-1);
     $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive','active'], notes => [$arg1] });
     return -1 unless ($res || !exists $res->{total} || $res->{total} > 0);
-    return $minion->enqueue($task => [($arg1, $arg2)] => {notes => { $arg1 => 1 }} );
+    return $minion->enqueue($task => [($arg1, $arg2)] => {priority => 10} => {notes => { $arg1 => 1 }} );
 }
 
 
