@@ -31,7 +31,7 @@ sub register {
 # many html pages truncate file names
 # use last 42 characters to compare for now
 sub _reliable_prefix {
-    substr(shift, 0, 42);
+    substr(shift, 0, 21);
 }
 
 sub _scan {
