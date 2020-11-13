@@ -106,15 +106,21 @@ sub list_filenames {
     return \@res;
 }
 
+sub _by_filename {
+    $b->{dir} cmp $a->{dir} ||
+    $a->{name} cmp $b->{name};
+}
+
 sub list_files_from_db {
     my $self    = shift;
     my $urlpath = shift;
     my $folder_id = shift;
     my $dir = shift;
-    my @files   =
+    my @res   =
         ( $urlpath eq '/' )
         ? ()
         : ( { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' } );
+    my @files;
     my @childrenfiles = $app->schema->resultset('File')->search({folder_id => $folder_id});
 
     my $cur_path = Encode::decode_utf8( Mojo::Util::url_unescape( $urlpath ) );
@@ -136,19 +142,22 @@ sub list_files_from_db {
             size  => 0,
             type  => $mime_type,
             mtime => '',
+            dir   => $is_dir,
         };
     }
-    return \@files;
+    push @res, sort _by_filename @files;
+    return \@res;
 }
 
 sub list_files {
     my $self    = shift;
     my $urlpath = shift;
     my $dir     = shift;
-    my @files   =
+    my @res   =
         ( $urlpath eq '/' )
         ? ()
         : ( { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' } );
+    my @files;
     my $children = $self->list_filenames($dir);
 
     my $cur_path = Encode::decode_utf8( Mojo::Util::url_unescape( $urlpath) );
@@ -177,9 +186,11 @@ sub list_files {
             size  => '?',
             type  => $mime_type,
             mtime => $mtime,
+            dir   => $is_dir,
         };
     }
-    return \@files;
+    push @res, sort _by_filename @files;
+    return \@res;
 }
 
 sub _get_ext {
