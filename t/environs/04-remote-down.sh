@@ -19,7 +19,9 @@ export MIRRORCACHE_ROOT=http://$(ap9*/print_address.sh)
 
 for x in ap7-system2 ap8-system2 ap9-system2; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
+    mkdir -p $x/dt/folder1/repodata
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    touch $x/dt/folder1/repodata/repomd.xml
     $x/start.sh
 done
 
@@ -32,6 +34,7 @@ pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) selec
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','us',''" mc_test
 
 # first request redirected to root
+curl -Is http://127.0.0.1:3190/download/folder1/repodata/repomd.xml | grep $(ap9*/print_address.sh)
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap9*/print_address.sh)
 
 # remove folder1/file1.dt from ap8
@@ -42,6 +45,8 @@ mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
 
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap7*/print_address.sh)
+echo repomd is still taken from the root
+curl -Is http://127.0.0.1:3190/download/folder1/repodata/repomd.xml | grep $(ap9*/print_address.sh)
 
 # shutdown root
 ap9*/stop.sh
@@ -53,3 +58,9 @@ fi
 # mc properly redirects when root is down
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap7*/print_address.sh)
 
+# since root is unavailable repomd is taken from a mirror
+curl -Is http://127.0.0.1:3190/download/folder1/repodata/repomd.xml | grep -E "$(ap7*/print_address.sh)|$(ap8*/print_address.sh)"
+ap9*/start.sh
+ap9*/status.sh
+# since root is up again, redirect to root
+curl -Is http://127.0.0.1:3190/download/folder1/repodata/repomd.xml | grep $(ap9*/print_address.sh)
