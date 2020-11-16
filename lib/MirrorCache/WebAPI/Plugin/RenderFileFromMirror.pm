@@ -30,6 +30,7 @@ sub register {
    
         my ($c, $filepath) = @_;
         $c->emit_event('mc_dispatch', $filepath);
+        my $root = $c->mc->root;
         my $mirror = "";
         my $f = Mojo::File->new($filepath);
         my $dirname  = $f->dirname;
@@ -38,7 +39,10 @@ sub register {
             # We don't redirect inside repodata, because if a mirror is outdated, 
             # then zypper will have hard time working with outdated repomd.* files
             my $prefix = "repomd.xml";
-            return $c->mc->root->render_file($c, $filepath) if $prefix eq substr($basename,0,length($prefix));
+            
+            if (($prefix eq substr($basename,0,length($prefix))) && $root->is_reachable) {
+                return $root->render_file($c, $filepath);
+            }
         }
 
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
@@ -47,7 +51,7 @@ sub register {
         $country = $c->mmdb->country if $file;
         unless ($country) {
             $c->mmdb->emit_miss($dirname) unless $file;
-            return $c->mc->root->render_file($c, $filepath); # TODO we still can check file on mirrors even if it is missing in DB
+            return $root->render_file($c, $filepath); # TODO we still can check file on mirrors even if it is missing in DB
         }
         
         my $tx = $c->render_later->tx;
@@ -66,7 +70,7 @@ sub register {
             my $mirror = shift @$mirrors;
             unless ($mirror) {
                 $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country});
-                return $c->mc->root->render_file($c, $filepath);
+                return $root->render_file($c, $filepath);
             }
             my $url = $mirror->{url} . $filepath;
             my $code;

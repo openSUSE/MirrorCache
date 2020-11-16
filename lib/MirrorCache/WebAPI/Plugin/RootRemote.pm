@@ -32,6 +32,7 @@ my $rooturls; # same as $rooturl just s/http:/https:
 my $rooturlslen;
 my $types = Mojolicious::Types->new;
 my $app;
+my $uaroot = Mojo::UserAgent->new->max_redirects(10)->request_timeout(1);
 
 sub register {
     (my $self, $app) = @_;
@@ -44,6 +45,15 @@ sub register {
 
 sub is_remote {
     return 1;
+}
+
+sub is_reachable {
+    my $res = 0;
+    eval {
+        my $tx = $uaroot->get($rooturl);
+        $res = 1 if $tx->result->code < 399;
+    };
+    return $res;
 }
 
 sub is_file {
@@ -59,7 +69,8 @@ sub is_file {
 }
 
 sub is_dir {
-    return is_file($_[0], $_[1] . '/');
+    my $res = is_file($_[0], $_[1] . '/');
+    return $res;
 }
 
 sub render_file {

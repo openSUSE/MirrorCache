@@ -38,6 +38,10 @@ sub is_remote {
     return 0;
 }
 
+sub is_reachable {
+    return 1;
+}
+
 sub is_file {
     return 1 unless $_[1];
     return -f $rootpath . $_[1];
