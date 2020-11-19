@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 
 # Copyright (C) 2020 SUSE LLC
 #
@@ -27,8 +27,4 @@ use MirrorCache::WebAPI;
 $ENV{MOJO_MAX_MESSAGE_SIZE}   = 1024 * 1024 * 1024 * 20;
 $ENV{MOJO_INACTIVITY_TIMEOUT} = 300;
 
-# the default is EV, and this heavily screws with our children handling
-$ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
-
 MirrorCache::WebAPI::run;
-

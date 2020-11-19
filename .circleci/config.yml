@@ -22,8 +22,27 @@ jobs:
                 $f ;\
             done
 
+  systemd:
+    machine:
+      image: ubuntu-2004:202008-01
+    environment:
+      OSHT_LOCATION: /home/circleci/osht/osht.sh
+      PRIVILEGED_TESTS: 1
+    working_directory: ~/project/t/systemd
+    steps:
+      - checkout:
+          path: ~/project
+      - run: git clone https://github.com/coryb/osht ~/osht
+      - run: echo OSHT_LOCATION=$OSHT_LOCATION
+      - run:
+          command: |
+            for f in ./*.sh; do \
+                $f ;\
+            done
+
 workflows:
   version: 2.1
   test:
     jobs:
       - environs
+      - systemd

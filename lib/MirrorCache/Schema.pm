@@ -28,11 +28,22 @@ sub connect_db {
     $check //= 1;
 
     unless ($SINGLETON) {
-
-        # my $mode = $args{mode} || $ENV{MIRRORCACHE_DATABASE} || 'production';
-        # if ($mode eq 'test') {
-            $SINGLETON = __PACKAGE__->connect($ENV{TEST_PG});
-        # }
+        my $dsn;
+        my $user = $ENV{MIRRORCACHE_DBUSER};
+        my $pass = $ENV{MIRRORCACHE_DBPASS};
+        if ($ENV{TEST_PG}) {
+            $dsn = $ENV{TEST_PG};
+        } elsif ($ENV{MIRRORCACHE_DSN}) {
+            $dsn = $ENV{MIRRORCACHE_DSN};
+        } else {
+            my $db   = $ENV{MIRRORCACHE_DB} // 'mirrorcache';
+            my $host = $ENV{MIRRORCACHE_DBHOST};
+            my $port = $ENV{MIRRORCACHE_DBPORT};
+            $dsn  = "DBI:Pg:dbname=$db";
+            $dsn = "$dsn:host=$host" if $host;
+            $dsn = "$dsn;port=$port" if $port;
+        }
+        $SINGLETON = __PACKAGE__->connect($dsn, $user, $pass);
     }
 
     return $SINGLETON;

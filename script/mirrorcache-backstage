@@ -1,0 +1,3 @@
+#!/bin/sh -e
+echo $MOJO_LISTEN
+exec "$(dirname "$0")"/mirrorcache backstage run -j 16

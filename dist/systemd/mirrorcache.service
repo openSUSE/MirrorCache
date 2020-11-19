@@ -1,0 +1,16 @@
+[Unit]
+Description=MirrorCache webApp
+Wants=postgresql.service
+Before=apache2.service
+After=postgresql.service nss-lookup.target
+Requires=postgresql.service
+ConditionEnvironment=MIRRORCACHE_ROOT
+
+[Service]
+User=mirrorcache
+ExecStart=/usr/share/mirrorcache/script/mirrorcache-daemon
+StandardOutput=file:/var/log/mirrorcache-stdout
+StandardError=file:/var/log/mirrorcache
+
+[Install]
+WantedBy=multi-user.target
