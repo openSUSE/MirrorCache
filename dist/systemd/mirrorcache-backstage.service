@@ -1,7 +1,6 @@
 [Unit]
 Description=MirrorCache daemon for background jobs
 After=postgresql.service
-Wants=postgresql.service
 
 [Service]
 User=mirrorcache

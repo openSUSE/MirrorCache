@@ -1,6 +1,5 @@
 [Unit]
 Description=MirrorCache webApp
-Wants=postgresql.service
 Before=apache2.service
 After=postgresql.service nss-lookup.target
 Requires=postgresql.service

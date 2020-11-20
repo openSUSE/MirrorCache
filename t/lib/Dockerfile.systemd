@@ -14,9 +14,8 @@ RUN zypper -vvv -n install perl-DBIx-Class perl-Data-Dumper-Concise perl-Digest-
 
 RUN zypper -vvv -n install perl-App-cpanminus
 RUN zypper -vvv -n install gzip gcc make
-RUN cpanm Mojolicious::Plugin::ClientIP --sudo
-RUN cpanm MaxMind::DB::Reader --sudo || :
-RUN cpanm URI::Encode --sudo || :
+# RUN cpanm Mojolicious::Plugin::ClientIP --sudo
+# RUN cpanm MaxMind::DB::Reader --sudo || :
 
 RUN zypper -vvv -n install perl-Mojolicious-Plugin-AssetPack perl-Net-OpenID-Consumer perl-LWP-Protocol-https perl-URI
 
@@ -38,16 +37,6 @@ ADD src/sql /usr/share/doc/packages/mirrorcache/sql
 # let pg initialize data dir in cache to save some time on every run
 RUN sudo -u postgres /usr/share/postgresql/postgresql-script start && \
      sudo -u postgres /usr/share/postgresql/postgresql-script stop
-#     sudo -u postgres createuser mirrorcache && \
-#     sudo -u postgres createdb mirrorcache && \
-#     sudo -u postgres psql -c "alter user mirrorcache with encrypted password 'mirrorcache';" && \
-#     sudo -u postgres psql -f /usr/share/doc/packages/mirrorcache/sql/schema.sql mirrorcache && \
-
-
-# RUN sed -i 's,127.0.0.1/32            ident,127.0.0.1/32            password,' /var/lib/pgsql/data/pg_hba.conf
-# RUN sed -i 's,\#log_min_duration_statement = -1,log_min_duration_statement = 500,' /var/lib/pgsql/data/postgresql.conf
-# RUN sed -i 's,\#log_lock_waits = off,log_lock_waits = on,' /var/lib/pgsql/data/postgresql.conf
-# RUN sed -i 's,\#deadlock_timeout = 1s,deadlock_timeout = 10,' /var/lib/pgsql/data/postgresql.conf
 
 ADD src/city.mmdb /var/lib/GeoIP/GeoLite2-City.mmdb
 
