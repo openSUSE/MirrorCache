@@ -17,7 +17,6 @@ package MirrorCache::WebAPI;
 use Mojo::Base 'Mojolicious';
 
 use MirrorCache::Schema;
-use MaxMind::DB::Reader;
 
 use Mojolicious::Commands;
 use Mojo::Loader 'load_class';
@@ -31,9 +30,15 @@ sub startup {
     my $city_mmdb = $ENV{MIRRORCACHE_CITY_MMDB};
 
     die("MIRRORCACHE_ROOT is not set") unless $root;
-    die("MIRRORCACHE_CITY_MMDB is not set") unless $city_mmdb;
-    die("MIRRORCACHE_CITY_MMDB is not a file ($city_mmdb)") unless -f $city_mmdb;
-    my $reader = MaxMind::DB::Reader->new( file => $city_mmdb );
+    my $reader;
+    if ($city_mmdb) {
+        die("MIRRORCACHE_CITY_MMDB is not a file ($city_mmdb)") unless -f $city_mmdb;
+        require MaxMind::DB::Reader;
+        # MaxMind::DB::Reader->import('new');
+        $reader = MaxMind::DB::Reader->new( file => $city_mmdb );
+    } else {
+        print(STDERR "MIRRORCACHE_CITY_MMDB is not set: geolocations will be ignored\n");
+    }
 
     # take care of DB deployment or migration before starting the main app
     MirrorCache::Schema->singleton;
@@ -71,7 +76,7 @@ sub startup {
     $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
 
     $rest_r->get('/folder_jobs/:id')->name('rest_folder_jobs')->to('folder_jobs#list');
-    $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show');
+    $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show') if $reader;
 
     my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
 
@@ -101,7 +106,6 @@ sub startup {
 
     $self->plugin('DefaultHelpers');
     $self->plugin('RenderFile');
-    $self->plugin('ClientIP');
 
     push @{$self->plugins->namespaces}, 'MirrorCache::WebAPI::Plugin';
 
@@ -114,7 +118,7 @@ sub startup {
         $self->plugin('RootRemote');
     }
 
-    $self->plugin('Mmdb', $reader);
+    $self->plugin('Mmdb', { reader => $reader });
     $self->plugin('Backstage');
     $self->plugin('AuditLog');
     $self->plugin('Dir');

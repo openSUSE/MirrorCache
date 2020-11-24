@@ -19,7 +19,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojolicious::Types;
 use Mojo::Util ('trim');
 use Encode ();
-use URI::Encode ('uri_decode');
+use URI::Escape ('uri_unescape');
 use File::Basename;
 
 use Data::Dumper;
@@ -105,7 +105,7 @@ sub list_filenames {
             } else {
                 $href = basename($href);
             }
-            $href = uri_decode($href);
+            $href = uri_unescape($href);
             if ($text eq $href) { # && -f $localdir . $text) {
                 # $text =~ s/\/$//;
                 push @res, $text;

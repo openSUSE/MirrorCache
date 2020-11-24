@@ -49,7 +49,8 @@ sub register {
         my ($file, $country);
         $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename}) if $folder;
         $country = $c->mmdb->country if $file;
-        unless ($country) {
+        # render from root if we cannot determint country when GeoIP is enabled
+        if (!$country && (!$folder || $ENV{MIRRORCACHE_CITY_MMDB})) {
             $c->mmdb->emit_miss($dirname) unless $file;
             return $root->render_file($c, $filepath); # TODO we still can check file on mirrors even if it is missing in DB
         }
@@ -58,7 +59,7 @@ sub register {
         my $scheme = 'http';
         $scheme = 'https' if $c->req->is_secure;
         my $ipv = 'ipv4';
-        my $ip = $c->client_ip;
+        my $ip = $c->mmdb->client_ip;
         $ipv = 'ipv6' if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1';
         my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename, $scheme, $ipv);
         my $ua  = Mojo::UserAgent->new;

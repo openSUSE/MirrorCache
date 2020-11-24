@@ -28,9 +28,12 @@ sub mirrors_country {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
+    my $country_condition = "and s.country = lower(?)";
+    $country_condition = "and ? = ''" if $country eq ''; # just some expression
+
     # currently the query will select rows for both ipv4 and ipv6 if a mirror supports both formats
     # it is not big deal, but can be optimized so only one such row is selected
-    my $sql = <<'END_SQL';
+    my $sql = <<"END_SQL";
 select 
     concat(
        x.capability,
@@ -63,9 +66,9 @@ and fcap6.server_id is NULL
 and cap.server_id is NULL
 and cap6.server_id is NULL
 and cap_asn_only.server_id is NULL
-and s.country = lower(?)
 and chk_old.server_id IS NULL
 and chk_old6.server_id IS NULL
+$country_condition
 order by rank1, rank2, rank3
 END_SQL
     my $prep = $dbh->prepare($sql);

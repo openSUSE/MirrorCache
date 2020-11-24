@@ -17,16 +17,17 @@
 package MirrorCache::WebAPI::Plugin::Mmdb;
 use Mojo::Base 'Mojolicious::Plugin';
 
-use MaxMind::DB::Reader;
 
 my $reader;
 
 sub register {
-    (my $self, my $app, $reader) = @_;
+    my ($self, $app, $conf) = @_;
+    $reader = $conf->{reader} if $conf;
     
     $app->helper( 'mmdb.country' => sub {
         my ($c, $ip) = @_;
-        $ip = shift->client_ip unless $ip; 
+        return "" unless $reader;
+        $ip = shift->client_ip unless $ip;
         return 'us' if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
         my $record = $reader->record_for_address($ip);
         return $record->{country}->{iso_code} if $record;
@@ -35,15 +36,22 @@ sub register {
 
     $app->helper( 'mmdb.emit_miss' => sub {
         my ($c, $path, $country) = @_;
-        my $ip = $c->client_ip;
+        my $ip = $c->mmdb->client_ip;
         $country = $country || $c->mmdb->country($ip);
         if ($country) {
             $c->emit_event('mc_path_miss', { path => $path, country => $country } );
         } else {
-            $c->emit_event('mc_unknown_ip', $ip);
+            $c->emit_event('mc_unknown_ip', $ip) if $reader;
             $c->emit_event('mc_path_miss', { path => $path } );
         }
     });
+
+    if ($reader) {
+        $app->plugin('ClientIP');
+        $app->helper( 'mmdb.client_ip' => sub { return shift->client_ip; } );
+    } else {
+        $app->helper( 'mmdb.client_ip' => sub { return ''; } );
+    }
 }
 
 1;
