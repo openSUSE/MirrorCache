@@ -27,7 +27,7 @@ use MirrorCache::Utils 'random_string';
 sub startup {
     my $self = shift;
     my $root = $ENV{MIRRORCACHE_ROOT};
-    my $city_mmdb = $ENV{MIRRORCACHE_CITY_MMDB} // '/var/lib/GeoIP/GeoLite2-City.mmdb';
+    my $city_mmdb = $ENV{MIRRORCACHE_CITY_MMDB};
 
     die("MIRRORCACHE_ROOT is not set") unless $root;
     my $reader;
