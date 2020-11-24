@@ -19,7 +19,7 @@ use Mojo::Base 'Mojolicious::Controller';
 sub show {
     my ($c) = @_;
 
-    my $ip      = $c->client_ip;
+    my $ip      = $c->mmdb->client_ip;
     my $country = $c->mmdb->country($ip) || 'Unknown';
 
     $c->render(

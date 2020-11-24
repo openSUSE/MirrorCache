@@ -20,7 +20,7 @@ use DateTime;
 use Digest::MD5;
 use Mojo::UserAgent;
 use Mojo::Util ('trim');
-use URI::Encode ('uri_decode');
+use URI::Escape ('uri_unescape');
 use File::Basename;
 
 sub register {
@@ -93,8 +93,8 @@ sub _scan {
                 } else {
                     $href = basename($href);
                 }
-                $href = uri_decode($href);
-                # we can do _reliable_prefix() only after uri_decode
+                $href = uri_unescape($href);
+                # we can do _reliable_prefix() only after uri_unescape
                 my $href1 = _reliable_prefix($href);
                 my $text1;
                 if ('/' eq substr($text, -1)) {		
