@@ -64,5 +64,4 @@ table { width:100%%; }
   <tr>Folder is empty</tr>
   % }
 </table>
-<hr />
-</body></html
+<hr/>
