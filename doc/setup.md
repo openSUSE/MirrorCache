@@ -49,7 +49,7 @@ zypper --gpg-auto-import-keys --no-gpg-checks refresh
 zypper install MirrorCache
 
 zypper install postgresql postgresql-server
-systemctl set-environment MIRRORCACHE_ROOT=http://dowload.opensuse.org
+systemctl set-environment MIRRORCACHE_ROOT=http://download.opensuse.org
 systemctl set-environment MOJO_LISTEN=http://*:8000
 systemctl start postgresql
 
