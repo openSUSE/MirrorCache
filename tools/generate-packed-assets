@@ -1,0 +1,2 @@
+#!/bin/sh -e
+perl -Ilib/ -MMojolicious::Lite -e 'plugin AssetPack => { pipes => [qw(Sass Css JavaScript Fetch Combine)]} and app->asset->process()'

@@ -1,0 +1,14 @@
+[Unit]
+Description=MirrorCache daemon for background jobs
+After=postgresql.service
+
+[Service]
+User=mirrorcache
+ExecStart=/usr/share/mirrorcache/script/mirrorcache-backstage
+Nice=19
+Restart=on-failure
+StandardOutput=file:/var/log/mirrorcache-backstage-stdout
+StandardError=file:/var/log/mirrorcache-backstage
+
+[Install]
+WantedBy=multi-user.target

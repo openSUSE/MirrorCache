@@ -1,0 +1,45 @@
+FROM opensuse/leap:15.2
+ENV container docker
+
+ENV LANG en_US.UTF-8
+
+RUN sed -i 's,http://download.opensuse.org,https://mirrorcache.opensuse.org/download,g' /etc/zypp/repos.d/*repo
+RUN zypper -vvv -n install git-core wget tar m4
+
+RUN zypper ar -f https://mirrorcache.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.2 perl
+RUN zypper --gpg-auto-import-keys ref
+
+RUN zypper -vvv -n install perl-DBIx-Class perl-Data-Dumper-Concise perl-Digest-MD5 perl-Mojolicious perl-Mojo-Pg sudo vim postgresql postgresql-server \
+  curl apache2 perl-Mojolicious-Plugin-RenderFile perl-Minion perl-DateTime perl-DBIx-Class-DynamicDefault perl-DateTime-Format-Pg
+
+RUN zypper -vvv -n install perl-App-cpanminus
+RUN zypper -vvv -n install gzip gcc make
+# RUN cpanm Mojolicious::Plugin::ClientIP --sudo
+# RUN cpanm MaxMind::DB::Reader --sudo || :
+
+RUN zypper -vvv -n install perl-Mojolicious-Plugin-AssetPack perl-Net-OpenID-Consumer perl-LWP-Protocol-https perl-URI
+
+RUN zypper -vvv -n install ruby ruby-devel ruby2.5-rubygem-sass
+
+RUN zypper -vvv -n install perl-JavaScript-Minifier-XS perl-CSS-Minifier-XS
+
+VOLUME ["/sys/fs/cgroup"]
+VOLUME ["/run"]
+VOLUME ["/opt/project"]
+
+RUN systemctl enable dbus.service
+RUN systemctl enable postgresql
+
+######
+
+ADD src/sql /usr/share/doc/packages/mirrorcache/sql
+
+# let pg initialize data dir in cache to save some time on every run
+RUN sudo -u postgres /usr/share/postgresql/postgresql-script start && \
+     sudo -u postgres /usr/share/postgresql/postgresql-script stop
+
+ADD src/city.mmdb /var/lib/GeoIP/GeoLite2-City.mmdb
+
+WORKDIR /opt/project
+
+ENTRYPOINT ["/usr/lib/systemd/systemd"]
