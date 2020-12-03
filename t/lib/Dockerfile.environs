@@ -24,6 +24,8 @@ RUN zypper -n install perl-Mojolicious-Plugin-AssetPack perl-Net-OpenID-Consumer
 
 RUN zypper -n install ruby ruby-devel ruby2.5-rubygem-sass
 
+RUN zypper -n install perl-XML-Writer
+
 RUN ln /usr/sbin/httpd /sbin/httpd 
 
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]

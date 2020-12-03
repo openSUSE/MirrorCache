@@ -30,8 +30,8 @@ ap8*/status.sh >& /dev/null || ap8*/start.sh
 ap8*/curl.sh folder1/ | grep file1.dat
 
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','/','t','de',''" mc_test
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','de',''" mc_test
 
 curl -Is http://127.0.0.1:3190/download/folder1/file1.dat
 
@@ -42,7 +42,8 @@ mc9*/backstage/shoot.sh
 pg9*/sql.sh -c "select * from minion_jobs order by id" mc_test
 
 curl -s http://127.0.0.1:3190/download/folder1/ | grep file1.dat
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep -C10 302 | grep -E "($(ap7*/print_address.sh)|$(ap8*/print_address.sh))"
+# only ap7 is in US
+curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep -C10 302 | grep "$(ap7*/print_address.sh)"
 
 ###################################
 # test files are removed properly
@@ -57,3 +58,5 @@ curl -s http://127.0.0.1:3190/download/folder1/ | grep file1.dat || :
 if curl -s http://127.0.0.1:3190/download/folder1/ | grep file1.dat ; then 
     fail file1.dat was deleted
 fi
+
+curl -H "Accept: */*, application/metalink+xml" -s http://127.0.0.1:3190/download/folder1/file2.dat | grep '<url type="http" location="US" preference="100">http://127.0.0.1:1304/folder1/file2.dat</url>'
