@@ -19,6 +19,10 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 use strict;
 use warnings;
+
+use POSIX;
+use XML::Writer;
+
 use Mojo::File;
 use Mojolicious::Static;
 use Mojo::IOLoop::Subprocess;
@@ -62,6 +66,18 @@ sub register {
         my $ip = $c->mmdb->client_ip;
         $ipv = 'ipv6' if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1';
         my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename, $scheme, $ipv);
+
+        my $headers = $c->req->headers;
+        my $accept;
+        $accept = $headers->accept if $headers;
+        if ($accept && $accept ne '*/*') {
+            if ($accept =~ m/\bapplication\/metalink/) {
+                my $url = $c->req->url->to_abs;
+                my $origin = $url->scheme . '://' . $url->host;
+                my $xml = _build_metalink($folder->path, $basename, 0, $country, $mirrors, $origin, 'MirrorCache');
+                return $c->render(data => $xml, format => 'xml');
+            }
+        }
         my $ua  = Mojo::UserAgent->new;
         my $recurs1;
         my $recurs = sub {
@@ -94,6 +110,75 @@ sub register {
     });
 
     return $app;
+}
+
+sub _build_metalink() {
+    my ($path, $basename, $size, $country, $mirrors, $origin, $generator) = @_;
+    my @mirrors = @$mirrors;
+    my $mirror_count = @mirrors;
+
+    my $publisher = $ENV{MIRRORCACHE_METALINK_PUBLISHER} || 'openSUSE';
+    my $publisher_url = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL} || 'http://download.opensuse.org';
+
+    my $writer = XML::Writer->new(OUTPUT => 'self', DATA_MODE => 1, DATA_INDENT => 2, );
+    $writer->xmlDecl('UTF-8');
+    my @attribs = (
+        version => '3.0',
+        xmlns => 'http://www.metalinker.org/',
+        type => 'dynamic',
+    );
+    push @attribs, (origin => $origin) if $origin;
+    push @attribs, (generator => $generator) if $generator;
+    push @attribs, (pubdate => strftime("%Y-%m-%d %H:%M:%S %Z", localtime time));
+    
+    $writer->startTag('metalink', @attribs);
+
+    $writer->startTag('publisher');
+    if ($publisher) {
+        $writer->startTag('name');
+        $writer->characters($publisher);
+        $writer->endTag('name');
+    }
+
+    if ($publisher_url) {
+        $writer->startTag('url');
+        $writer->characters($publisher_url);
+        $writer->endTag('url');
+    }
+    $writer->endTag('publisher');
+
+    $writer->startTag('files');
+    {
+        $writer->startTag('file', name => $basename);
+        if ($size) {
+            $writer->startTag('size');
+            $writer->characters($size);
+            $writer->endTag('size');
+        }
+        $writer->startTag('resources');
+        {
+            $writer->comment("Mirrors which handle this country ($country): ");
+            my $preference = 100;
+            my $fullname = $path . '/' . $basename;
+            for my $m (@mirrors) {
+                my $url = $m->{url};
+                my $colon = index(substr($url,0,6), ':');
+                next unless $colon > 0;
+
+                $writer->startTag('url', type => substr($url,0,$colon), location => $country, preference => $preference);
+                $writer->characters($url . $fullname);
+                $writer->endTag('url');
+                $preference--;
+
+            }
+        }
+        $writer->endTag('resources');
+        $writer->endTag('file');
+    }
+    $writer->endTag('files');
+    $writer->endTag('metalink');
+
+    return $writer->end();
 }
 
 1;

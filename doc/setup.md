@@ -5,10 +5,12 @@
 ### Environment variables
 
 MirrorCache can be configured with following environment variables:
-  * MIRRORCACHE_ROOT defines location of files, which needs redirection. It may be url or file, e.g. `MIRRORCACHE_ROOT=http://download.opensuse.org` or `MIRRORCACHE_ROOT=/srv/mirrorcache`.
-  * MIRRORCACHE_TOP_FOLDERS are used to automatically redirect /folder to /download/folder.
+  * MIRRORCACHE_ROOT (required): defines location of files, which needs redirection. It may be url or file, e.g. `MIRRORCACHE_ROOT=http://download.opensuse.org` or `MIRRORCACHE_ROOT=/srv/mirrorcache`.
+  * MIRRORCACHE_TOP_FOLDERS (space separated values) may be set to automatically redirect /folder to /download/folder.
   * For reference of using MOJO_LISTEN variable refer Mojolicious documentation, e.g. `MOJO_LISTEN=http://*:8000`
   * It is recommended to run MirrorCache daemon behind another streamline WebService, e.g. Apache or haproxy. Thus `MOJO_REVERSE_PROXY=1` will be needed.
+  * MIRRORCACHE_METALINK_PUBLISHER may be set to customize publisher in metalink generation.
+  * MIRRORCACHE_METALINK_PUBLISHER_URL may be set to customize url of publisher in metalink generation.
 
 Without any database configuration MirrorCache will attempt to connect to database 'mirrorcache' on default PostgreSQL port 5432.
 Following variables can be used to configure database access:

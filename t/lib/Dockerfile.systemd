@@ -22,6 +22,7 @@ RUN zypper -vvv -n install perl-Mojolicious-Plugin-AssetPack perl-Net-OpenID-Con
 RUN zypper -vvv -n install ruby ruby-devel ruby2.5-rubygem-sass
 
 RUN zypper -vvv -n install perl-JavaScript-Minifier-XS perl-CSS-Minifier-XS
+RUN zypper -vvv -n install perl-XML-Writer
 
 VOLUME ["/sys/fs/cgroup"]
 VOLUME ["/run"]
