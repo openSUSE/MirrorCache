@@ -65,7 +65,7 @@ systemctl start mirrorcache-backstage
 # currently 3 jobs must run continuously
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
-sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misse
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
 ```
 
 ### Setup systemd from source
