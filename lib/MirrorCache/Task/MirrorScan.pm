@@ -69,10 +69,11 @@ sub _scan {
     }
 
     my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id, $country);
-    my $ua = Mojo::UserAgent->new;
     for my $folder_on_mirror (@$folder_on_mirrors) {
         my $server_id = $folder_on_mirror->{server_id};
         my $url = $folder_on_mirror->{url} . '/';
+        # it look defining $ua outside the loop increases overal memory usage footprint for the task
+        my $ua = Mojo::UserAgent->new->max_redirects(10);
         my $promise = $ua->get_p($url)->then(sub {
             my $tx = shift;
             # return $schema->resultset('Server')->forget_folder($folder_on_mirror->{server_id}, $folder_on_mirror->{folder_diff_id}) if $tx->result->code == 404;
