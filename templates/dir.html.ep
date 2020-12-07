@@ -1,21 +1,15 @@
 % layout 'bootstrap';
 % title 'Index of ' . $cur_path;
-  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-  <style type='text/css'>
-table { width:100%%; }
-.name { text-align:left; }
-  </style>
 % my $stats = url_for '/download' . $cur_path;
 <script>
       $(function () {
         pollFolderStats('<%= $stats %>');
       });
 </script>
-</head><body>
 <nav
       class="navbar navbar-expand-lg navbar-light bg-light mb-3 border-bottom">
   <div class="container">
-<h4>Mirrors status for <%= $cur_path %>: </h4>
+    <h4>Mirrors status for <%= $cur_path %>: </h4>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarFolderStatus" aria-controls="navbarFolderStatus" aria-expanded="false" aria-label="Toggle navigation">
        <span class="navbar-toggler-icon"></span>
     </button>
