@@ -77,7 +77,7 @@ The best way to install them is to reuse zypper and cpanm commands from CI envir
 
 You may skip installing MaxMind::DB::Reader and Mojolicious::Plugin::ClientIP if you don't need Geolocation detection, if you don't need MirrorCache to find a mirror in client's country. From now on it will be referenced as 'Geolocation feature'.
 
-2. You will may GeoIP database (optional, if 'Geolocation feature' is needed).
+2. You may need GeoIP database (optional, if 'Geolocation feature' is needed).
 `/var/lib/GeoIP/GeoLite2-City.mmdb`
 In such case you will also need following command in next step:
 ```bash
@@ -118,7 +118,7 @@ The best way to install them is to reuse zypper and cpanm commands from CI envir
 
 You may skip installing MaxMind::DB::Reader and Mojolicious::Plugin::ClientIP if you don't need Geolocation detection, if you don't need MirrorCache to find a mirror in client's country. From now on it will be referenced as 'Geolocation feature'.
 
-2. You will may GeoIP database (optional, if 'Geolocation feature' is needed).
+2. You may need GeoIP database (optional, if 'Geolocation feature' is needed).
 `/var/lib/GeoIP/GeoLite2-City.mmdb`
 
 3. You will need PostgreSQL server running, create database for mirrorcache and create tables:
