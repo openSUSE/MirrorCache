@@ -62,10 +62,13 @@ sudo -u mirrorcache psql -f /usr/share/mirrorcache/sql/schema.sql mirrorcache
 systemctl start mirrorcache
 systemctl start mirrorcache-backstage
 
+# switch to user mirrorcache
+sudo -u mirrorcache -s /bin/bash
+export MIRRORCACHE_ROOT=http://download.opensuse.org
 # currently 3 jobs must run continuously
-sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
-sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
-sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
+/usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
+/usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
+/usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
 ```
 
 ### Setup systemd from source
@@ -77,7 +80,7 @@ The best way to install them is to reuse zypper and cpanm commands from CI envir
 
 You may skip installing MaxMind::DB::Reader and Mojolicious::Plugin::ClientIP if you don't need Geolocation detection, if you don't need MirrorCache to find a mirror in client's country. From now on it will be referenced as 'Geolocation feature'.
 
-2. You will may GeoIP database (optional, if 'Geolocation feature' is needed).
+2. You may need GeoIP database (optional, if 'Geolocation feature' is needed).
 `/var/lib/GeoIP/GeoLite2-City.mmdb`
 In such case you will also need following command in next step:
 ```bash
@@ -99,14 +102,17 @@ systemctl set-environment MOJO_LISTEN=http://*:8000
 systemctl start mirrorcache
 systemctl start mirrorcache-backstage
 
-sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
-sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
-sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
+# switch to user mirrorcache
+sudo -u mirrorcache -s /bin/bash
+export MIRRORCACHE_ROOT=http://download.opensuse.org
+/usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
+/usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
+/usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
 
 # log into UI and provide admin rights to the user:
-sudo -u mirrorcache psql -c "update acc set is_admin=1 where nickname='myusername'" mirrorcache
+psql -c "update acc set is_admin=1 where nickname='myusername'" mirrorcache
 # add mirrors using UI or sql
-sudo -u mirrorcache psql -c "insert into server(hostname,urldir,enabled,country,region) select 'mirror.aarnet.edu.au','/pub/opensuse/opensuse','t','au',''" mirrorcache
+psql -c "insert into server(hostname,urldir,enabled,country,region) select 'mirror.aarnet.edu.au','/pub/opensuse/opensuse','t','au',''" mirrorcache
 ```
 
 ### Development setup
@@ -118,7 +124,7 @@ The best way to install them is to reuse zypper and cpanm commands from CI envir
 
 You may skip installing MaxMind::DB::Reader and Mojolicious::Plugin::ClientIP if you don't need Geolocation detection, if you don't need MirrorCache to find a mirror in client's country. From now on it will be referenced as 'Geolocation feature'.
 
-2. You will may GeoIP database (optional, if 'Geolocation feature' is needed).
+2. You may need GeoIP database (optional, if 'Geolocation feature' is needed).
 `/var/lib/GeoIP/GeoLite2-City.mmdb`
 
 3. You will need PostgreSQL server running, create database for mirrorcache and create tables:
