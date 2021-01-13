@@ -32,10 +32,6 @@ set -eo pipefail
 
 [ -n "$testcase" ] || (echo No testcase provided; exit 1) >&2
 [ -f "$testcase" ] || (echo Cannot find file "$testcase"; exit 1 ) >&2
-[ -n "$OSHT_LOCATION" ] || OSHT_LOCATION=/usr/share/osht.sh
-[ -f "$OSHT_LOCATION" ] || { echo "1..0 # osht.sh not found, skipped"; exit 0; }
-# shellcheck source=/dev/null
-source "$OSHT_LOCATION"
 
 thisdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 basename=$(basename "$testcase")
@@ -44,11 +40,15 @@ basename=${basename//:/_}
 ident=mc.systemdtest
 containername="$ident.${basename,,}"
 
-SKIP test "${PRIVILEGED_TESTS}" != 1 # PRIVILEGED_TESTS is not set to 1
-docker_info="$(docker info >/dev/null 2>&1)" || SKIP test 1 # Docker doesn't seem to be running
-PLAN 1
+test "${PRIVILEGED_TESTS}" == 1 || {
+   echo PRIVILEGED_TESTS is not set to 1
+   (exit 1)
+}
+docker_info="$(docker info >/dev/null 2>&1)" || { 
+    echo "Docker doesn't seem to be running"
+    (exit 1)
+}
 
-pwd
 rsync -rt --size-only $thisdir/../../sql $thisdir/src/
 cp $thisdir/../data/city.mmdb $thisdir/src/
 
@@ -68,7 +68,6 @@ function cleanup {
     fi
     [ "$ret" == 0 ] || echo FAIL $basename
     docker stop -t 0 "$containername" >&/dev/null || :
-    _osht_cleanup >&/dev/null
 }
 
 trap cleanup INT TERM EXIT
@@ -89,4 +88,4 @@ echo "$*"
 set +e
 docker exec -e TESTCASE="$testcase"  -i "$containername" bash < "$testcase"
 ret=$?
-IS $ret == 0 # test execution
+( exit $ret )

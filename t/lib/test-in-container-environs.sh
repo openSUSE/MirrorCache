@@ -32,10 +32,6 @@ set -eo pipefail
 
 [ -n "$testcase" ] || (echo No testcase provided; exit 1) >&2
 [ -f "$testcase" ] || (echo Cannot find file "$testcase"; exit 1 ) >&2
-[ -n "$OSHT_LOCATION" ] || OSHT_LOCATION=/usr/share/osht.sh
-[ -f "$OSHT_LOCATION" ] || { echo "1..0 # osht.sh not found, skipped"; exit 0; }
-# shellcheck source=/dev/null
-source "$OSHT_LOCATION"
 
 thisdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 basename=$(basename "$testcase")
@@ -44,8 +40,10 @@ basename=${basename//:/_}
 ident=mc.envtest
 containername="$ident.${basename,,}"
 
-docker_info="$(docker info >/dev/null 2>&1)" || SKIP test 1 # Docker doesn't seem to be running
-PLAN 1
+docker_info="$(docker info >/dev/null 2>&1)" || { 
+    echo "Docker doesn't seem to be running"
+    (exit 1)
+}
 
 docker build -t $ident.image -f $thisdir/Dockerfile.environs $thisdir
 
@@ -63,7 +61,6 @@ function cleanup {
     fi
     [ "$ret" == 0 ] || echo FAIL $basename
     docker stop -t 0 "$containername" >&/dev/null || :
-    _osht_cleanup >&/dev/null
 }
 
 trap cleanup INT TERM EXIT
@@ -84,4 +81,4 @@ echo "$*"
 set +ex
 docker exec -e TESTCASE="$testcase"  -i "$containername" bash -c "useradd $(id -nu) -u $(id -u) || :; chown $(id -nu) /opt/environs; sudo -u \#$(id -u) bash" < "$testcase"
 ret=$?
-IS $ret == 0 # test execution
+( exit $ret )
