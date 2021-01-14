@@ -29,80 +29,84 @@ sub startup {
     my $root = $ENV{MIRRORCACHE_ROOT};
     my $city_mmdb = $ENV{MIRRORCACHE_CITY_MMDB};
 
-    die("MIRRORCACHE_ROOT is not set") unless $root;
-    my $reader;
-    if ($city_mmdb) {
-        die("MIRRORCACHE_CITY_MMDB is not a file ($city_mmdb)") unless -f $city_mmdb;
-        require MaxMind::DB::Reader;
-        # MaxMind::DB::Reader->import('new');
-        $reader = MaxMind::DB::Reader->new( file => $city_mmdb );
-    } else {
-        print(STDERR "MIRRORCACHE_CITY_MMDB is not set: geolocations will be ignored\n");
-    }
-
-    # take care of DB deployment or migration before starting the main app
     MirrorCache::Schema->singleton;
-
-    # load auth module
-    my $auth_method = $self->config->{auth}->{method} || "OpenID";
-    my $auth_module = "MirrorCache::Auth::$auth_method";
-    if (my $err = load_class $auth_module) {
-        $err = 'Module not found' unless ref $err;
-        die "Unable to load auth module $auth_module: $err";
-    }
-    $self->config->{_openid_secret} = random_string(16);
-
-    # Optional initialization with access to the app
-
     push @{$self->commands->namespaces}, 'MirrorCache::WebAPI::Command';
-    my $r = $self->routes->namespaces(['MirrorCache::WebAPI::Controller']);
-    $r->post('/session')->to('session#create');
-    $r->delete('/session')->to('session#destroy');
-    $r->get('/login')->name('login')->to('session#create');
-    $r->post('/login')->to('session#create');
-    $r->post('/logout')->name('logout')->to('session#destroy');
-    $r->get('/logout')->to('session#destroy');
-    $r->get('/response')->to('session#response');
-    $r->post('/response')->to('session#response');
+    $self->app->hook(before_server_start => sub {
+        die("MIRRORCACHE_ROOT is not set") unless $root;
+        if (-1 == rindex $root, 'http', 0) {
+            die("MIRRORCACHE_ROOT is not a directory ($root)") unless -d $root;
+        }
+        die("MIRRORCACHE_CITY_MMDB is not a file ($city_mmdb)") if $city_mmdb && ! -f $city_mmdb;
 
-    my $rest = $r->any('/rest');
-    my $rest_r    = $rest->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
-    $rest_r->get('/server')->name('rest_server')->to('table#list', table => 'Server');
-    $rest_r->get('/server/:id')->to('table#list', table => 'Server');
-    $rest_r->post('/server')->to('table#create', table => 'Server');
-    $rest_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
-    $rest_r->delete('/server/:id')->to('table#destroy', table => 'Server');
+        my $reader;
+        if ($city_mmdb) {
+            require MaxMind::DB::Reader;
+            # MaxMind::DB::Reader->import('new');
+            $reader = MaxMind::DB::Reader->new( file => $city_mmdb );
+        } else {
+            print(STDERR "MIRRORCACHE_CITY_MMDB is not set: geolocations will be ignored\n");
+        }
 
-    $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
+        # load auth module
+        my $auth_method = $self->config->{auth}->{method} || "OpenID";
+        my $auth_module = "MirrorCache::Auth::$auth_method";
+        if (my $err = load_class $auth_module) {
+            $err = 'Module not found' unless ref $err;
+            die "Unable to load auth module $auth_module: $err";
+        }
+        $self->config->{_openid_secret} = random_string(16);
 
-    $rest_r->get('/folder_jobs/:id')->name('rest_folder_jobs')->to('folder_jobs#list');
-    $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show') if $reader;
+        # Optional initialization with access to the app
+        my $r = $self->routes->namespaces(['MirrorCache::WebAPI::Controller']);
+        $r->post('/session')->to('session#create');
+        $r->delete('/session')->to('session#destroy');
+        $r->get('/login')->name('login')->to('session#create');
+        $r->post('/login')->to('session#create');
+        $r->post('/logout')->name('logout')->to('session#destroy');
+        $r->get('/logout')->to('session#destroy');
+        $r->get('/response')->to('session#response');
+        $r->post('/response')->to('session#response');
 
-    my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
+        my $rest = $r->any('/rest');
+        my $rest_r    = $rest->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
+        $rest_r->get('/server')->name('rest_server')->to('table#list', table => 'Server');
+        $rest_r->get('/server/:id')->to('table#list', table => 'Server');
+        $rest_r->post('/server')->to('table#create', table => 'Server');
+        $rest_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
+        $rest_r->delete('/server/:id')->to('table#destroy', table => 'Server');
 
-    $app_r->get('/server')->name('server')->to('server#index');
-    $app_r->get('/folder')->name('folder')->to('folder#index');
-    $app_r->get('/folder/<id:num>')->name('folder_show')->to('folder#show');
+        $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
 
-    my $admin = $r->any('/admin');
-    my $admin_auth;
-    if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH}) { 
-        $admin_auth = $admin->under('/')->name('ensure_admin');
-    } else {
-        $admin_auth = $admin->under('/')->to('session#ensure_admin')->name('ensure_admin');
-    }
+        $rest_r->get('/folder_jobs/:id')->name('rest_folder_jobs')->to('folder_jobs#list');
+        $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show') if $reader;
+
+        my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
+
+        $app_r->get('/server')->name('server')->to('server#index');
+        $app_r->get('/folder')->name('folder')->to('folder#index');
+        $app_r->get('/folder/<id:num>')->name('folder_show')->to('folder#show');
+
+        my $admin = $r->any('/admin');
+        my $admin_auth;
+        if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH}) { 
+            $admin_auth = $admin->under('/')->name('ensure_admin');
+        } else {
+            $admin_auth = $admin->under('/')->to('session#ensure_admin')->name('ensure_admin');
+        }
     
-    # my $admin_r = $admin->to(namespace => 'MirrorCache::WebAPI::Controller::Admin')->any('/');
-    my $admin_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Admin');
+        # my $admin_r = $admin->to(namespace => 'MirrorCache::WebAPI::Controller::Admin')->any('/');
+        my $admin_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Admin');
 
-    $admin_r->delete('/folder/<id:num>')->to('folder#delete_cascade');
-    $admin_r->delete('/folder_diff/<id:num>')->to('folder#delete_diff');
+        $admin_r->delete('/folder/<id:num>')->to('folder#delete_cascade');
+        $admin_r->delete('/folder_diff/<id:num>')->to('folder#delete_diff');
 
-    $r->get('/index' => sub { shift->render('main/index') });
-    $r->get('/' => sub { shift->render('main/index') })->name('index');
+        $r->get('/index' => sub { shift->render('main/index') });
+        $r->get('/' => sub { shift->render('main/index') })->name('index');
 
-    $self->plugin(AssetPack => {pipes => [qw(Sass Css JavaScript Fetch Combine)]});
-    $self->asset->process;
+        $self->plugin(AssetPack => {pipes => [qw(Sass Css JavaScript Fetch Combine)]});
+        $self->asset->process;
+        $self->plugin('Mmdb', { reader => $reader });
+    });
 
     $self->plugin('DefaultHelpers');
     $self->plugin('RenderFile');
@@ -112,13 +116,11 @@ sub startup {
     $self->plugin('Helpers', root => $root, route => '/download');
     # check prefix
     if (-1 == rindex $root, 'http', 0) {
-        die("MIRRORCACHE_ROOT is not a directory ($root)") unless -d $root;
         $self->plugin('RootLocal');
     } else {
         $self->plugin('RootRemote');
     }
 
-    $self->plugin('Mmdb', { reader => $reader });
     $self->plugin('Backstage');
     $self->plugin('AuditLog');
     $self->plugin('Dir');
