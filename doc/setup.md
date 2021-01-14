@@ -62,13 +62,10 @@ sudo -u mirrorcache psql -f /usr/share/mirrorcache/sql/schema.sql mirrorcache
 systemctl start mirrorcache
 systemctl start mirrorcache-backstage
 
-# switch to user mirrorcache
-sudo -u mirrorcache -s /bin/bash
-export MIRRORCACHE_ROOT=http://download.opensuse.org
 # currently 3 jobs must run continuously
-/usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
-/usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
-/usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
 ```
 
 ### Setup systemd from source
@@ -102,17 +99,14 @@ systemctl set-environment MOJO_LISTEN=http://*:8000
 systemctl start mirrorcache
 systemctl start mirrorcache-backstage
 
-# switch to user mirrorcache
-sudo -u mirrorcache -s /bin/bash
-export MIRRORCACHE_ROOT=http://download.opensuse.org
-/usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
-/usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
-/usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
 
 # log into UI and provide admin rights to the user:
-psql -c "update acc set is_admin=1 where nickname='myusername'" mirrorcache
+sudo -u mirrorcache psql -c "update acc set is_admin=1 where nickname='myusername'" mirrorcache
 # add mirrors using UI or sql
-psql -c "insert into server(hostname,urldir,enabled,country,region) select 'mirror.aarnet.edu.au','/pub/opensuse/opensuse','t','au',''" mirrorcache
+sudo -u mirrorcache psql -c "insert into server(hostname,urldir,enabled,country,region) select 'mirror.aarnet.edu.au','/pub/opensuse/opensuse','t','au',''" mirrorcache
 ```
 
 ### Development setup
