@@ -1,0 +1,19 @@
+Salt receipts are grouped depending on system initialization state to simplify
+testing with docker (i.e. be able to reuse docker cache).
+
+* mirrorcache-0*.sls - basic installation which don't rely on external 
+  dependencies;
+* mirrorcache-1*.sls - states which require database up and running;
+* mirrorcache-2*.sls - states which require systemd up and running 
+  (i.e. will not be cached in Dockerfile).
+
+To build test docker image and start test container run `dist/salt/test/start-container.sh`
+The app will be available on ports: 
+* 80 - haproxy
+* 3000 - Mirrorcache app
+
+To log into the container run `docker exec -it mirrorcachesalted bash`.
+To stop the container run `docker stop -t0 mirrorcachesalted`.
+The container is started with --rm flag, so it will be erased automatically
+once stopped.
+To remove the image `docker stop -t0 mirrorcachesalted`.

@@ -33,9 +33,25 @@ jobs:
                 $f ;\
             done
 
+  salted:
+    machine:
+      image: ubuntu-2004:202008-01
+    environment:
+      PRIVILEGED_TESTS: 1
+    working_directory: ~/project/t/systemd
+    steps:
+      - checkout:
+          path: ~/project
+      - run:
+          command: |
+            ~/project/dist/salt/test/start-container.sh
+            sleep 15
+            curl -s 127.0.0.1/rest/server | grep mirror.23media.com
+
 workflows:
   version: 2.1
   test:
     jobs:
       - environs
       - systemd
+      - salted
