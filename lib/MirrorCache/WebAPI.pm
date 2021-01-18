@@ -26,7 +26,7 @@ use MirrorCache::Utils 'random_string';
 # This method will run once at server start
 sub startup {
     my $self = shift;
-    my $root = $ENV{MIRRORCACHE_ROOT};
+    my $root = $ENV{MIRRORCACHE_ROOT} || "";
     my $city_mmdb = $ENV{MIRRORCACHE_CITY_MMDB};
 
     MirrorCache::Schema->singleton;
@@ -88,12 +88,12 @@ sub startup {
 
         my $admin = $r->any('/admin');
         my $admin_auth;
-        if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH}) { 
+        if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH}) {
             $admin_auth = $admin->under('/')->name('ensure_admin');
         } else {
             $admin_auth = $admin->under('/')->to('session#ensure_admin')->name('ensure_admin');
         }
-    
+
         # my $admin_r = $admin->to(namespace => 'MirrorCache::WebAPI::Controller::Admin')->any('/');
         my $admin_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Admin');
 
@@ -105,25 +105,25 @@ sub startup {
 
         $self->plugin(AssetPack => {pipes => [qw(Sass Css JavaScript Fetch Combine)]});
         $self->asset->process;
+        $self->plugin('Helpers', root => $root, route => '/download');
+        # check prefix
+        if (-1 == rindex $root, 'http', 0) {
+            $self->plugin('RootLocal');
+        } else {
+            $self->plugin('RootRemote');
+        }
         $self->plugin('Mmdb', { reader => $reader });
+        $self->plugin('Dir');
     });
+
 
     $self->plugin('DefaultHelpers');
     $self->plugin('RenderFile');
 
     push @{$self->plugins->namespaces}, 'MirrorCache::WebAPI::Plugin';
 
-    $self->plugin('Helpers', root => $root, route => '/download');
-    # check prefix
-    if (-1 == rindex $root, 'http', 0) {
-        $self->plugin('RootLocal');
-    } else {
-        $self->plugin('RootRemote');
-    }
-
     $self->plugin('Backstage');
     $self->plugin('AuditLog');
-    $self->plugin('Dir');
     $self->plugin('RenderFileFromMirror');
     $self->plugin('HashedParams');
 }
