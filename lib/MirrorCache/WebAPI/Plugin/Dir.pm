@@ -52,6 +52,18 @@ sub indx {
         return $c->redirect_to($route . $reqpath) if @found;
     }
     return undef unless 0 eq rindex($reqpath, $route, 0);
+
+    my $country;
+    # having both MIRRORCACHE_HEADQUARTER and MIRRORCACHE_REGION means that we are Subsidiary
+    if ($ENV{MIRRORCACHE_HEADQUARTER} && $ENV{MIRRORCACHE_REGION}) {
+        (my $region, $country) = $c->mmdb->region;
+        # redirect to the headquarter if country is not our region
+        return $c->redirect_to($ENV{MIRRORCACHE_HEADQUARTER} . $reqpath) unless lc($ENV{MIRRORCACHE_REGION}) eq lc($region);
+    } else {
+        (my $region_url, $country) = $c->has_subsidiary;
+        return $c->redirect_to($region_url . $reqpath) if $region_url;
+    }
+
     my $status = $c->param('status');
 
     my $path = Mojo::Util::url_unescape(substr($reqpath, $route_len));
@@ -129,7 +141,7 @@ sub indx {
         my $res = shift->res;
 
         if (!$res->is_error) {
-            return render_dir_remote($c, $path, $rsFolder) if !$res->is_redirect;
+            return render_dir_remote($c, $path, $rsFolder, $country) if !$res->is_redirect;
             
             # redirect on oneself
             if ($res->is_redirect && $res->headers) {
@@ -160,8 +172,8 @@ sub render_dir_remote {
     my $c      = shift;
     my $dir    = shift;
     my $rsFolder = shift;
+    my $country  = shift || $c->mmdb->country;
     my $tx = $c->render_later->tx;
-    my $country  = $c->mmdb->country;
 
     my $job_id = 0;
     $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir, $country);

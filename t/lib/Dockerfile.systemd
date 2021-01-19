@@ -3,10 +3,10 @@ ENV container docker
 
 ENV LANG en_US.UTF-8
 
-RUN sed -i 's,http://download.opensuse.org,https://mirrorcache.opensuse.org/download,g' /etc/zypp/repos.d/*repo
+RUN sed -i 's,http://download.opensuse.org,http://mirrorcache.opensuse.org/download,g' /etc/zypp/repos.d/*repo
 RUN zypper -vvv -n install git-core wget tar m4
 
-RUN zypper ar -f https://mirrorcache.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.2 perl
+RUN zypper ar -f http://mirrorcache.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.2 perl
 RUN zypper --gpg-auto-import-keys ref
 
 RUN zypper -vvv -n install perl-DBIx-Class perl-Data-Dumper-Concise perl-Digest-MD5 perl-Mojolicious perl-Mojo-Pg sudo vim postgresql postgresql-server \

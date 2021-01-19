@@ -59,6 +59,22 @@ sub register {
     $app->helper(is_admin         => \&_is_admin);
 
     $app->helper(is_admin_js    => sub { Mojo::ByteStream->new(shift->helpers->is_admin    ? 'true' : 'false') });
+
+    my %subsidiary_urls;
+    my @subsidiaries = $app->schema->resultset('Subsidiary')->all;
+    for my $s (@subsidiaries) {
+        my $url = $s->hostname;
+        $url = $url . $s->uri if $s->uri;
+        $subsidiary_urls{lc($s->region)} = $url;
+    }
+
+    $app->helper(
+        has_subsidiary => sub {
+            return undef unless keys %subsidiary_urls;
+            my $c = shift;
+            my ($region, $country) = $c->mmdb->region;
+            return ($subsidiary_urls{$region}, $country);
+        });
 }
 
 sub _current_user {
