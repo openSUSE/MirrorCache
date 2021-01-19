@@ -88,6 +88,12 @@ create table server_capability_force (
     extra varchar(1024)
 );
 
+create table subsidiary (
+    region  varchar(2) PRIMARY KEY,
+    hostname  varchar(128) NOT NULL,
+    uri varchar(128) default ''
+);
+
 create table audit_event (
     id bigserial primary key,
     user_id int,

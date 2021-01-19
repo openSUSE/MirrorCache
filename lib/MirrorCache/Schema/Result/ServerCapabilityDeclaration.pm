@@ -20,7 +20,7 @@ __PACKAGE__->table("server_capability_declaration");
 
 __PACKAGE__->add_columns(
   "server_id",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "integer", is_nullable => 0 },
   "capability",
   {
     data_type => "enum",
