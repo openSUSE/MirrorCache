@@ -58,10 +58,16 @@ sub indx {
     if ($ENV{MIRRORCACHE_HEADQUARTER} && $ENV{MIRRORCACHE_REGION}) {
         (my $region, $country) = $c->mmdb->region;
         # redirect to the headquarter if country is not our region
-        return $c->redirect_to($ENV{MIRRORCACHE_HEADQUARTER} . $reqpath) unless lc($ENV{MIRRORCACHE_REGION}) eq lc($region);
+        return $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $reqpath) unless lc($ENV{MIRRORCACHE_REGION}) eq lc($region);
     } else {
         (my $region_url, $country) = $c->has_subsidiary;
-        return $c->redirect_to($region_url . $reqpath) if $region_url;
+        if ($region_url) {
+            my $url = $c->req->url->to_abs->clone;
+            $url->host($region_url->host);
+            $url->port($region_url->port);
+            $url->path($region_url->path . $url->path) if ($region_url->path);
+            return $c->redirect_to($url);
+        }
     }
 
     my $status = $c->param('status');
