@@ -13,7 +13,7 @@ RUN zypper ar -f http://mirrorcache.opensuse.org/repositories/devel:/languages:/
 RUN zypper --gpg-auto-import-keys ref
 
 RUN zypper -vvv -n install perl-DBIx-Class perl-Data-Dumper-Concise perl-Digest-MD5 perl-Mojolicious perl-Mojo-Pg sudo vim postgresql postgresql-server \
-  curl apache2 perl-Mojolicious-Plugin-RenderFile perl-Minion perl-DateTime perl-DBIx-Class-DynamicDefault perl-DateTime-Format-Pg tidy
+  curl apache2 perl-Mojolicious-Plugin-RenderFile perl-Minion perl-DateTime perl-DBIx-Class-DynamicDefault perl-DateTime-Format-Pg tidy perl-Net-DNS
 
 RUN zypper -n install perl-App-cpanminus
 RUN zypper -n install gzip gcc make
