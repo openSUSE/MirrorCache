@@ -17,6 +17,8 @@
 package MirrorCache::WebAPI::Plugin::Helpers;
 use Mojo::Base 'Mojolicious::Plugin';
 
+use Mojo::URL;
+
 use MirrorCache::Schema;
 use MirrorCache::Events;
 
@@ -64,8 +66,9 @@ sub register {
     my @subsidiaries = $app->schema->resultset('Subsidiary')->all;
     for my $s (@subsidiaries) {
         my $url = $s->hostname;
+        $url = "http://" . $url unless 'http' eq substr($url, 0, 4);
         $url = $url . $s->uri if $s->uri;
-        $subsidiary_urls{lc($s->region)} = $url;
+        $subsidiary_urls{lc($s->region)} = Mojo::URL->new($url)->to_abs;
     }
 
     $app->helper(
@@ -73,7 +76,7 @@ sub register {
             return undef unless keys %subsidiary_urls;
             my $c = shift;
             my ($region, $country) = $c->mmdb->region;
-            return ($subsidiary_urls{$region}, $country);
+            return ($subsidiary_urls{$region}->clone(), $country);
         });
 }
 

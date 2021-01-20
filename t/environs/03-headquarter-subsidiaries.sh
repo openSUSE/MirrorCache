@@ -20,8 +20,11 @@ done
 
 hq_address=$(mc9*/print_address.sh)
 na_address=$(mc6*/print_address.sh)
+na_interface=127.0.0.2
 eu_address=$(mc7*/print_address.sh)
+eu_interface=127.0.0.3
 as_address=$(mc8*/print_address.sh)
+as_interface=127.0.0.4
 
 pg9*/sql.sh -c "insert into subsidiary(hostname,region) select '$na_address','na'" mc_test
 pg9*/sql.sh -c "insert into subsidiary(hostname,region) select '$eu_address','eu'" mc_test
@@ -32,18 +35,20 @@ MIRRORCACHE_REGION=na MIRRORCACHE_HEADQUARTER=$hq_address mc6*/start.sh
 MIRRORCACHE_REGION=eu MIRRORCACHE_HEADQUARTER=$hq_address mc7*/start.sh
 MIRRORCACHE_REGION=as MIRRORCACHE_HEADQUARTER=$hq_address mc8*/start.sh
 
-curl --interface 127.0.0.2 -Is http://$hq_address/download/folder1/file1.dat | grep $na_address
-curl --interface 127.0.0.3 -Is http://$hq_address/download/folder1/file1.dat | grep $eu_address
-curl --interface 127.0.0.4 -Is http://$hq_address/download/folder1/file1.dat | grep $as_address
 
-curl --interface 127.0.0.2 -Is http://$na_address/download/folder1/file1.dat | grep 200
-curl --interface 127.0.0.3 -Is http://$na_address/download/folder1/file1.dat | grep $hq_address
-curl --interface 127.0.0.4 -Is http://$na_address/download/folder1/file1.dat | grep $hq_address
 
-curl --interface 127.0.0.2 -Is http://$eu_address/download/folder1/file1.dat | grep $hq_address
-curl --interface 127.0.0.3 -Is http://$eu_address/download/folder1/file1.dat | grep 200
-curl --interface 127.0.0.4 -Is http://$eu_address/download/folder1/file1.dat | grep $hq_address
+curl --interface $na_interface -Is http://$hq_address/download/folder1/file1.dat | grep "Location: http://$na_address/download/folder1/file1.dat"
+curl --interface $eu_interface -Is http://$hq_address/download/folder1/file1.dat | grep "Location: http://$eu_address/download/folder1/file1.dat"
+curl --interface $as_interface -Is http://$hq_address/download/folder1/file1.dat | grep "Location: http://$as_address/download/folder1/file1.dat"
 
-curl --interface 127.0.0.2 -Is http://$as_address/download/folder1/file1.dat | grep $hq_address
-curl --interface 127.0.0.3 -Is http://$as_address/download/folder1/file1.dat | grep $hq_address
-curl --interface 127.0.0.4 -Is http://$as_address/download/folder1/file1.dat | grep 200
+curl --interface $na_interface -Is http://$na_address/download/folder1/file1.dat | grep '200 OK'
+curl --interface $eu_interface -Is http://$na_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
+curl --interface $as_interface -Is http://$na_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
+
+curl --interface $na_interface -Is http://$eu_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
+curl --interface $eu_interface -Is http://$eu_address/download/folder1/file1.dat | grep '200 OK'
+curl --interface $as_interface -Is http://$eu_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
+
+curl --interface $na_interface -Is http://$as_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
+curl --interface $eu_interface -Is http://$as_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
+curl --interface $as_interface -Is http://$as_address/download/folder1/file1.dat | grep '200 OK'
