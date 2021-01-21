@@ -63,7 +63,10 @@ sub register {
     $app->helper(is_admin_js    => sub { Mojo::ByteStream->new(shift->helpers->is_admin    ? 'true' : 'false') });
 
     my %subsidiary_urls;
-    my @subsidiaries = $app->schema->resultset('Subsidiary')->all;
+    my @subsidiaries;
+    eval { #the table may be missing - no big deal 
+        @subsidiaries = $app->schema->resultset('Subsidiary')->all;
+    };
     for my $s (@subsidiaries) {
         my $url = $s->hostname;
         $url = "http://" . $url unless 'http' eq substr($url, 0, 4);

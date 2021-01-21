@@ -111,13 +111,6 @@ sub startup {
 
         $self->plugin(AssetPack => {pipes => [qw(Sass Css JavaScript Fetch Combine)]});
         $self->asset->process;
-        $self->plugin('Helpers', root => $root, route => '/download');
-        # check prefix
-        if (-1 == rindex $root, 'http', 0) {
-            $self->plugin('RootLocal');
-        } else {
-            $self->plugin('RootRemote');
-        }
         $self->plugin('Mmdb', { reader => $reader });
         $self->plugin('Dir');
     });
@@ -132,6 +125,15 @@ sub startup {
     $self->plugin('AuditLog');
     $self->plugin('RenderFileFromMirror');
     $self->plugin('HashedParams');
+    $self->plugin('Helpers', root => $root, route => '/download');
+    if ($root) {
+        # check prefix
+        if (-1 == rindex $root, 'http', 0) {
+            $self->plugin('RootLocal');
+        } else {
+            $self->plugin('RootRemote');
+        }
+    }
 }
 
 sub schema { MirrorCache::Schema->singleton }
