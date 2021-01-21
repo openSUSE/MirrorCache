@@ -8,6 +8,7 @@ jobs:
       - name: "Test salt"
         run: |
             PRIVILEGED_TESTS=1 dist/salt/test/start-container.sh
-            curl -s 127.0.0.1/rest/server | grep mirror.23media.com
+            set +x
             sleep 60 # let assets to download
+            curl -s 127.0.0.1/rest/server | grep mirror.23media.com
             curl 127.0.0.1/download

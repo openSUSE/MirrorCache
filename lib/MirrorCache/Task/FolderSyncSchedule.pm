@@ -62,7 +62,9 @@ with DiffToDelete as (
    select fd.id 
    from folder_diff fd 
    left join folder_diff_server fds on fds.folder_diff_id = fd.id 
-   where fds.folder_diff_id is null 
+   where 
+   fds.folder_diff_id is null
+   and fd.dt < current_timestamp - interval '2 day'
    limit 100
  ),
 FilesDeleted as (
@@ -71,7 +73,11 @@ FilesDeleted as (
 delete from folder_diff where id in 
    (select * from DiffToDelete)
 END_SQL
-    $schema->storage->dbh->prepare($sql)->execute();
+
+    eval {
+        $schema->storage->dbh->prepare($sql)->execute();
+        1;
+    } or $job->note(last_warning => $@);
 
     return $job->retry({delay => 10});
 }
