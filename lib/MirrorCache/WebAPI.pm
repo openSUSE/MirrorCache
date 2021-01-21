@@ -99,6 +99,12 @@ sub startup {
 
         $admin_r->delete('/folder/<id:num>')->to('folder#delete_cascade');
         $admin_r->delete('/folder_diff/<id:num>')->to('folder#delete_diff');
+        
+        $admin_r->get('/users')->name('get_users')->to('user#index');
+        $admin_r->post('/user/:userid')->name('post_user')->to('user#update');
+
+        my $rest_user_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
+        $rest_user_r->delete('/user/<id:num>')->name('delete_user')->to('user#delete');
 
         $r->get('/index' => sub { shift->render('main/index') });
         $r->get('/' => sub { shift->render('main/index') })->name('index');
