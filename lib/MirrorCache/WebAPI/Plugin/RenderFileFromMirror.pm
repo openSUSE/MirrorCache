@@ -70,7 +70,7 @@ sub register {
         my $headers = $c->req->headers;
         my $accept;
         $accept = $headers->accept if $headers;
-        if ($accept && $accept ne '*/*') {
+        if ($accept && $accept ne '*/*' && $basename ne 'media') {
             if ($accept =~ m/\bapplication\/metalink/) {
                 my $url = $c->req->url->to_abs;
                 my $origin = $url->scheme . '://' . $url->host;
