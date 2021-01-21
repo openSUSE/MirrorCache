@@ -52,6 +52,7 @@ zypper install MirrorCache
 
 zypper install postgresql postgresql-server
 systemctl set-environment MIRRORCACHE_ROOT=http://download.opensuse.org
+systemctl set-environment MIRRORCACHE_TOP_FOLDERS='debug distribution factory history ports repositories source tumbleweed update'
 systemctl set-environment MOJO_LISTEN=http://*:8000
 systemctl start postgresql
 
@@ -94,6 +95,7 @@ make setup_system_user
 make setup_system_db
 
 systemctl set-environment MIRRORCACHE_ROOT=http://download.opensuse.org
+systemctl set-environment MIRRORCACHE_TOP_FOLDERS='debug distribution factory history ports repositories source tumbleweed update' \
 systemctl set-environment MOJO_LISTEN=http://*:8000
 
 systemctl start mirrorcache
@@ -107,6 +109,39 @@ sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirr
 sudo -u mirrorcache psql -c "update acc set is_admin=1 where nickname='myusername'" mirrorcache
 # add mirrors using UI or sql
 sudo -u mirrorcache psql -c "insert into server(hostname,urldir,enabled,country,region) select 'mirror.aarnet.edu.au','/pub/opensuse/opensuse','t','au',''" mirrorcache
+```
+
+### Setup using salt states
+
+The repository contains salt scripts that redirect to download.opensuse.org.
+Below are examples that set up MirrorCache instances using salt states.
+If you need the geolocation feature, it is necessary to pre-install /var/lib/GeoIP/GeoLite2-City.mmdb .
+Otherwise mirrors are chosen without regard to clients' geographical location.
+(A test running salt scrip also present in github action at 
+https://github.com/andrii-suse/MirrorCache/actions?query=workflow%3Atest-salt-package-from-obs)
+
+
+```bash
+zypper in curl salt-minion sudo
+mkdir -p /srv/salt
+cp -r dist/salt/* /srv/salt/
+# tell salt to use local pillars
+sed -i 's^\#?\s*file_client: .*$^file_client: local^' /etc/salt/minion
+```
+
+General MirrorCache setup:
+```bash
+salt-call --local state.apply -l debug 'profile/mirrorcache/init'
+```
+
+Now can add mirrors from Europe only:
+```bash
+salt-call --local state.apply -l debug 'profile/mirrorcache/data-mirrors-eu'
+```
+
+Or load mirrors from North America:
+```bash
+salt-call --local state.apply -l debug 'profile/mirrorcache/data-mirrors-na'
 ```
 
 ### Development setup
