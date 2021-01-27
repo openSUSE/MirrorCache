@@ -79,7 +79,8 @@ sub register {
             return undef unless keys %subsidiary_urls;
             my $c = shift;
             my ($region, $country) = $c->mmdb->region;
-            return ($subsidiary_urls{$region}->clone(), $country);
+            my $url = $subsidiary_urls{$region};
+            return $url, $country;
         });
 }
 
