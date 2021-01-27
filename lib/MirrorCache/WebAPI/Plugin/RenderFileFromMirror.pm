@@ -50,9 +50,9 @@ sub register {
         }
 
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
-        my ($file, $country);
+        my ($file, $country, $lat, $lng);
         $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename}) if $folder;
-        $country = $c->mmdb->country if $file;
+        ($country, $lat, $lng) = $c->mmdb->country_location if $file;
         # render from root if we cannot determint country when GeoIP is enabled
         if (!$country && (!$folder || $ENV{MIRRORCACHE_CITY_MMDB})) {
             $c->mmdb->emit_miss($dirname) unless $file;
@@ -65,7 +65,7 @@ sub register {
         my $ipv = 'ipv4';
         my $ip = $c->mmdb->client_ip;
         $ipv = 'ipv6' if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1';
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename, $scheme, $ipv);
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename, $scheme, $ipv, $lat, $lng);
 
         my $headers = $c->req->headers;
         my $accept;
