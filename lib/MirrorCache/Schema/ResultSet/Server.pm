@@ -34,27 +34,32 @@ sub mirrors_country {
     # currently the query will select rows for both ipv4 and ipv6 if a mirror supports both formats
     # it is not big deal, but can be optimized so only one such row is selected
     my $sql = <<"END_SQL";
+select url, min(10000*rankipv + 1000*rankhttp + rankdt) as rank
+from (
+
 select 
     concat(
-       x.capability,
+       httpall.capability,
        '://',s.hostname,s.urldir) as url,
-case when (y.capability = a.cap and chk6.success) then 0 when (y.capability = a.cap and chk6.success is NULL) then 1 when (y.capability = a.cap) then 2 when chk6.success then 3 when chk6.success is NULL then 4 else 5 end as rank1,
-case when (x.capability = b.cap and chk.success) then 0 when (x.capability = b.cap and chk.success is NULL) then 1 when chk.success then 3 when chk.success is NULL then 4 else 5 end as rank2,
-now() - chk.dt as rank3
+case when (ipvall.capability = ipv.cap and chk6.success) then 0 when (ipvall.capability = ipv.cap and chk6.success is NULL) then 1 when (ipvall.capability = ipv.cap) then 2 when chk6.success then 3 when chk6.success is NULL then 4 else 5 end as rankipv,
+case when (httpall.capability = http.cap and chk.success) then 0 when (httpall.capability = http.cap and chk.success is NULL) then 1 when chk.success then 3 when chk.success is NULL then 4 else 5 end as rankhttp,
+coalesce(now()::date - chk.dt::date, 10) as rankdt,
+s.lat as lat,
+s.lng as lng
 from
-(select ?::server_capability_t as cap) a
-join (select ?::server_capability_t as cap) b on 1 = 1
-join (select 'http'::server_capability_t as capability union select 'https'::server_capability_t) x on 1 = 1
-join (select 'ipv4'::server_capability_t as capability union select 'ipv6'::server_capability_t) y on 1 = 1
+(select ?::server_capability_t as cap) ipv
+join (select ?::server_capability_t as cap) http on 1 = 1
+join (select 'ipv4'::server_capability_t as capability union select 'ipv6'::server_capability_t) ipvall on 1 = 1
+join (select 'http'::server_capability_t as capability union select 'https'::server_capability_t) httpall on 1 = 1
 join server s on s.enabled
-left join server_capability_check chk on chk.server_id = s.id and chk.capability = x.capability
-left join server_capability_check chk_old on chk_old.server_id = s.id and chk_old.capability = x.capability and chk_old.dt > chk.dt
-left join server_capability_check chk6 on chk6.server_id = s.id and chk6.capability = y.capability
-left join server_capability_check chk_old6 on chk_old6.server_id = s.id and chk_old6.capability = y.capability and chk_old6.dt > chk6.dt
-left join server_capability_declaration cap  on cap.server_id   = s.id and cap.capability   = x.capability and not cap.enabled
-left join server_capability_declaration cap6 on cap6.server_id  = s.id and cap6.capability  = y.capability and not cap6.enabled
-left join server_capability_force      fcap  on fcap.server_id  = s.id and fcap.capability  = x.capability
-left join server_capability_force      fcap6 on fcap6.server_id = s.id and fcap6.capability = y.capability
+left join server_capability_check chk on chk.server_id = s.id and chk.capability = httpall.capability
+left join server_capability_check chk_old on chk_old.server_id = s.id and chk_old.capability = httpall.capability and chk_old.dt > chk.dt
+left join server_capability_check chk6 on chk6.server_id = s.id and chk6.capability = ipvall.capability
+left join server_capability_check chk_old6 on chk_old6.server_id = s.id and chk_old6.capability = ipvall.capability and chk_old6.dt > chk6.dt
+left join server_capability_declaration cap  on cap.server_id   = s.id and cap.capability   = httpall.capability and not cap.enabled
+left join server_capability_declaration cap6 on cap6.server_id  = s.id and cap6.capability  = ipvall.capability and not cap6.enabled
+left join server_capability_force      fcap  on fcap.server_id  = s.id and fcap.capability  = httpall.capability
+left join server_capability_force      fcap6 on fcap6.server_id = s.id and fcap6.capability = ipvall.capability
 left join server_capability_declaration cap_asn_only on s.id = cap_asn_only.server_id and cap_asn_only.capability = 'as_only'
 join folder_diff_server fds on fds.server_id = s.id
 join folder_diff fd on fd.id = fds.folder_diff_id
@@ -69,7 +74,12 @@ and cap_asn_only.server_id is NULL
 and chk_old.server_id IS NULL
 and chk_old6.server_id IS NULL
 $country_condition
-order by rank1, rank2, rank3
+order by rankipv, rankhttp, rankdt
+limit 100
+
+) x
+group by url
+order by rank
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($ipv, $capability, $folder_id, $file, $country);

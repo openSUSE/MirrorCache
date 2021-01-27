@@ -37,3 +37,11 @@ mc9*/backstage/shoot.sh
 curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1324
 curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1314
 curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1304
+
+
+
+# Further we test that servers are listed only once in metalink output
+curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://127.0.0.1:3190/download/folder1/file1.dat
+
+duplicates=$(curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://127.0.0.1:3190/download/folder1/file1.dat | grep location | grep -E -o 'https?[^"s][^\<]*' | sort | uniq -cd | wc -l)
+test 0 == "$duplicates"
