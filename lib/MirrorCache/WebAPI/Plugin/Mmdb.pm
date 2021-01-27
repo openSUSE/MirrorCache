@@ -23,7 +23,7 @@ my $reader;
 sub register {
     my ($self, $app, $conf) = @_;
     $reader = $conf->{reader} if $conf;
-    
+
     $app->helper( 'mmdb.country' => sub {
         my ($c, $ip) = @_;
         return "" unless $reader;
@@ -31,6 +31,16 @@ sub register {
         return 'us' if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
         my $record = $reader->record_for_address($ip);
         return $record->{country}->{iso_code} if $record;
+        return undef;
+    });
+
+    $app->helper( 'mmdb.country_location' => sub {
+        my ($c, $ip) = @_;
+        return "" unless $reader;
+        $ip = shift->client_ip unless $ip;
+        return ('us',0,0) if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
+        my $record = $reader->record_for_address($ip);
+        return ($record->{country}->{iso_code},$record->{location}->{latitude},$record->{location}->{longitude}) if $record;
         return undef;
     });
 

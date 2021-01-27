@@ -21,9 +21,11 @@ use warnings;
 use base 'DBIx::Class::ResultSet';
 
 sub mirrors_country {
-    my ($self, $country, $folder_id, $file, $capability, $ipv) = @_;
+    my ($self, $country, $folder_id, $file, $capability, $ipv, $lat, $lng) = @_;
     $capability = 'http' unless $capability;
     $ipv = 'ipv4' unless $ipv;
+    $lat = 0 unless $lat;
+    $lng = 0 unless $lng;
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
@@ -34,7 +36,11 @@ sub mirrors_country {
     # currently the query will select rows for both ipv4 and ipv6 if a mirror supports both formats
     # it is not big deal, but can be optimized so only one such row is selected
     my $sql = <<"END_SQL";
-select url, min(10000*rankipv + 1000*rankhttp + rankdt) as rank
+select url, min(10000*rankipv + 1000*rankhttp) as rank,
+case when $lat=0 and $lng=0 then 10000 
+else 
+( 6371 * acos( cos( radians($lat) ) * cos( radians( lat ) ) * cos( radians( lng ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( lat ) ) ) ) 
+end as dist
 from (
 
 select 
@@ -78,8 +84,8 @@ order by rankipv, rankhttp, rankdt
 limit 100
 
 ) x
-group by url
-order by rank
+group by url, lat, lng
+order by rank, dist
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($ipv, $capability, $folder_id, $file, $country);
