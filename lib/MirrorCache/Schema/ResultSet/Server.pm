@@ -26,6 +26,7 @@ sub mirrors_country {
     $ipv = 'ipv4' unless $ipv;
     $lat = 0 unless $lat;
     $lng = 0 unless $lng;
+    $country = '' unless $country;
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;

@@ -31,8 +31,7 @@ sub register {
     my ($self, $app) = @_;
  
     $app->helper( 'mirrorcache.render_file' => sub {
-   
-        my ($c, $filepath) = @_;
+        my ($c, $filepath,$country,$lat,$lng)= @_;
         $c->emit_event('mc_dispatch', $filepath);
         my $root = $c->mc->root;
         my $mirror = "";
@@ -50,11 +49,10 @@ sub register {
         }
 
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
-        my ($file, $country, $lat, $lng);
-        $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename}) if $folder;
-        ($country, $lat, $lng) = $c->mmdb->country_location if $file;
-        # render from root if we cannot determint country when GeoIP is enabled
-        if (!$country && (!$folder || $ENV{MIRRORCACHE_CITY_MMDB})) {
+        my $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename}) if $folder;
+        ($lat, $lng, $country) = $c->mmdb->location if $ENV{MIRRORCACHE_CITY_MMDB} && $file && !($country && ($lat || $lng));
+        # render from root if we cannot determine country when GeoIP is enabled
+        if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder) {
             $c->mmdb->emit_miss($dirname) unless $file;
             return $root->render_file($c, $filepath); # TODO we still can check file on mirrors even if it is missing in DB
         }
@@ -114,6 +112,7 @@ sub register {
 
 sub _build_metalink() {
     my ($path, $basename, $size, $country, $mirrors, $origin, $generator) = @_;
+    $country = uc($country);
     my @mirrors = @$mirrors;
     my $mirror_count = @mirrors;
 

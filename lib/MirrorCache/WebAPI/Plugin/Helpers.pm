@@ -78,9 +78,9 @@ sub register {
         has_subsidiary => sub {
             return undef unless keys %subsidiary_urls;
             my $c = shift;
-            my ($region, $country) = $c->mmdb->region;
+            my ($lat, $lng, $country, $region) = $c->mmdb->location;
             my $url = $subsidiary_urls{$region};
-            return $url, $country;
+            return $url, $lat, $lng, $country, $region;
         });
 }
 

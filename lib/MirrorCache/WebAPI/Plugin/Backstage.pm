@@ -40,6 +40,7 @@ sub register_tasks {
         qw(MirrorCache::Task::MirrorScanScheduleFromMisses),
         qw(MirrorCache::Task::MirrorScanScheduleFromPathErrors),
         qw(MirrorCache::Task::MirrorScan),
+        qw(MirrorCache::Task::MirrorLocation),
         qw(MirrorCache::Task::MirrorProbe),
         qw(MirrorCache::Task::FolderSyncScheduleFromMisses),
         qw(MirrorCache::Task::FolderSyncSchedule),
