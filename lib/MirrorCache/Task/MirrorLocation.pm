@@ -42,7 +42,7 @@ sub _location {
     $hostname = 'http://' . $hostname if -1 == index($hostname, '://');
     my $uri = URI->new($hostname)->canonical;
     my $ip = $uri->host;
-    $ip = nslookup6($ip) unless _isValidIP($ip);
+    $ip = nslookup($ip) unless _isValidIP($ip);
     my ($lat, $lng, $country, $continent) = $app->mmdb->location($ip);
     $lat = sprintf("%.3f", $lat) if $lat;
     $lng = sprintf("%.3f", $lng) if $lng;

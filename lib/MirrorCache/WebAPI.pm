@@ -63,10 +63,19 @@ sub startup {
         my $rest_r    = $rest->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
         $rest_r->get('/server')->name('rest_server')->to('table#list', table => 'Server');
         $rest_r->get('/server/:id')->to('table#list', table => 'Server');
-        $rest_r->post('/server')->to('table#create', table => 'Server');
-        $rest_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
-        $rest_r->delete('/server/:id')->to('table#destroy', table => 'Server');
-        $rest_r->put('/server/location/:id')->name('rest_put_server_location')->to('server_location#update_location');
+
+        my $rest_operator_auth;
+        if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH}) {
+            $rest_operator_auth = $rest->under('/');
+        } else {
+            print(STDERR "all good\n\n\n");
+            $rest_operator_auth = $rest->under('/')->to('session#ensure_operator');
+        }
+        my $rest_operator_r = $rest_operator_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
+        $rest_operator_r->post('/server')->to('table#create', table => 'Server');
+        $rest_operator_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
+        $rest_operator_r->delete('/server/:id')->to('table#destroy', table => 'Server');
+        $rest_operator_r->put('/server/location/:id')->name('rest_put_server_location')->to('server_location#update_location');
 
         $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
 
@@ -87,7 +96,6 @@ sub startup {
             $admin_auth = $admin->under('/')->to('session#ensure_admin')->name('ensure_admin');
         }
 
-        # my $admin_r = $admin->to(namespace => 'MirrorCache::WebAPI::Controller::Admin')->any('/');
         my $admin_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Admin');
 
         $admin_r->delete('/folder/<id:num>')->to('folder#delete_cascade');
