@@ -14,5 +14,5 @@ mc9*/configure_db.sh pg9
 # make sure command job doesn't require MIRRORCACHE_ROOT
 MIRRORCACHE_ROOT="" mc9*/backstage/job.sh folder_sync
 MIRRORCACHE_ROOT="/fake/fake" mc9*/backstage/job.sh folder_sync
-# make sure command job doesn't check MIRRORCACHE_CITY_MMDB
-MIRRORCACHE_CITY_MMDB="/fake/fake" mc9*/backstage/job.sh folder_sync
+# make sure command job doesn't require MIRRORCACHE_CITY_MMDB
+MIRRORCACHE_CITY_MMDB="" mc9*/backstage/job.sh folder_sync

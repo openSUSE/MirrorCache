@@ -28,6 +28,8 @@ sub startup {
     my $self = shift;
     my $root = $ENV{MIRRORCACHE_ROOT} || "";
     my $city_mmdb = $ENV{MIRRORCACHE_CITY_MMDB};
+    die("MIRRORCACHE_CITY_MMDB is not a file ($city_mmdb)") if $city_mmdb && ! -f $city_mmdb;
+    my $reader;
 
     MirrorCache::Schema->singleton;
     push @{$self->commands->namespaces}, 'MirrorCache::WebAPI::Command';
@@ -35,16 +37,6 @@ sub startup {
         die("MIRRORCACHE_ROOT is not set") unless $root;
         if (-1 == rindex $root, 'http', 0) {
             die("MIRRORCACHE_ROOT is not a directory ($root)") unless -d $root;
-        }
-        die("MIRRORCACHE_CITY_MMDB is not a file ($city_mmdb)") if $city_mmdb && ! -f $city_mmdb;
-
-        my $reader;
-        if ($city_mmdb) {
-            require MaxMind::DB::Reader;
-            # MaxMind::DB::Reader->import('new');
-            $reader = MaxMind::DB::Reader->new( file => $city_mmdb );
-        } else {
-            print(STDERR "MIRRORCACHE_CITY_MMDB is not set: geolocations will be ignored\n");
         }
 
         # load auth module
@@ -74,6 +66,7 @@ sub startup {
         $rest_r->post('/server')->to('table#create', table => 'Server');
         $rest_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
         $rest_r->delete('/server/:id')->to('table#destroy', table => 'Server');
+        $rest_r->put('/server/location/:id')->name('rest_put_server_location')->to('server_location#update_location');
 
         $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
 
@@ -111,7 +104,6 @@ sub startup {
 
         $self->plugin(AssetPack => {pipes => [qw(Sass Css JavaScript Fetch Combine)]});
         $self->asset->process;
-        $self->plugin('Mmdb', { reader => $reader });
         $self->plugin('Dir');
     });
 
@@ -125,6 +117,12 @@ sub startup {
     $self->plugin('AuditLog');
     $self->plugin('RenderFileFromMirror');
     $self->plugin('HashedParams');
+    if ($city_mmdb) {
+        require MaxMind::DB::Reader;
+        $reader = MaxMind::DB::Reader->new( file => $city_mmdb );
+    }
+    $self->plugin('Mmdb', { reader => $reader });
+
     $self->plugin('Helpers', root => $root, route => '/download');
     if ($root) {
         # check prefix

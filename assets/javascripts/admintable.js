@@ -122,6 +122,10 @@ function handleAdminTableSubmit(tdElement, response, id) {
     });
 }
 
+function handleServerLocationSubmit(tdElement, response, id) {
+    $(location).attr('href', '/minion/jobs?id=' + response.job_id);
+}
+
 function getAdminTableRowData(trElement, dataToSubmit, internalRowData) {
     var tableHeadings = trElement.closest('table').find('th');
     trElement.find('td').each(function() {
@@ -196,6 +200,18 @@ function submitAdminTableRow(tdElement, id) {
             error: handleAdminTableApiError
         });
     }
+}
+
+function submitServerLocationRow(tdElement, id) {
+    $.ajax({
+        url: '/rest/server/location/' + id,
+        type: "PUT",
+        dataType: 'json',
+        success: function(response) {
+            handleServerLocationSubmit(tdElement, response, response.id);
+        },
+        error: handleAdminTableApiError
+   });
 }
 
 function removeAdminTableRow(tdElement) {
@@ -284,7 +300,13 @@ function renderAdminTableActions(data, type, row, meta) {
     if (!window.isAdmin) {
         return '';
     }
-    return '<button type="submit" class="btn" alt="Edit" title="Edit" onclick="setEditingAdminTableRow(this.parentElement, true, false);"><i class="far fa-edit"></i></button>';
+    var url = $("#admintable_api_url").val();
+    res = '<button type="submit" class="btn" alt="Edit" title="Edit" onclick="setEditingAdminTableRow(this.parentElement, true, false);"><i class="far fa-edit"></i></button>';
+    if (url == '/rest/server' && data) {
+        return res + '<button type="submit" class="btn" alt="UpdateLocation" title="Update Location" onclick="submitServerLocationRow(this.parentElement, ' + data + ');"><i class="far fa-bookmark"></i></button>';
+    } else {
+        return res
+    }
 }
 
 function renderEditableAdminTableActions(data, type, row, meta) {

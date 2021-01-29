@@ -53,14 +53,14 @@ sub indx {
     }
     return undef unless 0 eq rindex($reqpath, $route, 0);
 
-    my $country;
+    my ($country, $lat, $lng);
     # having both MIRRORCACHE_HEADQUARTER and MIRRORCACHE_REGION means that we are Subsidiary
     if ($ENV{MIRRORCACHE_HEADQUARTER} && $ENV{MIRRORCACHE_REGION}) {
-        (my $region, $country) = $c->mmdb->region;
+        ($lat, $lng, $country, my $region) = $c->mmdb->location;
         # redirect to the headquarter if country is not our region
         return $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $reqpath) unless lc($ENV{MIRRORCACHE_REGION}) eq lc($region);
     } else {
-        (my $region_url, $country) = $c->has_subsidiary;
+        (my $region_url, $lat, $lng, $country) = $c->has_subsidiary;
         if ($region_url) {
             my $url = $c->req->url->to_abs->clone;
             $url->host($region_url->host);
@@ -95,7 +95,7 @@ sub indx {
     my $schema   = $c->app->schema;
     unless ($root->is_remote) {
         return _render_dir($c, $path) if $root->is_dir($path);
-        return $c->mirrorcache->render_file($path) if !$trailing_slash && $root->is_file($path);
+        return $c->mirrorcache->render_file($path, $country, $lat, $lng) if !$trailing_slash && $root->is_file($path);
         return undef;
     }
     # after this we are on remote root only
@@ -115,7 +115,7 @@ sub indx {
             # file has trailing slash? That is probably incorrect, so let the root handle it
             return $root->render_file($c, $path . '/') if $trailing_slash;
             # find a mirror for it
-            return $c->mirrorcache->render_file($path);
+            return $c->mirrorcache->render_file($path, $country, $lat, $lng);
         }
         # signal to work on it later
         if ($parent_folder) {
