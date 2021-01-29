@@ -16,3 +16,19 @@ mc9*/backstage/shoot.sh
 
 res=$(pg9*/sql.sh -t -c 'select round(lat,2), round(lng,2) from server' mc_test)
 test ' 37.75 | -97.82' == "$res"
+
+# let's restart server without MIRRORCACHE_TEST_TRUST_AUTH
+mc9*/stop.sh
+if mc9*/status.sh >/dev/null 2>&1; then
+    echo MirrorCache must have been stopped here
+    exit 1
+fi
+
+pg9*/sql.sh -c "update server set lat = 0, lng = 0 where id = 1" mc_test 
+mc9*/start.sh
+mc9*/curl.sh rest/server/location/1 -X PUT
+mc9*/backstage/shoot.sh
+# should remain unchanged
+res=$(pg9*/sql.sh -t -c 'select round(lat,2), round(lng,2) from server' mc_test)
+test '  0.00 |  0.00' == "$res"
+
