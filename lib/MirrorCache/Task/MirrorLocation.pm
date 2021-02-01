@@ -49,11 +49,12 @@ sub _location {
     return $job->fail("Couldn't identify location") unless ($lat || $lng) && $country && $continent;
     return $job->fail("Country doesn't match, expected: " . $s->country . '; got: ' . $country) if $s->country && $country ne $s->country;
     
-    return $job->finish("No changes detected") if $lat eq ($s->lat // 0) && $lng eq ( $s->lng // 0 ) && $continent eq ( $s->region // '');
+    my ($old_region, $old_lat, $old_lng) = (($s->region // ''), ($s->lat // ''), ($s->lng // ''));
+    return $job->finish("No changes detected") if $lat eq $old_lat && $lng eq $old_lng && $continent eq $old_region;
 
-    $rs->update({ lat => $lat, lng => $lng, region => $continent });
+    $s->update({ lat => $lat, lng => $lng, region => $continent });
 
-    return $job->finish("Updated to ($continent,$lat,$lng) from (" . ($s->region // '') . "," . ( $s->lat // '') . "," . ($s->lng // '') . ")");
+    return $job->finish("Updated to ($continent,$lat,$lng) from ($old_region,$old_lat,$old_lng)");
 }
 
 # check whether $hostname is actually IP address
