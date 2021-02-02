@@ -25,7 +25,7 @@ has usage       => sub { shift->extract_usage };
 
 =head1 NAME
 
-MirrorCache::WebAPI::Command::backstage::list - Gru list command
+MirrorCache::WebAPI::Command::backstage::list - minion list command
 
 =head1 SYNOPSIS
 
