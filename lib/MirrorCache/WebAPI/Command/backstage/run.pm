@@ -30,7 +30,7 @@ sub run {
     return $minion->perform_jobs if $oneshot;
 
     if ($reset_locks) {
-        $self->app->log->info('Resetting all leftover Gru locks after restart');
+        $self->app->log->info('Resetting all leftover locks after restart');
         $minion->reset({locks => 1});
     }
     $self->SUPER::run(@args);
