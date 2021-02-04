@@ -50,20 +50,20 @@ sub register {
 
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
         my $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename}) if $folder;
-        ($lat, $lng, $country) = $c->mmdb->location if $ENV{MIRRORCACHE_CITY_MMDB} && $file && !($country && ($lat || $lng));
-        # render from root if we cannot determine country when GeoIP is enabled
-        if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder) {
+        ($lat, $lng, $country) = $c->mmdb->location if $ENV{MIRRORCACHE_CITY_MMDB} && $file && !($country && ($lat || $lng)); # do not lookup if location is known already
+        # render from root if we cannot determine country when GeoIP is enabled or unknown file
+        if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
             $c->mmdb->emit_miss($dirname) unless $file;
             return $root->render_file($c, $filepath); # TODO we still can check file on mirrors even if it is missing in DB
         }
-        
+
         my $tx = $c->render_later->tx;
         my $scheme = 'http';
         $scheme = 'https' if $c->req->is_secure;
         my $ipv = 'ipv4';
         my $ip = $c->mmdb->client_ip;
         $ipv = 'ipv6' if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1';
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $basename, $scheme, $ipv, $lat, $lng);
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $file->id, $scheme, $ipv, $lat, $lng);
 
         my $headers = $c->req->headers;
         my $accept;
@@ -80,7 +80,7 @@ sub register {
         my $recurs1;
         my $recurs = sub {
             my $prev = shift;
-            
+
             return if $prev && ($prev == 200 || $prev == 302 || $prev == 301);
             my $mirror = shift @$mirrors;
             unless ($mirror) {

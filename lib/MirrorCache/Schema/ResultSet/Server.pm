@@ -21,7 +21,7 @@ use warnings;
 use base 'DBIx::Class::ResultSet';
 
 sub mirrors_country {
-    my ($self, $country, $folder_id, $file, $capability, $ipv, $lat, $lng) = @_;
+    my ($self, $country, $folder_id, $file_id, $capability, $ipv, $lat, $lng) = @_;
     $capability = 'http' unless $capability;
     $ipv = 'ipv4' unless $ipv;
     $lat = 0 unless $lat;
@@ -37,14 +37,13 @@ sub mirrors_country {
     # currently the query will select rows for both ipv4 and ipv6 if a mirror supports both formats
     # it is not big deal, but can be optimized so only one such row is selected
     my $sql = <<"END_SQL";
-select url, min(10000*rankipv + 1000*rankhttp) as rank,
-case when $lat=0 and $lng=0 then 10000 
-else 
-( 6371 * acos( cos( radians($lat) ) * cos( radians( lat ) ) * cos( radians( lng ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( lat ) ) ) ) 
+select url, min(10*rankipv + rankhttp) as rank,
+case when $lat=0 and $lng=0 then min(10000*rankipv + 1000*rankhttp + rankdt)  -- prefer servers which were checked recently when geoip is unavailable
+else
+( 6371 * acos( cos( radians($lat) ) * cos( radians( lat ) ) * cos( radians( lng ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( lat ) ) ) )
 end as dist
 from (
-
-select 
+select s.id,
     concat(
        httpall.capability,
        '://',s.hostname,s.urldir) as url,
@@ -58,38 +57,33 @@ from
 join (select ?::server_capability_t as cap) http on 1 = 1
 join (select 'ipv4'::server_capability_t as capability union select 'ipv6'::server_capability_t) ipvall on 1 = 1
 join (select 'http'::server_capability_t as capability union select 'https'::server_capability_t) httpall on 1 = 1
-join server s on s.enabled
-join folder_diff_server fds on fds.server_id = s.id
-join folder_diff fd on fd.id = fds.folder_diff_id
-join file fl on fl.folder_id = ? and fl.name = ? and fl.folder_id = fd.folder_id and fl.dt <= fd.dt
-left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
+join server s on s.enabled $country_condition
 left join server_capability_check chk on chk.server_id = s.id and chk.capability = httpall.capability
 left join server_capability_check chk_old on chk_old.server_id = s.id and chk_old.capability = httpall.capability and chk_old.dt > chk.dt
 left join server_capability_check chk6 on chk6.server_id = s.id and chk6.capability = ipvall.capability
 left join server_capability_check chk_old6 on chk_old6.server_id = s.id and chk_old6.capability = ipvall.capability and chk_old6.dt > chk6.dt
-left join server_capability_declaration cap  on cap.server_id   = s.id and cap.capability   = httpall.capability and not cap.enabled
-left join server_capability_declaration cap6 on cap6.server_id  = s.id and cap6.capability  = ipvall.capability and not cap6.enabled
-left join server_capability_force      fcap  on fcap.server_id  = s.id and fcap.capability  = httpall.capability
-left join server_capability_force      fcap6 on fcap6.server_id = s.id and fcap6.capability = ipvall.capability
-left join server_capability_declaration cap_asn_only on s.id = cap_asn_only.server_id and cap_asn_only.capability = 'as_only'
-where fdf.file_id is NULL
-and fcap.server_id is NULL
-and fcap6.server_id is NULL
-and cap.server_id is NULL
-and cap6.server_id is NULL
-and cap_asn_only.server_id is NULL
+where 't'
 and chk_old.server_id IS NULL
 and chk_old6.server_id IS NULL
-$country_condition
-order by rankipv, rankhttp, rankdt
-limit 100
-
 ) x
-group by url, lat, lng
+join (
+select s.id 
+from
+file fl
+join folder_diff fd on fl.folder_id = fd.folder_id and fl.dt <= fd.dt
+join folder_diff_server fds on fd.id = fds.folder_diff_id
+left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
+join server s on fds.server_id = s.id $country_condition
+where
+fl.folder_id = ? and fl.id = ?
+and fdf.file_id is NULL
+) y on x.id = y.id
+group by x.id, x.url, lat, lng
 order by rank, dist
+limit 10;
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($ipv, $capability, $folder_id, $file, $country);
+    $prep->execute($ipv, $capability, $country, $country, $folder_id, $file_id);
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
 }
