@@ -28,10 +28,13 @@ sub search_by_country {
 
     my $sql = <<'END_SQL';
 select concat(s.hostname,s.urldir) as uri, s.hostname as hostname, s.id as id,
-    COALESCE(http.capability = 'http', 't', http.enabled)  as http,
-    COALESCE(https.capability = 'https','t',https.enabled) as https,
-    COALESCE(ipv4.capability = 'ipv4', 't',ipv4.enabled)  as ipv4,
-    COALESCE(ipv6.capability = 'ipv6', 't',ipv6.enabled)  as ipv6
+    -- server has capability enabled when two conditions are true:
+    -- 1. server_id is not mentioned in server_capability_force
+    -- 2. there is no entry in server_capability_declaration which has enabled='F' for the server_id.
+    COALESCE(fhttp.server_id  = 0, COALESCE(http.enabled,'t'))  as http,
+    COALESCE(fhttps.server_id = 0, COALESCE(https.enabled,'t')) as https,
+    COALESCE(fipv4.server_id  = 0, COALESCE(ipv4.enabled,'t'))  as ipv4,
+    COALESCE(fipv6.server_id  = 0, COALESCE(ipv6.enabled,'t'))  as ipv6
     from server s
     left join server_capability_declaration http  on http.server_id  = s.id and http.capability  = 'http'
     left join server_capability_declaration https on https.server_id = s.id and https.capability = 'https'
@@ -42,10 +45,8 @@ select concat(s.hostname,s.urldir) as uri, s.hostname as hostname, s.id as id,
     left join server_capability_force fipv4  on fipv4.server_id  = s.id and fipv4.capability  = 'ipv4'
     left join server_capability_force fipv6  on fipv6.server_id  = s.id and fipv6.capability  = 'ipv6'
     where 't'
-    AND fhttp.server_id IS NULL
-    AND fhttps.server_id IS NULL
-    AND fipv4.server_id IS NULL
-    AND fipv6.server_id IS NULL
+    AND (fhttp.server_id IS NULL or fhttps.server_id IS NULL) -- do not show servers which have both http and https force disabled
+    AND (fipv4.server_id IS NULL or fipv6.server_id IS NULL)  -- do not show servers which have both ipv4 and ipv6 force disabled    
     AND s.country = lower(?)
     AND s.enabled
 END_SQL
