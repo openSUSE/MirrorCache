@@ -68,7 +68,6 @@ sub startup {
         if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH}) {
             $rest_operator_auth = $rest->under('/');
         } else {
-            print(STDERR "all good\n\n\n");
             $rest_operator_auth = $rest->under('/')->to('session#ensure_operator');
         }
         my $rest_operator_r = $rest_operator_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
