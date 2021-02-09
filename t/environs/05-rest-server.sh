@@ -17,3 +17,6 @@ pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) selec
 
 mc9*/curl.sh rest/server | grep 1304 | grep 1314
 
+mc9*/curl.sh rest/myip --interface 127.0.0.3
+mc9*/curl.sh rest/myip --interface 127.0.0.3 | grep -C10 -i '\bDE\b' | grep -i '\bEU\b'
+
