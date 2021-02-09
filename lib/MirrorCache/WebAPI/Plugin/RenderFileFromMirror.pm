@@ -69,7 +69,7 @@ sub register {
         my $accept;
         $accept = $headers->accept if $headers;
         if ($accept && $accept ne '*/*' && $basename ne 'media') {
-            if ($accept =~ m/\bapplication\/metalink/) {
+            if ($accept =~ m/\bapplication\/metalink/ && $country) {
                 my $url = $c->req->url->to_abs;
                 my $origin = $url->scheme . '://' . $url->host;
                 my $xml = _build_metalink($folder->path, $basename, 0, $country, $mirrors, $origin, 'MirrorCache');
@@ -112,7 +112,7 @@ sub register {
 
 sub _build_metalink() {
     my ($path, $basename, $size, $country, $mirrors, $origin, $generator) = @_;
-    $country = uc($country);
+    $country = uc($country) if $country;
     my @mirrors = @$mirrors;
     my $mirror_count = @mirrors;
 
