@@ -34,6 +34,20 @@ sub register {
         return undef;
     });
 
+    $app->helper( 'mmdb.region' => sub {
+        my ($c, $ip) = @_;
+        return ("", "") unless $reader;
+        $ip = shift->client_ip unless $ip;
+        return ('us','na') if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
+        my $record = $reader->record_for_address($ip);
+        my ($region, $country) = ("","");
+        eval {
+            $region  = $record->{continent}->{code};
+            $country = $record->{country}->{iso_code};
+        } if $record;
+        return ($region, $country);
+    });
+
     $app->helper( 'mmdb.location' => sub {
         my ($c, $ip) = @_;
         return "" unless $reader;

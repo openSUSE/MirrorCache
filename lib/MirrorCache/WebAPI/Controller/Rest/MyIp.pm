@@ -20,12 +20,13 @@ sub show {
     my ($c) = @_;
 
     my $ip      = $c->mmdb->client_ip;
-    my $country = $c->mmdb->country($ip) || 'Unknown';
+    my ($region, $country) = $c->mmdb->region($ip);
 
     $c->render(
         json => {
             ip      => $ip,
-            country => $country,
+            country => $country // 'Unknown',
+            region  => $region  // 'Unknown',
         }
     );
 }
