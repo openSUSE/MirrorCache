@@ -46,22 +46,8 @@ sub _sync {
         return $job->finish("$path is not a dir anymore");
     }
 
-    unless ($folder) {
-        my $count = 0;
-        my $sub = sub {
-            my $file = shift;
-            $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
-            $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
-            $count = $count+1;
-            $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
-        };
-        $folder = $schema->resultset('Folder')->find_or_create({path => $path});
-
-        $app->mc->root->foreach_filename($path, $sub) or
-            return $job->fail('Error while reading files from root');
-
-        $job->note(created => $path, count => $count);
-
+    # Mark db_sync_last early to stop other jobs to try to reschedule the sync
+    my $update_db_last = sub {
         # Task may be explicitly scheduled for particular country or have country in the DB
         if ($folder->db_sync_for_country) {
             if ($country) {
@@ -71,8 +57,34 @@ sub _sync {
             }
         }
         $folder->update({db_sync_last => _now(), db_sync_priority => 10, db_sync_for_country => ''});
+    };
+
+    if ($folder) {
+        $update_db_last->();
+    } else {
+        my $count = 0;
+        my $sub = sub {
+            my $file = shift;
+            $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
+            $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
+            $count = $count+1;
+            $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
+        };
+        eval {
+            $folder = $schema->resultset('Folder')->find_or_create({path => $path});
+            1;
+        } or do {
+            # folder often is concurently created fron FolderSyncScheduleFromMisses
+            $folder = $schema->resultset('Folder')->find_or_create({path => $path}) unless $folder;
+        };
+        $update_db_last->();
+        $app->mc->root->foreach_filename($path, $sub) or
+            return $job->fail('Error while reading files from root');
+
+        $job->note(created => $path, count => $count);
+
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
-        $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7});
+        $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7}) if $country;
         return;
     };
     return $job->fail("Couldn't create folder $path in DB") unless $folder && $folder->id;

@@ -112,7 +112,7 @@ sub indx {
         my $file;
         $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $parent_folder->id }) if $parent_folder && !$trailing_slash;
         if ($file) {
-            # file has trailing slash? That is probably incorrect, so let the root handle it
+            # regular file has trailing slash in db? That is probably incorrect, so let the root handle it
             return $root->render_file($c, $path . '/') if $trailing_slash;
             # find a mirror for it
             return $c->mirrorcache->render_file($path, $country, $lat, $lng);
@@ -126,9 +126,6 @@ sub indx {
             $miss_emitted = 1;
         }
     }
-
-    # Nothing found in DB,
-    $c->mmdb->emit_miss($path) unless $miss_emitted;
 
     my $tx   = $c->render_later->tx;
     my $rootlocation = $root->location($c);
@@ -147,8 +144,11 @@ sub indx {
         my $res = shift->res;
 
         if (!$res->is_error) {
-            return render_dir_remote($c, $path, $rsFolder, $country) if !$res->is_redirect;
-            
+            if (!$res->is_redirect) {
+                $miss_emitted = 1;
+                return render_dir_remote($c, $path, $rsFolder, $country);
+            }
+
             # redirect on oneself
             if ($res->is_redirect && $res->headers) {
                 my $location1 = $res->headers->location;
@@ -160,6 +160,7 @@ sub indx {
                         if ($rootlocation eq substr($location, 0, length($rootlocation))) {
                             $location = substr($location, length($rootlocation));
                         }
+                        $miss_emitted = 1; # no need to record miss if we must redirect
                         return $c->redirect_to($route . $location . $trailing_slash)
                     }
                 }
@@ -172,6 +173,8 @@ sub indx {
         my $reftx = $tx;
         my $refua = $ua;
     })->timeout(2)->wait;
+    # Nothing found in DB
+    $c->mmdb->emit_miss($path) unless $miss_emitted;
 }
 
 sub render_dir_remote { 
