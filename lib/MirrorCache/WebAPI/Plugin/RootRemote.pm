@@ -21,7 +21,7 @@ use Mojo::Util ('trim');
 use Encode ();
 use URI::Escape ('uri_unescape');
 use File::Basename;
-
+use HTML::Parser;
 use Data::Dumper;
 
 sub singleton { state $root = shift->SUPER::new; return $root; };
@@ -85,11 +85,64 @@ sub location {
     return $rooturl . $filepath;
 }
 
+# this is complicated to avoid storing big html in memory
+# we parse and execute callback $sub on the fly
+sub foreach_filename {
+    my $self = shift;
+    my $dir  = shift;
+    my $sub  = shift;
+    my $ua   = Mojo::UserAgent->new;
+    my $tx   = $ua->get($rooturl . $dir . '/?F=1');
+    return 0 unless $tx->result->code == 200;
+    # we cannot use mojo dom here because it takes too much RAM for huge html
+    # my $dom = $tx->result->dom;
+
+    my $href = '';
+    my $start = sub {
+        return undef unless $_[0] eq 'a' && $_[1];
+        $href = $_[1]->{href};
+        $href =~ s{^\./}{};
+        $href = uri_unescape($href);
+    };
+    my $end = sub {
+        $href = '';
+    };
+    my $text = sub {
+        my $t = trim shift;
+        $sub->($t) if $t && ($href eq $t);
+    };
+
+    my $p = HTML::Parser->new(
+        api_version => 3,
+        start_h => [$start, "tagname, attr"],
+        text_h  => [$text,  "dtext" ],
+        end_h   => [$end,   "tagname"],
+    );
+    $p->utf8_mode(1);
+
+    my $offset = 0;
+    while (1) {
+        my $chunk = $tx->result->get_body_chunk($offset);
+        if (!defined($chunk)) {
+            $ua->loop->one_tick;
+            next;
+        }
+        my $l = length $chunk;
+        last unless $l > 0;
+        $offset += $l;
+        $p->parse($chunk);
+    }
+    $p->eof;
+    return 1;
+}
+
+
+# unused: $tx->result->dom takes ~70 Mb ram for 7k files TODO
 sub list_filenames {
-    my $self    = shift;
-    my $dir     = shift;
-    my $tx = Mojo::UserAgent->new->get($rooturl . $dir . '/');
-    my @res = ();
+    my $self = shift;
+    my $dir  = shift;
+    my $tx   = Mojo::UserAgent->new->get($rooturl . $dir . '/');
+    my @res  = ();
     return \@res unless $tx->result->code == 200;
     my $dom = $tx->result->dom;
     # TODO move root html tag to config

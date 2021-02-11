@@ -46,15 +46,21 @@ sub _sync {
         return $job->finish("$path is not a dir anymore");
     }
 
-    my $localfiles = $app->mc->root->list_filenames($path);
     unless ($folder) {
-        $folder = $schema->resultset('Folder')->find_or_create({path => $path});
-        foreach my $file (@$localfiles) {
+        my $count = 0;
+        my $sub = sub {
+            my $file = shift;
             $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
             $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
+            $count = $count+1;
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
-        }
-        $job->note(created => $path, count => scalar(@$localfiles));
+        };
+        $folder = $schema->resultset('Folder')->find_or_create({path => $path});
+
+        $app->mc->root->foreach_filename($path, $sub) or
+            return $job->fail('Error while reading files from root');
+
+        $job->note(created => $path, count => $count);
 
         # Task may be explicitly scheduled for particular country or have country in the DB
         if ($folder->db_sync_for_country) {
@@ -81,16 +87,19 @@ sub _sync {
     my %dbfileidstodelete = %dbfileids;
 
     my $cnt = 0;
-    for my $file (@$localfiles) {
+    my $sub = sub {
+        my $file = shift;
         if ($dbfileids{$file}) {
             delete $dbfileidstodelete{$file};
-            next;
+            return;
         }
         $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
         $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
         $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
         $cnt = $cnt + 1;
-    }
+    };
+    $app->mc->root->foreach_filename($path, $sub)  or
+            return $job->fail('Error while reading files from root');
     my @idstodelete = values %dbfileidstodelete;
     $schema->storage->dbh->do(
       sprintf(
@@ -100,6 +109,7 @@ sub _sync {
       {},
       @idstodelete,
     ) if @idstodelete;
+    my $deleted = @idstodelete;
 
     # Task may be explicitly scheduled for particular country or have country in the DB
     if ($folder->db_sync_for_country) {
@@ -110,7 +120,7 @@ sub _sync {
         }
     }
     $folder->update({db_sync_last => _now(), db_sync_priority => 10, db_sync_for_country => ''});
-    $job->note(updated => $path, count => $cnt, for_country => $country );
+    $job->note(updated => $path, count => $cnt, deleted => $deleted, for_country => $country );
     $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7} ) if $cnt;
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }
