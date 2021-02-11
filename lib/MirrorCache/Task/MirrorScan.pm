@@ -22,6 +22,8 @@ use Mojo::UserAgent;
 use Mojo::Util ('trim');
 use URI::Escape ('uri_unescape');
 use File::Basename;
+use Encode qw(decode);
+use HTML::Parser;
 
 sub register {
     my ($self, $app) = @_;
@@ -72,41 +74,83 @@ sub _scan {
     for my $folder_on_mirror (@$folder_on_mirrors) {
         my $server_id = $folder_on_mirror->{server_id};
         my $url = $folder_on_mirror->{url} . '/';
-        # it look defining $ua outside the loop increases overal memory usage footprint for the task
+        # it looks that  defining $ua outside the loop greatly increases overal memory usage footprint for the task
         my $ua = Mojo::UserAgent->new->max_redirects(10);
+        $job->note("hash$server_id" => undef);
         my $promise = $ua->get_p($url)->then(sub {
             my $tx = shift;
+            my $sid = $folder_on_mirror->{server_id};
             # return $schema->resultset('Server')->forget_folder($folder_on_mirror->{server_id}, $folder_on_mirror->{folder_diff_id}) if $tx->result->code == 404;
             # return undef if $tx->result->code == 404;
-
-            return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $tx->result->code}, $folder_on_mirror->{server_id}) if $tx->result->code > 299;
-
-            my $dom = $tx->result->dom;
-            my $ctx = Digest::MD5->new;
+            return $app->emit_event('mc_mirror_probe_error', {mirror => $sid, url => "u$url", err => $tx->result->code}, $folder_on_mirror->{server_id}) if $tx->result->code > 299;
+            # we cannot mojo dom here because it takes too much RAM for huge html page
+            # my $dom = $tx->result->dom;
             my %mirrorfiles = ();
-
-            for my $i (sort { ($a->attr->{href} || '') cmp ($b->attr->{href} || '') } $dom->find('a')->each) {
-                my $text = trim $i->text;
-                my $href = $i->attr->{href};
-                next unless $href;
-                if ('/' eq substr($href, -1)) {
-                    $href = basename($href) . '/';
-                } else {
-                    $href = basename($href);
-                }
-                $href = uri_unescape($href);
-                # we can do _reliable_prefix() only after uri_unescape
-                my $href1 = _reliable_prefix($href);
-                my $text1;
-                if ('/' eq substr($text, -1)) {		
-                    $text1 =  basename(_reliable_prefix($text)) . '/';
+            my $href = '';
+            my $href1 = '';
+            my $start = sub {
+                return undef unless $_[0] eq 'a';
+                $href = $_[1]->{href};
+                $href1 = '';
+                eval {
+                    if ('/' eq substr($href, -1)) {
+                        $href = basename($href) . '/';
+                    } else {
+                        $href = basename($href);
+                    }
+                    $href = uri_unescape($href);
+                    1;
+                } or $href = '';
+            };
+            my $end = sub {
+                $href = '';
+                $href1 = '';
+            };
+            my $text = sub {
+                my $t = shift;
+                $t = trim $t if $t;
+                return unless ($t && $href);
+                $href1 = _reliable_prefix($href) unless $href1;
+                my $t1;
+                if ('/' eq substr($t, -1)) {
+                    $t1 =  basename(_reliable_prefix($t)) . '/';
                 }  else {
-                    $text1 =  basename(_reliable_prefix($text));
+                    $t1 =  basename(_reliable_prefix($t));
                 }
-                if ($href1 eq $text1 && $dbfileprefixes{$text1}) {
-                    $ctx->add($href);
-                    $mirrorfiles{$href} = 1;
+                
+                $mirrorfiles{$href} = 1 if ($href1 eq $t1 && $dbfileprefixes{$t1});
+            };
+            my $p = HTML::Parser->new(
+                api_version => 3,
+                start_h => [$start, "tagname, attr"],
+                text_h  => [$text,  "dtext" ],
+                end_h   => [$end,   "tagname"],
+            );
+
+            my $offset = 0;
+            while (1) {
+                my $chunk = $tx->result->get_body_chunk($offset);
+                if (!defined($chunk)) {
+                    $ua->loop->one_tick;
+                    next;
                 }
+                my $l = length $chunk;
+                last unless $l > 0;
+                # try to detect encoding
+                if ($offset == 0) {
+                    eval {
+                        $p->utf8_mode(1) if index(encode_utf8($chunk),'charset=utf-8') > 0;
+                    };
+                }
+                $offset += $l;
+                $p->parse($chunk);
+            }
+            $p->eof;
+
+            my $ctx = Digest::MD5->new;
+
+            for my $i (sort keys %mirrorfiles) {
+                $ctx->add($i);
             }
             my $digest = $ctx->hexdigest;
             my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest});

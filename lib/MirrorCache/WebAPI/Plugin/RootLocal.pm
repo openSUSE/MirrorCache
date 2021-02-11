@@ -57,6 +57,14 @@ sub render_file {
     return !!$c->reply->static($filepath);
 }
 
+sub foreach_filename {
+    my $self = shift;
+    my $dir  = shift;
+    my $sub  = shift;
+    Mojo::File->new($rootpath . $dir)->list({dir => 1})->map( 'basename' )->each($sub);
+    return 1;
+}
+
 sub list_filenames {
     my $self    = shift;
     my $dir     = shift;

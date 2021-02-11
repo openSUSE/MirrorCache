@@ -90,17 +90,17 @@ sub stats_recent {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select s.hostname, dt, count(distinct file_id) as missing_files 
+select s.hostname, dt, count(distinct file_id) as missing_files, (select name from file where id = max(file_id)) as missing_file
 from server s
 join folder_diff_server fds on s.id = fds.server_id
-join folder_diff fd on fd.id = fds.folder_diff_id 
+join folder_diff fd on fd.id = fds.folder_diff_id
 join folder f on f.id = fd.folder_id and f.path = ?
-left join folder_diff_file fdf on fdf.folder_diff_id = fd.id 
+left join folder_diff_file fdf on fdf.folder_diff_id = fd.id
 where 360 >= extract(epoch from fd.dt - (
 select max(dt)
 from folder_diff fd1
 join folder_diff_server fds1 on fd1.id = fds1.folder_diff_id
-where fd1.folder_id = f.id)) 
+where fd1.folder_id = f.id))
 group by s.id, dt;
 END_SQL
 
