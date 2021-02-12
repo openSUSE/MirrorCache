@@ -47,6 +47,7 @@ sub _run {
         $prev_event_log_id = $event_log_id;
         print(STDERR "$pref read id from event log up to: $event_log_id\n");
         for my $path (sort keys %$path_country_map) {
+            my $country = $path_country_map->{$path}; 
             my $folder = $rs->find({ path => $path });
             if (!$folder) {
                 if (!$app->mc->root->is_dir($path)) {
@@ -54,7 +55,7 @@ sub _run {
                     next unless $app->mc->root->is_dir($path);
                 }
             }
-            $rs->request_db_sync( $path, $path_country_map->{$path} );
+            $rs->request_db_sync( $path, $country );
             $cnt = $cnt + 1;
         }
         for my $country (@$country_list) {

@@ -56,3 +56,11 @@ mc9*/backstage/start.sh
 curl -Is http://127.0.0.1:3190/download/link
 curl -Is http://127.0.0.1:3190/download/link | grep -A4 -E '301|302' | grep ': /download/folder1'
 ################################################
+
+# make sure symlinks still work after further folder_sync_schedule_from_misses
+sleep 10
+curl -Is http://127.0.0.1:3190/download/link
+curl -Is http://127.0.0.1:3190/download/link | grep -A4 -E '301|302' | grep ': /download/folder1'
+sleep 10
+curl -Is http://127.0.0.1:3190/download/link
+curl -Is http://127.0.0.1:3190/download/link | grep -A4 -E '301|302' | grep ': /download/folder1'
