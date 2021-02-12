@@ -101,7 +101,6 @@ sub indx {
     # after this we are on remote root only
     # first try to render from DB
     my $rsFolder = $schema->resultset('Folder');
-    my $miss_emitted = 0;
 
     if (my $folder = $rsFolder->find_folder_or_redirect($path)) {
         return $c->redirect_to($folder->{pathto}) if $folder->{pathto};
@@ -114,16 +113,10 @@ sub indx {
         if ($file) {
             # regular file has trailing slash in db? That is probably incorrect, so let the root handle it
             return $root->render_file($c, $path . '/') if $trailing_slash;
+            # record miss, so other files are known as well
+            $c->mmdb->emit_miss($f->dirname);
             # find a mirror for it
             return $c->mirrorcache->render_file($path, $country, $lat, $lng);
-        }
-        # signal to work on it later
-        if ($parent_folder) {
-            my $miss_folder = $f->dirname;
-            # check if $parent_folder is fine and has "$path/" in it
-            $miss_folder = $path if($schema->resultset('File')->find({ name => $f->basename . '/', folder_id => $parent_folder->id }));
-            $c->mmdb->emit_miss($miss_folder);
-            $miss_emitted = 1;
         }
     }
 
@@ -139,13 +132,14 @@ sub indx {
     # - 200 - means it is a folder - try to render
     # - redirected to another route => we must redirect it as well
     my $path1 = $path . '/';
-    my $url1  = $url  . '/';
+    my $url1  = $url  . '/'; # let's check if it is a folder
     $ua->head_p($url1)->then(sub {
         my $res = shift->res;
 
-        if (!$res->is_error) {
+        if ($res->is_error) {
+            $c->mmdb->emit_miss($path); # it is not a folder
+        } else {
             if (!$res->is_redirect) {
-                $miss_emitted = 1;
                 return render_dir_remote($c, $path, $rsFolder, $country);
             }
 
@@ -160,7 +154,6 @@ sub indx {
                         if ($rootlocation eq substr($location, 0, length($rootlocation))) {
                             $location = substr($location, length($rootlocation));
                         }
-                        $miss_emitted = 1; # no need to record miss if we must redirect
                         return $c->redirect_to($route . $location . $trailing_slash)
                     }
                 }
@@ -169,12 +162,12 @@ sub indx {
         # this should happen only if $url is a valid file or non-existing path
         return $c->redirect_to($url . $trailing_slash);
     })->catch(sub {
+        $c->mmdb->emit_miss($path);
         return $c->redirect_to($url . $trailing_slash);
         my $reftx = $tx;
         my $refua = $ua;
     })->timeout(2)->wait;
     # Nothing found in DB
-    $c->mmdb->emit_miss($path) unless $miss_emitted;
 }
 
 sub render_dir_remote { 
@@ -195,6 +188,7 @@ sub render_dir_remote {
         _render_dir($c, $dir, $rsFolder);
         my $reftx = $tx;
     })->catch(sub {
+        $c->mmdb->emit_miss($dir);
         $c->emit_event('mc_debug', "promisefail: $job_id " . Dumper(\@_));
         
         my $reason = $_;
@@ -232,7 +226,7 @@ sub _render_dir {
         my $files  = $root->list_files($c->req->url->path, $dir);
         return $c->render( 'dir', files => $files, cur_path => $dir, folder_id => "" );
     }
-
+    $c->mmdb->emit_miss($dir);
     my $pos = $rsFolder->get_db_sync_queue_position($dir);
     $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
 }
