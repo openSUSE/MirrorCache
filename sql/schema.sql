@@ -48,8 +48,10 @@ create table folder_diff (
 
 create table folder_diff_file (
     folder_diff_id bigint references folder_diff,
-    file_id bigint
+    file_id bigint -- no foreign key to simplify deletion of files
 );
+
+CREATE INDEX folder_diff_file_index ON folder_diff_file(file_id); 
 
 create table folder_diff_server (
     folder_diff_id bigint references folder_diff not null,
