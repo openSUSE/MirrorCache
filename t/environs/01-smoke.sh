@@ -63,3 +63,6 @@ curl -H "Accept: */*, application/metalink+xml" -s http://127.0.0.1:3190/downloa
 
 curl -s http://127.0.0.1:3190 | tidy --drop-empty-elements no
 curl -s http://127.0.0.1:3190/download/folder1/ | tidy --drop-empty-elements no
+
+
+test "$(curl -s http://127.0.0.1:3190/version)" != ""
