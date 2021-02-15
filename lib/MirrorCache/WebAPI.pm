@@ -33,6 +33,12 @@ sub startup {
 
     MirrorCache::Schema->singleton;
     push @{$self->commands->namespaces}, 'MirrorCache::WebAPI::Command';
+
+    $self->plugin('DefaultHelpers');
+    my $current_version = $self->detect_current_version() || "unknown";
+    $self->defaults(current_version => $current_version);
+    $self->log->info("initializing $current_version");
+
     $self->app->hook(before_server_start => sub {
         die("MIRRORCACHE_ROOT is not set") unless $root;
         if (-1 == rindex $root, 'http', 0) {
@@ -50,6 +56,9 @@ sub startup {
 
         # Optional initialization with access to the app
         my $r = $self->routes->namespaces(['MirrorCache::WebAPI::Controller']);
+        $r->get('/version')->to(cb => sub {
+            shift->render(text => $current_version);
+        }) if $current_version;
         $r->post('/session')->to('session#create');
         $r->delete('/session')->to('session#destroy');
         $r->get('/login')->name('login')->to('session#create');
@@ -112,10 +121,10 @@ sub startup {
         $self->plugin(AssetPack => {pipes => [qw(Sass Css JavaScript Fetch Combine)]});
         $self->asset->process;
         $self->plugin('Dir');
+        $self->log->info("server started:  $current_version");
     });
 
 
-    $self->plugin('DefaultHelpers');
     $self->plugin('RenderFile');
 
     push @{$self->plugins->namespaces}, 'MirrorCache::WebAPI::Plugin';
@@ -139,6 +148,15 @@ sub startup {
             $self->plugin('RootRemote');
         }
     }
+}
+
+sub detect_current_version() {
+    my $self = shift;
+    eval {
+        my $ver = `git rev-parse --short HEAD 2>/dev/null || :`;
+        $ver = `rpm -q MirrorCache 2>/dev/null | grep -Po -- '[0-9]+\.[0-9a-f]+' | head -n 1 || :` unless $ver;
+        $ver;
+    } or $self->log->error('Cannot determine version');
 }
 
 sub schema { MirrorCache::Schema->singleton }
