@@ -9,6 +9,7 @@ MirrorCache can be configured with following environment variables:
   * MIRRORCACHE_TOP_FOLDERS (space separated values) may be set to automatically redirect /folder to /download/folder.
   * For reference of using MOJO_LISTEN variable refer Mojolicious documentation, e.g. `MOJO_LISTEN=http://*:8000`
   * It is recommended to run MirrorCache daemon behind another streamline WebService, e.g. Apache or haproxy. Thus `MOJO_REVERSE_PROXY=1` will be needed.
+  * MIRRORCACHE_FALLBACK_HTTPS_REDIRECT if specified, it will be used for redirect when no mirror is found for https request, e.g. MIRRORCACHE_FALLBACK_HTTPS_REDIRECT=https://downloadcontent.opensuse.org .
   * MIRRORCACHE_METALINK_PUBLISHER may be set to customize publisher in metalink generation.
   * MIRRORCACHE_METALINK_PUBLISHER_URL may be set to customize url of publisher in metalink generation.
 

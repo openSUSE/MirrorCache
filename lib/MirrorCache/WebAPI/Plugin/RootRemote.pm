@@ -38,7 +38,11 @@ sub register {
     (my $self, $app) = @_;
     $rooturl = $app->mc->rootlocation;
     $rooturllen = length $rooturl;
-    $rooturls = $rooturl =~ s/http:/https:/r;
+    if (my $fallback = $ENV{MIRRORCACHE_FALLBACK_HTTPS_REDIRECT}) {
+        $rooturls = $fallback;
+    } else {
+        $rooturls = $rooturl =~ s/http:/https:/r;
+    }
     $rooturlslen = length $rooturls;
     $app->helper( 'mc.root' => sub { $self->singleton; });
 }
