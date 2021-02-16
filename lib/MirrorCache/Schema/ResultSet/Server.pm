@@ -34,32 +34,34 @@ sub mirrors_country {
     my $country_condition = "and s.country = lower(?)";
     $country_condition = "and ? = ''" if $country eq ''; # just some expression
 
+    my $country_condition1 = "join server on server.id = server_id where server.country = lower(?)";
+    $country_condition1 = "where ? = ''" if $country eq '';
+
     # currently the query will select rows for both ipv4 and ipv6 if a mirror supports both formats
     # it is not big deal, but can be optimized so only one such row is selected
     my $sql = <<"END_SQL";
-select url, min(10*rankipv + rankhttp) as rank,
-case when $lat=0 and $lng=0 then min(10000*rankipv + 1000*rankhttp + rankdt)  -- prefer servers which were checked recently when geoip is unavailable
+select url, min(rankipv) as rank,
+case when $lat=0 and $lng=0 then min(10000*rankipv + rankdt)  -- prefer servers which were checked recently when geoip is unavailable
 else
 ( 6371 * acos( cos( radians($lat) ) * cos( radians( lat ) ) * cos( radians( lng ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( lat ) ) ) )
 end as dist
 from (
 select s.id,
     concat(
-       httpall.capability,
+       http.cap,
        '://',s.hostname,s.urldir) as url,
 case when (ipvall.capability = ipv.cap and chk6.success) then 0 when (ipvall.capability = ipv.cap and chk6.success is NULL) then 1 when (ipvall.capability = ipv.cap) then 2 when chk6.success then 3 when chk6.success is NULL then 4 else 5 end as rankipv,
-case when (httpall.capability = http.cap and chk.success) then 0 when (httpall.capability = http.cap and chk.success is NULL) then 1 when chk.success then 3 when chk.success is NULL then 4 else 5 end as rankhttp,
 coalesce(now()::date - chk.dt::date, 10) as rankdt,
+chk.success as check,
 s.lat as lat,
 s.lng as lng
 from
 (select ?::server_capability_t as cap) ipv
 join (select ?::server_capability_t as cap) http on 1 = 1
 join (select 'ipv4'::server_capability_t as capability union select 'ipv6'::server_capability_t) ipvall on 1 = 1
-join (select 'http'::server_capability_t as capability union select 'https'::server_capability_t) httpall on 1 = 1
 join server s on s.enabled $country_condition
-left join server_capability_check chk on chk.server_id = s.id and chk.capability = httpall.capability
-left join server_capability_check chk_old on chk_old.server_id = s.id and chk_old.capability = httpall.capability and chk_old.dt > chk.dt
+left join server_capability_check chk on chk.server_id = s.id and chk.capability = http.cap
+left join server_capability_check chk_old on chk_old.server_id = s.id and chk_old.capability = http.cap and chk_old.dt > chk.dt
 left join server_capability_check chk6 on chk6.server_id = s.id and chk6.capability = ipvall.capability
 left join server_capability_check chk_old6 on chk_old6.server_id = s.id and chk_old6.capability = ipvall.capability and chk_old6.dt > chk6.dt
 where 't'
@@ -77,13 +79,14 @@ join server s on fds.server_id = s.id $country_condition
 where
 fl.folder_id = ? and fl.id = ?
 and fdf.file_id is NULL
-) y on x.id = y.id
+) y on x.id = y.id 
+and ( x.check OR (select 1 from server_capability_check $country_condition1 limit 1) is NULL ) -- this condition aims to not require presence of a row in server_capability_check if no checks for the country were performed at all
 group by x.id, x.url, lat, lng
 order by rank, dist
 limit 10;
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($ipv, $capability, $country, $country, $folder_id, $file_id);
+    $prep->execute($ipv, $capability, $country, $country, $folder_id, $file_id, $country);
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
 }

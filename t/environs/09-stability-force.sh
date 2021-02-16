@@ -77,8 +77,9 @@ mc9*/backstage/shoot.sh
 
 curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep -v $(ap7*/print_address.sh)
 
-# now scan those mirrors which were force dicabled
+# now scan those mirrors which were force disabled
 mc9*/backstage/job.sh -e mirror_force_ups
+mc9*/backstage/job.sh -e mirror_probe -a '["us"]'
 mc9*/backstage/shoot.sh
 
 # ap7 now should serve the request
