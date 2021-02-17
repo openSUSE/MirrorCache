@@ -27,9 +27,9 @@ use Data::Dumper;
 sub singleton { state $root = shift->SUPER::new; return $root; };
 
 my $rooturl;
-my $rooturllen;
 my $rooturls; # same as $rooturl just s/http:/https:
-my $rooturlslen;
+my $rooturlsfallback; # as defined in MIRRORCACHE_FALLBACK_HTTPS_REDIRECT
+
 my $types = Mojolicious::Types->new;
 my $app;
 my $uaroot = Mojo::UserAgent->new->max_redirects(10)->request_timeout(1);
@@ -37,13 +37,12 @@ my $uaroot = Mojo::UserAgent->new->max_redirects(10)->request_timeout(1);
 sub register {
     (my $self, $app) = @_;
     $rooturl = $app->mc->rootlocation;
-    $rooturllen = length $rooturl;
+    $rooturls = $rooturl =~ s/http:/https:/r;
     if (my $fallback = $ENV{MIRRORCACHE_FALLBACK_HTTPS_REDIRECT}) {
-        $rooturls = $fallback;
+        $rooturlsfallback = $fallback;
     } else {
-        $rooturls = $rooturl =~ s/http:/https:/r;
+        $rooturlsfallback = $rooturls;
     }
-    $rooturlslen = length $rooturls;
     $app->helper( 'mc.root' => sub { $self->singleton; });
 }
 
@@ -85,8 +84,9 @@ sub render_file {
 sub location {
     my ($self, $c, $filepath) = @_;
     $filepath = "" unless $filepath;
-    return $rooturls . $filepath if $c && $c->req->is_secure;
-    return $rooturl . $filepath;
+    return $rooturl . $filepath unless $c && $c->req->is_secure;
+    return $rooturls . $filepath if (!$filepath || substr($filepath,length($filepath)-1,1) eq "/"); # dont use fallback for folder checks
+    return $rooturlsfallback . $filepath;
 }
 
 # this is complicated to avoid storing big html in memory
