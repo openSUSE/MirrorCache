@@ -110,6 +110,7 @@ sub indx {
         my $parent_folder = $rsFolder->find({path => $f->dirname});
         my $file;
         $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $parent_folder->id }) if $parent_folder && !$trailing_slash;
+        # folders are stored with trailing slash in file table, so they will not be selected here
         if ($file) {
             # regular file has trailing slash in db? That is probably incorrect, so let the root handle it
             return $root->render_file($c, $path . '/') if $trailing_slash;
@@ -160,10 +161,10 @@ sub indx {
             }
         }
         # this should happen only if $url is a valid file or non-existing path
-        return $c->redirect_to($url . $trailing_slash);
+        return $root->render_file($c, $path . $trailing_slash);
     })->catch(sub {
         $c->mmdb->emit_miss($path);
-        return $c->redirect_to($url . $trailing_slash);
+        return $root->render_file($c, $path . $trailing_slash);
         my $reftx = $tx;
         my $refua = $ua;
     })->timeout(2)->wait;
