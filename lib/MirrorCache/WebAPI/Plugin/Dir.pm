@@ -114,8 +114,6 @@ sub indx {
         if ($file) {
             # regular file has trailing slash in db? That is probably incorrect, so let the root handle it
             return $root->render_file($c, $path . '/') if $trailing_slash;
-            # record miss, so other files are known as well
-            $c->mmdb->emit_miss($f->dirname);
             # find a mirror for it
             return $c->mirrorcache->render_file($path, $country, $lat, $lng);
         }
