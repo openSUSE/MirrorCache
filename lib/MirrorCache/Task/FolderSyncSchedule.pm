@@ -55,29 +55,6 @@ sub _run {
     $schema->storage->dbh->prepare(
         "update folder set db_sync_scheduled = now(), db_sync_priority = 10 where id in ( select id from folder where db_sync_last < now() - interval '2 hour' order by db_sync_last limit 10)"
     )->execute();
-    # this doesn't belong here probably
-    # purge unreferenced folder_diff
-    my $sql = <<'END_SQL';
-with DiffToDelete as (
-   select fd.id 
-   from folder_diff fd 
-   left join folder_diff_server fds on fds.folder_diff_id = fd.id 
-   where 
-   fds.folder_diff_id is null
-   and fd.dt < current_timestamp - interval '2 day'
-   limit 100
- ),
-FilesDeleted as (
-   delete from folder_diff_file where folder_diff_id in
-   (select * from DiffToDelete))
-delete from folder_diff where id in 
-   (select * from DiffToDelete)
-END_SQL
-
-    eval {
-        $schema->storage->dbh->prepare($sql)->execute();
-        1;
-    } or $job->note(last_warning => $@);
 
     return $job->retry({delay => 10});
 }
