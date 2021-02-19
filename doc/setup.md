@@ -67,10 +67,11 @@ MOJO_LISTEN=http://*:8000
 systemctl start mirrorcache
 systemctl start mirrorcache-backstage
 
-# currently 3 jobs must run continuously
+# currently 4 jobs must run continuously
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e cleanup
 ```
 
 ### Setup systemd from source
@@ -109,6 +110,7 @@ systemctl start mirrorcache-backstage
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e cleanup
 
 # log into UI and provide admin rights to the user:
 sudo -u mirrorcache psql -c "update acc set is_admin=1 where nickname='myusername'" mirrorcache
@@ -154,11 +156,12 @@ MIRRORCACHE_ROOT=http://download.opensuse.org \
 script/mirrorcache backstage run -j 16
 ```
 
-6. Currently three jobs must be scheduled once and then they will be continuously running:
+6. Currently 4 jobs must be scheduled once and then they will be continuously running:
 ```bash
 script/mirrorcache minion job -e folder_sync_schedule_from_misses
 script/mirrorcache minion job -e folder_sync_schedule
 script/mirrorcache minion job -e mirror_scan_schedule_from_misses
+script/mirrorcache minion job -e cleanup
 ```
 
 7. Add mirrors using UI or sql, e.g.:
@@ -208,6 +211,7 @@ mc1*/backstage/start.sh
 mc1*/backstage/job.sh folder_sync_schedule_from_misses
 mc1*/backstage/job.sh folder_sync_schedule
 mc1*/backstage/job.sh mirror_scan_schedule_from_misses
+mc1*/backstage/job.sh cleanup
 
 pg1*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select 'mirror.aarnet.edu.au','/pub/opensuse/opensuse','t','au',''" mc
 
