@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,10 +34,11 @@ sub auth {
 
 sub auth_operator {
     my ($self) = @_;
+    return 1 if ($self->is_local_request);
     return 0 if (!$self->auth);
     return 1 if ($self->is_operator || $self->is_admin);
 
-    $self->render(json => {error => 'Administrator level required'}, status => 403);
+    $self->render(json => {error => 'Operator level required'}, status => 403);
     return 0;
 }
 
