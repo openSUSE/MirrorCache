@@ -51,7 +51,12 @@ docker rm -f "$containername" >&/dev/null || :
 
 map_port=""
 [ -z "$EXPOSE_PORT" ] || map_port="-p 80:$EXPOSE_PORT"
-docker run $map_port --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/environs/MirrorCache -- $ident.image
+mc_database=""
+if [[ -n "$MIRRORCACHE_CITY_MMDB" ]]; then
+    mc_database="--env MIRRORCACHE_CITY_MMDB=$MIRRORCACHE_CITY_MMDB"
+    [[ -f "$MIRRORCACHE_CITY_MMDB" ]] && mc_database+=" -v $MIRRORCACHE_CITY_MMDB:$MIRRORCACHE_CITY_MMDB"
+fi
+docker run $map_port $mc_database --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/environs/MirrorCache -- $ident.image
 
 in_cleanup=0
 
