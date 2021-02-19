@@ -59,6 +59,7 @@ sub register {
     $app->helper(current_user     => \&_current_user);
     $app->helper(is_operator      => \&_is_operator);
     $app->helper(is_admin         => \&_is_admin);
+    $app->helper(is_local_request => \&_is_local_request);
 
     $app->helper(is_admin_js    => sub { Mojo::ByteStream->new(shift->helpers->is_admin    ? 'true' : 'false') });
 
@@ -112,5 +113,12 @@ sub _is_admin {
     return ($user && $user->is_admin);
 }
 
+sub _is_local_request {
+    my $c = shift;
+
+    # IPv4 and IPv6 should be treated the same
+    my $address = $c->tx->remote_address;
+    return $address eq '127.0.0.1' || $address eq '::1';
+}
 
 1;
