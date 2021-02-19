@@ -47,8 +47,10 @@ docker_info="$(docker info >/dev/null 2>&1)" || {
 
 docker build -t $ident.image -f $thisdir/Dockerfile.environs $thisdir
 
+docker rm -f "$containername" >&/dev/null || :
+
 map_port=""
-[ -z "$EXPOSE_PORT" ] || map_port="-p $EXPOSE_PORT:80"
+[ -z "$EXPOSE_PORT" ] || map_port="-p 80:$EXPOSE_PORT"
 docker run $map_port --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/environs/MirrorCache -- $ident.image
 
 in_cleanup=0
@@ -60,7 +62,9 @@ function cleanup {
         read -rsn1 -p"Test failed, press any key to finish";echo
     fi
     [ "$ret" == 0 ] || echo FAIL $basename
-    docker stop -t 0 "$containername" >&/dev/null || :
+    if [ -z "$EXPOSE_PORT" ]; then
+      docker stop -t 0 "$containername" >&/dev/null || :
+    fi
 }
 
 trap cleanup INT TERM EXIT
