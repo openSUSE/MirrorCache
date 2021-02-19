@@ -1,0 +1,30 @@
+// users
+table#users {
+    td.role {
+        white-space: nowrap;
+    }
+    // hidding the radiobuttons & checkboxes
+    input[type="radio"] {
+        display: none;
+        &:checked {
+            + {
+                // styling the "check" status
+                label {
+                    .fa-circle {
+                        display: block;
+                        color: #09F;
+                    }
+                    .far.fa-circle {
+                        display: none;
+                    }
+                }
+            }
+        }
+    }
+    label {
+        // styling radiobuttons
+        .fa-circle {
+            color: #A8C4DC;
+        }
+    }
+}
