@@ -220,3 +220,32 @@ pg1*/status.sh
 mc1*/status.sh
 mc1*/backstage/status.sh
 ```
+
+### Run tests from [/t/environs](/t/environs) with docker, manually for debugging
+
+- Requires docker configured for non-root users
+- Available configuration:
+  - `MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb` adds this environment variable inside the container and mounts it as a volume if the file exists on the host
+    ```bash
+    cd t/environs
+    # Just run the test:
+    ./01-smoke.sh
+    # Run the test with your own MIRRORCACHE_CITY_MMDB
+    MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb ./01-smoke.sh
+    ```
+  - `EXPOSE_PORT=3190` maps port 3190 or whatever port you need from the container to host port 80, but also requires one more change, to ensure that MirrorCache is listening to requests from the host:
+    ```bash
+    # Add this line before mc9*/start.sh in your test
+    sed -i 's,MOJO_LISTEN=http://127.0.0.1,MOJO_LISTEN=http://*,' mc9*/start.sh
+    
+    # Run the test and have the container available at http://localhost:80 afterwards
+    EXPOSE_PORT=3190 ./01-smoke.sh
+    ```
+    To access admin actions without logging in, like the Users page, add `MIRRORCACHE_TEST_TRUST_AUTH=1` in the test you want to run:
+    - Change `mc9*/start.sh` to `MIRRORCACHE_TEST_TRUST_AUTH=1 mc9*/start.sh`
+    
+**WARNING** - Be careful when working inside container:
+1. The source tree is mapped to the host, so any changes of source code inside container will be reflected on host and vice versa.
+2. The container is removed automatically on next test start of the same test, so any modifications outside source tree will be lost.
+
+Don't forget to clean up the test containers when you're done :)
