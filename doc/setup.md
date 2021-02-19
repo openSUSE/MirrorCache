@@ -52,13 +52,17 @@ zypper --gpg-auto-import-keys --no-gpg-checks refresh
 zypper install MirrorCache
 
 zypper install postgresql postgresql-server
-systemctl set-environment MIRRORCACHE_ROOT=http://download.opensuse.org
-systemctl set-environment MOJO_LISTEN=http://*:8000
 systemctl start postgresql
 
 sudo -u postgres createuser mirrorcache
 sudo -u postgres createdb mirrorcache
 sudo -u mirrorcache psql -f /usr/share/mirrorcache/sql/schema.sql mirrorcache
+
+# the services read environment variables from /usr/share/mirrorcache/conf.env by default
+echo "MIRRORCACHE_ROOT=http://download.opensuse.org
+MIRRORCACHE_TOP_FOLDERS='debug distribution factory history ports repositories source tumbleweed update'
+MOJO_LISTEN=http://*:8000
+" >> /usr/share/mirrorcache/conf.env
 
 systemctl start mirrorcache
 systemctl start mirrorcache-backstage
@@ -82,7 +86,7 @@ You may skip installing MaxMind::DB::Reader and Mojolicious::Plugin::ClientIP if
 `/var/lib/GeoIP/GeoLite2-City.mmdb`
 In such case you will also need following command in next step:
 ```bash
-systemctl set-environment MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb
+echo MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb >> /usr/share/mirrorcache/conf.env
 ```
 
 3. Setup
@@ -93,9 +97,11 @@ make install
 make setup_production_assets
 make setup_system_user
 make setup_system_db
-
-systemctl set-environment MIRRORCACHE_ROOT=http://download.opensuse.org
-systemctl set-environment MOJO_LISTEN=http://*:8000
+# the services read environment variables from /usr/share/mirrorcache/conf.env by default
+echo "MIRRORCACHE_ROOT=http://download.opensuse.org
+MIRRORCACHE_TOP_FOLDERS='debug distribution factory history ports repositories source tumbleweed update'
+MOJO_LISTEN=http://*:8000
+" >> /usr/share/mirrorcache/conf.env
 
 systemctl start mirrorcache
 systemctl start mirrorcache-backstage
