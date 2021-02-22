@@ -15,6 +15,7 @@
 
 package MirrorCache::Task::Cleanup;
 use Mojo::Base 'Mojolicious::Plugin';
+use MirrorCache::Utils 'datetime_now';
 
 sub register {
     my ($self, $app) = @_;
@@ -50,7 +51,7 @@ END_SQL
     eval {
         $schema->storage->dbh->prepare($sql)->execute();
         1;
-    } or $job->note(last_warning => $@);
+    } or $job->note(last_warning => $@, at => datetime_now());
     
     # delete rows from server_capability_check to avoid overload
     my $sqlservercap = <<'END_SQL';
@@ -65,7 +66,7 @@ END_SQL
     eval {
         $schema->storage->dbh->prepare($sqlservercap)->execute();
         1;
-    } or $job->note(last_warning => $@);
+    } or $job->note(last_warning => $@, at => datetime_now());
     
     return $job->retry({delay => 60});
 }
