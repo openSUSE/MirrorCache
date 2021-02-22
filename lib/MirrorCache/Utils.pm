@@ -16,11 +16,13 @@ package MirrorCache::Utils;
 
 use strict;
 use warnings;
+use DateTime;
 
 use Exporter 'import';
 
 our @EXPORT_OK = qw(
   random_string
+  datetime_now
 );
 
 
@@ -29,6 +31,10 @@ sub random_string {
     $length //= 16;
     $chars  //= ['a' .. 'z', 'A' .. 'Z', '0' .. '9', '_'];
     return join('', map { $chars->[rand @$chars] } 1 .. $length);
+}
+
+sub datetime_now() {
+    return DateTime->now( time_zone => 'local' );
 }
 
 1;
