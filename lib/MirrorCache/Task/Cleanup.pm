@@ -52,6 +52,21 @@ END_SQL
         1;
     } or $job->note(last_warning => $@);
     
+    # delete rows from server_capability_check to avoid overload
+    my $sqlservercap = <<'END_SQL';
+delete from server_capability_check 
+where ctid in (
+   select ctid from server_capability_check
+   where dt < (current_timestamp - interval '1 day') 
+   LIMIT 1000
+)
+END_SQL
+
+    eval {
+        $schema->storage->dbh->prepare($sqlservercap)->execute();
+        1;
+    } or $job->note(last_warning => $@);
+    
     return $job->retry({delay => 60});
 }
 

@@ -38,8 +38,9 @@ mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
 
-# update dt column in folder_diff to make them older
+# update dt column to make entries look older
 pg9*/sql.sh -t -c "update folder_diff set dt = dt - interval '5 day'" mc_test
+pg9*/sql.sh -t -c "update server_capability_check set dt = dt - interval '5 day' where server_id = 1" mc_test
 
 # now add new file everywhere
 for x in mc9 ap7-system2 ap8-system2; do
@@ -54,6 +55,7 @@ mc9*/backstage/shoot.sh
 
 test 4 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff" mc_test)
 test 2 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff_file" mc_test)
+test 8 == $(pg9*/sql.sh -t -c "select count(*) from server_capability_check" mc_test)
 
 # run cleanup job
 mc9*/backstage/job.sh cleanup
@@ -62,3 +64,4 @@ mc9*/backstage/shoot.sh
 # test for reduced number of rows
 test 2 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff" mc_test)
 test 1 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff_file" mc_test)
+test 4 == $(pg9*/sql.sh -t -c "select count(*) from server_capability_check" mc_test)
