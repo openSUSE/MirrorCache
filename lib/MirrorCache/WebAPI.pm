@@ -120,6 +120,7 @@ sub startup {
 
         $self->plugin(AssetPack => {pipes => [qw(Sass Css JavaScript Fetch Combine)]});
         $self->asset->process;
+        $self->plugin('Datamodule');
         $self->plugin('Dir');
         $self->log->info("server started:  $current_version");
     });

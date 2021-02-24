@@ -17,8 +17,6 @@
 package MirrorCache::WebAPI::Plugin::Helpers;
 use Mojo::Base 'Mojolicious::Plugin';
 
-use Mojo::URL;
-
 use MirrorCache::Schema;
 use MirrorCache::Events;
 
@@ -63,26 +61,6 @@ sub register {
 
     $app->helper(is_admin_js    => sub { Mojo::ByteStream->new(shift->helpers->is_admin    ? 'true' : 'false') });
 
-    my %subsidiary_urls;
-    my @subsidiaries;
-    eval { #the table may be missing - no big deal 
-        @subsidiaries = $app->schema->resultset('Subsidiary')->all;
-    };
-    for my $s (@subsidiaries) {
-        my $url = $s->hostname;
-        $url = "http://" . $url unless 'http' eq substr($url, 0, 4);
-        $url = $url . $s->uri if $s->uri;
-        $subsidiary_urls{lc($s->region)} = Mojo::URL->new($url)->to_abs;
-    }
-
-    $app->helper(
-        has_subsidiary => sub {
-            return undef unless keys %subsidiary_urls;
-            my $c = shift;
-            my ($lat, $lng, $country, $region) = $c->mmdb->location;
-            my $url = $subsidiary_urls{$region};
-            return $url, $lat, $lng, $country, $region;
-        });
 }
 
 sub _current_user {

@@ -31,7 +31,7 @@ sub register {
     my ($self, $app) = @_;
  
     $app->helper( 'mirrorcache.render_file' => sub {
-        my ($c, $filepath,$country,$lat,$lng)= @_;
+        my ($c, $filepath)= @_;
         $c->emit_event('mc_dispatch', $filepath);
         my $root = $c->mc->root;
         my $mirror = "";
@@ -50,7 +50,8 @@ sub register {
 
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
         my $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename}) if $folder;
-        ($lat, $lng, $country) = $c->mmdb->location if $ENV{MIRRORCACHE_CITY_MMDB} && $file && !($country && ($lat || $lng)); # do not lookup if location is known already
+        my $dm = $c->dm;
+        my $country = $dm->country;
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
             $c->mmdb->emit_miss($dirname) unless $file;
@@ -61,9 +62,9 @@ sub register {
         my $scheme = 'http';
         $scheme = 'https' if $c->req->is_secure;
         my $ipv = 'ipv4';
-        my $ip = $c->mmdb->client_ip;
+        my $ip = $dm->ip;
         $ipv = 'ipv6' if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1';
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $file->id, $scheme, $ipv, $lat, $lng);
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $file->id, $scheme, $ipv, $dm->lat, $dm->lng);
 
         my $headers = $c->req->headers;
         my $accept;
