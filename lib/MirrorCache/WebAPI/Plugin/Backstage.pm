@@ -70,7 +70,7 @@ sub register {
     $self->register_tasks;
 
     # Enable the Minion Admin interface under /minion
-    my $auth = $app->routes->under('/minion')->to('session#ensure_operator');
+    my $auth = $app->routes->under('/minion'); # ->to('session#ensure_operator');
     $app->plugin('Minion::Admin' => {route => $auth});
 
     my $backstage = MirrorCache::WebAPI::Plugin::Backstage->new($app);
