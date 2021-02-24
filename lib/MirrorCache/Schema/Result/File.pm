@@ -44,9 +44,9 @@ __PACKAGE__->load_components(qw(InflateColumn::DateTime DynamicDefault));
   is_nullable: 1
   size: 512
 
-=head2 name
+=head2 dt
 
-  data_type: 'dt'
+  data_type: 'timestamp'
   is_nullable: 0
 
 =cut
