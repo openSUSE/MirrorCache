@@ -128,14 +128,18 @@ sub _redirect_geo {
         my $region = $dm->region;
         # redirect to the headquarter if country is not our region
         if ($region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region))) {
-            return $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $dm->route . $dm->path) if $region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region));
+            $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $dm->route . $dm->path) if $region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region));
+            $c->stat->redirect_to_headquarter;
+            return 1;
         }
     } elsif (my $region_url = $dm->has_subsidiary) {
         my $url = $c->req->url->to_abs->clone;
         $url->host($region_url->host);
         $url->port($region_url->port);
         $url->path($region_url->path . $url->path) if ($region_url->path);
-        return $c->redirect_to($url);
+        $c->redirect_to($url);
+        $c->stat->redirect_to_region;
+        return 1;
     }
     return undef;
 }

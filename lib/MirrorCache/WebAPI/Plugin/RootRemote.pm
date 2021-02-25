@@ -78,7 +78,9 @@ sub is_dir {
 
 sub render_file {
     my ($self, $c, $filepath) = @_;
-    return $c->redirect_to($self->location($c, $filepath));
+    $c->redirect_to($self->location($c, $filepath));
+    $c->stat->redirect_to_root;
+    return 1;
 }
 
 sub location {
@@ -128,7 +130,7 @@ sub foreach_filename {
     while (1) {
         my $chunk = $tx->result->get_body_chunk($offset);
         if (!defined($chunk)) {
-            $ua->loop->one_tick;
+            $ua->loop->one_tick unless $ua->loop->is_running;
             next;
         }
         my $l = length $chunk;
