@@ -38,8 +38,28 @@ test 0 == "$(grep -c Poll mc9/.cerr)"
 # currently it takes some time, need to improve somehow
 sleep 20
 
+# check redirects to headquarter are logged properly
+pg9*/sql.sh -c "select * from stat" mc_test
+test -1 == $(pg9*/sql.sh -t -c "select mirror_id from stat where country='us'" mc_test)
+test -1 == $(pg9*/sql.sh -t -c "select distinct mirror_id from stat where country='de'" mc_test)
+test -z $(pg9*/sql.sh -t -c "select mirror_id from stat where country='cn'" mc_test)
+
 curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat
 curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1324
 curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1314
 curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1304
+
+sleep 10
+
+pg9*/sql.sh -c "select * from stat" mc_test
+# check stats are logged properly
+test 2 == $(pg9*/sql.sh -t -c "select distinct mirror_id from stat where country='de' and mirror_id > 0" mc_test)
+test 1 == $(pg9*/sql.sh -t -c "select count(*) from stat where country='de' and mirror_id > 0" mc_test)
+
+test 3 == $(pg9*/sql.sh -t -c "select distinct mirror_id from stat where country='cn' and mirror_id > 0" mc_test)
+test 2 == $(pg9*/sql.sh -t -c "select count(*) from stat where country='cn' and mirror_id > 0" mc_test)
+
+test 1 == $(pg9*/sql.sh -t -c "select distinct mirror_id from stat where country='us' and mirror_id > 0" mc_test)
+test 1 == $(pg9*/sql.sh -t -c "select count(*) from stat where country='us' and mirror_id > 0" mc_test)
+
 test 0 == "$(grep -c Poll mc9/.cerr)"

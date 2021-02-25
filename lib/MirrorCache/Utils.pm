@@ -34,7 +34,7 @@ sub random_string {
 }
 
 sub datetime_now() {
-    return DateTime->now( time_zone => 'local' );
+    return DateTime->now( time_zone => 'local' )->stringify;
 }
 
 1;

@@ -24,6 +24,8 @@ has [ 'route', 'route_len' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng' ];
 has [ '_path', '_trailing_slash' ];
 has '_original_path';
+has '_agent';
+has [ '_is_secure', '_is_ipv4' ];
 
 my %subsidiary_urls;
 my @subsidiaries;
@@ -58,12 +60,14 @@ sub reset($self, $c) {
     $self->_path(undef);
     $self->_trailing_slash(undef);
     $self->_original_path(undef);
-    die("reset didn't work") if defined $self->_original_path;
+    $self->_agent(undef);
+    $self->_is_ipv4(undef);
+    $self->_is_secure(undef);
 }
 
 sub ip($self) {
     unless (defined $self->_ip) {
-       $self->_ip($self->c->mmdb->client_ip);
+       $self->_ip($self->c->tx->remote_address);
     }
     return $self->_ip;
 }
@@ -126,6 +130,40 @@ sub original_path($self) {
 sub our_path($self, $path) {
     return 1 if 0 eq rindex($path, $self->route, 0);
     return 0;
+}
+
+sub agent($self) {
+    unless (defined $self->_agent) {
+        $self->_init_headers;
+    }
+    return $self->_agent;
+}
+
+sub is_secure($self) {
+    unless (defined $self->_is_secure) {
+        $self->_init_req;
+    }
+    return $self->_is_secure;
+}
+
+sub is_ipv4($self) {
+    unless (defined $self->_is_ipv4) {
+        $self->_init_req;
+    }
+    return $self->_is_ipv4;
+}
+
+sub _init_headers($self) {
+    my $headers = $self->c->req->headers;
+    $self->_agent($headers && $headers->user_agent ? $headers->user_agent : "");
+}
+
+sub _init_req($self) {
+    $self->_is_secure($self->c->req->is_secure? 1 : 0);
+    $self->_is_ipv4(1);
+    if (my $ip = $self->ip) {
+        $self->_is_ipv4(0) if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1'
+    }
 }
 
 sub _init_location($self) {

@@ -60,10 +60,10 @@ sub register {
 
         my $tx = $c->render_later->tx;
         my $scheme = 'http';
-        $scheme = 'https' if $c->req->is_secure;
+        $scheme = 'https' if $dm->is_secure;
         my $ipv = 'ipv4';
+        $ipv = 'ipv6' unless $dm->is_ipv4;
         my $ip = $dm->ip;
-        $ipv = 'ipv6' if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1';
         my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $file->id, $scheme, $ipv, $dm->lat, $dm->lng);
 
         my $headers = $c->req->headers;
@@ -94,7 +94,9 @@ sub register {
                 $code = shift->result->code;
                 if ($code == 200 || $code == 302 || $code == 301) {
                     $c->emit_event('mc_path_hit', {path => $dirname, mirror => $url});
-                    return $c->redirect_to($url);
+                    $c->redirect_to($url);
+                    $c->stat->redirect_to_mirror($mirror->{mirror_id});
+                    return 1;
                 }
                 $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, server => $mirror->{id}, folder => $folder->id});
             })->catch(sub {

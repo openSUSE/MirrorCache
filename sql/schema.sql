@@ -119,3 +119,18 @@ create table acc (
   CONSTRAINT acc_username UNIQUE (username)
 );
 
+create table stat (
+    id bigserial primary key,
+    ip_sha1 char(40),
+    agent varchar(1024),
+    path varchar(1024) NOT NULL,
+    country char(2),
+    dt timestamp NOT NULL,
+    mirror_id int,
+    secure boolean NOT NULL,
+    ipv4 boolean NOT NULL
+);
+
+create index stat_dt_mirror on stat(dt, mirror_id, secure, ipv4);
+create index stat_mirror    on stat(mirror_id);
+create index stat_client_dt on stat(ip_sha1, dt);

@@ -40,7 +40,7 @@ sub mirrors_country {
     # currently the query will select rows for both ipv4 and ipv6 if a mirror supports both formats
     # it is not big deal, but can be optimized so only one such row is selected
     my $sql = <<"END_SQL";
-select url, min(rankipv) as rank,
+select x.id as mirror_id, url, min(rankipv) as rank,
 case when $lat=0 and $lng=0 then min(10000*rankipv + rankdt)  -- prefer servers which were checked recently when geoip is unavailable
 else
 ( 6371 * acos( cos( radians($lat) ) * cos( radians( lat ) ) * cos( radians( lng ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( lat ) ) ) )

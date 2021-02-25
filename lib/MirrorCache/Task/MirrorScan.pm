@@ -131,7 +131,7 @@ sub _scan {
             while (1) {
                 my $chunk = $tx->result->get_body_chunk($offset);
                 if (!defined($chunk)) {
-                    $ua->loop->one_tick;
+                    $ua->loop->one_tick unless $ua->loop->is_running;
                     next;
                 }
                 my $l = length $chunk;
