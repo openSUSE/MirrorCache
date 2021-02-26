@@ -134,3 +134,14 @@ create table stat (
 create index stat_dt_mirror on stat(dt, mirror_id, secure, ipv4);
 create index stat_mirror    on stat(mirror_id);
 create index stat_client_dt on stat(ip_sha1, dt);
+
+create type stat_period_t as enum('minute', 'hour', 'day', 'month', 'year', 'total', 'uptime');
+
+create table stat_agg (
+    dt timestamp NOT NULL,
+    period stat_period_t NOT NULL,
+    mirror_id int NOT NULL,
+    hit_count bigint NOT NULL
+);
+
+create index stat_agg_dt_period on stat_agg(dt, period, mirror_id);

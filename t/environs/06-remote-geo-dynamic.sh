@@ -63,3 +63,18 @@ test 1 == $(pg9*/sql.sh -t -c "select distinct mirror_id from stat where country
 test 1 == $(pg9*/sql.sh -t -c "select count(*) from stat where country='us' and mirror_id > 0" mc_test)
 
 test 0 == "$(grep -c Poll mc9/.cerr)"
+
+curl -s http://127.0.0.1:3190/rest/stat
+curl -s http://127.0.0.1:3190/rest/stat | grep '"curr_day_hit":4' | grep '"curr_day_miss":2'
+
+# now test stat_agg job by injecting some values into yesterday
+mc9*/backstage/stop.sh
+pg9*/sql.sh -c "insert into stat(path, dt, mirror_id, secure, ipv4) select '/ttt', now() - interval '1 day', mirror_id, 'f', 'f' from stat" mc_test
+mc9*/backstage/job.sh stat_agg_schedule
+mc9*/backstage/shoot.sh
+
+pg9*/sql.sh -c "select * from stat_agg" mc_test
+test 4 == $(pg9*/sql.sh -t -c "select count(*) from stat_agg where period = 'day'" mc_test)
+
+curl -s http://127.0.0.1:3190/rest/stat
+curl -s http://127.0.0.1:3190/rest/stat | grep '"curr_day_hit":4' | grep '"curr_day_miss":2' | grep '"prev_day_hit":''"4"' | grep '"prev_day_miss":''"2"' 

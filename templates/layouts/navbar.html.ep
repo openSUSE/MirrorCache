@@ -12,6 +12,9 @@
          <li class='nav-item' id="server">
             %= link_to 'Servers' => url_for('server') => class => 'nav-link'
          </li>
+         <li class='nav-item' id="stat">
+            %= link_to 'Statistics' => url_for('/rest/stat') => class => 'nav-link'
+         </li>
         </ul>
         <ul class="navbar-nav ml-auto">
         % if (current_user) {
