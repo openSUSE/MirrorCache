@@ -65,7 +65,7 @@ test 1 == $(pg9*/sql.sh -t -c "select count(*) from stat where country='us' and 
 test 0 == "$(grep -c Poll mc9/.cerr)"
 
 curl -s http://127.0.0.1:3190/rest/stat
-curl -s http://127.0.0.1:3190/rest/stat | grep '"curr_day_hit":4' | grep '"curr_day_miss":2'
+curl -s http://127.0.0.1:3190/rest/stat | grep '"hit":4' | grep '"miss":2'
 
 # now test stat_agg job by injecting some values into yesterday
 mc9*/backstage/stop.sh
@@ -77,4 +77,4 @@ pg9*/sql.sh -c "select * from stat_agg" mc_test
 test 4 == $(pg9*/sql.sh -t -c "select count(*) from stat_agg where period = 'day'" mc_test)
 
 curl -s http://127.0.0.1:3190/rest/stat
-curl -s http://127.0.0.1:3190/rest/stat | grep '"curr_day_hit":4' | grep '"curr_day_miss":2' | grep '"prev_day_hit":''"4"' | grep '"prev_day_miss":''"2"' 
+curl -s http://127.0.0.1:3190/rest/stat | grep '"hit":4' | grep '"miss":2' | grep '"prev_hit":4' | grep '"prev_miss":2' 

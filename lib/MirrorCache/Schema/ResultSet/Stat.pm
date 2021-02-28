@@ -63,7 +63,7 @@ select
 sum(case when mirror_id > 0 then hit_count else 0 end) as hit,
 sum(case when mirror_id = -1 then hit_count else 0 end) as miss
 from stat_agg
-where period = '$period'::stat_period_t and dt = date_trunc('$period', now())
+where period = '$period'::stat_period_t and dt = (select max(dt) from stat_agg where period = '$period'::stat_period_t)
 group by dt;
 END_SQL
     my $prep = $dbh->prepare($sql);

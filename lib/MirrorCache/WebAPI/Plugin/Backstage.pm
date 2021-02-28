@@ -46,7 +46,6 @@ sub register_tasks {
         qw(MirrorCache::Task::FolderSyncSchedule),
         qw(MirrorCache::Task::FolderSync),
         qw(MirrorCache::Task::Cleanup),
-        qw(MirrorCache::Task::StatAgg),
         qw(MirrorCache::Task::StatAggSchedule),
       );
 }
