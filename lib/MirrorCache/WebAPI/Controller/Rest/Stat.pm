@@ -29,24 +29,32 @@ sub list {
 
     $self->render(
         json => {
-            prev => { 
-                prev_minute_hit  => $prevminuteref->{hit},
-                prev_minute_miss => $prevminuteref->{miss},
-                prev_hour_hit    => $prevhourref->{hit},
-                prev_hour_miss   => $prevhourref->{miss},
-                prev_day_hit     => $prevdayref->{hit},
-                prev_day_miss    => $prevdayref->{miss},
+            minute => { 
+                prev_hit  => _toint($prevminuteref->{hit}),
+                prev_miss => _toint($prevminuteref->{miss}),
+                hit  => _toint($currref->{minute}->{hit}),
+                miss => _toint($currref->{minute}->{miss}),
             },
-            curr => {
-                curr_minute_hit  => $currref->{minute}->{hit},
-                curr_minute_miss => $currref->{minute}->{miss},
-                curr_hour_hit    => $currref->{hour}->{hit},
-                curr_hour_miss   => $currref->{hour}->{miss},
-                curr_day_hit     => $currref->{day}->{hit},
-                curr_day_miss    => $currref->{day}->{miss},
+            hour => {
+                prev_hit    => _toint($prevhourref->{hit}),
+                prev_miss   => _toint($prevhourref->{miss}),
+                hit    => _toint($currref->{hour}->{hit}),
+                miss   => _toint($currref->{hour}->{miss}),
+            },
+            day => {
+                prev_hit     => _toint($prevdayref->{hit}),
+                prev_miss    => _toint($prevdayref->{miss}),
+                hit     => _toint($currref->{day}->{hit}),
+                miss    => _toint($currref->{day}->{miss}),
             },
         }
     );
+}
+
+sub _toint {
+    my $n = shift;
+    return 0 unless $n;
+    return $n + 0;
 }
 
 1;

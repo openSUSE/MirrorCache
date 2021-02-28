@@ -15,8 +15,7 @@
 
 package MirrorCache::Task::StatAggSchedule;
 use Mojo::Base 'Mojolicious::Plugin';
-
-use DateTime;
+use MirrorCache::Utils 'datetime_now';
 
 sub register {
     my ($self, $app) = @_;
@@ -34,17 +33,35 @@ sub _run {
 
 
     if ($minion->lock('stat_agg_schedule_minute', 10)) {
-        $minion->enqueue('stat_agg_minute' => [] => {priority => 1});
+        _agg($app, $job, 'minute');
     }
 
     if ($minion->lock('stat_agg_schedule_hour', 5*60)) {
-        $minion->enqueue('stat_agg_hour' => [] => {priority => 1});
+        _agg($app, $job, 'hour');
     }
 
     if ($minion->lock('stat_agg_schedule_day', 15*60)) {
-        $minion->enqueue('stat_agg_day' => [] => {priority => 0});
+        _agg($app, $job, 'day');
     }
     
     $job->retry({delay => 15});
 }
+
+sub _agg {
+    my ($app, $job, $period) = @_;
+    eval {    
+        $app->schema->storage->dbh->prepare(
+"insert into stat_agg select dt_to, '$period'::stat_period_t, stat.mirror_id, count(*)
+from
+( select date_trunc('$period', now()) - interval '1 $period' as dt_from, date_trunc('$period', now()) as dt_to ) x
+join stat on dt between x.dt_from and x.dt_to
+left join stat_agg on period = '$period'::stat_period_t and stat_agg.dt = x.dt_to
+where
+stat_agg.period is NULL
+group by stat.mirror_id, x.dt_to;"
+        )->execute();
+        1;
+    } or $job->note("last_warning_$period" => $@, "last_warning_$period" . "_at" => datetime_now());
+}
+
 1;

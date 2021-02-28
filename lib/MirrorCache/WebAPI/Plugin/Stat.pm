@@ -31,7 +31,7 @@ has timer  => undef;
 
 has rows => undef;
 
-my $FLUSH_COUNT = $ENV{MIRRORCACHE_STAT_FLUSH_COUNT} // 2;
+my $FLUSH_COUNT = $ENV{MIRRORCACHE_STAT_FLUSH_COUNT} // 100;
 
 sub register($self, $app, $args) {
     my $log = $app->log;
