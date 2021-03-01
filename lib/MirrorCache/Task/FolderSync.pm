@@ -15,6 +15,7 @@
 
 package MirrorCache::Task::FolderSync;
 use Mojo::Base 'Mojolicious::Plugin';
+use Mojo::JSON 'to_json';
 use MirrorCache::Utils 'datetime_now';
 
 sub register {
@@ -37,7 +38,25 @@ sub _sync {
 
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($root->is_dir($path)) {
-        $folder->update({db_sync_last => datetime_now(), db_sync_priority => 10, db_sync_for_country => ''}) if $folder; # prevent further sync attempts
+        if ($folder) {
+            my $sql = <<'END_SQL';
+select 1+count(*) from (
+select * from minion_jobs
+where task = 'folder_sync'
+and result::jsonb = ?
+order by finished desc
+limit 6
+) notadircount
+END_SQL
+            my $sth = $schema->storage->dbh->prepare($sql);
+            $sth->execute(to_json("$path is not a dir anymore"));
+            my ($notadircount) = $sth->fetchrow_array;
+            if ($notadircount < 5) {
+                $folder->update({db_sync_last => datetime_now(), db_sync_priority => 10, db_sync_for_country => ''}); # prevent further sync attempts
+            } else {
+                $schema->resultset('Folder')->delete_cascade($folder->id, 0);
+            }
+        }
         return $job->finish("$path is not a dir anymore");
     }
 

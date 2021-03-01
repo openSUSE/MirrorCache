@@ -54,3 +54,37 @@ curl -X DELETE -Is http://127.0.0.1:3190/admin/folder/1
 
 test 0 == $(pg9*/sql.sh -t -c "select count(*) from file" mc_test)
 test 0 == $(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
+
+
+######################################################################
+# test automated database cleanup for folders that don't exist anymore
+# create some entries in table folder
+curl -Is http://127.0.0.1:3190/download/folder1/file1.dat
+curl -Is http://127.0.0.1:3190/download/folder2/file1.dat
+curl -Is http://127.0.0.1:3190/download/folder3/file1.dat
+# force rescan
+mc9*/backstage/job.sh folder_sync_schedule_from_misses
+mc9*/backstage/job.sh folder_sync_schedule
+mc9*/backstage/shoot.sh
+
+test 3 == $(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
+
+rm -r mc9/dt/folder1
+# force rescan from miss
+curl -Is http://127.0.0.1:3190/download/folder1/file2.dat
+mc9*/backstage/job.sh folder_sync_schedule_from_misses
+mc9*/backstage/job.sh folder_sync_schedule
+mc9*/backstage/shoot.sh
+# update db_sync_last to force a sync reschedule
+pg9*/sql.sh -t -c "update folder set db_sync_last = db_sync_last - interval '1 day' where path = '/folder1'" mc_test
+sleep 5s
+
+mc9*/backstage/job.sh folder_sync_schedule
+mc9*/backstage/shoot.sh
+sleep 5s
+
+mc9*/backstage/job.sh folder_sync_schedule
+mc9*/backstage/shoot.sh
+
+# test for reduced number of rows
+test 2 == $(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
