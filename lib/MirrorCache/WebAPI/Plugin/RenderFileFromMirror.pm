@@ -34,7 +34,6 @@ sub register {
         my ($c, $filepath)= @_;
         $c->emit_event('mc_dispatch', $filepath);
         my $root = $c->mc->root;
-        my $mirror = "";
         my $f = Mojo::File->new($filepath);
         my $dirname  = $f->dirname;
         my $basename = $f->basename;
@@ -65,6 +64,9 @@ sub register {
         $ipv = 'ipv6' unless $dm->is_ipv4;
         my $ip = $dm->ip;
         my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $file->id, $scheme, $ipv, $dm->lat, $dm->lng);
+        unless (@$mirrors) {
+            return $root->render_file($c, $filepath);
+        }
 
         my $headers = $c->req->headers;
         my $accept;
@@ -74,7 +76,9 @@ sub register {
                 my $url = $c->req->url->to_abs;
                 my $origin = $url->scheme . '://' . $url->host;
                 my $xml = _build_metalink($folder->path, $basename, 0, $country, $mirrors, $origin, 'MirrorCache');
-                return $c->render(data => $xml, format => 'xml');
+                $c->render(data => $xml, format => 'xml');
+                $c->stat->redirect_to_mirror($mirrors->[0]->{mirror_id});
+                return 1;
             }
         }
         my $ua  = Mojo::UserAgent->new;
