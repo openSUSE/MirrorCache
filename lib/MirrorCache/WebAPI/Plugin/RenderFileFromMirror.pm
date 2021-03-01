@@ -43,7 +43,7 @@ sub register {
             my $prefix = "repomd.xml";
             
             if (($prefix eq substr($basename,0,length($prefix))) && $root->is_reachable) {
-                return $root->render_file($c, $filepath);
+                return $root->render_file($c, $filepath, 1);
             }
         }
 
