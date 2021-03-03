@@ -65,6 +65,7 @@ sub register {
         my $ip = $dm->ip;
         my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $file->id, $scheme, $ipv, $dm->lat, $dm->lng);
         unless (@$mirrors) {
+            $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country});
             return $root->render_file($c, $filepath);
         }
 

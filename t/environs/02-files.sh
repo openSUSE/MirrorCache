@@ -82,12 +82,15 @@ test 4 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff_server" mc_test)
 
 cnt="$(pg9*/sql.sh -t -c "select count(*) from audit_event" mc_test)"
 
-curl -Is http://127.0.0.1:3190/download/folder2/file4.dat | grep 200
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 302
 
 # it shouldn't try to reach file on mirrors yet, because scanner didn't find files
-test 0 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name like 'mirror_%error' and id > $cnt" mc_test)
+test 0 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name like 'mirror_miss' and id > $cnt" mc_test)
 
+
+curl -Is http://127.0.0.1:3190/download/folder2/file4.dat | grep 200
+# now an error must be logged 
+test 1 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name like 'mirror_miss' and id > $cnt" mc_test)
 
 ##################################
 # let's test path distortions 
