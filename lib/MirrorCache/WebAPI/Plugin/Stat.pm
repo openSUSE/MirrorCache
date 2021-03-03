@@ -62,6 +62,7 @@ sub redirect_to_mirror($self, $mirror_id) {
     my $rows = $self->rows;
     my @rows = defined $rows? @$rows : ();
     push @rows, [ sha1_hex($dm->ip), scalar $dm->agent, scalar $dm->path, $dm->country, datetime_now(), $mirror_id, $dm->is_secure, $dm->is_ipv4 ];
+    return undef if $mirror_id == -1 && 'media' eq substr($dm->path, -length('media'));
     my $cnt = @rows;
     if ($cnt > $FLUSH_COUNT) {
         $self->rows(undef);
