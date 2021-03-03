@@ -25,30 +25,31 @@ sub list {
     my $prevhourref   = $rs->prev_hour;
     my $prevdayref    = $rs->prev_day;
 
-    my $currref = $rs->curr;
+    my $curr = $rs->curr;
 
-    $self->render(
-        json => {
-            minute => { 
-                prev_hit  => _toint($prevminuteref->{hit}),
-                prev_miss => _toint($prevminuteref->{miss}),
-                hit  => _toint($currref->{minute}->{hit}),
-                miss => _toint($currref->{minute}->{miss}),
-            },
-            hour => {
-                prev_hit    => _toint($prevhourref->{hit}),
-                prev_miss   => _toint($prevhourref->{miss}),
-                hit    => _toint($currref->{hour}->{hit}),
-                miss   => _toint($currref->{hour}->{miss}),
-            },
-            day => {
-                prev_hit     => _toint($prevdayref->{hit}),
-                prev_miss    => _toint($prevdayref->{miss}),
-                hit     => _toint($currref->{day}->{hit}),
-                miss    => _toint($currref->{day}->{miss}),
-            },
+    my %res = ();
+    my $fill = sub {
+        my ($prev, $period) = @_;
+        my %h = (
+            hit       => _toint($curr->{$period}->{hit}),
+            miss      => _toint($curr->{$period}->{miss}),
+            prev_hit  => _toint($prev->{hit}),
+            prev_miss => _toint($prev->{miss}),
+        );
+        # geo redirects are not always enabled, so show them only if exist
+        if (my $x = _toint($prev->{geo})) {
+            $h{'prev_geo'} = $x;
         }
-    );
+        if (my $x = _toint($curr->{$period}->{geo})) {
+            $h{'geo'} = $x;
+        }
+        $res{$period} = \%h;
+    };
+
+    $fill->($prevminuteref, 'minute');
+    $fill->($prevhourref, 'hour');
+    $fill->($prevdayref, 'day');
+    $self->render(json => \%res);
 }
 
 sub _toint {
