@@ -41,8 +41,9 @@ sub curr {
 select
 x.per,
 sum(case when mirror_id > 0 then 1 else 0 end) as hit,
-sum(case when mirror_id = -1 then 1 else 0 end) as miss
-from 
+sum(case when mirror_id = -1 then 1 else 0 end) as miss,
+sum(case when mirror_id < -1 then 1 else 0 end) as geo
+from
 (select 'minute' per
 union select 'hour' per
 union select 'day' per) x
@@ -61,7 +62,8 @@ sub _prev_period {
     my $sql = <<"END_SQL";
 select
 sum(case when mirror_id > 0 then hit_count else 0 end) as hit,
-sum(case when mirror_id = -1 then hit_count else 0 end) as miss
+sum(case when mirror_id = -1 then hit_count else 0 end) as miss,
+sum(case when mirror_id < -1 then hit_count else 0 end) as geo
 from stat_agg
 where period = '$period'::stat_period_t and dt = (select max(dt) from stat_agg where period = '$period'::stat_period_t)
 group by dt;
