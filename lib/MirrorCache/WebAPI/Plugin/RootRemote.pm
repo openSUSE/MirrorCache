@@ -91,12 +91,24 @@ sub location {
     return $rooturlsfallback . $filepath;
 }
 
+sub looks_like_file {
+    my $f = shift;
+    return 0 if rindex($f, '/', length($f)-2) > -1;
+    return 1;
+};
+
 # this is complicated to avoid storing big html in memory
 # we parse and execute callback $sub on the fly
 sub foreach_filename {
     my $self = shift;
     my $dir  = shift;
     my $sub  = shift;
+    if ($dir eq '/' && $ENV{MIRRORCACHE_TOP_FOLDERS}) {
+        for (split ' ', $ENV{MIRRORCACHE_TOP_FOLDERS}) {
+            $sub->($_ . '/');
+        }
+        return 1;
+    }
     my $ua   = Mojo::UserAgent->new;
     my $tx   = $ua->get($rooturl . $dir . '/?F=1');
     return 0 unless $tx->result->code == 200;
@@ -115,7 +127,7 @@ sub foreach_filename {
     };
     my $text = sub {
         my $t = trim shift;
-        $sub->($t) if $t && ($href eq $t);
+        $sub->($t) if $t && ($href eq $t) && looks_like_file($t);
     };
 
     my $p = HTML::Parser->new(

@@ -73,8 +73,12 @@ sub _sync {
             $folder = $schema->resultset('Folder')->find_or_create({path => $path}) unless $folder;
         };
         $update_db_last->();
-        $app->mc->root->foreach_filename($path, $sub) or
-            return $job->fail('Error while reading files from root');
+        eval {
+            $schema->txn_do(sub {
+                $app->mc->root->foreach_filename($path, $sub);
+            });
+            1;
+        } or return $job->fail('Error while reading files from root :' . $@);
 
         $job->note(created => $path, count => $count);
 
