@@ -1,3 +1,8 @@
+insert into server(hostname,urldir,enabled,country,region) select 'mirror.its.dal.ca','/opensuse','t','ca','';
+insert into server(hostname,urldir,enabled,country,region) select 'www.muug.mb.ca','/pub/opensuse','t','ca','';
+insert into server(hostname,urldir,enabled,country,region) select 'opensuse.freemirror.org','/opensuse','t','ca','';
+insert into server(hostname,urldir,enabled,country,region) select 'mirror.csclub.uwaterloo.ca','/opensuse','t','ca','';
+insert into server(hostname,urldir,enabled,country,region) select 'mirrors.ucr.ac.cr','/opensuse','t','cr','';
 insert into server(hostname,urldir,enabled,country,region) select 'opensuse.zq1.de','/','t','us','';
 insert into server(hostname,urldir,enabled,country,region) select 'mirror.datto.com','/opensuse','t','us','';
 insert into server(hostname,urldir,enabled,country,region) select 'www.gtlib.gatech.edu','/pub/opensuse','t','us','';
