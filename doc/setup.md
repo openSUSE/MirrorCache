@@ -5,11 +5,12 @@
 ### Environment variables
 
 MirrorCache can be configured with following environment variables:
-  * MIRRORCACHE_ROOT (required): defines location of files, which needs redirection. It may be url or file, e.g. `MIRRORCACHE_ROOT=http://download.opensuse.org` or `MIRRORCACHE_ROOT=/srv/mirrorcache`.
+  * MIRRORCACHE_ROOT (required): defines location of files, which needs redirection. It may be url, local folder or rsync address, e.g. `MIRRORCACHE_ROOT=http://download.opensuse.org` or `MIRRORCACHE_ROOT=/srv/mirrorcache` or `MIRRORCACHE_ROOT=rsync://user:password@myhost.com/module`. (Note that you must install additionally `perl-Digest-MD4` if rsync url needs password verification).
   * MIRRORCACHE_TOP_FOLDERS (space separated values) may be set to automatically redirect /folder to /download/folder.
   * For reference of using MOJO_LISTEN variable refer Mojolicious documentation, e.g. `MOJO_LISTEN=http://*:8000`
   * It is recommended to run MirrorCache daemon behind another streamline WebService, e.g. Apache or haproxy. Thus `MOJO_REVERSE_PROXY=1` will be needed.
   * MIRRORCACHE_FALLBACK_HTTPS_REDIRECT if specified, it will be used for redirect when no mirror is found for https request, e.g. MIRRORCACHE_FALLBACK_HTTPS_REDIRECT=https://downloadcontent.opensuse.org .
+  * MIRRORCACHE_REDIRECT is needed for use when MIRRORCACHE_ROOT is set to rsync address. Requests will be redirected to this location when no mirror is found.
   * MIRRORCACHE_METALINK_PUBLISHER may be set to customize publisher in metalink generation.
   * MIRRORCACHE_METALINK_PUBLISHER_URL may be set to customize url of publisher in metalink generation.
 
@@ -29,25 +30,23 @@ If neither TEST_PG nor MIRRORCACHE_DSN is defined, following variables are used:
     `sql/schema.sql`
   Package:
     `/usr/share/mirrorcache/sql/schema.sql`
-    
+
 ### GeoIP location
   * If environment variable MIRRORCACHE_CITY_MMDB is defined, the app will attempt to detect country of the request and find a mirror in the same country, e.g. `MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb`.
   * Refer Maxmind geoip2 on how to obtain such file.
   * Additional dependencies must be installed as well for GeoIP location to work: perl modules Mojolicious::Plugin::ClientIP and MaxMind::DB::Reader:
 ```
-zypper in perl-App-cpanminus make gcc
-cpanm Mojolicious::Plugin::ClientIP --sudo
-cpanm MaxMind::DB::Reader --sudo
+zypper ar https://mirrorcache.opensuse.org/repositories/home:andriinikitin/MirrorCache:/Geo/openSUSE_Leap_15.2 mcgeo
+zypper in Mojolicious::Plugin::ClientIP MaxMind::DB::Reader
 ```
 
 ## Types of install
 
 ### Install package
 
-An example for openSUSE 15.2 
+An example for openSUSE 15.2
 ```bash
-zypper addrepo https://mirrorcache.opensuse.org/repositories/devel:languages:perl/openSUSE_Leap_15.2 devel:languages:perl
-zypper addrepo https://mirrorcache.opensuse.org/repositories/home:andriinikitin/openSUSE_Leap_15.2 mc
+zypper ar https://mirrorcache.opensuse.org/repositories/home:andriinikitin/MirrorCache/openSUSE_Leap_15.2 mc
 zypper --gpg-auto-import-keys --no-gpg-checks refresh
 zypper install MirrorCache
 
@@ -67,16 +66,17 @@ MOJO_LISTEN=http://*:8000
 systemctl start mirrorcache
 systemctl start mirrorcache-backstage
 
-# currently 4 jobs must run continuously
+# currently 5 jobs must run continuously
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e stat_agg_schedule
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e cleanup
 ```
 
 ### Setup systemd from source
 
-1. Install prerequisites. 
+1. Install prerequisites.
 The project is based on Perl Mojolicious framework and set of Perl packages.
 The best way to install them is to reuse zypper and cpanm commands from CI environment:
    `t/environs/lib/Dockerfile.environs`
@@ -110,6 +110,7 @@ systemctl start mirrorcache-backstage
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule_from_misses
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e folder_sync_schedule
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e mirror_scan_schedule_from_misses
+sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e stat_agg_schedule
 sudo -u mirrorcache /usr/share/mirrorcache/script/mirrorcache minion job -e cleanup
 
 # log into UI and provide admin rights to the user:
@@ -161,6 +162,7 @@ script/mirrorcache backstage run -j 16
 script/mirrorcache minion job -e folder_sync_schedule_from_misses
 script/mirrorcache minion job -e folder_sync_schedule
 script/mirrorcache minion job -e mirror_scan_schedule_from_misses
+script/mirrorcache minion job -e stat_agg_schedule
 script/mirrorcache minion job -e cleanup
 ```
 
@@ -211,6 +213,7 @@ mc1*/backstage/start.sh
 mc1*/backstage/job.sh folder_sync_schedule_from_misses
 mc1*/backstage/job.sh folder_sync_schedule
 mc1*/backstage/job.sh mirror_scan_schedule_from_misses
+mc1*/backstage/job.sh stat_agg_schedule
 mc1*/backstage/job.sh cleanup
 
 pg1*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select 'mirror.aarnet.edu.au','/pub/opensuse/opensuse','t','au',''" mc
@@ -237,13 +240,13 @@ mc1*/backstage/status.sh
     ```bash
     # Add this line before mc9*/start.sh in your test
     sed -i 's,MOJO_LISTEN=http://127.0.0.1,MOJO_LISTEN=http://*,' mc9*/start.sh
-    
+
     # Run the test and have the container available at http://localhost:80 afterwards
     EXPOSE_PORT=3190 ./01-smoke.sh
     ```
     To access admin actions without logging in, like the Users page, add `MIRRORCACHE_TEST_TRUST_AUTH=1` in the test you want to run:
-    - Change `mc9*/start.sh` to `MIRRORCACHE_TEST_TRUST_AUTH=1 mc9*/start.sh`
-    
+    - Change `mc9*/start.sh` to `MIRRORCACHE_TEST_TRUST_AUTH=1 mc9*/start.sh
+
 **WARNING** - Be careful when working inside container:
 1. The source tree is mapped to the host, so any changes of source code inside container will be reflected on host and vice versa.
 2. The container is removed automatically on next test start of the same test, so any modifications outside source tree will be lost.

@@ -4,34 +4,14 @@ ENV container docker
 ENV LANG en_US.UTF-8
 
 RUN sed -i 's,http://download.opensuse.org,https://mirrorcache.opensuse.org/download,g' /etc/zypp/repos.d/*repo
-RUN zypper -vvv -n install git-core wget tar m4
-
-RUN zypper ar -f https://mirrorcache.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.2 perl
+RUN zypper ar -f https://mirrorcache.opensuse.org/repositories/home:/andriinikitin:/MirrorCache/openSUSE_Leap_15.2 mc
+RUN zypper ar -f https://mirrorcache.opensuse.org/repositories/home:/andriinikitin:/MirrorCache:/Geo/openSUSE_Leap_15.2 mc_geo
 RUN zypper --gpg-auto-import-keys ref
 
-####################################################
-# temp workaround until SQL::Abstract::Pg is in leap
-RUN zypper -n install perl-App-cpanminus
-RUN zypper -n install gzip gcc make
-RUN zypper -vvv -n install perl-DBD-Pg
-RUN cpanm --notest --force SQL::Abstract::Pg
-RUN cpanm --notest --force Mojo::Pg
-####################################################
-
-RUN zypper -vvv -n install perl-DBIx-Class perl-Data-Dumper-Concise perl-Digest-MD5 sudo vim postgresql postgresql-server \
-  curl apache2 perl-Mojolicious-Plugin-RenderFile perl-Minion perl-DateTime perl-DBIx-Class-DynamicDefault perl-DateTime-Format-Pg perl-Net-DNS
-
-RUN zypper -vvv -n install perl-App-cpanminus
-RUN zypper -vvv -n install gzip gcc make
-# RUN cpanm Mojolicious::Plugin::ClientIP --sudo
-# RUN cpanm MaxMind::DB::Reader --sudo || :
-
-RUN zypper -vvv -n install perl-Mojolicious-Plugin-AssetPack perl-Net-OpenID-Consumer perl-LWP-Protocol-https perl-URI
-
-RUN zypper -vvv -n install ruby ruby-devel ruby2.5-rubygem-sass
-
-RUN zypper -vvv -n install perl-JavaScript-Minifier-XS perl-CSS-Minifier-XS
-RUN zypper -vvv -n install perl-XML-Writer
+# install MirrorCache here to fetch all dependencies
+RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-Plugin-ClientIP \
+    vim postgresql postgresql-server curl sudo git-core wget tar m4 \
+    apache2 perl-Digest-MD4 tidy make
 
 VOLUME ["/sys/fs/cgroup"]
 VOLUME ["/run"]
@@ -39,8 +19,6 @@ VOLUME ["/opt/project"]
 
 RUN systemctl enable dbus.service
 RUN systemctl enable postgresql
-
-######
 
 ADD src/sql /usr/share/doc/packages/mirrorcache/sql
 

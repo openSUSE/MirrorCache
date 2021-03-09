@@ -12,6 +12,12 @@ rs9*/start.sh
 rs9*/status.sh
 rs9*/ls_a.sh
 
+if [ -z "${BASH_SOURCE[0]}" ]; then
+    thisdir=MirrorCache/t/environs
+else
+    thisdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+fi
+
 mkdir -p rs9-system2/a/bb/ccc/dddd
 echo -n '' > rs9-system2/a/bb/ccc/a1
 echo -n '1234' > rs9-system2/a/bb/ccc/a2
