@@ -1,7 +1,11 @@
 #!lib/test-in-container-environs.sh
 set -ex
 
-thisdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+if [ -z "${BASH_SOURCE[0]}" ]; then
+    thisdir=MirrorCache/t/environs
+else
+    thisdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+fi
 
 ./environ.sh rs9-system2
 
