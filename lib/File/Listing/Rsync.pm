@@ -231,7 +231,7 @@ sub muxread {
     }
     if ($tag == 8 || $tag == 9) {
       my $msg = sread(*SS, $tlen);
-      # warn("tag=8 $msg\n") if $tag == 8;
+      warn("tag=8 $msg\n") if $tag == 8;
       # print "info: $msg\n";
       next;
     }
