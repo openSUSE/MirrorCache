@@ -41,7 +41,7 @@ sub startup {
 
     $self->app->hook(before_server_start => sub {
         die("MIRRORCACHE_ROOT is not set") unless $root;
-        if (-1 == rindex $root, 'http', 0) {
+        if ((-1 == rindex($root, 'http', 0)) && (-1 == rindex($root, 'rsync://', 0)) ) {
             die("MIRRORCACHE_ROOT is not a directory ($root)") unless -d $root;
         }
 
@@ -110,7 +110,7 @@ sub startup {
 
         $admin_r->delete('/folder/<id:num>')->to('folder#delete_cascade');
         $admin_r->delete('/folder_diff/<id:num>')->to('folder#delete_diff');
-        
+
         $admin_r->get('/users')->name('get_users')->to('user#index');
         $admin_r->post('/user/:userid')->name('post_user')->to('user#update');
 
@@ -146,7 +146,9 @@ sub startup {
     $self->plugin('Helpers', root => $root, route => '/download');
     if ($root) {
         # check prefix
-        if (-1 == rindex $root, 'http', 0) {
+        if ('rsync://' eq substr($root, 0, 8)) {
+            $self->plugin('RootRsync', { url => $root });
+        } elsif (-1 == rindex $root, 'http', 0) {
             $self->plugin('RootLocal');
         } else {
             $self->plugin('RootRemote');
