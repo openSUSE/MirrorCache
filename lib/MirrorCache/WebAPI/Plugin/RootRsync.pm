@@ -110,8 +110,10 @@ sub foreach_filename {
         return 1;
     }
     $self->reader->readdir($dir, sub {
-        my $name = shift;
-        $sub->($name) unless $name eq '.';
+        my ($name, $size, $mmode, $mtime) = @_;
+        next if $name eq '.';
+        $name = $name . '/' if $mmode < 1000;
+        $sub->($name);
     });
 
     return 1;
