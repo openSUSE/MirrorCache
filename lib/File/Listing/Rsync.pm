@@ -51,13 +51,14 @@ sub init {
         $self->user($cred);
     }
 
-    die "Cannot parse url '$url'\n" unless $url =~ m{^([^:/]+)(:(\d*))?(/(.*))?$};
+    die "Cannot parse url '$url'\n" unless $url =~ m{^([^:/]+)(:(\d*))?(/(.*)/?)?$};
     my ($host, $_, $port, $path) = ($1,$2,$3,$4);
     $path = $5 if $path;
     $self->set_host($host);
     $self->port($port) if $port;
     my $module  = '', my $basedir = '';
-    if ($path && ( my $i = index($path, '/', 1) > -1) ) {
+    my $i = index($path, '/') if $path;
+    if ($path && $i > -1) {
         $module  = substr($path, 0, $i);
         $basedir = substr($path, $i);
     } else {
@@ -98,15 +99,14 @@ sub readdir {
     if ($module) {
         $path = $self->basedir . $path if $self->basedir;
     } else {
-        if (my $i = index($path, '/', 0) > -1) {
+        if ((my $i = index($path, '/', 0)) > -1) {
             $module = substr($path, 0, $i);
             $path   = substr($path, $i+1);
         }
     }
     swrite(*S, "$module\n");
     while(1) {
-        # alarm $self->timeout;
-        alarm 800;
+        alarm $self->timeout;
         sysread(S, $buf, 4096);
         alarm 0;
         die("protocol error2 [Dumper($buf)]\n") if $buf !~ s/\n//s;
