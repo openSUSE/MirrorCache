@@ -51,7 +51,7 @@ sub init {
         $self->user($cred);
     }
 
-    die "Cannot parse url '$url'\n" unless $url =~ m{^([^:/]+)(:(\d*))(/(.*))?$};
+    die "Cannot parse url '$url'\n" unless $url =~ m{^([^:/]+)(:(\d*))?(/(.*))?$};
     my ($host, $_, $port, $path) = ($1,$2,$3,$4);
     $path = $5 if $path;
     $self->set_host($host);
