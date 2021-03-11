@@ -37,4 +37,37 @@ sub datetime_now() {
     return DateTime->now( time_zone => 'local' )->stringify;
 }
 
+sub _round_a_bit {
+    my ($size) = @_;
+
+    if ($size < 10) {
+        # give it one digit
+        return int($size * 10 + .5) / 10.;
+    }
+
+    return int($size + .5);
+}
+
+sub human_readable_size {
+    my ($size) = @_;
+
+    my $p = ($size < 0) ? '-' : '';
+    $size = abs($size);
+    if ($size < 3000) {
+        return "$p$size Byte";
+    }
+    $size = $size / 1024.;
+    if ($size < 1024) {
+        return $p . _round_a_bit($size) . "KiB";
+    }
+
+    $size /= 1024.;
+    if ($size < 1024) {
+        return $p . _round_a_bit($size) . "MiB";
+    }
+
+    $size /= 1024.;
+    return $p . _round_a_bit($size) . "GiB";
+}
+
 1;

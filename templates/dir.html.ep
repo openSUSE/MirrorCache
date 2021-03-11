@@ -47,7 +47,7 @@
   </div>
 </nav>
 <hr/>
-<table>
+<table cellspacing="15">
   <tr>
     <th class='name'>Name</th>
     %   if ($files && @$files && $files->[0]->{mtime}) {

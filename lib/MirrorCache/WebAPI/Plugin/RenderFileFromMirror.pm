@@ -84,6 +84,7 @@ sub register {
         }
         my $ua  = Mojo::UserAgent->new;
         my $recurs1;
+        my $expected_size = $file->size;
         my $recurs = sub {
             my $prev = shift;
 
@@ -96,8 +97,14 @@ sub register {
             my $url = $mirror->{url} . $filepath;
             my $code;
             $ua->head_p($url)->then(sub {
-                $code = shift->result->code;
+                my $result = shift->result;
+                $code = $result->code;
                 if ($code == 200 || $code == 302 || $code == 301) {
+                    my $size = $result->headers->content_length if $result->headers;
+                    if ($size && $expected_size && $size ne $expected_size) {
+                        $code = 409;
+                        return undef;
+                    }
                     $c->emit_event('mc_path_hit', {path => $dirname, mirror => $url});
                     $c->redirect_to($url);
                     $c->stat->redirect_to_mirror($mirror->{mirror_id});

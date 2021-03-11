@@ -26,6 +26,8 @@ use File::Basename;
 use POSIX qw( strftime );
 use Data::Dumper;
 
+use MirrorCache::Utils;
+
 # rooturlredirect as defined in MIRRORCACHE_REDIRECT
 # rooturlsredirect same as above just https
 has [ 'app', 'reader', 'rooturlredirect', 'rooturlsredirect' ];
@@ -139,9 +141,10 @@ sub list_files_from_db {
     my $cur_path = Encode::decode_utf8( Mojo::Util::url_unescape( $urlpath ) );
     for my $child ( @childrenfiles ) {
         my $basename = $child->name;
-        my $size = $child->size;
-        my $mtime = $child->mtime;
-        $mtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime));
+        my $size     = $child->size;
+        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
+        my $mtime    = $child->mtime;
+        $mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime));
 
         my $url  = Mojo::Path->new($cur_path)->trailing_slash(0);
         my $is_dir = '/' eq substr($basename, -1)? 1 : 0;
