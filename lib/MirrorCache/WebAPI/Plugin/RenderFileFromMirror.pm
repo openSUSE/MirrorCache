@@ -29,7 +29,7 @@ use Mojo::IOLoop::Subprocess;
 
 sub register {
     my ($self, $app) = @_;
- 
+
     $app->helper( 'mirrorcache.render_file' => sub {
         my ($c, $filepath)= @_;
         $c->emit_event('mc_dispatch', $filepath);
@@ -41,7 +41,7 @@ sub register {
             # We don't redirect inside repodata, because if a mirror is outdated, 
             # then zypper will have hard time working with outdated repomd.* files
             my $prefix = "repomd.xml";
-            
+
             if (($prefix eq substr($basename,0,length($prefix))) && $root->is_reachable) {
                 return $root->render_file($c, $filepath, 1);
             }
@@ -76,7 +76,7 @@ sub register {
             if ($accept =~ m/\bapplication\/metalink/ && $country) {
                 my $url = $c->req->url->to_abs;
                 my $origin = $url->scheme . '://' . $url->host;
-                my $xml = _build_metalink($folder->path, $basename, 0, $country, $mirrors, $origin, 'MirrorCache');
+                my $xml = _build_metalink($folder->path, $basename, $file->size, $file->mtime, $country, $mirrors, $origin, 'MirrorCache');
                 $c->render(data => $xml, format => 'xml');
                 $c->stat->redirect_to_mirror($mirrors->[0]->{mirror_id});
                 return 1;
@@ -119,7 +119,7 @@ sub register {
 }
 
 sub _build_metalink() {
-    my ($path, $basename, $size, $country, $mirrors, $origin, $generator) = @_;
+    my ($path, $basename, $size, $mtime, $country, $mirrors, $origin, $generator) = @_;
     $country = uc($country) if $country;
     my @mirrors = @$mirrors;
     my $mirror_count = @mirrors;
@@ -137,7 +137,7 @@ sub _build_metalink() {
     push @attribs, (origin => $origin) if $origin;
     push @attribs, (generator => $generator) if $generator;
     push @attribs, (pubdate => strftime("%Y-%m-%d %H:%M:%S %Z", localtime time));
-    
+
     $writer->startTag('metalink', @attribs);
 
     $writer->startTag('publisher');
@@ -162,6 +162,7 @@ sub _build_metalink() {
             $writer->characters($size);
             $writer->endTag('size');
         }
+        $writer->comment("<mtime>$mtime</mtime>") if ($mtime);
         $writer->startTag('resources');
         {
             $writer->comment("Mirrors which handle this country ($country): ");

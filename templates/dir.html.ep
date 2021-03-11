@@ -50,9 +50,17 @@
 <table>
   <tr>
     <th class='name'>Name</th>
+    %   if ($files && @$files && $files->[0]->{mtime}) {
+            <th class='size'>Size</th>
+            <th class='mtime'>Last Modified</th>
+    %   }
   </tr>
   % for my $file (@$files) {
+  %   if ($file->{mtime}) {
+  <tr><td class='name'><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td><td class='size'><%= $file->{dir} ? '' : $file->{size} %></td><td class='mtime'><%= $file->{mtime} %></td></tr>
+  %   } else {
   <tr><td class='name'><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td></tr>
+    % }
   % }
   % if (!$files || @$files == 0) {
   <tr>Folder is empty</tr>

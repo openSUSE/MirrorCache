@@ -25,6 +25,7 @@ export MIRRORCACHE_REDIRECT=http://some.address.fake.com
 for x in rs9-system2 ap7-system2 ap8-system2; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo -n 123 > $x/dt/folder1/file2.dat
     $x/start.sh
 done
 
@@ -48,12 +49,17 @@ mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
 
 pg9*/sql.sh -c "select * from file" mc_test
+test 0 == $(pg9*/sql.sh -t -c "select size from file where name = 'file1.dat'" mc_test)
+test 3 == $(pg9*/sql.sh -t -c "select size from file where name = 'file2.dat'" mc_test)
 test 2 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff" mc_test)
 test 1 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff_file" mc_test)
 
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap7*/print_address.sh)
 
+curl -H "Accept: */*, application/metalink+xml" -s http://127.0.0.1:3190/download/folder1/file2.dat | grep '<size>3</size>'
+
 mv ap7-system2/dt/folder1/file2.dat ap8-system2/dt/folder1/
+echo -n 123456789 > ap8-system2/dt/folder1/file2.dat
 
 # gets redirected to root again
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep fake.com
@@ -63,6 +69,11 @@ mc9*/backstage/shoot.sh
 
 # now redirects to ap8
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap8*/print_address.sh)
+
+# check correct file size
+# TODO
+# test 9 == $(pg9*/sql.sh -t -c "select max(size) from file where name = 'file2.dat'" mc_test)
+
 
 # now add new file everywhere
 for x in rs9-system2 ap7-system2 ap8-system2; do

@@ -23,6 +23,7 @@ use Mojo::File;
 use Encode ();
 use URI::Escape ('uri_unescape');
 use File::Basename;
+use POSIX qw( strftime );
 use Data::Dumper;
 
 # rooturlredirect as defined in MIRRORCACHE_REDIRECT
@@ -110,8 +111,9 @@ sub foreach_filename {
         return 1;
     }
     $self->reader->readdir($dir, sub {
-        my $name = shift;
-        $sub->($name) unless $name eq '.';
+        my ($name, $size, $mmode, $mtime) = @_;
+        return undef unless $name && $name ne '.';
+        $sub->($name, $size, $mmode, $mtime);
     });
 
     return 1;
@@ -137,6 +139,10 @@ sub list_files_from_db {
     my $cur_path = Encode::decode_utf8( Mojo::Util::url_unescape( $urlpath ) );
     for my $child ( @childrenfiles ) {
         my $basename = $child->name;
+        my $size = $child->size;
+        my $mtime = $child->mtime;
+        $mtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime));
+
         my $url  = Mojo::Path->new($cur_path)->trailing_slash(0);
         my $is_dir = '/' eq substr($basename, -1)? 1 : 0;
         $basename = substr($basename, 0, -1) if $is_dir;
@@ -145,14 +151,12 @@ sub list_files_from_db {
             $basename .= '/';
             $url->trailing_slash(1);
         }
-        my $mime_type = $types->type( _get_ext($basename) || 'txt' ) || 'text/plain';
 
         push @files, {
             url   => $url,
             name  => $basename,
-            size  => 0,
-            type  => $mime_type,
-            mtime => '',
+            size  => $size,
+            mtime => $mtime,
             dir   => $is_dir,
         };
     }
@@ -175,7 +179,7 @@ sub list_files {
     for my $basename ( sort { $a cmp $b } @$children ) {
         my $file = "$dir/$basename";
         my $furl  = Mojo::Path->new($cur_path)->trailing_slash(0);
-        my $is_dir = (substr $file, -1) eq '/' || $self->is_dir($file);
+        my $is_dir = (substr $file, -1) eq '/';
         if ($is_dir) {
             # directory points to this server
             $furl = Mojo::Path->new($cur_path)->trailing_slash(0);
