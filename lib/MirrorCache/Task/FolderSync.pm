@@ -91,21 +91,31 @@ sub _sync {
 
     my $folder_id = $folder->id;
     my %dbfileids = ();
+    my %dbfilesizes = ();
+    my %dbfilemtimes = ();
     for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
         my $basename = $file->name;
         next unless $basename;
         $dbfileids{$basename} = $file->id;
+        $dbfilesizes{$basename} = $file->size if defined $file->size;
+        $dbfilemtimes{$basename} = $file->mtime if defined $file->mtime;
     }
     my %dbfileidstodelete = %dbfileids;
 
-    my $cnt = 0;
+    my $cnt = 0, my $updated = 0;
     my $sub = sub {
         my ($file, $size, $mmode, $mtime) = @_;
         $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
         $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
         $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
         if ($dbfileids{$file}) {
-            delete $dbfileidstodelete{$file};
+            my $id = delete $dbfileidstodelete{$file};
+            if ((defined $size && defined $mtime) && ($size != $dbfilesizes{$file} || $mtime != $dbfilemtimes{$file})) {
+                $schema->storage->dbh->prepare(
+                    "UPDATE file set size = ?, mtime = ? where id = ?"
+                )->execute($size, $mtime, $id);
+                $updated = $updated + 1;
+            }
             return;
         }
         $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime});
@@ -116,7 +126,7 @@ sub _sync {
     my @idstodelete = values %dbfileidstodelete;
     $schema->storage->dbh->do(
       sprintf(
-        'DELETE FROM file WHERE id IN(%s)', 
+        'DELETE FROM file WHERE id IN(%s)',
         join ',', ('?') x @idstodelete
       ),
       {},
@@ -133,7 +143,7 @@ sub _sync {
         }
     }
     $folder->update({db_sync_last => datetime_now(), db_sync_priority => 10, db_sync_for_country => ''});
-    $job->note(updated => $path, count => $cnt, deleted => $deleted, for_country => $country );
+    $job->note(updated => $path, count => $cnt, deleted => $deleted, updated => $updated, for_country => $country );
     $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7} ) if $cnt;
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }

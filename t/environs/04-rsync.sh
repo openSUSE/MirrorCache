@@ -59,20 +59,34 @@ curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap7*/print_ad
 curl -H "Accept: */*, application/metalink+xml" -s http://127.0.0.1:3190/download/folder1/file2.dat | grep '<size>3</size>'
 
 mv ap7-system2/dt/folder1/file2.dat ap8-system2/dt/folder1/
-echo -n 123456789 > ap8-system2/dt/folder1/file2.dat
+echo -n 123456789 > rs9-system2/dt/folder1/file2.dat
 
 # gets redirected to root again
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep fake.com
 
+# call incorrect file to force new size sync sync
+curl -s http://127.0.0.1:3190/download/folder1/incorrect
+mc9*/backstage/job.sh folder_sync_schedule_from_misses
+mc9*/backstage/job.sh folder_sync_schedule
+
+# ask mirror rescan
 mc9*/backstage/job.sh mirror_scan_schedule_from_misses
 mc9*/backstage/shoot.sh
 
+# check correct file size in DB
+test 9 == $(pg9*/sql.sh -t -c "select max(size) from file where name = 'file2.dat'" mc_test)
+
+# reports correct size in metalink
+curl -H "Accept: */*, application/metalink+xml" -s http://127.0.0.1:3190/download/folder1/file2.dat | grep '<size>9</size>'
+
+# still redirects to root because size differs
+curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep fake.com
+
+# update file on ap8
+cp rs9-system2/dt/folder1/file2.dat ap8-system2/dt/folder1/
+
 # now redirects to ap8
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap8*/print_address.sh)
-
-# check correct file size
-# TODO
-# test 9 == $(pg9*/sql.sh -t -c "select max(size) from file where name = 'file2.dat'" mc_test)
 
 
 # now add new file everywhere
@@ -84,6 +98,7 @@ done
 curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep fake.com
 
 # force rescan
+mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
 # now expect to hit
@@ -93,6 +108,7 @@ curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep -E "$(ap8*/prin
 touch rs9-system2/dt/folder1/file4.dat
 
 curl -Is http://127.0.0.1:3190/download/folder1/file4.dat | grep fake.com
+mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
 
