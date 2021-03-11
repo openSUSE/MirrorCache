@@ -60,6 +60,7 @@ if curl -s http://127.0.0.1:3190/download/folder1/ | grep file1.dat ; then
 fi
 
 curl -H "Accept: */*, application/metalink+xml" -s http://127.0.0.1:3190/download/folder1/file2.dat | grep '<url type="http" location="US" preference="100">http://127.0.0.1:1304/folder1/file2.dat</url>'
+curl -s http://127.0.0.1:3190/download/folder1/file2.dat.metalink | grep '<url type="http" location="US" preference="100">http://127.0.0.1:1304/folder1/file2.dat</url>'
 
 curl -s http://127.0.0.1:3190 | tidy --drop-empty-elements no
 curl -s http://127.0.0.1:3190/download/folder1/ | tidy --drop-empty-elements no

@@ -21,6 +21,7 @@ use Mojo::URL;
 has c => undef, weak => 1;
 
 has [ 'route', 'route_len' ];
+has 'metalink';
 has [ '_ip', '_country', '_region', '_lat', '_lng' ];
 has [ '_path', '_trailing_slash' ];
 has '_original_path';
@@ -63,6 +64,7 @@ sub reset($self, $c) {
     $self->_agent(undef);
     $self->_is_ipv4(undef);
     $self->_is_secure(undef);
+    $self->metalink(undef);
 }
 
 sub ip($self) {
@@ -155,7 +157,9 @@ sub is_ipv4($self) {
 
 sub _init_headers($self) {
     my $headers = $self->c->req->headers;
-    $self->_agent($headers && $headers->user_agent ? $headers->user_agent : "");
+    return unless $headers;
+    $self->_agent($headers->user_agent ? $headers->user_agent : '');
+    $self->metalink(1) if ($headers->accept && $headers->accept =~ m/\bapplication\/metalink/);
 }
 
 sub _init_req($self) {
@@ -195,9 +199,15 @@ sub _init_path($self) {
         push @c_new, $component;
     }
     $path = '/'.join('/', reverse @c_new);
-
+    if(!$trailing_slash && ((my $pos = length($path)-length('.metalink')) > 1)) {
+        if ('.metalink' eq substr($path,$pos)) {
+            $self->metalink(1);
+            $path = substr($path,0,$pos);
+        }
+    }
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);
+    $self->agent; # parse headers
 }
 
 1;

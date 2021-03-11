@@ -23,12 +23,12 @@ for x in ap7-system2 ap8-system2 ap9-system2; do
     $x/start.sh
 done
 
-pg9*/sql.sh -c "insert into folder(path, db_sync_last) select '/', now()" mc_test 
+pg9*/sql.sh -c "insert into folder(path, db_sync_last) select '/', now()" mc_test
 
 mc9*/start.sh
 mc9*/status.sh
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','us',''" mc_test
 
 # remove folder1/file1.dt from ap8
@@ -69,7 +69,7 @@ curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep -E "$(ap9*/prin
 # force rescan
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
-# now expect to hit 
+# now expect to hit
 curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep -E "$(ap8*/print_address.sh)|$(ap7*/print_address.sh)"
 
 # now add new file only on main server and make sure it doesn't try to redirect
@@ -109,7 +109,7 @@ test {} == $(curl -s http://127.0.0.1:3190/download/folder1?status=outdated)
 test {} == $(curl -s http://127.0.0.1:3190/download/folder1?status=not_scanned)
 
 ##################################
-# let's test path distortions 
+# let's test path distortions
 # remember number of folders in DB
 cnt=$(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
 curl -Is http://127.0.0.1:3190/download//folder1//file1.dat
@@ -139,7 +139,7 @@ curl -Is http://127.0.0.1:3190/download/folder1/file:4.dat | grep -E "$(ap9*/pri
 mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
-# now expect to hit 
+# now expect to hit
 curl -s http://127.0.0.1:3190/download/folder1/ | grep file1.dat
 curl -s http://127.0.0.1:3190/download/folder1/ | grep file:4.dat
 curl -Is http://127.0.0.1:3190/download/folder1/file:4.dat | grep -E "$(ap8*/print_address.sh)|$(ap7*/print_address.sh)"
