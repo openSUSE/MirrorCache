@@ -202,8 +202,8 @@ sub _render_stats_not_scanned {
 }
 
 sub _local_render {
-    return undef if $root->is_remote;
     my ($path, $trailing_slash) = $dm->path;
+    return undef if $root->is_remote || $dm->metalink;
     my $c = $dm->c;
     return _render_dir($c, $path) if $root->is_dir($path);
     $c->mirrorcache->render_file($path) if !$trailing_slash && $root->is_file($path);
@@ -239,6 +239,8 @@ sub _guess_what_to_render {
     my $c    = $dm->c;
     my $tx   = $c->render_later->tx;
     my ($path, $trailing_slash) = $dm->path;
+    return $c->render(status => 425, 'Metalink is not ready') if !$root->is_remote && $dm->metalink;
+
     my $rootlocation = $root->location($c);
     my $url  = $rootlocation . $path;
 

@@ -54,7 +54,9 @@ sub register {
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
             $c->mmdb->emit_miss($dirname) unless $file;
-            return $root->render_file($c, $filepath); # TODO we still can check file on mirrors even if it is missing in DB
+            # return $c->render(status => 425, text => 'Metalink not ready') if ($dm->metalink);
+            $filepath = $filepath . '.metalink' if $dm->metalink;
+            return $root->render_file($c, $filepath);# TODO we still can check file on mirrors even if it is missing in DB
         }
 
         my $tx = $c->render_later->tx;
@@ -69,18 +71,17 @@ sub register {
             return $root->render_file($c, $filepath);
         }
 
-        my $headers = $c->req->headers;
-        my $accept;
-        $accept = $headers->accept if $headers;
-        if ($accept && $accept ne '*/*' && $basename ne 'media') {
-            if ($accept =~ m/\bapplication\/metalink/ && $country) {
-                my $url = $c->req->url->to_abs;
-                my $origin = $url->scheme . '://' . $url->host;
-                my $xml = _build_metalink($folder->path, $basename, $file->size, $file->mtime, $country, $mirrors, $origin, 'MirrorCache');
-                $c->render(data => $xml, format => 'xml');
+        if ($dm->metalink) {
+            my $url = $c->req->url->to_abs;
+            my $origin = $url->scheme . '://' . $url->host;
+            my $xml = _build_metalink($folder->path, $basename, $file->size, $file->mtime, $country, $mirrors, $origin, 'MirrorCache');
+            $c->render(data => $xml, format => 'xml');
+            if ($mirrors && @$mirrors) {
                 $c->stat->redirect_to_mirror($mirrors->[0]->{mirror_id});
-                return 1;
+            } else {
+                $c->stat->redirect_to_root();
             }
+            return 1;
         }
         my $ua  = Mojo::UserAgent->new;
         my $recurs1;
