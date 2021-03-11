@@ -51,7 +51,7 @@ sub indx {
 
         return $c->redirect_to($dm->route . $reqpath) if @found;
     }
-    
+
     return undef unless $dm->our_path($reqpath);
     # don't assign c earlier because it is relatively heavy operation
     $dm->reset($c);
@@ -64,7 +64,7 @@ sub indx {
         _guess_what_to_render($dm);
 }
 
-sub render_dir_remote { 
+sub render_dir_remote {
     my $c      = shift;
     my $dir    = shift;
     my $rsFolder = shift;
@@ -84,7 +84,6 @@ sub render_dir_remote {
     })->catch(sub {
         $c->mmdb->emit_miss($dir);
         $c->emit_event('mc_debug', "promisefail: $job_id " . Dumper(\@_));
-        
         my $reason = $_;
         if ($reason eq 'Promise timeout') {
             return _render_dir($c, $dir, $rsFolder);
@@ -171,7 +170,7 @@ sub _render_stats_all {
 
     return $c->render(json => $rsFolder->stats_all($dir));
 }
-    
+
 sub _render_stats_recent {
     my $c      = shift;
     my $dir    = shift;

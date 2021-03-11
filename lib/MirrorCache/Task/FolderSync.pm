@@ -59,11 +59,12 @@ sub _sync {
     } else {
         my $count = 0;
         my $sub = sub {
-            my $file = shift;
+            my ($file, $size, $mmode, $mtime) = @_;
             $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
             $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
+            $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
             $count = $count+1;
-            $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
+            $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime});
         };
         eval {
             $folder = $schema->resultset('Folder')->find_or_create({path => $path});
@@ -99,14 +100,15 @@ sub _sync {
 
     my $cnt = 0;
     my $sub = sub {
-        my $file = shift;
+        my ($file, $size, $mmode, $mtime) = @_;
+        $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
+        $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
+        $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
         if ($dbfileids{$file}) {
             delete $dbfileidstodelete{$file};
             return;
         }
-        $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
-        $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
-        $schema->resultset('File')->create({folder_id => $folder->id, name => $file});
+        $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime});
         $cnt = $cnt + 1;
     };
     $app->mc->root->foreach_filename($path, $sub)  or

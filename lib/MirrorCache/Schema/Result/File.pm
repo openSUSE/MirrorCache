@@ -41,8 +41,18 @@ __PACKAGE__->load_components(qw(InflateColumn::DateTime DynamicDefault));
 =head2 name
 
   data_type: 'varchar'
-  is_nullable: 1
+  is_nullable: 0
   size: 512
+
+=head2 size
+
+  data_type: 'bigint'
+  is_nullable: 1
+
+=head2 mtime
+
+  data_type: 'bigint'
+  is_nullable: 1
 
 =head2 dt
 
@@ -62,8 +72,12 @@ __PACKAGE__->add_columns(
   "folder_id",
   { data_type => "bigint", is_foreign_key => 1, is_nullable => 1 },
   "name",
-  { data_type => "varchar", is_nullable => 1, size => 512 },
-  "dt", 
+  { data_type => "varchar", is_nullable => 0, size => 512 },
+  "size",
+  { data_type => "bigint", is_nullable => 1 },
+  "mtime",
+  { data_type => "bigint", is_nullable => 1 },
+  "dt",
   {
     data_type   => 'timestamp',
     dynamic_default_on_create => 'DBIx::Class::Timestamps::now',
