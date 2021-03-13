@@ -21,7 +21,7 @@ use warnings;
 use base 'DBIx::Class::ResultSet';
 
 sub mirrors_country {
-    my ($self, $country, $folder_id, $file_id, $capability, $ipv, $lat, $lng) = @_;
+    my ($self, $country, $folder_id, $file_id, $capability, $ipv, $lat, $lng, $avoid_countries) = @_;
     $capability = 'http' unless $capability;
     $ipv = 'ipv4' unless $ipv;
     $lat = 0 unless $lat;
@@ -31,11 +31,20 @@ sub mirrors_country {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $country_condition = "and s.country = lower(?)";
-    $country_condition = "and ? = ''" if $country eq ''; # just some expression
-
-    my $country_condition1 = "join server on server.id = server_id where server.country = lower(?)";
-    $country_condition1 = "where ? = ''" if $country eq '';
+    my ($country_condition, $country_condition1);
+    my @country_params = ($country);
+    if ($avoid_countries && (my @list = @$avoid_countries)) {
+        my $placeholder = join(',' => ('?') x scalar @list);
+        $country_condition = "and s.country not in ($placeholder)";
+        $country_condition1 = "join server on server.id = server_id where server.country not in ($placeholder)";
+        @country_params = @list;
+    } elsif ($country) {
+        $country_condition = ' and s.country = lower(?) ';
+        $country_condition1 = ' join server on server.id = server_id where server.country = lower(?) ';
+    } else {
+        $country_condition = "and ? = ''"; # just some expression
+        $country_condition1 = "where ? = ''";
+    }
 
     # currently the query will select rows for both ipv4 and ipv6 if a mirror supports both formats
     # it is not big deal, but can be optimized so only one such row is selected
@@ -79,14 +88,14 @@ join server s on fds.server_id = s.id $country_condition
 where
 fl.folder_id = ? and fl.id = ?
 and fdf.file_id is NULL
-) y on x.id = y.id 
+) y on x.id = y.id
 and ( x.check OR (select 1 from server_capability_check $country_condition1 limit 1) is NULL ) -- this condition aims to not require presence of a row in server_capability_check if no checks for the country were performed at all
 group by x.id, x.url, lat, lng
 order by rank, dist
 limit 10;
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($ipv, $capability, $country, $country, $folder_id, $file_id, $country);
+    $prep->execute($ipv, $capability, @country_params, @country_params, $folder_id, $file_id, @country_params);
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
 }

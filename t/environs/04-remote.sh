@@ -55,6 +55,8 @@ curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap9*/print_ad
 mc9*/backstage/job.sh mirror_scan_schedule_from_misses
 mc9*/backstage/shoot.sh
 
+curl -H "Accept: */*, application/metalink+xml" -s http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap9*/print_address.sh)
+
 # now redirects to ap8
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap8*/print_address.sh)
 
@@ -93,7 +95,7 @@ for x in ap9-system2 ap7-system2 ap8-system2; do
     touch $x/dt/folder1/folder11/file1.dat
 done
 
-# sleep 5 # this is needed for schedule jobs to retry on next shoot
+# this is needed for schedule jobs to retry on next shoot
 curl -Is http://127.0.0.1:3190/download/folder1/folder11/file1.dat
 mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule

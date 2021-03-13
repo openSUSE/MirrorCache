@@ -23,6 +23,7 @@ has c => undef, weak => 1;
 has [ 'route', 'route_len' ];
 has 'metalink';
 has [ '_ip', '_country', '_region', '_lat', '_lng' ];
+has [ '_avoid_countries' ];
 has [ '_path', '_trailing_slash' ];
 has '_original_path';
 has '_agent';
@@ -65,11 +66,13 @@ sub reset($self, $c) {
     $self->_is_ipv4(undef);
     $self->_is_secure(undef);
     $self->metalink(undef);
+
+    $self->_avoid_countries(undef);
 }
 
 sub ip($self) {
     unless (defined $self->_ip) {
-       $self->_ip($self->c->tx->remote_address);
+       $self->_ip($self->c->mmdb->client_ip);
     }
     return $self->_ip;
 }
@@ -86,6 +89,13 @@ sub country($self) {
         $self->_init_location;
     }
     return $self->_country;
+}
+
+sub avoid_countries($self) {
+    unless (defined $self->_country) {
+        $self->_init_location;
+    }
+    return $self->_avoid_countries;
 }
 
 sub lat($self) {
@@ -174,6 +184,20 @@ sub _init_location($self) {
     my ($lat, $lng, $country, $region) = $self->c->mmdb->location($self->ip);
     $self->_lat($lat);
     $self->_lng($lng);
+    my $query = $self->c->req->url->query;
+    if (my $p = $query->param('COUNTRY')) {
+        $country = $p if length($p) == 2;
+    }
+    if (my $p = $query->param('AVOID_COUNTRY')) {
+        my @avoid_countries = ();
+        for my $c (split ',', $p) {
+            next unless length($c) == 2;
+            $c = lc($c);
+            push @avoid_countries, $c;
+            $country = '' if $c eq lc($country);
+        }
+        $self->_avoid_countries(\@avoid_countries);
+    }
     $self->_country($country // '');
     $self->_region($region // '');
 }

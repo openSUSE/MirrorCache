@@ -74,7 +74,7 @@ sub register {
         $app->plugin('ClientIP');
         $app->helper( 'mmdb.client_ip' => sub { return shift->client_ip; } );
     } else {
-        $app->helper( 'mmdb.client_ip' => sub { return ''; } );
+        $app->helper( 'mmdb.client_ip' => sub { return shift->tx->remote_address; } );
     }
 }
 
