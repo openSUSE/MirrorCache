@@ -22,7 +22,7 @@ for x in mc9 ap7-system2 ap8-system2 ap9-system2; do
     $x/start.sh
 done
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','/','t','cn',''" mc_test
 
@@ -45,3 +45,13 @@ curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://
 
 duplicates=$(curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://127.0.0.1:3190/download/folder1/file1.dat | grep location | grep -E -o 'https?[^"s][^\<]*' | sort | uniq -cd | wc -l)
 test 0 == "$duplicates"
+
+curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://127.0.0.1:3190/download/folder1/file1.dat | grep -B20 127.0.0.2 |  grep -i 'this country (us)'
+
+# test get parameter COUNTRY
+curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=DE | grep -B20 127.0.0.3 | grep -i 'this country (de)'
+
+# test get parameter AVOID_COUNTRY
+curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://127.0.0.1:3190/download/folder1/file1.dat?AVOID_COUNTRY=DE,US | grep 127.0.0.4
+
+

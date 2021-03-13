@@ -54,27 +54,25 @@ sub register {
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
             $c->mmdb->emit_miss($dirname) unless $file;
-            # return $c->render(status => 425, text => 'Metalink not ready') if ($dm->metalink);
-            $filepath = $filepath . '.metalink' if $dm->metalink;
-            return $root->render_file($c, $filepath);# TODO we still can check file on mirrors even if it is missing in DB
+            return $root->render_file($c, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
+            return $root->render_file($c, $filepath) unless $dm->metalink; # TODO we still can check file on mirrors even if it is missing in DB
         }
 
-        my $tx = $c->render_later->tx;
         my $scheme = 'http';
         $scheme = 'https' if $dm->is_secure;
         my $ipv = 'ipv4';
         $ipv = 'ipv6' unless $dm->is_ipv4;
         my $ip = $dm->ip;
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $file->id, $scheme, $ipv, $dm->lat, $dm->lng);
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $file->id, $scheme, $ipv, $dm->lat, $dm->lng, $dm->avoid_countries);
         unless (@$mirrors) {
             $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country});
-            return $root->render_file($c, $filepath);
+            return $root->render_file($c, $filepath) unless $dm->metalink;
         }
 
         if ($dm->metalink) {
             my $url = $c->req->url->to_abs;
             my $origin = $url->scheme . '://' . $url->host;
-            my $xml = _build_metalink($folder->path, $basename, $file->size, $file->mtime, $country, $mirrors, $origin, 'MirrorCache');
+            my $xml = _build_metalink($folder->path, $basename, $file->size, $file->mtime, $country, $mirrors, $origin, 'MirrorCache', $root->is_remote? $root->location : undef);
             $c->render(data => $xml, format => 'xml');
             if ($mirrors && @$mirrors) {
                 $c->stat->redirect_to_mirror($mirrors->[0]->{mirror_id});
@@ -83,6 +81,7 @@ sub register {
             }
             return 1;
         }
+        my $tx = $c->render_later->tx;
         my $ua  = Mojo::UserAgent->new;
         my $recurs1;
         my $expected_size = $file->size;
@@ -127,7 +126,7 @@ sub register {
 }
 
 sub _build_metalink() {
-    my ($path, $basename, $size, $mtime, $country, $mirrors, $origin, $generator) = @_;
+    my ($path, $basename, $size, $mtime, $country, $mirrors, $origin, $generator, $fileurl) = @_;
     $country = uc($country) if $country;
     my @mirrors = @$mirrors;
     my $mirror_count = @mirrors;
@@ -186,6 +185,13 @@ sub _build_metalink() {
                 $writer->endTag('url');
                 $preference--;
 
+            }
+            if ($fileurl && (my $colon = index(substr($fileurl,0,6),':'))) {
+                $writer->comment("File origin location: ");
+
+                $writer->startTag('url', type => substr($fileurl,0,$colon), preference => $preference);
+                $writer->characters($fileurl . $fullname);
+                $writer->endTag('url');
             }
         }
         $writer->endTag('resources');
