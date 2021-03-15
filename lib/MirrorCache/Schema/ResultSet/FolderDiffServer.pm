@@ -25,10 +25,22 @@ sub update_diff_id {
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
-    my $sql = "update folder_diff_server set folder_diff_id = ? where server_id = ? and folder_diff_id = ?";
+    my $sql = "update folder_diff_server set folder_diff_id = ?, dt = ? where folder_diff_id = ? and server_id = ?";
 
     my $prep = $dbh->prepare($sql);
     $prep->execute(@_);
 }
+
+sub update_dt {
+    my $self = shift;
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+    my $sql = "update folder_diff_server set dt = ? where folder_diff_id = ? and server_id = ?";
+
+    my $prep = $dbh->prepare($sql);
+    $prep->execute(@_);
+}
+
 
 1;

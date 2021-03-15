@@ -90,18 +90,18 @@ sub stats_recent {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select s.hostname, dt, count(distinct file_id) as missing_files, (select name from file where id = max(file_id)) as missing_file
+select s.hostname, fds.dt, count(distinct file_id) as missing_files, (select name from file where id = max(file_id)) as missing_file
 from server s
 join folder_diff_server fds on s.id = fds.server_id
 join folder_diff fd on fd.id = fds.folder_diff_id
 join folder f on f.id = fd.folder_id and f.path = ?
 left join folder_diff_file fdf on fdf.folder_diff_id = fd.id
-where 360 >= extract(epoch from fd.dt - (
-select max(dt)
-from folder_diff fd1
-join folder_diff_server fds1 on fd1.id = fds1.folder_diff_id
-where fd1.folder_id = f.id))
-group by s.id, dt;
+left join file fl on fl.id = fdf.file_id
+where (
+select max(file.dt) from file where folder_id = f.id and not (name like '%/')) <= fds.dt
+and (fdf.file_id is null or fl.name is not null) -- ignore deleted files
+and not (fl.name like '%/') -- ignore folders
+group by s.id, fds.dt;
 END_SQL
 
     return $dbh->selectall_hashref($sql, 'hostname', {}, $path);
@@ -113,20 +113,20 @@ sub stats_outdated {
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
-    
+
     my $sql = <<'END_SQL';
-select s.hostname, dt, count(distinct file_id) as missing_files 
+select s.hostname, fds.dt, count(distinct file_id) as missing_files
 from server s
 join folder_diff_server fds on s.id = fds.server_id
-join folder_diff fd on fd.id = fds.folder_diff_id 
+join folder_diff fd on fd.id = fds.folder_diff_id
 join folder f on f.id = fd.folder_id and f.path = ?
-left join folder_diff_file fdf on fdf.folder_diff_id = fd.id 
-where 360 < extract(epoch from fd.dt - (
-select max(dt)
-from folder_diff fd1
-join folder_diff_server fds1 on fd1.id = fds1.folder_diff_id
-where fd1.folder_id = f.id)) 
-group by s.id, dt;
+left join folder_diff_file fdf on fdf.folder_diff_id = fd.id
+left join file fl on fl.id = fdf.file_id
+where (
+select max(file.dt) from file where folder_id = f.id and not (name like '%/')) > fds.dt
+and (fdf.file_id is null or fl.name is not null) -- ignore deleted files
+and not (fl.name like '%/') -- ignore folders
+group by s.id, fds.dt;
 END_SQL
 
     return $dbh->selectall_hashref($sql, 'hostname', {}, $path);
@@ -159,32 +159,24 @@ sub stats_all {
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
-    
+
     my $sql = <<'END_SQL';
-select max(id) as id, max(last_sync) as last_sync, max(recent) as recent, max(outdated) as outdated, max(not_scanned) as not_scanned, max(sync_job_position) as sync_job_position
-from (
-select x.folder_id as id, x.db_sync_last as last_sync,
-sum(case when 360 >= extract(epoch from x.fd_dt - (
-select max(dt) from folder_diff fd where folder_id = x.folder_id )) then 1 else 0 end ) as recent,
-sum(case when 360 <  extract(epoch from x.fd_dt - (
-select max(dt) from folder_diff fd where folder_id = x.folder_id )) then 1 else 0 end ) as outdated,
-sum(case when x.server_id is null then 1 else 0 end) as not_scanned,
-case when x.db_sync_scheduled > x.db_sync_last then (select 1+count(*)
-      from folder f1  
-      where f1.db_sync_scheduled > f1.db_sync_last 
-      and f1.id <> x.folder_id 
-      and ((f1.db_sync_scheduled < x.db_sync_scheduled and f1.db_sync_priority = x.db_sync_priority) or (f1.db_sync_priority > x.db_sync_priority)) 
+select f.id as id, db_sync_last as last_sync,
+sum(case when (select max(dt) dt from file where folder_id = f.id and not (name like '%/')) <= fds.dt then 1 else 0 end ) as recent,
+sum(case when (select max(dt) dt from file where folder_id = f.id and not (name like '%/')) > fds.dt then 1 else 0 end ) as outdated,
+sum(case when fds.dt is null then 1 else 0 end ) as not_scanned,
+case when db_sync_scheduled > db_sync_last then (select 1+count(*)
+      from folder f1
+      where f1.db_sync_scheduled > f1.db_sync_last
+      and f1.id <> f.id
+      and ((f1.db_sync_scheduled < f.db_sync_scheduled and f1.db_sync_priority = f.db_sync_priority) or (f1.db_sync_priority > f.db_sync_priority))
 ) else NULL end as sync_job_position
 from server s
-left join ( select max(fd.dt) as fd_dt, f.id as folder_id, fds.server_id as server_id, f.db_sync_last, f.db_sync_scheduled, f.db_sync_priority
-    from folder f join folder_diff fd on fd.folder_id = f.id
-    join folder_diff_server fds on fd.id = fds.folder_diff_id
-    where f.path = ?
-    group by fds.server_id, f.id, f.db_sync_last, f.db_sync_scheduled, f.db_sync_priority ) x
-    on x.server_id = s.id
-left join folder f on x.folder_id = f.id  
-group by x.folder_id, x.db_sync_last, x.db_sync_scheduled, x.db_sync_priority
-) q;
+left join folder_diff_server fds on fds.server_id = s.id
+left join folder_diff fd on fd.id = fds.folder_diff_id
+left join folder f on fd.folder_id = f.id
+where f.path = ?
+group by f.id, f.db_sync_last;
 END_SQL
 
     my $prep = $dbh->prepare($sql);
@@ -201,7 +193,7 @@ sub delete_cascade {
 
     $schema->txn_do(
         sub {
-            $dbh->prepare("DELETE FROM folder_diff_server 
+            $dbh->prepare("DELETE FROM folder_diff_server
     USING folder_diff
     WHERE folder_diff_id = folder_diff.id
         AND folder_id = ?")->execute($id);

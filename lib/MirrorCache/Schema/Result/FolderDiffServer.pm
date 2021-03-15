@@ -42,6 +42,11 @@ __PACKAGE__->add_columns(
   { data_type => "bigint", is_foreign_key => 1, is_nullable => 0 },
   "server_id",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
+  "dt", 
+  {
+    data_type   => 'timestamp',
+    is_nullable => 0
+  },
 );
 
 =head1 PRIMARY KEY

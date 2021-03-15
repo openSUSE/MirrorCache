@@ -62,13 +62,17 @@ sub _scan {
     my @dbfiles = ();
     my %dbfileids = ();
     my %dbfileprefixes = ();
+    my $max_dt = 0;
     for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
         my $basename = $file->name;
         next unless $basename; # && -f $localdir . $basename; # skip deleted files
+        next if substr($basename, length($basename)-1) eq '/'; # skip folders
         $dbfileprefixes{_reliable_prefix($basename)} = 1;
         push @dbfiles, $basename;
         $dbfileids{$basename} = $file->id;
+        $max_dt = $file->dt if !$max_dt || ( 0 > DateTime->compare($max_dt, $file->dt) );
     }
+    @dbfiles = sort @dbfiles;
 
     my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id, $country);
     for my $folder_on_mirror (@$folder_on_mirrors) {
@@ -117,7 +121,7 @@ sub _scan {
                 }  else {
                     $t1 =  basename(_reliable_prefix($t));
                 }
-                
+
                 $mirrorfiles{$href} = 1 if ($href1 eq $t1 && $dbfileprefixes{$t1});
             };
             my $p = HTML::Parser->new(
@@ -148,9 +152,11 @@ sub _scan {
             $p->eof;
 
             my $ctx = Digest::MD5->new;
-
-            for my $i (sort keys %mirrorfiles) {
-                $ctx->add($i);
+            my @missing_files = ();
+            foreach my $file (@dbfiles) {
+                next if $mirrorfiles{$file} || substr($file,length($file)-1) eq '/';
+                $ctx->add($file);
+                push @missing_files, $dbfileids{$file};
             }
             my $digest = $ctx->hexdigest;
             my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest});
@@ -159,32 +165,34 @@ sub _scan {
                 unless($folder_diff->in_storage) {
                     $folder_diff->dt($latestdt);
                     $folder_diff->insert;
-                    
-                    foreach my $file (@dbfiles) {
-                        next if $mirrorfiles{$file};
-                        my $id = $dbfileids{$file};
+
+                    foreach my $id (@missing_files) {
                         $schema->resultset('FolderDiffFile')->create({folder_diff_id => $folder_diff->id, file_id => $id}) if $id;
                     }
                 }
             }
             $job->note("hash$server_id" => $digest);
             my $old_diff_id = $folder_on_mirror->{diff_id} || 0;
-            # do nothing if diff_id is the same
-            return undef if $folder_diff->id == $old_diff_id;
+            my $old_diff_dt_epoch = $folder_on_mirror->{dt_epoch} || 0;
+            if ($folder_diff->id == $old_diff_id) {
+                # need update dt if diff_id is the same
+                $schema->resultset('FolderDiffServer')->update_dt($max_dt, $folder_diff->id, $folder_on_mirror->{server_id}) if $old_diff_dt_epoch < $max_dt->epoch;
+                return;
+            }
 
             if ($old_diff_id) {
                 # we need update existing entry
-                $schema->resultset('FolderDiffServer')->update_diff_id($folder_diff->id, $folder_on_mirror->{server_id}, $old_diff_id);
+                $schema->resultset('FolderDiffServer')->update_diff_id($folder_diff->id, $max_dt, $old_diff_id, $folder_on_mirror->{server_id});
             } else {
                 # need new entry
-                $schema->resultset('FolderDiffServer')->create( {server_id => $folder_on_mirror->{server_id}, folder_diff_id => $folder_diff->id } );
+                $schema->resultset('FolderDiffServer')->create( {server_id => $folder_on_mirror->{server_id}, folder_diff_id => $folder_diff->id, dt => $max_dt } );
             }
         })->catch(sub {
             my $err = shift;
             return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $err}, $folder_on_mirror->{server_id});
-        })->timeout(120)->wait;
+        })->timeout(180)->wait;
     }
-    
+
     $app->emit_event('mc_mirror_scan_complete', {path => $path, tag => $folder->id, country => $country});
 }
 
