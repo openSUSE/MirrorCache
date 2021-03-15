@@ -100,7 +100,7 @@ left join file fl on fl.id = fdf.file_id
 where (
 select max(file.dt) from file where folder_id = f.id and not (name like '%/')) <= fds.dt
 and (fdf.file_id is null or fl.name is not null) -- ignore deleted files
-and not (fl.name like '%/') -- ignore folders
+and (fl.name is NULL or not (fl.name like '%/')) -- ignore folders
 group by s.id, fds.dt;
 END_SQL
 
@@ -125,7 +125,7 @@ left join file fl on fl.id = fdf.file_id
 where (
 select max(file.dt) from file where folder_id = f.id and not (name like '%/')) > fds.dt
 and (fdf.file_id is null or fl.name is not null) -- ignore deleted files
-and not (fl.name like '%/') -- ignore folders
+and (fl.name is NULL or not (fl.name like '%/')) -- ignore folders
 group by s.id, fds.dt;
 END_SQL
 
