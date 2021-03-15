@@ -66,7 +66,7 @@ for x in ap9-system2 ap7-system2 ap8-system2; do
 done
 
 # first request will miss
-curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep -E "$(ap9*/print_address.sh)"
+# curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep -E "$(ap9*/print_address.sh)"
 
 # force rescan
 mc9*/backstage/job.sh folder_sync_schedule
@@ -137,10 +137,34 @@ done
 # first request will miss
 curl -Is http://127.0.0.1:3190/download/folder1/file:4.dat | grep -E "$(ap9*/print_address.sh)"
 
+
+pg9*/sql.sh  -c "select s.id, s.hostname, fd.id, fd.hash, fl.name, fd.dt, fl.dt
+from
+folder_diff fd
+join folder_diff_server fds on fd.id = fds.folder_diff_id
+join server s on s.id = fds.server_id
+left join folder_diff_file fdf on fdf.folder_diff_id = fd.id
+left join file fl on fdf.file_id = fl.id
+left join folder f on fd.folder_id = f.id
+order by f.id, s.id, fl.name
+" mc_test
+
 # force rescan
 mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
+
+pg9*/sql.sh  -c "select s.id, s.hostname, fd.id, fd.hash, fl.name, fd.dt, fl.dt
+from
+folder_diff fd
+join folder_diff_server fds on fd.id = fds.folder_diff_id
+join server s on s.id = fds.server_id
+left join folder_diff_file fdf on fdf.folder_diff_id = fd.id
+left join file fl on fdf.file_id = fl.id
+left join folder f on fd.folder_id = f.id
+order by f.id, s.id, fl.name
+" mc_test
+
 # now expect to hit
 curl -s http://127.0.0.1:3190/download/folder1/ | grep file1.dat
 curl -s http://127.0.0.1:3190/download/folder1/ | grep file:4.dat

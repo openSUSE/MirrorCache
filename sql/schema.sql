@@ -56,7 +56,8 @@ CREATE INDEX folder_diff_file_index ON folder_diff_file(file_id);
 
 create table folder_diff_server (
     folder_diff_id bigint references folder_diff not null,
-    server_id int references server on delete cascade not null
+    server_id int references server on delete cascade not null,
+    dt timestamp
 );
 
 ALTER TABLE folder_diff_server ADD PRIMARY KEY (server_id, folder_diff_id);
