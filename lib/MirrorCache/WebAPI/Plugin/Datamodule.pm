@@ -191,6 +191,11 @@ sub _init_location($self) {
             $region = region_for_country($country);
         }
     }
+    if (my $p = $query->param('REGION')) {
+        if (length($p) == 2 ) {
+            $region = lc($p);
+        }
+    }
     if (my $p = $query->param('AVOID_COUNTRY')) {
         my @avoid_countries = ();
         for my $c (split ',', $p) {
