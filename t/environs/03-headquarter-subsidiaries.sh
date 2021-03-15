@@ -52,6 +52,8 @@ curl --interface $as_interface -Is http://$eu_address/download/folder1/file1.dat
 curl --interface $na_interface -Is http://$as_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
 curl --interface $eu_interface -Is http://$as_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
 curl --interface $as_interface -Is http://$as_address/download/folder1/file1.dat | grep '200 OK'
+curl --interface $as_interface -Is http://$as_address/download/folder1/file1.dat?COUNTRY=us | grep "Location: http://$hq_address/download/folder1/file1.dat"
+curl --interface $as_interface -Is http://$as_address/download/folder1/file1.dat?COUNTRY=cn | grep '200 OK'
 
 # check non-download routers shouldn't be redirected
 curl --interface $na_interface -Is http://$hq_address/rest/server | grep '200 OK'

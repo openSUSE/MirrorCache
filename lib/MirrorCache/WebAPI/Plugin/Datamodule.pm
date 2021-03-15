@@ -186,7 +186,10 @@ sub _init_location($self) {
     $self->_lng($lng);
     my $query = $self->c->req->url->query;
     if (my $p = $query->param('COUNTRY')) {
-        $country = $p if length($p) == 2;
+        if (length($p) == 2 ) {
+            $country = $p;
+            $region = region_for_country($country);
+        }
     }
     if (my $p = $query->param('AVOID_COUNTRY')) {
         my @avoid_countries = ();
@@ -232,6 +235,70 @@ sub _init_path($self) {
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);
     $self->agent; # parse headers
+}
+
+# so far only countries where a mirror exists
+my %_region = (
+ ke => 'af',
+ za => 'af',
+
+ am => 'as',
+ ch => 'as',
+ id => 'as',
+ il => 'as',
+ in => 'as',
+ ir => 'as',
+ jp => 'as',
+ kr => 'as',
+ my => 'as',
+ om => 'as',
+ sg => 'as',
+ tw => 'as',
+ uz => 'as',
+
+ at => 'eu',
+ be => 'eu',
+ bg => 'eu',
+ by => 'eu',
+ ch => 'eu',
+ cy => 'eu',
+ cz => 'eu',
+ de => 'eu',
+ dk => 'eu',
+ ee => 'eu',
+ fi => 'eu',
+ fr => 'eu',
+ gb => 'eu',
+ gr => 'eu',
+ hu => 'eu',
+ it => 'eu',
+ lv => 'eu',
+ md => 'eu',
+ nl => 'eu',
+ no => 'eu',
+ pl => 'eu',
+ pt => 'eu',
+ ro => 'eu',
+ ru => 'eu',
+ se => 'eu',
+ si => 'eu',
+ sk => 'eu',
+ tr => 'eu',
+ ua => 'eu',
+
+ ca => 'na',
+ us => 'na',
+
+ au => 'oc',
+ nz => 'oc',
+
+ br => 'sa',
+ ec => 'sa',
+ uy => 'sa',
+);
+
+sub region_for_country($country) {
+    return $_region{$country};
 }
 
 1;
