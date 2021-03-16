@@ -36,7 +36,7 @@ If neither TEST_PG nor MIRRORCACHE_DSN is defined, following variables are used:
   * Refer Maxmind geoip2 on how to obtain such file.
   * Additional dependencies must be installed as well for GeoIP location to work: perl modules Mojolicious::Plugin::ClientIP and MaxMind::DB::Reader:
 ```
-zypper ar https://mirrorcache.opensuse.org/repositories/home:andriinikitin/MirrorCache:/Geo/openSUSE_Leap_15.2 mcgeo
+zypper ar https://mirrorcache.opensuse.org/repositories/home:andriinikitin:/MirrorCache:/Geo/openSUSE_Leap_15.2 mcgeo
 zypper in Mojolicious::Plugin::ClientIP MaxMind::DB::Reader
 ```
 
@@ -46,7 +46,7 @@ zypper in Mojolicious::Plugin::ClientIP MaxMind::DB::Reader
 
 An example for openSUSE 15.2
 ```bash
-zypper ar https://mirrorcache.opensuse.org/repositories/home:andriinikitin/MirrorCache/openSUSE_Leap_15.2 mc
+zypper ar https://mirrorcache.opensuse.org/repositories/home:andriinikitin:/MirrorCache/openSUSE_Leap_15.2 mc
 zypper --gpg-auto-import-keys --no-gpg-checks refresh
 zypper install MirrorCache
 
