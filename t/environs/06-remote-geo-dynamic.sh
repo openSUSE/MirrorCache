@@ -70,6 +70,7 @@ curl -s http://127.0.0.1:3190/rest/stat | grep '"hit":4' | grep '"miss":2'
 # now test stat_agg job by injecting some values into yesterday
 mc9*/backstage/stop.sh
 pg9*/sql.sh -c "insert into stat(path, dt, mirror_id, secure, ipv4) select '/ttt', now() - interval '1 day', mirror_id, 'f', 'f' from stat" mc_test
+pg9*/sql.sh -c "delete from minion_locks where name like 'stat_agg_schedule%'" mc_test
 mc9*/backstage/job.sh stat_agg_schedule
 mc9*/backstage/shoot.sh
 
