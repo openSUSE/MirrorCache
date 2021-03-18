@@ -117,7 +117,7 @@ concat(
         when (cap_http.server_id is null and cap_fhttp.server_id is null) then 'http'
         else 'https'
     end
-,'://',s.hostname,s.urldir,f.path) as url, max(fds.folder_diff_id) as diff_id, extract(epoch from fd.dt) as dt_epoch
+,'://',s.hostname,s.urldir,f.path) as url, max(fds.folder_diff_id) as diff_id, extract(epoch from max(fd.dt)) as dt_epoch
 from server s join folder f on f.id=?
 left join server_capability_declaration cap_http  on cap_http.server_id  = s.id and cap_http.capability  = 'http' and not cap_http.enabled
 left join server_capability_declaration cap_https on cap_https.server_id = s.id and cap_https.capability = 'https' and not cap_https.enabled
@@ -130,7 +130,7 @@ where
 AND (cap_fhttp.server_id IS NULL or cap_fhttps.server_id IS NULL)
 END_SQL
 
-    $sql = $sql . $country_condition . ' group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id, fd.dt order by s.id';
+    $sql = $sql . $country_condition . ' group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id order by s.id';
 
     my $prep = $dbh->prepare($sql);
     if ($country) {
