@@ -26,7 +26,7 @@ has app => undef, weak => 1;
 has 'dsn';
 
 sub new {
-    my ($class, $app) = @_;
+    my ( $class, $app ) = @_;
     my $self = $class->SUPER::new;
     return $self->app($app);
 }
@@ -51,48 +51,97 @@ sub register_tasks {
 }
 
 sub register {
-    my ($self, $app, $config) = @_;
+    my ( $self, $app, $config ) = @_;
 
     $self->app($app) unless $self->app;
     my $schema = $app->schema;
 
     my $conn = Mojo::Pg->new;
-    if (ref $schema->storage->connect_info->[0] eq 'HASH') {
-        $self->dsn($schema->dsn);
-        $conn->username($schema->storage->connect_info->[0]->{user});
-        $conn->password($schema->storage->connect_info->[0]->{password});
+    if ( ref $schema->storage->connect_info->[0] eq 'HASH' ) {
+        $self->dsn( $schema->dsn );
+        $conn->username( $schema->storage->connect_info->[0]->{user} );
+        $conn->password( $schema->storage->connect_info->[0]->{password} );
     }
     else {
-        $self->dsn($schema->storage->connect_info->[0]);
+        $self->dsn( $schema->storage->connect_info->[0] );
     }
-    $conn->dsn($self->dsn());
+    $conn->dsn( $self->dsn() );
 
-    $app->plugin(Minion => {Pg => $conn});
+    $app->plugin( Minion => { Pg => $conn } );
     $self->register_tasks;
 
     # Enable the Minion Admin interface under /minion
-    my $auth = $app->routes->under('/minion'); # ->to('session#ensure_operator');
-    $app->plugin('Minion::Admin' => {route => $auth});
+    my $auth =
+      $app->routes->under('/minion')->to('session#ensure_operator');
+    $app->plugin( 'Minion::Admin' => { route => $auth } );
 
     my $backstage = MirrorCache::WebAPI::Plugin::Backstage->new($app);
-    $app->helper(backstage => sub { $backstage });
+    $app->helper( backstage => sub { $backstage } );
+
+    $app->hook(
+        before_server_start => sub {
+            my $every = $ENV{MIRRORCACHE_JOBS_CHECK_INTERVAL} // 15 * 60;
+            $self->check_permanent_jobs;
+            Mojo::IOLoop->next_tick(
+                sub {
+                    Mojo::IOLoop->recurring(
+                        $every => sub {
+                            $self->check_permanent_jobs;
+                        }
+                    );
+                }
+            );
+        }
+    );
+}
+
+my @tasks =
+  qw(folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule );
+
+sub check_permanent_jobs {
+    my $app    = shift->app;
+    my $minion = $app->minion;
+    my $jobs   = $minion->jobs(
+        {
+            tasks  => \@tasks,
+            states => [ 'inactive', 'active' ]
+        }
+    );
+    my $cnt          = 0;
+    my %need_restart = map { $_ => 1 } @tasks;
+    while ( my $info = $jobs->next ) {
+
+        $cnt++;
+        $app->log->error('Too many permanent tasks running')
+          if $cnt == 10;
+        return
+          if $cnt > 100;    # prevent spawning too many jobs, shouldnot happen
+
+        $need_restart{ $info->{task} } = 0;
+    }
+
+    for my $task ( sort keys %need_restart ) {
+        next unless $need_restart{$task};
+        $app->log->warn("Haven't found running $task, starting it...");
+        $minion->enqueue($task);
+    }
 }
 
 # counts the number of jobs for a certain task in the specified states
 sub count_jobs {
-    my ($self, $task, $states) = @_;
+    my ( $self, $task, $states ) = @_;
     my $res = $self->app->minion->backend->list_jobs(0, undef, {tasks => [$task], states => $states});
-    return ($res && exists $res->{total}) ? $res->{total} : 0;
+    return ( $res && exists $res->{total} ) ? $res->{total} : 0;
 }
 
 # raсe condition here souldn't be big issue
 sub enqueue_unless_scheduled_with_parameter_or_limit {
-    my ($self, $task, $arg1, $arg2) = @_;
+    my ( $self, $task, $arg1, $arg2 ) = @_;
     my $minion = $self->app->minion;
     my $res = $minion->backend->list_jobs(0, 1000, {tasks => [$task], states => ['inactive','active']});
     return 0 unless ($res || !exists $res->{total} || $res->{total} > 1000-1);
     $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive','active'], notes => [$arg1] });
-    return -1 unless ($res || !exists $res->{total} || $res->{total} > 0);
+    return -1 unless ( $res || !exists $res->{total} || $res->{total} > 0 );
     return $minion->enqueue($task => [($arg1, $arg2)] => {priority => 10} => {notes => { $arg1 => 1 }} );
 }
 
