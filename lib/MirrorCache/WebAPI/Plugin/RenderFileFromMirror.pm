@@ -51,6 +51,7 @@ sub register {
         my $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename}) if $folder;
         my $dm = $c->dm;
         my $country = $dm->country;
+        my $region  = $dm->region;
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
             $c->mmdb->emit_miss($dirname) unless $file;
@@ -63,7 +64,7 @@ sub register {
         my $ipv = 'ipv4';
         $ipv = 'ipv6' unless $dm->is_ipv4;
         my $ip = $dm->ip;
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $folder->id, $file->id, $scheme, $ipv, $dm->lat, $dm->lng, $dm->avoid_countries);
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $region, $folder->id, $file->id, $scheme, $ipv, $dm->lat, $dm->lng, $dm->avoid_countries);
         unless (@$mirrors) {
             $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country});
             return $root->render_file($c, $filepath) unless $dm->metalink;

@@ -21,81 +21,92 @@ use warnings;
 use base 'DBIx::Class::ResultSet';
 
 sub mirrors_country {
-    my ($self, $country, $folder_id, $file_id, $capability, $ipv, $lat, $lng, $avoid_countries) = @_;
+    my ($self, $country, $region, $folder_id, $file_id, $capability, $ipv, $lat, $lng, $avoid_countries) = @_;
     $capability = 'http' unless $capability;
     $ipv = 'ipv4' unless $ipv;
     $lat = 0 unless $lat;
     $lng = 0 unless $lng;
     $country = '' unless $country;
+    $region  = '' unless $region;
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my ($country_condition, $country_condition1);
+    my $country_condition;
     my @country_params = ($country);
     if ($avoid_countries && (my @list = @$avoid_countries)) {
         my $placeholder = join(',' => ('?') x scalar @list);
         $country_condition = "and s.country not in ($placeholder)";
-        $country_condition1 = "join server on server.id = server_id where server.country not in ($placeholder)";
         @country_params = @list;
     } elsif ($country) {
-        $country_condition = ' and s.country = lower(?) ';
-        $country_condition1 = ' join server on server.id = server_id where server.country = lower(?) ';
+        my $region_condition = '';
+        if ($region) {
+            $region_condition = ' or s.region = ?';
+            @country_params = ($country, $region);
+        }
+        $country_condition = " and ( s.country = lower(?) $region_condition)";
     } else {
-        $country_condition = "and ? = ''"; # just some expression
-        $country_condition1 = "where ? = ''";
+        $country_condition = "";
+        @country_params = ();
+        if ($region) {
+            $country_condition = ' and s.region = ?';
+            @country_params = ($region);
+        }
     }
-
+    my $ipvx = $ipv eq 'ipv4'? 'ipv6' : 'ipv4';
     # currently the query will select rows for both ipv4 and ipv6 if a mirror supports both formats
     # it is not big deal, but can be optimized so only one such row is selected
     my $sql = <<"END_SQL";
-select x.id as mirror_id, url, min(rankipv) as rank,
-case when $lat=0 and $lng=0 then min(10000*rankipv + rankdt)  -- prefer servers which were checked recently when geoip is unavailable
+select * from (
+select x.id as mirror_id, url,
+case when $lat=0 and $lng=0 then 0  -- prefer servers which were checked recently when geoip is unavailable
 else
 ( 6371 * acos( cos( radians($lat) ) * cos( radians( lat ) ) * cos( radians( lng ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( lat ) ) ) )
-end as dist
+end as dist,
+(2*(yes1 * yes1) - 2*(case when no1 > 10 then no1 * no1 else 10 * no1 end) + (case when yes2 < 5 then yes2 else 5 * yes2 end) - (case when no2 > 10 then no2 * no2 else 10 * no2 end)) weight1,
+case when country = '$country' then 2 when region = '$region' then 1 else 0 end weight_country,
+(yes3 * yes3) - (case when no3 > 5 then no3 * no3 else 5 * no3 end) weight2,
+last1, last2, last3, lastdt1, lastdt2, lastdt3, score, country, region
 from (
 select s.id,
     concat(
-       http.cap,
-       '://',s.hostname,s.urldir) as url,
-case when (ipvall.capability = ipv.cap and chk6.success) then 0 when (ipvall.capability = ipv.cap and chk6.success is NULL) then 1 when (ipvall.capability = ipv.cap) then 2 when chk6.success then 3 when chk6.success is NULL then 4 else 5 end as rankipv,
-coalesce(now()::date - chk.dt::date, 10) as rankdt,
-chk.success as check,
+        '$capability://',s.hostname,s.urldir) as url,
 s.lat as lat,
-s.lng as lng
-from
-(select ?::server_capability_t as cap) ipv
-join (select ?::server_capability_t as cap) http on 1 = 1
-join (select 'ipv4'::server_capability_t as capability union select 'ipv6'::server_capability_t) ipvall on 1 = 1
-join server s on s.enabled $country_condition
-left join server_capability_check chk on chk.server_id = s.id and chk.capability = http.cap
-left join server_capability_check chk_old on chk_old.server_id = s.id and chk_old.capability = http.cap and chk_old.dt > chk.dt
-left join server_capability_check chk6 on chk6.server_id = s.id and chk6.capability = ipvall.capability
-left join server_capability_check chk_old6 on chk_old6.server_id = s.id and chk_old6.capability = ipvall.capability and chk_old6.dt > chk6.dt
-where 't'
-and chk_old.server_id IS NULL
-and chk_old6.server_id IS NULL
+s.lng as lng,
+s.country, s.region, s.score,
+sum(case when chk.capability = '$capability' and chk.success then 1 else 0 end)/10 yes1,
+sum(case when chk.capability = '$capability' and not chk.success then 1 else 0 end) no1,
+sum(case when chk.capability = '$ipv' and chk.success then 1 else 0 end)/10 yes2,
+sum(case when chk.capability = '$ipv' and not chk.success then 1 else 0 end) no2,
+sum(case when chk.capability = '$ipvx' and chk.success then 1 else 0 end)/10 yes3,
+sum(case when chk.capability = '$ipvx' and not chk.success then 1 else 0 end) no3,
+(select success from server_capability_check where server_id = s.id and capability = '$capability' order by dt desc limit 1) as last1,
+(select success from server_capability_check where server_id = s.id and capability = '$ipv' order by dt desc limit 1) as last2,
+(select success from server_capability_check where server_id = s.id and capability = '$ipvx' order by dt desc limit 1) as last3,
+(select date_trunc('minute',dt) from server_capability_check where server_id = s.id and capability = '$capability' order by dt desc limit 1) as lastdt1,
+(select date_trunc('minute',dt) from server_capability_check where server_id = s.id and capability = '$ipv' order by dt desc limit 1) as lastdt2,
+(select date_trunc('minute',dt) from server_capability_check where server_id = s.id and capability = '$ipvx' order by dt desc limit 1) as lastdt3
+from (
+    select s.*
+    from file fl
+    join folder_diff fd on fl.folder_id = fd.folder_id
+    join folder_diff_server fds on fd.id = fds.folder_diff_id and fl.dt <= fds.dt
+    left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
+    join server s on fds.server_id = s.id and s.enabled  $country_condition
+    where fl.folder_id = ? and fl.id = ? and fdf.file_id is NULL
+) s
+left join server_capability_check chk on s.id = chk.server_id
+group by s.id, s.country, s.region, s.score, s.hostname, s.urldir, s.lat, s.lng
 ) x
-join (
-select s.id
-from
-file fl
-join folder_diff fd on fl.folder_id = fd.folder_id
-join folder_diff_server fds on fd.id = fds.folder_diff_id and fl.dt <= fds.dt
-left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
-join server s on fds.server_id = s.id $country_condition
-where
-fl.folder_id = ? and fl.id = ?
-and fdf.file_id is NULL
-) y on x.id = y.id
-and ( x.check OR (select 1 from server_capability_check $country_condition1 limit 1) is NULL ) -- this condition aims to not require presence of a row in server_capability_check if no checks for the country were performed at all
-group by x.id, x.url, lat, lng
-order by rank, dist
+order by last1 desc nulls last, last2 desc nulls last, weight1 desc, weight_country desc, weight2 desc, score, lastdt1 desc nulls last, lastdt2 desc nulls last, last3 desc, lastdt3 desc, random()
+limit 10
+) xx
+order by last1 desc nulls last, last2 desc nulls last, weight1 desc, weight_country desc, (dist/100)::int, weight2 desc, score, last3 desc nulls last, dist, random()
 limit 10;
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($ipv, $capability, @country_params, @country_params, $folder_id, $file_id, @country_params);
+
+    $prep->execute(@country_params, $folder_id, $file_id);
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
 }
