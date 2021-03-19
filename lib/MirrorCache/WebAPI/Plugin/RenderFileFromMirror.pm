@@ -77,6 +77,7 @@ sub register {
             $c->render(data => $xml, format => 'xml');
             if ($mirrors && @$mirrors) {
                 $c->stat->redirect_to_mirror($mirrors->[0]->{mirror_id});
+                $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirrors->[0]->{country};
             } else {
                 $c->stat->redirect_to_root();
             }
@@ -106,8 +107,9 @@ sub register {
                         $code = 409;
                         return undef;
                     }
-                    $c->emit_event('mc_path_hit', {path => $dirname, mirror => $url});
                     $c->redirect_to($url);
+                    $c->emit_event('mc_path_hit', {path => $dirname, mirror => $url});
+                    $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
                     $c->stat->redirect_to_mirror($mirror->{mirror_id});
                     return 1;
                 }

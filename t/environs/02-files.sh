@@ -124,7 +124,6 @@ mc9*/backstage/shoot.sh
 curl -is http://127.0.0.1:3190/download/folder1/media.1/file1.dat.metalink | grep location
 curl -is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/media.1/file1.dat| grep location
 
-lasterr=0
 test -z "$(curl -is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/media.1/media | grep location)" || FAIL media.1/media must not return metalink
 curl -is http://127.0.0.1:3190/download/folder1/media.1/media.metalink | grep location
 curl -is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/media.1/media | grep CONTENT1
