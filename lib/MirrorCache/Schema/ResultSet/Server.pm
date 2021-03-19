@@ -98,10 +98,10 @@ from (
 left join server_capability_check chk on s.id = chk.server_id
 group by s.id, s.country, s.region, s.score, s.hostname, s.urldir, s.lat, s.lng
 ) x
-order by last1 desc nulls last, last2 desc nulls last, weight1 desc, weight_country desc, weight2 desc, score, lastdt1 desc nulls last, lastdt2 desc nulls last, last3 desc, lastdt3 desc, random()
+order by last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, weight2 desc, score, lastdt1 desc nulls last, lastdt2 desc nulls last, last3 desc, lastdt3 desc, random()
 limit 10
 ) xx
-order by last1 desc nulls last, last2 desc nulls last, weight1 desc, weight_country desc, (dist/100)::int, weight2 desc, score, last3 desc nulls last, dist, random()
+order by last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, (dist/100)::int, weight2 desc, score, last3 desc nulls last, dist, random()
 limit 10;
 END_SQL
     my $prep = $dbh->prepare($sql);
