@@ -1,5 +1,5 @@
 #!lib/test-in-container-environs.sh
-set -ex
+set -exo pipefail
 
 ./environ.sh pg9-system2
 # git clone https://github.com/andrii-suse/MirrorCache || :
@@ -67,7 +67,7 @@ curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep 200
 mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/shoot.sh
-# now expect to hit 
+# now expect to hit
 curl -Is http://127.0.0.1:3190/download/folder1/file3.dat | grep 302
 
 # now add new file only on main server and make sure it doesn't try to redirect
@@ -89,11 +89,11 @@ test 0 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name like 
 
 
 curl -Is http://127.0.0.1:3190/download/folder2/file4.dat | grep 200
-# now an error must be logged 
+# now an error must be logged
 test 1 == $(pg9*/sql.sh -t -c "select count(*) from audit_event where name like 'mirror_miss' and id > $cnt" mc_test)
 
 ##################################
-# let's test path distortions 
+# let's test path distortions
 # remember number of folders in DB
 cnt=$(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
 curl -Is http://127.0.0.1:3190/download//folder1//file1.dat
@@ -107,3 +107,25 @@ curl -Is http://127.0.0.1:3190/download//folder1///file1.dat             | grep 
 curl -Is http://127.0.0.1:3190/download/./folder1/././file1.dat          | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
 curl -Is http://127.0.0.1:3190/download/./folder1/../folder1/./file1.dat | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
 ##################################
+
+# now add media.1/media
+for x in mc9 ap7-system2 ap8-system2; do
+    mkdir -p $x/dt/folder1/media.1
+    echo CONTENT1 > $x/dt/folder1/media.1/file1.dat
+    echo CONTENT1 > $x/dt/folder1/media.1/media
+done
+
+curl -Is http://127.0.0.1:3190/download/folder1/media.1/media
+
+mc9*/backstage/job.sh folder_sync_schedule_from_misses
+mc9*/backstage/job.sh folder_sync_schedule
+mc9*/backstage/shoot.sh
+
+curl -is http://127.0.0.1:3190/download/folder1/media.1/file1.dat.metalink | grep location
+curl -is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/media.1/file1.dat| grep location
+
+lasterr=0
+test -z "$(curl -is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/media.1/media | grep location)" || FAIL media.1/media must not return metalink
+curl -is http://127.0.0.1:3190/download/folder1/media.1/media.metalink | grep location
+curl -is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/media.1/media | grep CONTENT1
+

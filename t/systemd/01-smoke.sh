@@ -19,6 +19,8 @@ systemctl start mirrorcache
 systemctl is-active --quiet mirrorcache || systemctl is-active mirrorcache
 
 sleep 1
+curl -s 127.0.0.1:3000/download | grep test1 || systemctl status mirrorcache
+sleep 1
 curl -s 127.0.0.1:3000/download | grep test1
 
 systemctl start mirrorcache-backstage

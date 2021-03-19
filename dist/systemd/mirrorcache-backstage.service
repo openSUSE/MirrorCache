@@ -7,8 +7,6 @@ User=mirrorcache
 ExecStart=/usr/share/mirrorcache/script/mirrorcache-backstage
 Nice=19
 Restart=on-failure
-StandardOutput=file:/var/log/mirrorcache-backstage-stdout
-StandardError=file:/var/log/mirrorcache-backstage
 EnvironmentFile=/usr/share/mirrorcache/conf.env
 
 [Install]

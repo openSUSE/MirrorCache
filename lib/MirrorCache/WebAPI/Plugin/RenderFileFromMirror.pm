@@ -70,10 +70,10 @@ sub register {
             return $root->render_file($c, $filepath) unless $dm->metalink;
         }
 
-        if ($dm->metalink) {
+        if ($dm->metalink && !($dm->metalink_accept && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
             my $url = $c->req->url->to_abs;
             my $origin = $url->scheme . '://' . $url->host;
-            my $xml = _build_metalink($folder->path, $basename, $file->size, $file->mtime, $country, $mirrors, $origin, 'MirrorCache', $root->is_remote? $root->location : undef);
+            my $xml = _build_metalink($folder->path, $basename, $file->size, $file->mtime, $country, $mirrors, $origin, 'MirrorCache', $root->is_remote? $root->location($c) : undef);
             $c->render(data => $xml, format => 'xml');
             if ($mirrors && @$mirrors) {
                 $c->stat->redirect_to_mirror($mirrors->[0]->{mirror_id});

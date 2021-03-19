@@ -7,8 +7,6 @@ Requires=postgresql.service
 [Service]
 User=mirrorcache
 ExecStart=/usr/share/mirrorcache/script/mirrorcache-daemon
-StandardOutput=file:/var/log/mirrorcache-stdout
-StandardError=file:/var/log/mirrorcache
 EnvironmentFile=/usr/share/mirrorcache/conf.env
 
 [Install]
