@@ -158,7 +158,7 @@ sub _render_stats {
     return _render_stats_outdated($c, $path) if $status eq 'outdated';
     return _render_stats_not_scanned($c, $path) if $status eq 'not_scanned';
     return $c->render(text => 1) if ($root->is_file($path) || $root->is_dir($path));
-    return $c->render(status => 404, message => "path $path not found");
+    return $c->render(status => 404, text => "path $path not found");
 }
 
 sub _render_stats_all {
@@ -239,7 +239,7 @@ sub _guess_what_to_render {
     my $c    = $dm->c;
     my $tx   = $c->render_later->tx;
     my ($path, $trailing_slash) = $dm->path;
-    return $c->render(status => 425, 'Metalink is not ready') if !$root->is_remote && $dm->metalink;
+    return $c->render(status => 425, text => 'Metalink is not ready') if !$root->is_remote && $dm->metalink;
 
     my $rootlocation = $root->location($c);
     my $url  = $rootlocation . $path;

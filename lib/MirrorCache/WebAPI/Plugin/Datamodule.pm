@@ -21,7 +21,7 @@ use Mojo::URL;
 has c => undef, weak => 1;
 
 has [ 'route', 'route_len' ];
-has 'metalink';
+has [ 'metalink', 'metalink_accept' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng' ];
 has [ '_avoid_countries' ];
 has [ '_path', '_trailing_slash' ];
@@ -66,6 +66,7 @@ sub reset($self, $c) {
     $self->_is_ipv4(undef);
     $self->_is_secure(undef);
     $self->metalink(undef);
+    $self->metalink_accept(undef);
 
     $self->_avoid_countries(undef);
 }
@@ -169,7 +170,10 @@ sub _init_headers($self) {
     my $headers = $self->c->req->headers;
     return unless $headers;
     $self->_agent($headers->user_agent ? $headers->user_agent : '');
-    $self->metalink(1) if ($headers->accept && $headers->accept =~ m/\bapplication\/metalink/);
+    if ($headers->accept && $headers->accept =~ m/\bapplication\/metalink/) {
+        $self->metalink(1);
+        $self->metalink_accept(1);
+    }
 }
 
 sub _init_req($self) {
