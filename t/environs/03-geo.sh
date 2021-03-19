@@ -22,9 +22,9 @@ for x in mc9 ap7-system2 ap8-system2 ap9-system2; do
     $x/start.sh
 done
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','/','t','cn',''" mc_test
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us','na'" mc_test
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de','eu'" mc_test
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','/','t','cn','as'" mc_test
 
 # we need to request file from two countries, so all mirrors will be scanned
 curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 200
@@ -38,7 +38,18 @@ curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat 
 curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1314
 curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1304
 
+# check same continent
+curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=jp | grep 1324
+curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=jp | grep 1324
+curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=jp | grep 1324
 
+curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=it | grep 1314
+curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=it | grep 1314
+curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=it | grep 1314
+
+curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=ca | grep 1304
+curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=ca | grep 1304
+curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=ca | grep 1304
 
 # Further we test that servers are listed only once in metalink output
 curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://127.0.0.1:3190/download/folder1/file1.dat
@@ -54,4 +65,5 @@ curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://
 # test get parameter AVOID_COUNTRY
 curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://127.0.0.1:3190/download/folder1/file1.dat?AVOID_COUNTRY=DE,US | grep 127.0.0.4
 
-
+# check continent
+curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=fr | grep -B20 127.0.0.3
