@@ -33,7 +33,7 @@ sub register {
 # many html pages truncate file names
 # use last 42 characters to compare for now
 sub _reliable_prefix {
-    substr(shift, 0, 21);
+    substr(shift, 0, 20);
 }
 
 sub _scan {
@@ -65,7 +65,7 @@ sub _scan {
     my $max_dt = 0;
     for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
         my $basename = $file->name;
-        next unless $basename; # && -f $localdir . $basename; # skip deleted files
+        next unless $basename;
         next if substr($basename, length($basename)-1) eq '/'; # skip folders
         $dbfileprefixes{_reliable_prefix($basename)} = 1;
         push @dbfiles, $basename;

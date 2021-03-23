@@ -296,6 +296,7 @@ my %_region = (
  ua => 'eu',
 
  ca => 'na',
+ mx => 'na',
  us => 'na',
 
  au => 'oc',

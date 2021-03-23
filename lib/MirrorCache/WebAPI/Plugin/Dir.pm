@@ -19,6 +19,8 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 use POSIX;
 use Data::Dumper;
+use Mojolicious::Types;
+use MirrorCache::Utils;
 
 my $root;
 my $dm;
@@ -104,18 +106,10 @@ sub _render_dir {
     $rsFolder  = $schema->resultset('Folder') unless $rsFolder;
     $folder    = $rsFolder->find({path => $dir}) unless $folder;
 
-    if ($folder) {
-        if ($folder->db_sync_last) {
-            my $files  = $root->list_files_from_db($c->req->url->path, $folder->id, $dir);
-            return $c->render( 'dir', files => $files, cur_path => $dir, folder_id => $folder->id );
-        }
-    }
-
-    if (!$root->is_remote) { # for local root we can list content of directory
-        my $files  = $root->list_files($c->req->url->path, $dir);
-        return $c->render( 'dir', files => $files, cur_path => $dir, folder_id => "" );
-    }
+    return _render_dir_from_db($c, $folder->id, $dir) if $folder && $folder->db_sync_last;
     $c->mmdb->emit_miss($dir);
+    return _render_dir_local($c, $dir) unless $root->is_remote; # just render files if we have them locally
+
     my $pos = $rsFolder->get_db_sync_queue_position($dir);
     return $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
 }
@@ -288,5 +282,80 @@ sub _guess_what_to_render {
         my $refua = $ua;
     })->timeout(2)->wait;
 }
+
+sub _by_filename {
+   $b->{dir} cmp $a->{dir} ||
+   $a->{name} cmp $b->{name};
+}
+
+sub _get_ext {
+    $_[0] =~ /\.([0-9a-zA-Z]+)$/ || return;
+    return lc $1;
+}
+my $types = Mojolicious::Types->new;
+
+sub _render_dir_from_db {
+    my $c     = shift;
+    my $id    = shift;
+    my $dir   = shift;
+    my @items = { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' };
+    my @files;
+    my @childrenfiles = $c->schema->resultset('File')->search({folder_id => $id});
+
+    for my $child ( @childrenfiles ) {
+        my $basename  = $child->name;
+        my $size     = $child->size;
+        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
+        my $mtime    = $child->mtime;
+        $mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
+
+        my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
+        my $encoded   = Encode::decode_utf8( './' . $basename );
+        my $mime_type = $types->type( _get_ext($basename) || 'txt' ) || 'text/plain';
+
+        push @files, {
+            url   => $encoded,
+            name  => $basename,
+            size  => $child->size,
+            type  => $mime_type,
+            mtime => $mtime,
+            dir   => $is_dir,
+        };
+    }
+    push @items, sort _by_filename @files;
+    return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => $id );
+}
+
+sub _render_dir_local {
+    my $c     = shift;
+    my $dir   = shift;
+    my @items = { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' };
+    my @files;
+    my $filenames = $root->list_filenames($dir);
+
+    for my $name ( @$filenames ) {
+        my $basename = $name;
+        # my $size     = $child->size;
+        # $size        = MirrorCache::Utils::human_readable_size($size) if $size;
+        # my $mtime    = $child->mtime;
+        # mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
+
+        my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
+        # my $encoded   = Encode::decode_utf8( './' . $basename );
+        my $mime_type = $types->type( _get_ext($basename) || 'txt' ) || 'text/plain';
+
+        push @files, {
+            url   => './' . $basename,
+            name  => $basename,
+            size  => 0,
+            type  => $mime_type,
+            mtime => 0,
+            dir   => $is_dir,
+        };
+    }
+    push @items, sort _by_filename @files;
+    return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => undef );
+}
+
 
 1;
