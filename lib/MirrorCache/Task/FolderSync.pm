@@ -37,7 +37,31 @@ sub _sync {
 
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($root->is_dir($path)) {
-        $folder->update({db_sync_last => datetime_now(), db_sync_priority => 10, db_sync_for_country => ''}) if $folder; # prevent further sync attempts
+        # Collect outcomes from recent jobs
+        my %outcomes;
+        my $jobs = $minion->jobs({tasks => ['folder_sync'], notes => [$path]});
+        while (my $info = $jobs->next) {
+            $outcomes{$info->{finished}} = $info->{result} if $info->{finished};
+        }
+        # at least one job older than MIRRORCACHE_FOLDER_DELETE_GRACE_TIMEOUT must complete
+        # with result "$path is not a dir anymore"
+        # all other jobs since that job must have the same outcome
+        my $grace_start = 0;
+        my $grace = $ENV{MIRRORCACHE_FOLDER_DELETE_JOB_GRACE_TIMEOUT} // 2*60*60;
+        for my $tm (sort keys %outcomes) {
+            my $outcome = $outcomes{$tm};
+            if ($outcome && $outcome eq "$path is not a dir anymore") {
+                $grace_start = $tm if($job->info->{started} - $tm > $grace);
+            } else {
+                $grace_start = 0;
+            }
+        }
+        # means the conditions were met
+        if ($grace_start) {
+            $schema->resultset('Folder')->delete_cascade($folder->id, 0);
+            return $job->finish("folder has been successfully deleted from DB");
+        }
+        $folder->update({db_sync_last => datetime_now(), db_sync_priority => 10, db_sync_for_country => ''}); # prevent further sync attempts
         return $job->finish("$path is not a dir anymore");
     }
 
