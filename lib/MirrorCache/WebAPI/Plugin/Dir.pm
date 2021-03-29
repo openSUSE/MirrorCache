@@ -47,10 +47,9 @@ sub register {
 
 sub indx {
     my $c = shift;
-    my $reqpath = $c->req->url->path;
+    my $reqpath = $c->req->url->path_query;
     if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
         my @found = grep { $reqpath =~ /^\/$_/ } @top_folders;
-
         return $c->redirect_to($dm->route . $reqpath) if @found;
     }
 
@@ -121,7 +120,7 @@ sub _redirect_geo {
         my $region = $dm->region;
         # redirect to the headquarter if country is not our region
         if ($region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region))) {
-            $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $dm->route . $dm->path) if $region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region));
+            $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $dm->route . $dm->path_query) if $region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region));
             $c->stat->redirect_to_headquarter;
             return 1;
         }
@@ -129,7 +128,7 @@ sub _redirect_geo {
         my $url = $c->req->url->to_abs->clone;
         $url->host($region_url->host);
         $url->port($region_url->port);
-        $url->path($region_url->path . $url->path) if ($region_url->path);
+        $url->path_query($region_url->path . $url->path_query) if ($region_url->path);
         $c->redirect_to($url);
         $c->stat->redirect_to_region;
         return 1;
@@ -138,7 +137,7 @@ sub _redirect_geo {
 }
 
 sub _redirect_normalized {
-    return $dm->c->redirect_to($dm->route . $dm->path . $dm->trailing_slash) unless $dm->original_path eq $dm->path;
+    return $dm->c->redirect_to($dm->route . $dm->path . $dm->trailing_slash . $dm->query1) unless $dm->original_path eq $dm->path;
     return undef;
 }
 
@@ -211,7 +210,7 @@ sub _redirect_from_db {
     my $rsFolder = $schema->resultset('Folder');
 
     if (my $folder = $rsFolder->find_folder_or_redirect($path)) {
-        return $c->redirect_to($folder->{pathto}) if $folder->{pathto};
+        return $dm->redirect($folder->{pathto}) if $folder->{pathto};
         return _render_dir($c, $path, $rsFolder) if ($folder->{db_sync_last});
     } elsif (!$trailing_slash && $path ne '/') {
         my $f = Mojo::File->new($path);
@@ -268,7 +267,7 @@ sub _guess_what_to_render {
                         if ($rootlocation eq substr($location, 0, length($rootlocation))) {
                             $location = substr($location, length($rootlocation));
                         }
-                        return $c->redirect_to($dm->route . $location . $trailing_slash)
+                        return $dm->redirect($dm->route . $location . $trailing_slash)
                     }
                 }
             }

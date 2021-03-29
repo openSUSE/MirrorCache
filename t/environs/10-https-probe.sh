@@ -63,7 +63,6 @@ ap8*/status.sh >& /dev/null || ap8*/start.sh
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test 
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','us',''" mc_test
 
-#mc9*/backstage/job.sh -e mirror_probe -a '["us"]'
 MOJO_CA_FILE=$(pwd)/ca/ca.pem mc9*/backstage/shoot.sh
 test f == $(pg9*/sql.sh -t -c "select success from server_capability_check where server_id=1 and capability='http'" mc_test)
 test t == $(pg9*/sql.sh -t -c "select success from server_capability_check where server_id=1 and capability='https'" mc_test)

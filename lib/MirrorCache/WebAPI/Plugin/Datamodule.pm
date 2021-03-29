@@ -25,6 +25,7 @@ has [ 'metalink', 'metalink_accept' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng' ];
 has [ '_avoid_countries' ];
 has [ '_path', '_trailing_slash' ];
+has [ '_query', '_query1' ];
 has '_original_path';
 has '_agent';
 has [ '_is_secure', '_is_ipv4' ];
@@ -61,6 +62,8 @@ sub reset($self, $c) {
     $self->_lng(undef);
     $self->_path(undef);
     $self->_trailing_slash(undef);
+    $self->_query(undef);
+    $self->_query1(undef);
     $self->_original_path(undef);
     $self->_agent(undef);
     $self->_is_ipv4(undef);
@@ -133,6 +136,24 @@ sub trailing_slash($self) {
     return $self->_trailing_slash;
 }
 
+sub query($self) {
+    unless (defined $self->_query) {
+        $self->_init_path;
+    }
+    return $self->_query;
+}
+
+sub query1($self) {
+    unless (defined $self->_query1) {
+        $self->_init_path;
+    }
+    return $self->_query1;
+}
+
+sub path_query($self) {
+    return $self->path . $self->query1;
+}
+
 sub original_path($self) {
     unless (defined $self->_trailing_slash) {
         $self->_init_path;
@@ -164,6 +185,10 @@ sub is_ipv4($self) {
         $self->_init_req;
     }
     return $self->_is_ipv4;
+}
+
+sub redirect($self, $url) {
+    return $self->c->redirect_to($url . $self->query1);
 }
 
 sub _init_headers($self) {
@@ -215,7 +240,16 @@ sub _init_location($self) {
 }
 
 sub _init_path($self) {
-    my $reqpath = $self->c->req->url->path;
+    my $url = $self->c->req->url;
+    if ($url->query) {
+        $self->_query($url->query);
+        $self->_query1('?' . $url->query);
+    } else {
+        $self->_query('');
+        $self->_query1('');
+    }
+
+    my $reqpath = $url->path;
     my $path = Mojo::Util::url_unescape(substr($reqpath, $self->route_len));
     $path = '/' unless $path;
 
