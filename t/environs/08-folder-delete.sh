@@ -70,21 +70,39 @@ mc9*/backstage/shoot.sh
 test 3 == $(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
 
 rm -r mc9/dt/folder1
-# force rescan from miss
-curl -Is http://127.0.0.1:3190/download/folder1/file2.dat
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
-mc9*/backstage/job.sh folder_sync_schedule
-mc9*/backstage/shoot.sh
-# update db_sync_last to force a sync reschedule
-pg9*/sql.sh -t -c "update folder set db_sync_last = db_sync_last - interval '1 day' where path = '/folder1'" mc_test
-sleep 5s
+rm -r mc9/dt/folder2
 
-mc9*/backstage/job.sh folder_sync_schedule
-mc9*/backstage/shoot.sh
-sleep 5s
+# this is only for tests - the folder will be deleted only when
+export MIRRORCACHE_FOLDER_DELETE_JOB_GRACE_TIMEOUT=3
 
-mc9*/backstage/job.sh folder_sync_schedule
+# remove all permanent jobs - TODO add a flag to skip re-starting them from webapi
+pg9*/sql.sh -t -c "delete from minion_jobs" mc_test
+
+mc9*/backstage/job.sh -e folder_sync -a '["/folder1"]'
+mc9*/backstage/job.sh -e folder_sync -a '["/folder2"]'
+mc9*/backstage/job.sh -e folder_sync -a '["/folder3"]'
 mc9*/backstage/shoot.sh
 
-# test for reduced number of rows
-test 2 == $(pg9*/sql.sh -t -c "select count(*) from folder" mc_test)
+# all folders must exist still
+test 1 == $(pg9*/sql.sh -t -c "select sum(case when path='/folder1' then 1 else 0 end) from folder" mc_test)
+test 1 == $(pg9*/sql.sh -t -c "select sum(case when path='/folder2' then 1 else 0 end) from folder" mc_test)
+test 1 == $(pg9*/sql.sh -t -c "select sum(case when path='/folder3' then 1 else 0 end) from folder" mc_test)
+
+mc9*/backstage/job.sh -e folder_sync -a '["/folder1"]'
+mc9*/backstage/shoot.sh
+
+sleep 3s
+mc9*/backstage/job.sh -e folder_sync -a '["/folder2"]'
+mc9*/backstage/job.sh -e folder_sync -a '["/folder3"]'
+mc9*/backstage/shoot.sh
+
+
+pg9*/sql.sh -t -c "select * from minion_jobs where task = 'folder_sync'" mc_test
+
+# folder1 is not removed yet because its failures were recorded too fast and MIRRORCACHE_FOLDER_DELETE_JOB_GRACE_TIMEOUT must be honored
+test 1 == $(pg9*/sql.sh -t -c "select sum(case when path='/folder1' then 1 else 0 end) from folder" mc_test)
+# folder2 has been removed, because at least two jobs within MIRRORCACHE_FOLDER_DELETE_JOB_GRACE_TIMEOUT are failed
+test 0 == $(pg9*/sql.sh -t -c "select sum(case when path='/folder2' then 1 else 0 end) from folder" mc_test)
+# folder3 shouldn't be touched
+test 1 == $(pg9*/sql.sh -t -c "select sum(case when path='/folder3' then 1 else 0 end) from folder" mc_test)
+
