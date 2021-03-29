@@ -17,3 +17,5 @@ mc9*/status.sh
 
 curl -Is http://127.0.0.1:3190/folder1/file1.dat | grep 'Location: /download/folder1/file1.dat'
 curl -Is http://127.0.0.1:3190/folder3/file1.dat | grep 'Location: /download/folder3/file1.dat'
+
+curl -Is http://127.0.0.1:3190/folder1/file1.dat?COUNTRY=us | grep 'Location: /download/folder1/file1.dat?COUNTRY=us'

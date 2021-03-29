@@ -18,7 +18,6 @@ package MirrorCache::WebAPI::Plugin::RootRsync;
 use Mojo::Base 'Mojolicious::Plugin';
 
 use File::Listing::Rsync;
-use Mojolicious::Types;
 use Mojo::File;
 use Encode ();
 use URI::Escape ('uri_unescape');
@@ -31,8 +30,6 @@ use MirrorCache::Utils;
 # rooturlredirect as defined in MIRRORCACHE_REDIRECT
 # rooturlsredirect same as above just https
 has [ 'app', 'reader', 'rooturlredirect', 'rooturlsredirect' ];
-
-my $types = Mojolicious::Types->new;
 
 sub register {
     my ($self, $app, $args) = @_;
@@ -119,101 +116,6 @@ sub foreach_filename {
     });
 
     return 1;
-}
-
-sub _by_filename {
-    $b->{dir} cmp $a->{dir} ||
-    $a->{name} cmp $b->{name};
-}
-
-sub list_files_from_db {
-    my $self    = shift;
-    my $urlpath = shift;
-    my $folder_id = shift;
-    my $dir = shift;
-    my @res   =
-        ( $urlpath eq '/' || $urlpath eq '/download' )
-        ? ()
-        : ( { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' } );
-    my @files;
-    my @childrenfiles = $self->app->schema->resultset('File')->search({folder_id => $folder_id});
-
-    my $cur_path = Encode::decode_utf8( Mojo::Util::url_unescape( $urlpath ) );
-    for my $child ( @childrenfiles ) {
-        my $basename = $child->name;
-        my $size     = $child->size;
-        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
-        my $mtime    = $child->mtime;
-        $mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime));
-
-        my $url  = Mojo::Path->new($cur_path)->trailing_slash(0);
-        my $is_dir = '/' eq substr($basename, -1)? 1 : 0;
-        $basename = substr($basename, 0, -1) if $is_dir;
-        push @{ $url->parts }, $basename;
-        if ($is_dir) {
-            $basename .= '/';
-            $url->trailing_slash(1);
-        }
-
-        push @files, {
-            url   => $url,
-            name  => $basename,
-            size  => $size,
-            mtime => $mtime,
-            dir   => $is_dir,
-        };
-    }
-    push @res, sort _by_filename @files;
-    return \@res;
-}
-
-sub list_files {
-    my $self    = shift;
-    my $urlpath = shift;
-    my $dir     = shift;
-    my @res   =
-        ( $urlpath eq '/' )
-        ? ()
-        : ( { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' } );
-    my @files;
-    my $children = $self->list_filenames($dir);
-
-    my $cur_path = Encode::decode_utf8( Mojo::Util::url_unescape( $urlpath) );
-    for my $basename ( sort { $a cmp $b } @$children ) {
-        my $file = "$dir/$basename";
-        my $furl  = Mojo::Path->new($cur_path)->trailing_slash(0);
-        my $is_dir = (substr $file, -1) eq '/';
-        if ($is_dir) {
-            # directory points to this server
-            $furl = Mojo::Path->new($cur_path)->trailing_slash(0);
-            push @{ $furl->parts }, $basename;
-            $furl = $furl->trailing_slash(1);
-        } else {
-            push @{ $furl->parts }, $basename;
-        }
-
-        my $mime_type =
-            $is_dir
-            ? 'directory'
-            : ( $types->type( _get_ext($file) || 'txt' ) || 'text/plain' );
-        my $mtime = 'mtime';
-
-        push @files, {
-            url   => $furl,
-            name  => $basename,
-            size  => '?',
-            type  => $mime_type,
-            mtime => $mtime,
-            dir   => $is_dir,
-        };
-    }
-    push @res, sort _by_filename @files;
-    return \@res;
-}
-
-sub _get_ext {
-    $_[0] =~ /\.([0-9a-zA-Z]+)$/ || return;
-    return lc $1;
 }
 
 1;

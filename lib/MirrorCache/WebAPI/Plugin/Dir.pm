@@ -19,6 +19,8 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 use POSIX;
 use Data::Dumper;
+use Mojolicious::Types;
+use MirrorCache::Utils;
 
 my $root;
 my $dm;
@@ -45,10 +47,9 @@ sub register {
 
 sub indx {
     my $c = shift;
-    my $reqpath = $c->req->url->path;
+    my $reqpath = $c->req->url->path_query;
     if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
         my @found = grep { $reqpath =~ /^\/$_/ } @top_folders;
-
         return $c->redirect_to($dm->route . $reqpath) if @found;
     }
 
@@ -104,18 +105,10 @@ sub _render_dir {
     $rsFolder  = $schema->resultset('Folder') unless $rsFolder;
     $folder    = $rsFolder->find({path => $dir}) unless $folder;
 
-    if ($folder) {
-        if ($folder->db_sync_last) {
-            my $files  = $root->list_files_from_db($c->req->url->path, $folder->id, $dir);
-            return $c->render( 'dir', files => $files, cur_path => $dir, folder_id => $folder->id );
-        }
-    }
-
-    if (!$root->is_remote) { # for local root we can list content of directory
-        my $files  = $root->list_files($c->req->url->path, $dir);
-        return $c->render( 'dir', files => $files, cur_path => $dir, folder_id => "" );
-    }
+    return _render_dir_from_db($c, $folder->id, $dir) if $folder && $folder->db_sync_last;
     $c->mmdb->emit_miss($dir);
+    return _render_dir_local($c, $dir) unless $root->is_remote; # just render files if we have them locally
+
     my $pos = $rsFolder->get_db_sync_queue_position($dir);
     return $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
 }
@@ -127,7 +120,7 @@ sub _redirect_geo {
         my $region = $dm->region;
         # redirect to the headquarter if country is not our region
         if ($region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region))) {
-            $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $dm->route . $dm->path) if $region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region));
+            $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $dm->route . $dm->path_query) if $region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region));
             $c->stat->redirect_to_headquarter;
             return 1;
         }
@@ -135,7 +128,7 @@ sub _redirect_geo {
         my $url = $c->req->url->to_abs->clone;
         $url->host($region_url->host);
         $url->port($region_url->port);
-        $url->path($region_url->path . $url->path) if ($region_url->path);
+        $url->path_query($region_url->path . $url->path_query) if ($region_url->path);
         $c->redirect_to($url);
         $c->stat->redirect_to_region;
         return 1;
@@ -144,7 +137,7 @@ sub _redirect_geo {
 }
 
 sub _redirect_normalized {
-    return $dm->c->redirect_to($dm->route . $dm->path . $dm->trailing_slash) unless $dm->original_path eq $dm->path;
+    return $dm->c->redirect_to($dm->route . $dm->path . $dm->trailing_slash . $dm->query1) unless $dm->original_path eq $dm->path;
     return undef;
 }
 
@@ -217,7 +210,7 @@ sub _redirect_from_db {
     my $rsFolder = $schema->resultset('Folder');
 
     if (my $folder = $rsFolder->find_folder_or_redirect($path)) {
-        return $c->redirect_to($folder->{pathto}) if $folder->{pathto};
+        return $dm->redirect($folder->{pathto}) if $folder->{pathto};
         return _render_dir($c, $path, $rsFolder) if ($folder->{db_sync_last});
     } elsif (!$trailing_slash && $path ne '/') {
         my $f = Mojo::File->new($path);
@@ -274,7 +267,7 @@ sub _guess_what_to_render {
                         if ($rootlocation eq substr($location, 0, length($rootlocation))) {
                             $location = substr($location, length($rootlocation));
                         }
-                        return $c->redirect_to($dm->route . $location . $trailing_slash)
+                        return $dm->redirect($dm->route . $location . $trailing_slash)
                     }
                 }
             }
@@ -288,5 +281,80 @@ sub _guess_what_to_render {
         my $refua = $ua;
     })->timeout(2)->wait;
 }
+
+sub _by_filename {
+   $b->{dir} cmp $a->{dir} ||
+   $a->{name} cmp $b->{name};
+}
+
+sub _get_ext {
+    $_[0] =~ /\.([0-9a-zA-Z]+)$/ || return;
+    return lc $1;
+}
+my $types = Mojolicious::Types->new;
+
+sub _render_dir_from_db {
+    my $c     = shift;
+    my $id    = shift;
+    my $dir   = shift;
+    my @items = { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' };
+    my @files;
+    my @childrenfiles = $c->schema->resultset('File')->search({folder_id => $id});
+
+    for my $child ( @childrenfiles ) {
+        my $basename  = $child->name;
+        my $size     = $child->size;
+        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
+        my $mtime    = $child->mtime;
+        $mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
+
+        my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
+        my $encoded   = Encode::decode_utf8( './' . $basename );
+        my $mime_type = $types->type( _get_ext($basename) || 'txt' ) || 'text/plain';
+
+        push @files, {
+            url   => $encoded,
+            name  => $basename,
+            size  => $child->size,
+            type  => $mime_type,
+            mtime => $mtime,
+            dir   => $is_dir,
+        };
+    }
+    push @items, sort _by_filename @files;
+    return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => $id );
+}
+
+sub _render_dir_local {
+    my $c     = shift;
+    my $dir   = shift;
+    my @items = { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' };
+    my @files;
+    my $filenames = $root->list_filenames($dir);
+
+    for my $name ( @$filenames ) {
+        my $basename = $name;
+        # my $size     = $child->size;
+        # $size        = MirrorCache::Utils::human_readable_size($size) if $size;
+        # my $mtime    = $child->mtime;
+        # mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
+
+        my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
+        # my $encoded   = Encode::decode_utf8( './' . $basename );
+        my $mime_type = $types->type( _get_ext($basename) || 'txt' ) || 'text/plain';
+
+        push @files, {
+            url   => './' . $basename,
+            name  => $basename,
+            size  => 0,
+            type  => $mime_type,
+            mtime => 0,
+            dir   => $is_dir,
+        };
+    }
+    push @items, sort _by_filename @files;
+    return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => undef );
+}
+
 
 1;
