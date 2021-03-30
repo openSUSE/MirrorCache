@@ -13,7 +13,7 @@
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarFolderStatus" aria-controls="navbarFolderStatus" aria-expanded="false" aria-label="Toggle navigation">
        <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarFolderStats">
+    <div class="collapse navbar-collapse" id="navbarFolderStatus">
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
               <a class="nav-link" href="<%= $stats->query(status => 'recent') %>">

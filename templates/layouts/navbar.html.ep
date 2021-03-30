@@ -31,7 +31,7 @@
                   % }
                   % if (is_admin) {
                   %= link_to 'Users' => url_for('get_users') => class => 'dropdown-item'
-                  % } 
+                  % }
                   %= link_to 'My IP' => url_for('/rest/myip') => class => 'dropdown-item'
                   %= link_to 'Logout' => url_for('logout') => class => 'dropdown-item'
                 </div>

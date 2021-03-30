@@ -102,11 +102,13 @@ function htmlEscape(str) {
 function pollFolderStats(url) {
   url = url.concat('?status=all');
   $.get(url).done(function (data) {
-    $('.folder-stats-servers-recent').text(data.recent);
-    $('.folder-stats-servers-outdated').text(data.outdated);
-    $('.folder-stats-servers-not-scanned').text(data.not_scanned);
-    $('.folder-stats-last-sync').text(data.last_sync);
-    if (data.sync_job_position) {
+    $('.folder-stats-servers-recent').text((data? data.recent : 'no data'));
+    $('.folder-stats-servers-outdated').text(data? data.outdated: 'no data');
+    $('.folder-stats-servers-not-scanned').text(data? data.not_scanned: 'no data');
+    $('.folder-stats-last-sync').text(data? data.last_sync: 'no data');
+    if (!data) {
+        $('.folder-sync-job-position').text('no data');
+    }  else if (data.sync_job_position) {
         $('.folder-sync-job-position').text('Position in queue: '.concat(data.sync_job_position));
     } else {
         $('.folder-sync-job-position').text('Not scheduled');
