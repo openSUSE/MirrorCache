@@ -32,7 +32,7 @@ sub prev_hour {
 sub prev_day {
     shift->_prev_period('day');
 }
-    
+
 sub curr {
     my ($self, $period) = @_;
     my $dbh     = $self->result_source->schema->storage->dbh;
@@ -40,7 +40,7 @@ sub curr {
     my $sql = <<"END_SQL";
 select
 x.per,
-sum(case when mirror_id > 0 then 1 else 0 end) as hit,
+sum(case when mirror_id >= 0 then 1 else 0 end) as hit,
 sum(case when mirror_id = -1 then 1 else 0 end) as miss,
 sum(case when mirror_id < -1 then 1 else 0 end) as geo
 from
@@ -61,7 +61,7 @@ sub _prev_period {
 
     my $sql = <<"END_SQL";
 select
-sum(case when mirror_id > 0 then hit_count else 0 end) as hit,
+sum(case when mirror_id >= 0 then hit_count else 0 end) as hit,
 sum(case when mirror_id = -1 then hit_count else 0 end) as miss,
 sum(case when mirror_id < -1 then hit_count else 0 end) as geo
 from stat_agg

@@ -12,7 +12,7 @@ pg9*/sql.sh -v ON_ERROR_STOP=1 -f $(pwd)/MirrorCache/sql/schema.sql mc_test
 
 mc9*/configure_db.sh pg9
 
-export MIRRORCACHE_JOBS_CHECK_INTERVAL=1
+export MIRRORCACHE_PERMANENT_JOBS='folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule'
 
 mc9*/start.sh
 
@@ -24,7 +24,12 @@ mc9*/stop.sh
 pg9*/sql.sh -t -c "delete from minion_jobs where ctid IN (SELECT ctid FROM minion_jobs ORDER BY random() LIMIT 3)" mc_test
 
 test 2 == $(pg9*/sql.sh -t -c "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'" mc_test)
+export MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL=1
 mc9*/start.sh
 
 sleep 2
 test 5 == $(pg9*/sql.sh -t -c "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'" mc_test)
+pg9*/sql.sh -t -c "delete from minion_jobs where ctid IN (SELECT ctid FROM minion_jobs ORDER BY random() LIMIT 3)" mc_test
+sleep 2
+test 5 == $(pg9*/sql.sh -t -c "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'" mc_test)
+

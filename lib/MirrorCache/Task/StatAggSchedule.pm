@@ -43,13 +43,13 @@ sub _run {
     if ($minion->lock('stat_agg_schedule_day', 15*60)) {
         _agg($app, $job, 'day');
     }
-    
+
     $job->retry({delay => 15});
 }
 
 sub _agg {
     my ($app, $job, $period) = @_;
-    eval {    
+    eval {
         $app->schema->storage->dbh->prepare(
 "insert into stat_agg select dt_to, '$period'::stat_period_t, stat.mirror_id, count(*)
 from

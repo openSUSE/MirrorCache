@@ -30,12 +30,16 @@ has '_original_path';
 has '_agent';
 has [ '_is_secure', '_is_ipv4' ];
 
+has _root_country => lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) || "";
+has '_root_region';
+
 my %subsidiary_urls;
 my @subsidiaries;
 
 sub register($self, $app, $args) {
     $self->route($app->mc->route);
     $self->route_len(length($self->route));
+    $self->_root_region(region_for_country($self->_root_country) || '');
 
     $app->helper( 'dm' => sub {
         return $self;
@@ -270,7 +274,7 @@ sub _init_path($self) {
     }
     $path = '/'.join('/', reverse @c_new);
     if(!$trailing_slash && ((my $pos = length($path)-length('.metalink')) > 1)) {
-        if ('.metalink' eq substr($path,$pos)) {
+        if ('.metalink' eq substr($path,$pos)) {
             $self->metalink(1);
             $path = substr($path,0,$pos);
         }
@@ -278,6 +282,11 @@ sub _init_path($self) {
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);
     $self->agent; # parse headers
+}
+
+sub root_is_hit($self) {
+    return 1 if $self->_root_region eq $self->region;
+    return 0;
 }
 
 # so far only countries where a mirror exists

@@ -14,6 +14,8 @@ pg9*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
 
 mc9*/configure_db.sh pg9
 
+
+export MIRRORCACHE_PERMANENT_JOBS='folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses'
 MOJO_CA_FILE=$(pwd)/ca/ca.pem MOJO_REVERSE_PROXY=1 mc9*/start.sh
 mc9*/status.sh
 
@@ -40,7 +42,7 @@ RequestHeader set X-Forwarded-Proto "https"
 ap9*/start.sh
 ap9*/status.sh
 
-ap9*/curl_https.sh / > /dev/null 
+ap9*/curl_https.sh / > /dev/null
 
 # this mirror will do only http
 ./environ.sh ap8-system2
