@@ -56,7 +56,7 @@ if [[ -n "$MIRRORCACHE_CITY_MMDB" ]]; then
     mc_database="--env MIRRORCACHE_CITY_MMDB=$MIRRORCACHE_CITY_MMDB"
     [[ -f "$MIRRORCACHE_CITY_MMDB" ]] && mc_database+=" -v $MIRRORCACHE_CITY_MMDB:$MIRRORCACHE_CITY_MMDB"
 fi
-docker run $map_port $mc_database --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/environs/MirrorCache -- $ident.image
+docker run $map_port $mc_database --env MIRRORCACHE_PERMANENT_JOBS="" --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/environs/MirrorCache -- $ident.image
 
 in_cleanup=0
 

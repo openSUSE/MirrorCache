@@ -25,7 +25,7 @@ mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
 mc9*/backstage/start.sh
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','/','t','cn',''" mc_test
 
@@ -78,4 +78,4 @@ pg9*/sql.sh -c "select * from stat_agg" mc_test
 test 4 == $(pg9*/sql.sh -t -c "select count(*) from stat_agg where period = 'day'" mc_test)
 
 curl -s http://127.0.0.1:3190/rest/stat
-curl -s http://127.0.0.1:3190/rest/stat | grep '"hit":4' | grep '"miss":2' | grep '"prev_hit":4' | grep '"prev_miss":2' 
+curl -s http://127.0.0.1:3190/rest/stat | grep '"hit":4' | grep '"miss":2' | grep '"prev_hit":4' | grep '"prev_miss":2'

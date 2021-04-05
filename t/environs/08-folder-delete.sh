@@ -26,8 +26,7 @@ done
 ap7*/status.sh >& /dev/null || ap7*/start.sh
 ap8*/status.sh >& /dev/null || ap8*/start.sh
 
-
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','/','t','us',''" mc_test
 
 # remove folder1/file1.dt from ap8
@@ -74,9 +73,6 @@ rm -r mc9/dt/folder2
 
 # this is only for tests - the folder will be deleted only when
 export MIRRORCACHE_FOLDER_DELETE_JOB_GRACE_TIMEOUT=3
-
-# remove all permanent jobs - TODO add a flag to skip re-starting them from webapi
-pg9*/sql.sh -t -c "delete from minion_jobs" mc_test
 
 mc9*/backstage/job.sh -e folder_sync -a '["/folder1"]'
 mc9*/backstage/job.sh -e folder_sync -a '["/folder2"]'

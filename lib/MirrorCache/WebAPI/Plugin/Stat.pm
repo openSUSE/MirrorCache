@@ -31,7 +31,8 @@ has timer  => undef;
 
 has rows => undef;
 
-my $FLUSH_COUNT = $ENV{MIRRORCACHE_STAT_FLUSH_COUNT} // 100;
+my $FLUSH_INTERVAL_SECONDS = $ENV{MIRRORCACHE_STAT_FLUSH_INTERVAL_SECONDS} // 10;
+my $FLUSH_COUNT            = $ENV{MIRRORCACHE_STAT_FLUSH_COUNT} // 100;
 
 sub register($self, $app, $args) {
     my $log = $app->log;
@@ -46,6 +47,7 @@ sub register($self, $app, $args) {
 }
 
 sub redirect_to_root($self) {
+    return $self->redirect_to_mirror(0) if ($self->dm->root_is_hit);
     return $self->redirect_to_mirror(-1);
 }
 
@@ -64,7 +66,7 @@ sub redirect_to_mirror($self, $mirror_id) {
     push @rows, [ sha1_hex($dm->ip), scalar $dm->agent, scalar $dm->path, $dm->country, datetime_now(), $mirror_id, $dm->is_secure, $dm->is_ipv4 ];
     return undef if $mirror_id == -1 && 'media' eq substr($dm->path, -length('media'));
     my $cnt = @rows;
-    if ($cnt > $FLUSH_COUNT) {
+    if ($cnt >= $FLUSH_COUNT) {
         $self->rows(undef);
         return $self->flush(\@rows);
     }
@@ -72,7 +74,7 @@ sub redirect_to_mirror($self, $mirror_id) {
     return if $self->timer;
 
     # my $loop = $self->ioloop;
-    my $id = Mojo::IOLoop->singleton->timer(10 => sub ($loop) {
+    my $id = Mojo::IOLoop->singleton->timer($FLUSH_INTERVAL_SECONDS => sub ($loop) {
             $self->flush($self->rows);
         });
     Mojo::IOLoop->singleton->reactor->again($id);

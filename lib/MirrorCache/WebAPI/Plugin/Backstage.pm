@@ -31,6 +31,9 @@ sub new {
     return $self->app($app);
 }
 
+my @permanent_jobs =
+  qw(folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule);
+
 sub register_tasks {
     my $self = shift;
 
@@ -48,6 +51,9 @@ sub register_tasks {
         qw(MirrorCache::Task::Cleanup),
         qw(MirrorCache::Task::StatAggSchedule),
       );
+    if (defined $ENV{MIRRORCACHE_PERMANENT_JOBS}) {
+        @permanent_jobs = split /[:,\s]+/, $ENV{MIRRORCACHE_PERMANENT_JOBS};
+    }
 }
 
 sub register {
@@ -80,7 +86,7 @@ sub register {
 
     $app->hook(
         before_server_start => sub {
-            my $every = $ENV{MIRRORCACHE_JOBS_CHECK_INTERVAL} // 15 * 60;
+            my $every = $ENV{MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL} // 15 * 60;
             $self->check_permanent_jobs;
             Mojo::IOLoop->next_tick(
                 sub {
@@ -92,27 +98,23 @@ sub register {
                 }
             );
         }
-    );
+    ) if scalar @permanent_jobs;
 }
-
-my @tasks =
-  qw(folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule );
 
 sub check_permanent_jobs {
     my $app    = shift->app;
     my $minion = $app->minion;
     my $jobs   = $minion->jobs(
         {
-            tasks  => \@tasks,
+            tasks  => \@permanent_jobs,
             states => [ 'inactive', 'active' ]
         }
     );
     my $cnt          = 0;
-    my %need_restart = map { $_ => 1 } @tasks;
+    my %need_restart = map { $_ => 1 } @permanent_jobs;
     while ( my $info = $jobs->next ) {
-
         $cnt++;
-        $app->log->error('Too many permanent tasks running')
+        $app->log->error('Too many permanent jobs running')
           if $cnt == 10;
         return
           if $cnt > 100;    # prevent spawning too many jobs, shouldnot happen
