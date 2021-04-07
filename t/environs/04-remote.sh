@@ -23,8 +23,6 @@ for x in ap7-system2 ap8-system2 ap9-system2; do
     $x/start.sh
 done
 
-pg9*/sql.sh -c "insert into folder(path, db_sync_last) select '/', now()" mc_test
-
 mc9*/start.sh
 mc9*/status.sh
 

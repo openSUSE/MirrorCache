@@ -57,10 +57,14 @@
   </tr>
   % for my $file (@$files) {
   %   if ($file->{mtime}) {
-  <tr><td class='name'><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td><td class='size'><%= $file->{dir} ? '' : $file->{size} %></td><td class='mtime'><%= $file->{mtime} %></td></tr>
+  <tr><td class='name'><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td><td class='size'><%= $file->{dir} ? '' : $file->{size} %></td><td class='mtime'><%= $file->{mtime} %></td>
   %   } else {
-  <tr><td class='name'><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td></tr>
-    % }
+  <tr><td class='name'><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td>
+  %   }
+  %   if (!$file->{dir}) {
+  <td class='mirrors'><a href='<%= $file->{url} %>.metalink'>Details</a></td>
+  %   }
+  </tr>
   % }
   % if (!$files || @$files == 0) {
   <tr>Folder is empty</tr>
