@@ -53,15 +53,15 @@ table { width:100%%; }
             type='submit'
             title='Clear all cached info about content of the folder'
             data-deleteurl="/admin/folder/<%=$folder->{id}%>"
-            onclick='deleteAndRedirect(this, "/download<%=$parent_path%>")'>Clear all cached info
+            onclick='deleteAndRedirect(this, "/download<%=$parent_path%>/")'>Clear all cached info
         </button>
     </div>
     <div class="btn-group mr-2" role="group">
-        <button class='btn btn-warning' 
-            type='submit' 
+        <button class='btn btn-warning'
+            type='submit'
             title='Clear all cached info about state of the folder on all mirrors'
             data-deleteurl="/admin/folder_diff/<%=$folder->{id}%>"
-            onclick='deleteAndRedirect(this, "/download<%=$parent_path%>")'>Clear cached info about mirrors 
+            onclick='deleteAndRedirect(this, "/download<%=$parent_path%>/")'>Clear cached info about mirrors
         </button>
     </div>
 </div>

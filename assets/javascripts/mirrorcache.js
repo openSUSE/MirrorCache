@@ -133,7 +133,7 @@ function handleAjaxError(request, code, error) {
     } else if (request.responseText != undefined && request.responseText) {
         error += ': ' + request.responseText.error;
     }
-        
+
     addFlash('danger', 'Error: ' + error);
 }
 
