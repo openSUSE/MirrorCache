@@ -54,7 +54,7 @@ sub register {
         my $region  = $dm->region;
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
-            $c->mmdb->emit_miss($dirname) unless $file;
+            $c->mmdb->emit_miss($dirname, $country) unless $file;
             return $root->render_file($c, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
             return $root->render_file($c, $filepath) unless $dm->metalink; # TODO we still can check file on mirrors even if it is missing in DB
         }

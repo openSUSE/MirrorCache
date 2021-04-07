@@ -83,7 +83,7 @@ sub render_dir_remote {
         _render_dir($c, $dir, $rsFolder);
         my $reftx = $tx;
     })->catch(sub {
-        $c->mmdb->emit_miss($dir);
+        $c->mmdb->emit_miss($dir, $country);
         $c->emit_event('mc_debug', "promisefail: $job_id " . Dumper(\@_));
         my $reason = $_;
         if ($reason eq 'Promise timeout') {
@@ -106,7 +106,7 @@ sub _render_dir {
     $folder    = $rsFolder->find({path => $dir}) unless $folder;
 
     return _render_dir_from_db($c, $folder->id, $dir) if $folder && $folder->db_sync_last;
-    $c->mmdb->emit_miss($dir);
+    $c->mmdb->emit_miss($dir, $c->dm->country);
     return _render_dir_local($c, $dir) unless $root->is_remote; # just render files if we have them locally
 
     my $pos = $rsFolder->get_db_sync_queue_position($dir);
@@ -255,7 +255,7 @@ sub _guess_what_to_render {
         my $res = shift->res;
 
         if ($res->is_error) {
-            $c->mmdb->emit_miss($path); # it is not a folder
+            $c->mmdb->emit_miss($path, $dm->country); # it is not a folder
         } else {
             if (!$res->is_redirect) {
                 # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
@@ -282,7 +282,7 @@ sub _guess_what_to_render {
         # this should happen only if $url is a valid file or non-existing path
         return $root->render_file($c, $path . $trailing_slash);
     })->catch(sub {
-        $c->mmdb->emit_miss($path);
+        $c->mmdb->emit_miss($path, $dm->country);
         return $root->render_file($c, $path . $trailing_slash);
         my $reftx = $tx;
         my $refua = $ua;
