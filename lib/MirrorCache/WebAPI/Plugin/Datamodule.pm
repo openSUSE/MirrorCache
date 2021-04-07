@@ -30,7 +30,7 @@ has '_original_path';
 has '_agent';
 has [ '_is_secure', '_is_ipv4' ];
 
-has _root_country => lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) || "";
+has _root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
 has '_root_region';
 
 my %subsidiary_urls;

@@ -80,7 +80,7 @@ MOJO_CA_FILE=$(pwd)/ca/ca.pem mc9*/backstage/start.sh
 n=0
 until curl -s -k http://$(ap9*/print_address.sh)/  | grep folder1 ; do
     sleep 1;
-    n=$((n+1)) 
+    n=$((n+1))
     test $n -le 10 || ( exit 1 )
 done
 
@@ -92,7 +92,7 @@ curl -s -k https://127.0.0.1:1524/ | grep folder1
 n=0
 until curl --cacert ca/ca.pem -Is https://127.0.0.1:1524/folder1/file1.dat ; do
     sleep 1;
-    n=$((n+1)) 
+    n=$((n+1))
     test $n -le 10 || break
 done
 

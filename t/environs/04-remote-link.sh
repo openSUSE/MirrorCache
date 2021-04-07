@@ -38,12 +38,12 @@ done
 # make sure rewrite works properly in apache
 curl -I $(ap9*/print_address.sh)/link | grep -A3 302 | grep folder1
 
-pg9*/sql.sh -c "insert into folder(path, db_sync_last) select '/', now()" mc_test 
+pg9*/sql.sh -c "insert into folder(path, db_sync_last) select '/', now()" mc_test
 
 mc9*/start.sh
 mc9*/status.sh
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','/','t','us',''" mc_test
 
 mc9*/backstage/job.sh folder_sync_schedule_from_misses

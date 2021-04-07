@@ -55,7 +55,7 @@ for x in mc9 ap7-system2 ap8-system2; do
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
 done
 
-ap9*/curl_https.sh /download  | grep folder1
+ap9*/curl_https.sh /download/  | grep folder1
 
 ######
 
