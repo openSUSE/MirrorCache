@@ -59,10 +59,9 @@ sub is_reachable {
 
 sub is_file {
     my $rooturlpath = $rooturl . $_[1];
-    my $ua = Mojo::UserAgent->new;
     my $res;
     eval {
-        my $ua = Mojo::UserAgent->new->max_redirects(10);
+        my $ua = Mojo::UserAgent->new->max_redirects(0);
         my $tx = $ua->head($rooturlpath);
         $res = $tx->result;
     };
