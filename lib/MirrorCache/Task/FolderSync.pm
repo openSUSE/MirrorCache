@@ -37,6 +37,7 @@ sub _sync {
 
     my $folder = $schema->resultset('Folder')->find({path => $path});
     unless ($root->is_dir($path)) {
+        return $job->finish("not found") unless $folder;
         # Collect outcomes from recent jobs
         my %outcomes;
         my $jobs = $minion->jobs({tasks => ['folder_sync'], notes => [$path]});
