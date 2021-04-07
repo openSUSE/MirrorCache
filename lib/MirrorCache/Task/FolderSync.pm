@@ -89,6 +89,7 @@ sub _sync {
             $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
             $count = $count+1;
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime});
+            return undef;
         };
         eval {
             $folder = $schema->resultset('Folder')->find_or_create({path => $path});
@@ -142,8 +143,9 @@ sub _sync {
             }
             return;
         }
-        $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime});
         $cnt = $cnt + 1;
+        $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime});
+        return undef;
     };
     $app->mc->root->foreach_filename($path, $sub)  or
             return $job->fail('Error while reading files from root');
