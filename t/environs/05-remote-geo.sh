@@ -23,13 +23,16 @@ export MIRRORCACHE_ROOT=http://$(ap6*/print_address.sh)
 mc9*/start.sh
 mc9*/status.sh
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','/','t','cn',''" mc_test
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us','na'" mc_test
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de','eu'" mc_test
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','/','t','cn','as'" mc_test
 
 # we need to request file from two countries, so all mirrors will be scanned
 curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat
 curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat
+
+# also requested file in folder2 from country where no mirrors present
+curl -Is http://127.0.0.1:3190/download/folder2/file1.dat?COUNTRY=dk
 
 mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
@@ -38,3 +41,6 @@ mc9*/backstage/shoot.sh
 curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1324
 curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1314
 curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1304
+
+# since Denmark has no mirrors - german mirror have been scanned and now serves the request
+curl -Is http://127.0.0.1:3190/download/folder2/file1.dat?COUNTRY=dk | grep 1314

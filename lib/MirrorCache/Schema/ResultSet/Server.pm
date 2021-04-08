@@ -112,14 +112,18 @@ END_SQL
 }
 
 sub folder {
-    my ($self, $id, $country) = @_;
+    my ($self, $id, $country, $region) = @_;
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
     $country = "" unless $country;
 
     my $country_condition = "";
-    $country_condition = "and s.country = lower(?)" if $country;
+    if ($country) {
+        $country_condition = "and s.country = lower(?)";
+    } elsif ($region) {
+        $country_condition = "and s.region = lower(?)";
+    }
 
     my $sql = <<'END_SQL';
 select s.id as server_id,
@@ -146,6 +150,8 @@ END_SQL
     my $prep = $dbh->prepare($sql);
     if ($country) {
         $prep->execute($id, $country);
+    } elsif ($region) {
+        $prep->execute($id, $region);
     } else {
         $prep->execute($id);
     }
