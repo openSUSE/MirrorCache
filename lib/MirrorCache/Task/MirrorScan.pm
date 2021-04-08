@@ -25,6 +25,8 @@ use File::Basename;
 use Encode qw(decode);
 use HTML::Parser;
 
+use MirrorCache::Utils 'region_for_country';
+
 sub register {
     my ($self, $app) = @_;
     $app->minion->add_task(mirror_scan => sub { _scan($app, @_) });
@@ -37,10 +39,12 @@ sub _reliable_prefix {
 }
 
 sub _scan {
-    my ($app, $job, $path, $country) = @_;
+    # region is considered only if country is empty
+    my ($app, $job, $path, $country, $region) = @_;
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
     $country = "" unless $country;
+    $region  = "" unless $region;
 
     my $minion = $app->minion;
     return $job->finish('Previous mirror scan job is still active')
@@ -74,7 +78,8 @@ sub _scan {
     }
     @dbfiles = sort @dbfiles;
 
-    my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id, $country);
+    my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id, $country, $region);
+    my $count = 0;
     for my $folder_on_mirror (@$folder_on_mirrors) {
         my $server_id = $folder_on_mirror->{server_id};
         my $url = $folder_on_mirror->{url} . '/';
@@ -180,6 +185,7 @@ sub _scan {
                 return;
             }
 
+            $count++;
             if ($old_diff_id) {
                 # we need update existing entry
                 $schema->resultset('FolderDiffServer')->update_diff_id($folder_diff->id, $max_dt, $old_diff_id, $folder_on_mirror->{server_id});
@@ -193,7 +199,14 @@ sub _scan {
         })->timeout(180)->wait;
     }
 
-    $app->emit_event('mc_mirror_scan_complete', {path => $path, tag => $folder->id, country => $country});
+    $app->emit_event('mc_mirror_scan_complete', {path => $path, tag => $folder->id, country => $country, count => $count});
+    # scan continent if no mirror in the country has the folder
+    return undef if !$country || $region || $count;
+
+    $region = region_for_country($country);
+    if ($region) {
+        $minion->enqueue('mirror_scan' => [$path, '', $region] => {priority => 6} );
+    }
 }
 
 1;
