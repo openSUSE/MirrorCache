@@ -61,7 +61,7 @@ sub indx {
         _redirect_normalized($dm)   ||
         _render_stats($dm)          ||
         _local_render($dm)          ||
-        _redirect_from_db($dm)      ||
+        _render_from_db($dm)        ||
         _guess_what_to_render($dm);
 }
 
@@ -83,7 +83,7 @@ sub render_dir_remote {
         _render_dir($c, $dir, $rsFolder);
         my $reftx = $tx;
     })->catch(sub {
-        $c->mmdb->emit_miss($dir);
+        $c->mmdb->emit_miss($dir, $country);
         $c->emit_event('mc_debug', "promisefail: $job_id " . Dumper(\@_));
         my $reason = $_;
         if ($reason eq 'Promise timeout') {
@@ -106,7 +106,7 @@ sub _render_dir {
     $folder    = $rsFolder->find({path => $dir}) unless $folder;
 
     return _render_dir_from_db($c, $folder->id, $dir) if $folder && $folder->db_sync_last;
-    $c->mmdb->emit_miss($dir);
+    $c->mmdb->emit_miss($dir, $c->dm->country);
     return _render_dir_local($c, $dir) unless $root->is_remote; # just render files if we have them locally
 
     my $pos = $rsFolder->get_db_sync_queue_position($dir);
@@ -198,12 +198,15 @@ sub _local_render {
     my ($path, $trailing_slash) = $dm->path;
     return undef if $root->is_remote || $dm->metalink;
     my $c = $dm->c;
-    return _render_dir($c, $path) if $root->is_dir($path);
+    if ($root->is_dir($path)) {
+        return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
+        return _render_dir($c, $path);
+    }
     $c->mirrorcache->render_file($path) if !$trailing_slash && $root->is_file($path);
     return 1;
 }
 
-sub _redirect_from_db {
+sub _render_from_db {
     my $c = $dm->c;
     my $schema = $c->schema;
     my ($path, $trailing_slash) = $dm->path;
@@ -211,6 +214,8 @@ sub _redirect_from_db {
 
     if (my $folder = $rsFolder->find_folder_or_redirect($path)) {
         return $dm->redirect($folder->{pathto}) if $folder->{pathto};
+        # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
+        return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
         return _render_dir($c, $path, $rsFolder) if ($folder->{db_sync_last});
     } elsif (!$trailing_slash && $path ne '/') {
         my $f = Mojo::File->new($path);
@@ -250,9 +255,11 @@ sub _guess_what_to_render {
         my $res = shift->res;
 
         if ($res->is_error) {
-            $c->mmdb->emit_miss($path); # it is not a folder
+            $c->mmdb->emit_miss($path, $dm->country); # it is not a folder
         } else {
             if (!$res->is_redirect) {
+                # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
+                return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
                 return render_dir_remote($c, $path);
             }
 
@@ -275,7 +282,7 @@ sub _guess_what_to_render {
         # this should happen only if $url is a valid file or non-existing path
         return $root->render_file($c, $path . $trailing_slash);
     })->catch(sub {
-        $c->mmdb->emit_miss($path);
+        $c->mmdb->emit_miss($path, $dm->country);
         return $root->render_file($c, $path . $trailing_slash);
         my $reftx = $tx;
         my $refua = $ua;
@@ -297,7 +304,7 @@ sub _render_dir_from_db {
     my $c     = shift;
     my $id    = shift;
     my $dir   = shift;
-    my @items = { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' };
+    my @items = { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '', dir => 1 };
     my @files;
     my @childrenfiles = $c->schema->resultset('File')->search({folder_id => $id});
 
@@ -328,7 +335,7 @@ sub _render_dir_from_db {
 sub _render_dir_local {
     my $c     = shift;
     my $dir   = shift;
-    my @items = { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '' };
+    my @items = { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '', dir => 1 };
     my @files;
     my $filenames = $root->list_filenames($dir);
 

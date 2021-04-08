@@ -58,14 +58,12 @@ sub register {
         return undef;
     });
 
+    # move it to Datamodule?
     $app->helper( 'mmdb.emit_miss' => sub {
         my ($c, $path, $country) = @_;
-        my $ip = $c->mmdb->client_ip;
-        $country = $country || $c->mmdb->country($ip);
         if ($country) {
             $c->emit_event('mc_path_miss', { path => $path, country => $country } );
         } else {
-            $c->emit_event('mc_unknown_ip', $ip) if $reader;
             $c->emit_event('mc_path_miss', { path => $path } );
         }
     });
