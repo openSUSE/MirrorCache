@@ -46,8 +46,8 @@ sub register($self, $app, $args) {
     1;
 }
 
-sub redirect_to_root($self) {
-    return $self->redirect_to_mirror(0) if ($self->dm->root_is_hit);
+sub redirect_to_root($self, $not_miss) {
+    return $self->redirect_to_mirror(0) if ($not_miss || $self->dm->root_is_hit);
     return $self->redirect_to_mirror(-1);
 }
 

@@ -31,8 +31,9 @@ has '_original_path';
 has '_agent';
 has [ '_is_secure', '_is_ipv4' ];
 
-has _root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
+has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
 has '_root_region';
+has '_root_longitude' => ($ENV{MIRRORCACHE_ROOT_LONGITUDE} ? int($ENV{MIRRORCACHE_ROOT_LONGITUDE}) : 11);
 
 my %subsidiary_urls;
 my @subsidiaries;
@@ -40,13 +41,13 @@ my @subsidiaries;
 sub register($self, $app, $args) {
     $self->route($app->mc->route);
     $self->route_len(length($self->route));
-    $self->_root_region(region_for_country($self->_root_country) || '');
+    $self->_root_region(region_for_country($self->root_country) || '');
 
     $app->helper( 'dm' => sub {
         return $self;
     });
 
-    eval { #the table may be missing - no big deal 
+    eval { #the table may be missing - no big deal
         @subsidiaries = $app->schema->resultset('Subsidiary')->all;
     };
     for my $s (@subsidiaries) {
@@ -55,7 +56,6 @@ sub register($self, $app, $args) {
         $url = $url . $s->uri if $s->uri;
         $subsidiary_urls{lc($s->region)} = Mojo::URL->new($url)->to_abs;
     }
-
 }
 
 sub reset($self, $c) {
@@ -287,6 +287,14 @@ sub _init_path($self) {
 
 sub root_is_hit($self) {
     return 1 if $self->_root_region eq $self->region;
+    return 0;
+}
+
+sub root_is_better($self, $region, $lng) {
+    if ($self->_root_region && $region && $self->lng && $self->_root_longitude && $region eq $self->_root_region) {
+        # simly check if root is closer to the client by longitude
+        return 1 if abs( $self->_root_longitude - $self->lng ) < abs( $lng - $self->lng );
+    }
     return 0;
 }
 

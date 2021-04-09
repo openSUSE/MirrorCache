@@ -73,7 +73,7 @@ sub register {
         if ($dm->metalink && !($dm->metalink_accept && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
             my $url = $c->req->url->to_abs;
             my $origin = $url->scheme . '://' . $url->host;
-            my $xml = _build_metalink($folder->path, $basename, $file->size, $file->mtime, $country, $mirrors, $origin, 'MirrorCache', $root->is_remote? $root->location($c) : undef);
+            my $xml = _build_metalink($dm, $folder->path, $basename, $file->size, $file->mtime, $country, $mirrors, $origin, 'MirrorCache', $root->is_remote? $root->location($c) : undef);
             $c->render(data => $xml, format => 'xml');
             if ($mirrors && @$mirrors) {
                 $c->stat->redirect_to_mirror($mirrors->[0]->{mirror_id});
@@ -95,6 +95,11 @@ sub register {
             unless ($mirror) {
                 $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country});
                 return $root->render_file($c, $filepath);
+            }
+            # Check below is needed only when MIRRORCACHE_ROOT_COUNTRY is set
+            # only with remote root and when no mirrors should be used for the root's country
+            if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
+                return $root->render_file($c, $filepath, 1);
             }
             my $url = $mirror->{url} . $filepath;
             my $code;
@@ -129,7 +134,7 @@ sub register {
 }
 
 sub _build_metalink() {
-    my ($path, $basename, $size, $mtime, $country, $mirrors, $origin, $generator, $fileurl) = @_;
+    my ($dm, $path, $basename, $size, $mtime, $country, $mirrors, $origin, $generator, $fileurl) = @_;
     $country = uc($country) if $country;
     my @mirrors = @$mirrors;
     my $mirror_count = @mirrors;
@@ -173,29 +178,38 @@ sub _build_metalink() {
             $writer->endTag('size');
         }
         $writer->comment("<mtime>$mtime</mtime>") if ($mtime);
+        my $colon = $fileurl ? index(substr($fileurl,0,6),':') : '';
         $writer->startTag('resources');
         {
             $writer->comment("Mirrors which handle this country ($country): ");
             my $preference = 100;
             my $fullname = $path . '/' . $basename;
+            my $root_included = 0;
+            my $print_root = sub {
+                return unless $fileurl;
+                $writer->comment("File origin location: ") if shift;
+                $writer->startTag('url', type => substr($fileurl,0,$colon), location => uc($dm->root_country), preference => $preference);
+                $writer->characters($fileurl . $fullname);
+                $writer->endTag('url');
+                $preference--;
+            };
             for my $m (@mirrors) {
                 my $url = $m->{url};
                 my $colon = index(substr($url,0,6), ':');
                 next unless $colon > 0;
+                if (!$root_included && $country ne $m->{country} && $dm->root_is_better($m->{region}, $m->{lng})) {
+                    $root_included = 1;
+                    $print_root->();
+                }
 
-                $writer->startTag('url', type => substr($url,0,$colon), location => $country, preference => $preference);
+                $writer->startTag('url', type => substr($url,0,$colon), location => uc($m->{country}), preference => $preference);
                 $writer->characters($url . $fullname);
                 $writer->endTag('url');
                 $preference--;
 
             }
-            if ($fileurl && (my $colon = index(substr($fileurl,0,6),':'))) {
-                $writer->comment("File origin location: ");
-
-                $writer->startTag('url', type => substr($fileurl,0,$colon), preference => $preference);
-                $writer->characters($fileurl . $fullname);
-                $writer->endTag('url');
-            }
+            $print_root->() if !$root_included && $dm->root_country;
+            $print_root->(1);
         }
         $writer->endTag('resources');
         $writer->endTag('file');

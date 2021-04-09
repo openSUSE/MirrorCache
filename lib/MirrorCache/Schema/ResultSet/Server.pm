@@ -66,7 +66,7 @@ end as dist,
 (2*(yes1 * yes1) - 2*(case when no1 > 10 then no1 * no1 else 10 * no1 end) + (case when yes2 < 5 then yes2 else 5 * yes2 end) - (case when no2 > 10 then no2 * no2 else 10 * no2 end)) weight1,
 case when country = '$country' then 2 when region = '$region' then 1 else 0 end weight_country,
 (yes3 * yes3) - (case when no3 > 5 then no3 * no3 else 5 * no3 end) weight2,
-last1, last2, last3, lastdt1, lastdt2, lastdt3, score, country, region
+last1, last2, last3, lastdt1, lastdt2, lastdt3, score, country, region, lng
 from (
 select s.id,
     concat(
