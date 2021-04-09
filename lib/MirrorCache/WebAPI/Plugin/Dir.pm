@@ -133,6 +133,9 @@ sub _redirect_geo {
         $c->stat->redirect_to_region;
         return 1;
     }
+    # MIRRORCACHE_ROOT_COUNTRY must be set only with remote root and when no mirrors should be used for the country
+    return $root->render_file($c, $dm->path_query, 1) if $dm->root_country && $dm->root_country eq $dm->country;
+
     return undef;
 }
 
@@ -322,7 +325,7 @@ sub _render_dir_from_db {
         push @files, {
             url   => $encoded,
             name  => $basename,
-            size  => $child->size,
+            size  => $size,
             type  => $mime_type,
             mtime => $mtime,
             dir   => $is_dir,
