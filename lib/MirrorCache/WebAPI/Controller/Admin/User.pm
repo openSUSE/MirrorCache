@@ -44,9 +44,19 @@ sub update {
         $self->flash('error', "Can't find that user");
     }
     else {
+        my $role_old = 'user';
+        if ($user->is_admin) {
+            $role_old = 'admin'
+        } elsif ($user->is_operator) {
+            $role_old = 'operator';
+        }
         $user->update({is_admin => $is_admin, is_operator => $is_operator});
         $self->flash('info', 'User ' . $user->nickname . ' updated');
-        $self->emit_event('user_update_res', {nickname => $user->nickname, role => $role});
+        $self->emit_event('mc_user_update', {
+            username => $user->username,
+            role_old => $role_old,
+            role_new => $role
+        });
     }
 
     $self->redirect_to($self->url_for('get_users'));
