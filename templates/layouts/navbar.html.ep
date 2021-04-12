@@ -12,6 +12,9 @@
          <li class='nav-item' id="server">
             %= link_to 'Servers' => url_for('server') => class => 'nav-link'
          </li>
+         <li class='nav-item' id="folder">
+            %= link_to 'Folders' => url_for('folder') => class => 'nav-link'
+         </li>
          <li class='nav-item' id="stat">
             %= link_to 'Statistics' => url_for('/rest/stat') => class => 'nav-link'
          </li>
@@ -24,15 +27,18 @@
                     <span class="caret"></span>
                 </a>
                 <div class="dropdown-menu">
-                  %= tag 'h3' => class => 'dropdown-header' => 'Forms'
-                  %= link_to 'Servers' => url_for('server') => class => 'dropdown-item'
+                  %= link_to 'My IP' => url_for('/rest/myip') => class => 'dropdown-item'
                   % if (is_operator) {
+                  %= tag 'div' => class => 'dropdown-divider'
+                  %= tag 'h3' => class => 'dropdown-header' => 'Operator menu'
                   %= link_to 'Background jobs' => url_for('minion') => class => 'dropdown-item'
                   % }
                   % if (is_admin) {
+                  %= tag 'div' => class => 'dropdown-divider'
+                  %= tag 'h3' => class => 'dropdown-header' => 'Administrator menu'
                   %= link_to 'Users' => url_for('get_user') => class => 'dropdown-item'
                   % }
-                  %= link_to 'My IP' => url_for('/rest/myip') => class => 'dropdown-item'
+                  %= tag 'div' => class => 'dropdown-divider'
                   %= link_to 'Logout' => url_for('logout') => class => 'dropdown-item'
                 </div>
             </li>

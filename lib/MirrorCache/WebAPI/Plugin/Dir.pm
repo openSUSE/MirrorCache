@@ -307,7 +307,6 @@ sub _render_dir_from_db {
     my $c     = shift;
     my $id    = shift;
     my $dir   = shift;
-    my @items = { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '', dir => 1 };
     my @files;
     my @childrenfiles = $c->schema->resultset('File')->search({folder_id => $id});
 
@@ -331,14 +330,13 @@ sub _render_dir_from_db {
             dir   => $is_dir,
         };
     }
-    push @items, sort _by_filename @files;
+    my @items = sort _by_filename @files;
     return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => $id );
 }
 
 sub _render_dir_local {
     my $c     = shift;
     my $dir   = shift;
-    my @items = { url => '../', name => 'Parent Directory', size => '', type => '', mtime => '', dir => 1 };
     my @files;
     my $filenames = $root->list_filenames($dir);
 
@@ -362,7 +360,7 @@ sub _render_dir_local {
             dir   => $is_dir,
         };
     }
-    push @items, sort _by_filename @files;
+    my @items = sort _by_filename @files;
     return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => undef );
 }
 

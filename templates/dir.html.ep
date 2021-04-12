@@ -1,73 +1,91 @@
 % layout 'bootstrap';
 % title 'Index of ' . $cur_path;
 % my $stats = url_for '/download' . $cur_path;
+
 <script>
       $(function () {
         pollFolderStats('<%= $stats %>');
       });
 </script>
-<nav
-      class="navbar navbar-expand-lg navbar-light bg-light mb-3 border-bottom">
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light mb-3 border-bottom">
   <div class="container">
-    <h4>Mirrors status for <%= $cur_path %>: </h4>
+    <h5 class="break-long-content">Mirrors status for <%= $cur_path %>: </h5>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarFolderStatus" aria-controls="navbarFolderStatus" aria-expanded="false" aria-label="Toggle navigation">
-       <span class="navbar-toggler-icon"></span>
+    <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarFolderStatus">
-          <ul class="navbar-nav mr-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="<%= $stats->query(status => 'recent') %>">
-                Recently scanned: <span class="badge badge-pill badge-secondary folder-stats-servers-recent">.</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="<%= $stats->query(status => 'outdated') %>">
-                Outdated: <span class="badge badge-pill badge-secondary folder-stats-servers-outdated">.</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="<%= $stats->query(status => 'not_scanned') %>">
-                Not scanned: <span class="badge badge-pill badge-secondary folder-stats-servers-not-scanned">.</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="<%= $stats->query(status => 'all') %>">
-                Last synced at <span class="badge badge-pill badge-secondary folder-stats-last-sync">.</span>
-              </a>
-            </li>
-            % if ($folder_id) {
-            <li class="nav-item">
-              <a class="nav-link" href="<%= url_for("/app/folder/$folder_id") %>">
-                Sync info: <span class="badge badge-pill badge-secondary folder-sync-job-position">retrieving...</span>
-              </a>
-            </li>
-            % }
-          </ul>
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="<%= $stats->query(status => 'recent') %>">
+          Recently scanned: <span class="badge badge-pill badge-secondary folder-stats-servers-recent">.</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="<%= $stats->query(status => 'outdated') %>">
+          Outdated: <span class="badge badge-pill badge-secondary folder-stats-servers-outdated">.</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="<%= $stats->query(status => 'not_scanned') %>">
+          Not scanned: <span class="badge badge-pill badge-secondary folder-stats-servers-not-scanned">.</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="<%= $stats->query(status => 'all') %>">
+          Last synced at <span class="badge badge-pill badge-secondary folder-stats-last-sync">.</span>
+          </a>
+        </li>
+        % if ($folder_id) {
+        <li class="nav-item">
+          <a class="nav-link" href="<%= url_for("/app/folder/$folder_id") %>">
+          Sync info: <span class="badge badge-pill badge-secondary folder-sync-job-position">retrieving...</span>
+          </a>
+        </li>
+        % }
+      </ul>
     </div>
   </div>
 </nav>
 <hr/>
-<table cellspacing="15">
-  <tr>
-    <th class='name'>Name</th>
-    %   if ($files && @$files && $files->[0]->{mtime}) {
-            <th class='size'>Size</th>
-            <th class='mtime'>Last Modified</th>
+
+<table>
+  <thead>
+    <tr>
+    % if ($files && @$files && $files->[0]->{mtime}) {
+      <th>Name</th><th>Size</th><th>Last Modified</th><th>Metadata</th>
+    % } else {
+      <th colspan="3">Name</th><th>Metadata</th>
+    % }  
+    </tr>
+  <thead>
+  <tbody>
+    <tr>
+    % if ($cur_path eq '/') {
+      <td colspan="4" class="breadcrumb-item active">Parent Directory</td>
+    % } else {
+      <td colspan="4" class="breadcrumb-item"><a href="../">Parent Directory</a></td>
+    % }
+    </tr>
+    % for my $file (@$files) {
+    <tr>
+      <td class="name"><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td>
+    %   if ($file->{mtime}) {
+      <td class='mtime'><%= $file->{mtime} %></td>
+      <td class='size'><%= $file->{dir} ? '' : $file->{size} %></td>
+    %   } else {
+      <td/><td/>
     %   }
-  </tr>
-  % for my $file (@$files) {
-  %   if ($file->{mtime}) {
-  <tr><td class='name'><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td><td class='size'><%= $file->{dir} ? '' : $file->{size} %></td><td class='mtime'><%= $file->{mtime} %></td>
-  %   } else {
-  <tr><td class='name'><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td>
-  %   }
-  %   if (!$file->{dir}) {
-  <td class='mirrors'><a href='<%= $file->{url} %>.metalink'>Details</a></td>
-  %   }
-  </tr>
-  % }
-  % if (!$files || @$files == 0) {
-  <tr>Folder is empty</tr>
-  % }
+    %   if (!$file->{dir}) {
+      <td class='mirrors'><a href='<%= $file->{url} %>.metalink'>Details</a></td>
+    %   } else {
+      <td/>
+    % }
+    </tr>
+    % }
+    % if (!$files || @$files == 0) {
+    <tr><td colspan="4">Directory is empty</td></tr>
+    % }
+  <tbody>
 </table>
 <hr/>
