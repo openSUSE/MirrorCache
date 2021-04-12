@@ -28,7 +28,7 @@ create table redirect (
 
 create table server (
     id serial NOT NULL PRIMARY KEY,
-    hostname  varchar(128) NOT NULL,
+    hostname  varchar(128) NOT NULL UNIQUE,
     urldir    varchar(128) NOT NULL,
     enabled  boolean NOT NULL,
     region  varchar(2),

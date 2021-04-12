@@ -72,7 +72,6 @@ insert into server(hostname,urldir,enabled,country,region) select 'mirror.linux-
 insert into server(hostname,urldir,enabled,country,region) select 'mirror.tspu.ru','/opensuse','t','ru','';
 insert into server(hostname,urldir,enabled,country,region) select 'mirror.yandex.ru','/opensuse','t','ru','';
 insert into server(hostname,urldir,enabled,country,region) select 'ftp.acc.umu.se','/mirror/opensuse.org','t','se','';
-insert into server(hostname,urldir,enabled,country,region) select 'ftp.acc.umu.se','/mirror/opensuse.org','t','se','';
 insert into server(hostname,urldir,enabled,country,region) select 'ftp.lysator.liu.se','/pub/opensuse','t','se','';
 insert into server(hostname,urldir,enabled,country,region) select 'mirrors.xgroup.si','/opensuse','t','si','';
 insert into server(hostname,urldir,enabled,country,region) select 'tux.rainside.sk','/opensuse','t','sk','';
