@@ -16,7 +16,6 @@ insert into server(hostname,urldir,enabled,country,region) select 'suse.mobile-c
 insert into server(hostname,urldir,enabled,country,region) select 'ewr.edge.kernel.org','/opensuse','t','us','';
 insert into server(hostname,urldir,enabled,country,region) select 'sjc.edge.kernel.org','/opensuse','t','us','';
 insert into server(hostname,urldir,enabled,country,region) select 'provo-mirror.opensuse.org','/','t','us','';
-insert into server(hostname,urldir,enabled,country,region) select 'provo-mirror.opensuse.org','/','t','us','';
 insert into server(hostname,urldir,enabled,country,region) select 'mirror.math.princeton.edu','/pub/opensuse-full/opensuse','t','us','';
 insert into server(hostname,urldir,enabled,country,region) select 'plug-mirror.rcac.purdue.edu','/opensuse','t','us','';
 insert into server(hostname,urldir,enabled,country,region) select 'mirror.rackspace.com','/openSUSE','t','us','';
