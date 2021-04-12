@@ -59,7 +59,7 @@ sub update {
         });
     }
 
-    $self->redirect_to($self->url_for('get_users'));
+    $self->redirect_to($self->url_for('get_user'));
 }
 
 1;

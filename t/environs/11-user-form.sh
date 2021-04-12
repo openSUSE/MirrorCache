@@ -17,7 +17,7 @@ mc9*/start.sh
 
 pg9*/sql.sh -c "insert into acc(username,email,fullname,nickname,is_operator,is_admin,t_created,t_updated) select 'eli','eli@test','Eli Test','eli',0,0,'2021-01-14 11:19:25','2021-01-14 11:19:25'" mc_test
 
-mc9*/curl.sh admin/users -I | grep -E '302|/login'
+mc9*/curl.sh admin/user -I | grep -E '302|/login'
 
 mc9*/curl.sh admin/user/1 -I | grep -E '404|Not Found'
 

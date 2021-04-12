@@ -19,7 +19,7 @@ MIRRORCACHE_TEST_TRUST_AUTH=1 mc9*/start.sh
 pg9*/sql.sh -c "insert into acc(username,email,fullname,nickname,is_operator,is_admin,t_created,t_updated) select 'eli','eli@test','Eli Test','eli',0,0,'2021-01-14 11:19:25','2021-01-14 11:19:25'" mc_test
 pg9*/sql.sh -t -c "select * from acc" mc_test
 
-mc9*/curl.sh admin/users -I | grep '200'
+mc9*/curl.sh admin/user -I | grep '200'
 
 mc9*/curl.sh admin/user/1 -X POST -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' --data-raw 'role=admin'
 test 1 == $(pg9*/sql.sh -t -c "select count(*) from acc where is_admin=1 and is_operator=1" mc_test)
