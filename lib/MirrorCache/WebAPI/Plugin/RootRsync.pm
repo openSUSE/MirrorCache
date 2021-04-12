@@ -81,7 +81,15 @@ sub is_file {
 }
 
 sub is_dir {
-    my $res = is_file($_[0], $_[1] . '/.');
+    my ($self, $path) = @_;
+    my $res = 0;
+    eval {
+        $self->reader->readdir($path, sub {
+            $res = 1;
+            return 2;
+        });
+    };
+
     return $res;
 }
 
