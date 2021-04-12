@@ -24,8 +24,6 @@ my $SINGLETON;
 
 sub connect_db {
     my %args  = @_;
-    my $check = $args{check};
-    $check //= 1;
 
     unless ($SINGLETON) {
         my $dsn;
@@ -62,33 +60,5 @@ sub dsn {
 }
 
 sub singleton { $SINGLETON || connect_db() }
-
-sub _try_deploy_db {
-    my ($dh) = @_;
-
-    my $schema = $dh->schema;
-    my $version;
-    try {
-        $version = $dh->version_storage->database_version;
-    }
-    catch {
-        $dh->install;
-        $schema->create_system_user;    # create system user right away
-    };
-
-    return !$version;
-}
-
-sub _try_upgrade_db {
-    my ($dh) = @_;
-
-    my $schema = $dh->schema;
-    if ($dh->schema_version > $dh->version_storage->database_version) {
-        $dh->upgrade;
-        return 1;
-    }
-
-    return 0;
-}
 
 1;
