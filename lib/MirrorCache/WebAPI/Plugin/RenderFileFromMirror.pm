@@ -79,7 +79,7 @@ sub register {
                 $c->stat->redirect_to_mirror($mirrors->[0]->{mirror_id});
                 $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirrors->[0]->{country};
             } else {
-                $c->stat->redirect_to_root();
+                $c->stat->redirect_to_root;
             }
             return 1;
         }
