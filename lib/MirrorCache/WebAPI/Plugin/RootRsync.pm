@@ -96,7 +96,7 @@ sub is_dir {
 sub render_file {
     my ($self, $c, $filepath, $not_miss) = @_;
     $c->redirect_to($self->location($c, $filepath));
-    $c->stat->redirect_to_root unless $not_miss;
+    $c->stat->redirect_to_root(0) unless $not_miss;
     return 1;
 }
 
