@@ -50,53 +50,57 @@
   </div>
 </nav>
 
-<div id="breadcrumbs">
-  <ol class="breadcrumb break-long-content">
-    % foreach my $bc (@breadcrumbs) {
-    %   next unless (defined $bc and length $bc);
-    %   $bc_url .= $bc . '/';
-    <li class="breadcrumb-item"><a href='<%= $bc_url %>'><%== $bc %></a></li>
-    % }
-    <li class="breadcrumb-item active"><%== $bc_last %></li>
-  </ol>
-</div>
+<div id="container-download">
 
-<table>
-  <thead>
-    <tr>
-    % if ($files && @$files && $files->[0]->{mtime}) {
-      <th>Name</th><th>Size</th><th>Last Modified</th><th>Metadata</th>
-    % } else {
-      <th colspan="3">Name</th><th>Metadata</th>
-    % }  
-    </tr>
-  <thead>
-  <tbody>
-    <tr>
-    % if ($cur_path eq '/') {
-      <td colspan="4" class="breadcrumb-item active">Parent Directory</td>
-    % } else {
-      <td colspan="4" class="breadcrumb-item"><a href="../">Parent Directory</a></td>
-    % }
-    </tr>
-    % for my $file (@$files) {
-    <tr>
-      <td class="name"><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td>
-    %   if ($file->{mtime}) {
-      <td class='mtime'><%= $file->{mtime} %></td>
-      <td class='size'><%= $file->{dir} ? '' : $file->{size} %></td>
-    %   } else {
-      <td/><td/>
-    %   }
-    %   if (!$file->{dir}) {
-      <td class='mirrors'><a href='<%= $file->{url} %>.metalink'>Details</a></td>
-    %   } else {
-      <td/>
-    % }
-    </tr>
-    % }
-    % if (!$files || @$files == 0) {
-    <tr><td colspan="4">Directory is empty</td></tr>
-    % }
-  <tbody>
-</table>
+  <div id="breadcrumbs">
+    <ol class="breadcrumb break-long-content">
+      % foreach my $bc (@breadcrumbs) {
+      %   next unless (defined $bc and length $bc);
+      %   $bc_url .= $bc . '/';
+      <li class="breadcrumb-item"><a href='<%= $bc_url %>'><%== $bc %></a></li>
+      % }
+      <li class="breadcrumb-item active"><%== $bc_last %></li>
+    </ol>
+  </div>
+
+  <table class="admintable table table-striped">
+    <thead>
+      <tr>
+      % if ($files && @$files && $files->[0]->{mtime}) {
+        <th>Name</th><th>Size</th><th>Last Modified</th><th>Metadata</th>
+      % } else {
+        <th colspan="3">Name</th><th>Metadata</th>
+      % }  
+      </tr>
+    <thead>
+    <tbody>
+      <tr>
+      % if ($cur_path eq '/') {
+        <td colspan="4" class="breadcrumb-item active">Parent Directory</td>
+      % } else {
+        <td colspan="4" class="breadcrumb-item"><a href="../">Parent Directory</a></td>
+      % }
+      </tr>
+      % for my $file (@$files) {
+      <tr>
+        <td class="name"><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td>
+      %   if ($file->{mtime}) {
+        <td class='mtime'><%= $file->{mtime} %></td>
+        <td class='size'><%= $file->{dir} ? '' : $file->{size} %></td>
+      %   } else {
+        <td/><td/>
+      %   }
+      %   if (!$file->{dir}) {
+        <td class='mirrors'><a href='<%= $file->{url} %>.metalink'>Details</a></td>
+      %   } else {
+        <td/>
+      % }
+      </tr>
+      % }
+      % if (!$files || @$files == 0) {
+      <tr><td colspan="4">Directory is empty</td></tr>
+      % }
+    <tbody>
+  </table>
+
+</div>

@@ -193,3 +193,9 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     margin-bottom: 2px;
     background-color: $gray-100;
 }
+
+#container-download {
+  width: 100%;
+  max-width: 720px;
+  margin: auto;
+}
