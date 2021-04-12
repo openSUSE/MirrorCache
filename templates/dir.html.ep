@@ -1,7 +1,9 @@
 % layout 'bootstrap';
 % title 'Index of ' . $cur_path;
 % my $stats = url_for '/download' . $cur_path;
-
+% my @breadcrumbs = split '/', 'download' . $cur_path;
+% my $bc_last = pop @breadcrumbs;
+% my $bc_url = '/';
 <script>
       $(function () {
         pollFolderStats('<%= $stats %>');
@@ -47,7 +49,17 @@
     </div>
   </div>
 </nav>
-<hr/>
+
+<div id="breadcrumbs">
+  <ol class="breadcrumb break-long-content">
+    % foreach my $bc (@breadcrumbs) {
+    %   next unless (defined $bc and length $bc);
+    %   $bc_url .= $bc . '/';
+    <li class="breadcrumb-item"><a href='<%= $bc_url %>'><%== $bc %></a></li>
+    % }
+    <li class="breadcrumb-item active"><%== $bc_last %></li>
+  </ol>
+</div>
 
 <table>
   <thead>
@@ -88,4 +100,3 @@
     % }
   <tbody>
 </table>
-<hr/>
