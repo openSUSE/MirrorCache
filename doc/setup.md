@@ -218,7 +218,7 @@ mc1*/backstage/status.sh
     EXPOSE_PORT=3190 ./01-smoke.sh
     ```
     To access admin actions without logging in, like the Users page, add `MIRRORCACHE_TEST_TRUST_AUTH=1` in the test you want to run:
-    - Change `mc9*/start.sh` to `MIRRORCACHE_TEST_TRUST_AUTH=1 mc9*/start.sh
+    - Change `mc9*/start.sh` to `MIRRORCACHE_TEST_TRUST_AUTH=1 mc9*/start.sh`
 
 **WARNING** - Be careful when working inside container:
 1. The source tree is mapped to the host, so any changes of source code inside container will be reflected on host and vice versa.
