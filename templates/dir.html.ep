@@ -1,6 +1,6 @@
 % layout 'bootstrap';
 % title 'Index of ' . $cur_path;
-% my $stats = url_for '/download' . $cur_path;
+% my $stats = url_for '/download' . $cur_path . '/';
 % my @breadcrumbs = split '/', 'download' . $cur_path;
 % my $bc_last = pop @breadcrumbs;
 % my $bc_url = '/';
