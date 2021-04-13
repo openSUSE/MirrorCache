@@ -21,7 +21,13 @@ sub delete {
     my $user = $self->schema->resultset('Acc')->find($self->param('id'));
     return $self->render(json => {error => 'Not found'}, status => 404) unless $user;
     my $result = $user->delete();
-    $self->emit_event('mirrorcache_user_deleted', {username => $user->username});
+    my $role = 'user';
+    if ($user->is_admin) {
+        $role = 'admin'
+    } elsif ($user->is_operator) {
+        $role = 'operator';
+    }
+    $self->emit_event('mc_user_delete', {role => $role, username => $user->username});
     $self->render(json => {result => $result});
 }
 

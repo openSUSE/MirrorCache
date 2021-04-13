@@ -11,8 +11,7 @@
 
         %= include 'layouts/info'
 
-        <table class="admintable table table-striped" id='folders'>
-            <col style="visibility:hidden"/>
+        <table id="folders" class="admintable table table-striped">
             <thead>
                 <tr>
                     <th class="col_value">Id</th>
@@ -28,5 +27,4 @@
         </table>
         <input type="hidden" id="admintable_api_url" value="/rest/folder"/>
     </div>
-
 </div>

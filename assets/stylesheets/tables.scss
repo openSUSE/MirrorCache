@@ -1,0 +1,75 @@
+// tables
+.table {
+    border-collapse: separate;
+    border-spacing: 0px;
+}
+.table thead:first-child tr:first-child th {
+    background-color: $gray-200 !important;
+    box-shadow: inset 0 0 0 0 #fff;
+    border-bottom: 1px solid $table-border-color;
+    border-right: 0 solid $table-border-color;
+    border-top: 1px solid $table-border-color;
+}
+.table tbody td:first-child, .table thead th:first-child {
+    border-left: 1px solid $table-border-color;
+}
+.table tbody td:last-child, .table thead:first-child tr:first-child th:last-child {
+    border-right: 1px solid $table-border-color;
+}
+.table thead:first-child tr:first-child {
+    th:last-child {
+        border-radius: 0 0.2rem 0 0;
+    }
+    th:first-child
+    {
+        border-radius: 0.2rem 0 0 0;
+    }
+    th:only-child
+    {
+        border-radius: 0.2rem 0.2rem 0 0;
+    }
+}
+.table tbody tr:last-child {
+    td:first-child {
+        border-radius: 0 0 0 0.2rem;
+    }
+    td:only-child {
+        border-radius: 0 0 0.2rem 0.2rem;
+    }
+    td:last-child {
+        border-radius: 0 0 0.2rem 0;
+    }
+    td {
+        border-bottom: 1px solid $table-border-color;
+    }
+}
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.01);
+}
+.dataTables_wrapper.container-fluid {
+    padding-left: 0px;
+    padding-right: 0px;
+}
+.table tbody tr {
+    td.links {
+        padding-top: 3px;
+        padding-bottom: 3px;
+    }
+    td.result {
+        vertical-align: middle;
+        text-align: center;
+    }
+}
+
+.table th::before, .table th::after {
+    bottom: 0.2em !important;
+    display: inline !important;
+}
+
+.table th, .table td, .breadcrumb {
+    padding: 2px;
+}
+
+.table th {
+    white-space: nowrap;
+}

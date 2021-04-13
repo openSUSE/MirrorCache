@@ -12,7 +12,7 @@ table#users {
                 label {
                     .fa-circle {
                         display: block;
-                        color: #09F;
+                        color: $blue;
                     }
                     .far.fa-circle {
                         display: none;
@@ -24,7 +24,7 @@ table#users {
     label {
         // styling radiobuttons
         .fa-circle {
-            color: #A8C4DC;
+            color: $gray-200;
         }
     }
 }

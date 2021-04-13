@@ -10,6 +10,7 @@
 @import "../cache/raw.githubusercontent.com/twbs/bootstrap/v4.1.1/scss/bootstrap.scss";
 
 // include custom css for various aspects of the pages
-@import "overall.scss";
-@import "navigation.scss";
 @import "admin-pages.scss";
+@import "navigation.scss";
+@import "overall.scss";
+@import "tables.scss";

@@ -182,3 +182,20 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 #content_fullscreen {
     min-width: 100%;
 }
+
+.break-long-content, .table td {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.breadcrumb {
+    margin-bottom: 2px;
+    background-color: $gray-100;
+}
+
+#container-download {
+  width: 100%;
+  max-width: 720px;
+  margin: auto;
+}

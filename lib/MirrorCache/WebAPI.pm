@@ -111,7 +111,7 @@ sub startup {
         $admin_r->delete('/folder/<id:num>')->to('folder#delete_cascade');
         $admin_r->delete('/folder_diff/<id:num>')->to('folder#delete_diff');
 
-        $admin_r->get('/users')->name('get_users')->to('user#index');
+        $admin_r->get('/user')->name('get_user')->to('user#index');
         $admin_r->post('/user/:userid')->name('post_user')->to('user#update');
 
         my $rest_user_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
