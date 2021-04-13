@@ -52,7 +52,7 @@ ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache-backstage
 %pre
 getent group nogroup > /dev/null || groupadd nogroup
 getent passwd mirrorcache > /dev/null || %{_sbindir}/useradd -r -g nogroup -c "MirrorCache user" -d %{_localstatedir}/lib/mirrorcache mirrorcache || :
-if [ ! -d %{_localstatedir}/lib/mirrorcache ]; then
+if [ ! -e %{_localstatedir}/lib/mirrorcache ]; then
     mkdir -p %{_localstatedir}/lib/mirrorcache
     chown mirrorcache %{_localstatedir}/lib/mirrorcache || :
 fi
