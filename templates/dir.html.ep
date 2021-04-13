@@ -1,6 +1,6 @@
 % layout 'bootstrap';
 % title 'Index of ' . $cur_path;
-% my $stats = url_for '/download' . $cur_path;
+% my $stats = url_for '/download' . $cur_path . '/';
 % my @breadcrumbs = split '/', 'download' . $cur_path;
 % my $bc_last = pop @breadcrumbs;
 % my $bc_url = '/';
@@ -12,7 +12,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3 border-bottom">
   <div class="container">
-    <h5 class="break-long-content">Mirrors status for <%= $cur_path %>: </h5>
+    <h5 class="break-long-content">Mirrors status: </h5>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarFolderStatus" aria-controls="navbarFolderStatus" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
     </button>
@@ -70,7 +70,7 @@
         <th>Name</th><th>Size</th><th>Last Modified</th><th>Metadata</th>
       % } else {
         <th colspan="3">Name</th><th>Metadata</th>
-      % }  
+      % }
       </tr>
     <thead>
     <tbody>
@@ -85,8 +85,8 @@
       <tr>
         <td class="name"><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td>
       %   if ($file->{mtime}) {
-        <td class='mtime'><%= $file->{mtime} %></td>
         <td class='size'><%= $file->{dir} ? '' : $file->{size} %></td>
+        <td class='mtime'><%= $file->{mtime} %></td>
       %   } else {
         <td/><td/>
       %   }
