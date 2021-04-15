@@ -26,7 +26,7 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 0, size => 2 },
   "country",
   { data_type => "varchar", is_nullable => 0, size => 2 },
-  "dt", 
+  "dt",
   {
     data_type   => 'timestamp',
     dynamic_default_on_create => 'DBIx::Class::Timestamps::now',
@@ -38,6 +38,10 @@ __PACKAGE__->add_columns(
   { data_type => "boolean", is_nullable => 0 },
   "ipv4",
   { data_type => "boolean", is_nullable => 0 },
+  "metalink",
+  { data_type => "boolean", is_nullable => 1 },
+  "head",
+  { data_type => "boolean", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY

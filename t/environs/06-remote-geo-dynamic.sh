@@ -20,6 +20,7 @@ for x in ap6-system2 ap7-system2 ap8-system2 ap9-system2; do
 done
 
 export MIRRORCACHE_ROOT=http://$(ap6*/print_address.sh)
+export MIRRORCACHE_STAT_FLUSH_COUNT=1
 mc9*/start.sh
 mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
@@ -49,8 +50,6 @@ curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat 
 curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1314
 curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1304
 
-sleep 10
-
 pg9*/sql.sh -c "select * from stat" mc_test
 # check stats are logged properly
 test 2 == $(pg9*/sql.sh -t -c "select distinct mirror_id from stat where country='de' and mirror_id > 0" mc_test)
@@ -69,7 +68,7 @@ curl -s http://127.0.0.1:3190/rest/stat | grep '"hit":4' | grep '"miss":2'
 
 # now test stat_agg job by injecting some values into yesterday
 mc9*/backstage/stop.sh
-pg9*/sql.sh -c "insert into stat(path, dt, mirror_id, secure, ipv4) select '/ttt', now() - interval '1 day', mirror_id, 'f', 'f' from stat" mc_test
+pg9*/sql.sh -c "insert into stat(path, dt, mirror_id, secure, ipv4, metalink, head) select '/ttt', now() - interval '1 day', mirror_id, 'f', 'f', 'f', 't' from stat" mc_test
 pg9*/sql.sh -c "delete from minion_locks where name like 'stat_agg_schedule%'" mc_test
 mc9*/backstage/job.sh stat_agg_schedule
 mc9*/backstage/shoot.sh
@@ -79,3 +78,12 @@ test 4 == $(pg9*/sql.sh -t -c "select count(*) from stat_agg where period = 'day
 
 curl -s http://127.0.0.1:3190/rest/stat
 curl -s http://127.0.0.1:3190/rest/stat | grep '"hit":4' | grep '"miss":2' | grep '"prev_hit":4' | grep '"prev_miss":2'
+
+
+test 0 == $(pg9*/sql.sh -t -c "select sum(case when head then 0 else 1 end) from stat" mc_test)
+curl --interface 127.0.0.2 -is http://127.0.0.1:3190/download/folder1/file1.dat
+test 1 == $(pg9*/sql.sh -t -c "select sum(case when head then 0 else 1 end) from stat" mc_test)
+
+test 0 == $(pg9*/sql.sh -t -c "select sum(case when metalink then 1 else 0 end) from stat" mc_test)
+curl --interface 127.0.0.2 -Is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/file1.dat
+test 1 == $(pg9*/sql.sh -t -c "select sum(case when metalink then 1 else 0 end) from stat" mc_test)

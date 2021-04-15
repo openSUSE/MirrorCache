@@ -30,7 +30,7 @@ has [ '_path', '_trailing_slash' ];
 has [ '_query', '_query1' ];
 has '_original_path';
 has '_agent';
-has [ '_is_secure', '_is_ipv4' ];
+has [ '_is_secure', '_is_ipv4', '_is_head' ];
 
 has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
 has '_root_region';
@@ -74,6 +74,7 @@ sub reset($self, $c) {
     $self->_agent(undef);
     $self->_is_ipv4(undef);
     $self->_is_secure(undef);
+    $self->_is_head(undef);
     $self->metalink(undef);
     $self->metalink_accept(undef);
 
@@ -201,6 +202,13 @@ sub is_ipv4($self) {
     return $self->_is_ipv4;
 }
 
+sub is_head($self) {
+    unless (defined $self->_is_head) {
+        $self->_init_req;
+    }
+    return $self->_is_head;
+}
+
 sub redirect($self, $url) {
     return $self->c->redirect_to($url . $self->query1);
 }
@@ -217,10 +225,12 @@ sub _init_headers($self) {
 
 sub _init_req($self) {
     $self->_is_secure($self->c->req->is_secure? 1 : 0);
+    $self->_is_head('HEAD' eq uc($self->c->req->method)? 1 : 0);
     $self->_is_ipv4(1);
     if (my $ip = $self->ip) {
         $self->_is_ipv4(0) if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1'
     }
+
 }
 
 sub _init_location($self) {
@@ -292,7 +302,7 @@ sub _init_path($self) {
     }
     $path = '/'.join('/', reverse @c_new);
     if(!$trailing_slash && ((my $pos = length($path)-length('.metalink')) > 1)) {
-        if ('.metalink' eq substr($path,$pos)) {
+        if ('.metalink' eq substr($path,$pos)) {
             $self->metalink(1);
             $path = substr($path,0,$pos);
         }
