@@ -83,6 +83,22 @@ sub register {
             }
             return 1;
         }
+        unless ($dm->pedantic) {
+            my $mirror = shift @$mirrors;
+            # Check below is needed only when MIRRORCACHE_ROOT_COUNTRY is set
+            # only with remote root and when no mirrors should be used for the root's country
+            if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
+                return $root->render_file($c, $filepath, 1);
+            }
+            my $url = $mirror->{url} . $filepath;
+            $c->redirect_to($url);
+            eval {
+                $c->stat->redirect_to_mirror($mirror->{mirror_id});
+                $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
+            };
+            return 1;
+        }
+
         my $tx = $c->render_later->tx;
         my $ua  = Mojo::UserAgent->new;
         my $recurs1;

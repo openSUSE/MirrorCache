@@ -52,7 +52,7 @@ create table folder_diff_file (
     file_id bigint -- no foreign key to simplify deletion of files
 );
 
-CREATE INDEX folder_diff_file_index ON folder_diff_file(file_id); 
+CREATE INDEX folder_diff_file_index ON folder_diff_file(file_id);
 
 create table folder_diff_server (
     folder_diff_id bigint references folder_diff not null,
@@ -130,7 +130,9 @@ create table stat (
     dt timestamp NOT NULL,
     mirror_id int,
     secure boolean NOT NULL,
-    ipv4 boolean NOT NULL
+    ipv4 boolean NOT NULL,
+    metalink boolean default 'f',
+    head boolean default 'f'
 );
 
 create index stat_dt_mirror on stat(dt, mirror_id, secure, ipv4);
