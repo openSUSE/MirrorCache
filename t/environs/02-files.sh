@@ -27,7 +27,7 @@ ap7*/status.sh >& /dev/null || ap7*/start.sh
 ap8*/status.sh >& /dev/null || ap8*/start.sh
 
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','us',''" mc_test
 
 # remove folder1/file1.dt from ap8
@@ -47,7 +47,8 @@ curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 302
 
 mv ap7-system2/dt/folder1/file2.dat ap8-system2/dt/folder1/
 
-curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep 200
+curl -Is http://127.0.0.1:3190/download/folder1/file2.dat?PEDANTIC=0 | grep 302
+curl -Is http://127.0.0.1:3190/download/folder1/file2.dat?PEDANTIC=1 | grep 200
 
 mc9*/backstage/job.sh mirror_scan_schedule_from_misses
 mc9*/backstage/shoot.sh
@@ -112,7 +113,7 @@ curl -Is http://127.0.0.1:3190/download/./folder1/../folder1/./file1.dat | grep 
 for x in mc9 ap7-system2 ap8-system2; do
     mkdir -p $x/dt/folder1/media.1
     echo CONTENT1 > $x/dt/folder1/media.1/file1.dat
-    echo CONTENT1 > $x/dt/folder1/media.1/media
+    echo CONTENT2 > $x/dt/folder1/media.1/media
 done
 
 curl -Is http://127.0.0.1:3190/download/folder1/media.1/media
@@ -126,5 +127,4 @@ curl -is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/downlo
 
 test -z "$(curl -is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/media.1/media | grep location)" || FAIL media.1/media must not return metalink
 curl -is http://127.0.0.1:3190/download/folder1/media.1/media.metalink | grep location
-curl -is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/media.1/media | grep CONTENT1
-
+curl -iLs -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/media.1/media | grep CONTENT2

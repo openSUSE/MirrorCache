@@ -102,4 +102,4 @@ curl --cacert ca/ca.pem -I -s https://127.0.0.1:1524/folder1/file1.dat | grep ht
 
 # shutdown ap7, then https must redirect to ap4
 ap7*/stop.sh
-curl --cacert ca/ca.pem -I -s https://127.0.0.1:1524/folder1/file1.dat | grep https:// | grep $(ap4*/print_address.sh)
+curl --cacert ca/ca.pem -I -s https://127.0.0.1:1524/folder1/file1.dat?PEDANTIC=1 | grep https:// | grep $(ap4*/print_address.sh)

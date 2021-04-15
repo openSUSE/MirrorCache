@@ -25,6 +25,7 @@ has [ 'route', 'route_len' ];
 has [ 'metalink', 'metalink_accept' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng' ];
 has [ '_avoid_countries' ];
+has [ '_pedantic' ];
 has [ '_path', '_trailing_slash' ];
 has [ '_query', '_query1' ];
 has '_original_path';
@@ -77,6 +78,7 @@ sub reset($self, $c) {
     $self->metalink_accept(undef);
 
     $self->_avoid_countries(undef);
+    $self->_pedantic(undef);
 }
 
 sub ip($self) {
@@ -105,6 +107,13 @@ sub avoid_countries($self) {
         $self->_init_location;
     }
     return $self->_avoid_countries;
+}
+
+sub pedantic($self) {
+    unless (defined $self->_pedantic) {
+        $self->_init_location;
+    }
+    return $self->_pedantic;
 }
 
 sub lat($self) {
@@ -242,6 +251,14 @@ sub _init_location($self) {
     }
     $self->_country($country // '');
     $self->_region($region // '');
+
+    my $pedantic;
+    if(my $p = $query->param('PEDANTIC')) {
+        $pedantic = $p;
+    } else {
+        $pedantic = $ENV{'MIRRORCACHE_PEDANTIC'};
+    }
+    $self->_pedantic($pedantic // 0);
 }
 
 sub _init_path($self) {

@@ -16,6 +16,8 @@ mc9*/configure_db.sh pg9
 ./environ.sh ap8-system2
 ./environ.sh ap7-system2
 
+export MIRRORCACHE_PEDANTIC=1
+
 for x in mc9 ap7-system2 ap8-system2 ap9-system2; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch

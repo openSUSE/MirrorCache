@@ -16,6 +16,7 @@ rs9*/start.sh
 rs9*/status.sh
 
 mc9*/configure_db.sh pg9
+export MIRRORCACHE_PEDANTIC=1
 export MIRRORCACHE_ROOT=rsync://$USER:$USER@$(rs9*/print_address.sh)/dt
 export MIRRORCACHE_REDIRECT=http://some.address.fake.com
 

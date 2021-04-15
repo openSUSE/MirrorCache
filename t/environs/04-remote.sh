@@ -12,6 +12,7 @@ pg9*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
 
 ./environ.sh ap9-system2
 mc9*/configure_db.sh pg9
+export MIRRORCACHE_PEDANTIC=1
 export MIRRORCACHE_ROOT=http://$(ap9*/print_address.sh)
 
 ./environ.sh ap8-system2
