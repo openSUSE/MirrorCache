@@ -77,6 +77,15 @@ sub register {
 
     $app->helper(is_admin_js    => sub { Mojo::ByteStream->new(shift->helpers->is_admin    ? 'true' : 'false') });
 
+    $app->helper(
+        # generate popover help button with title and content
+        help_popover => sub {
+            my ($c, $title, $content, $placement) = @_;
+            my $class = 'help_popover fa fa-question-circle';
+            my $data = {toggle => 'popover', trigger => 'focus', title => $title, content => $content};
+            $data->{placement} = $placement if $placement;
+            return $c->t(a => (tabindex => 0, class => $class, role => 'button', (data => $data)));
+        });
 }
 
 sub _current_user {

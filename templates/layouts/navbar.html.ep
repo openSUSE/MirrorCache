@@ -37,6 +37,7 @@
                   %= tag 'div' => class => 'dropdown-divider'
                   %= tag 'h3' => class => 'dropdown-header' => 'Administrator menu'
                   %= link_to 'Users' => url_for('get_user') => class => 'dropdown-item'
+                  %= link_to 'Audit log' => url_for('audit_log') => class => 'dropdown-item'
                   % }
                   %= tag 'div' => class => 'dropdown-divider'
                   %= link_to 'Logout' => url_for('logout') => class => 'dropdown-item'
