@@ -41,10 +41,11 @@ sub register {
     if ($redirect = $ENV{MIRRORCACHE_REDIRECT}) {
         $redirect = "http://$redirect" unless 'http://' eq substr($redirect, 0, length('http://'));
     } else {
-    	$redirect = substr($url,0,length('rsync://'), 'http://');
+        $redirect = $url;
+    	substr($redirect,0,length('rsync://'), 'http://');
     }
     $self->rooturlredirect($redirect);
-    $redirect = substr($redirect,0,length('http://'),'https://');
+    substr($redirect,0,length('http://'),'https://');
     $self->rooturlsredirect($redirect);
     $app->helper( 'mc.root' => sub { $self; });
 }
@@ -96,7 +97,7 @@ sub is_dir {
 sub render_file {
     my ($self, $c, $filepath, $not_miss) = @_;
     $c->redirect_to($self->location($c, $filepath));
-    $c->stat->redirect_to_root(0) unless $not_miss;
+    $c->stat->redirect_to_root($not_miss? 1 : 0);
     return 1;
 }
 
