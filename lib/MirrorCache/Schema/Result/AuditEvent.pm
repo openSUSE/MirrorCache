@@ -52,5 +52,6 @@ __PACKAGE__->add_columns(
         is_nullable => 0
     });
 __PACKAGE__->set_primary_key('id');
+__PACKAGE__->belongs_to(owner => 'MirrorCache::Schema::Result::Acc', 'user_id', {join_type => 'left'});
 
 1;
