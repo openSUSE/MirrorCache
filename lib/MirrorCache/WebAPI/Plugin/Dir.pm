@@ -73,7 +73,7 @@ sub render_dir_remote {
     my $tx = $c->render_later->tx;
 
     my $job_id = 0;
-    $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir, $country);
+    $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir);
     unless ($job_id > 0) {
         return _render_dir($c, $dir, $rsFolder);
     }

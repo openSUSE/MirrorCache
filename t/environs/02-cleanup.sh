@@ -10,6 +10,7 @@ pg9*/status.sh 2 > /dev/null || pg9*/start.sh
 pg9*/create.sh db mc_test
 mc9*/configure_db.sh pg9
 
+export MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
 mc9*/start.sh
 mc9*/status.sh
 
@@ -24,13 +25,13 @@ done
 ap7*/status.sh >& /dev/null || ap7*/start.sh
 ap8*/status.sh >& /dev/null || ap8*/start.sh
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','us',''" mc_test
 
-# remove a file
+# remove a file from one mirror
 rm ap8-system2/dt/folder1/file2.dat
 
-# force rescan
+# force scan
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat
 mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule

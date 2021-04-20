@@ -23,6 +23,8 @@ sub register {
     $app->minion->add_task(folder_sync_schedule => sub { _run($app, @_) });
 }
 
+my $DELAY = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
+
 sub _run {
     my ($app, $job) = @_;
 
@@ -45,7 +47,7 @@ sub _run {
         order_by => { -asc => [qw/db_sync_scheduled -db_sync_priority/] },
         rows => $limit
     });
-    
+
     for my $folder (@folders) {
         $minion->enqueue('folder_sync' => [$folder->path] => {priority => $folder->db_sync_priority} => {notes => {$folder->path => 1}} );
         $cnt = $cnt + 1;
@@ -56,7 +58,7 @@ sub _run {
         "update folder set db_sync_scheduled = now(), db_sync_priority = 10 where id in ( select id from folder where db_sync_last < now() - interval '2 hour' order by db_sync_last limit 10)"
     )->execute();
 
-    return $job->retry({delay => 10});
+    return $job->retry({delay => $DELAY});
 }
 
 1;

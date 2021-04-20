@@ -19,6 +19,8 @@ done
 
 export MIRRORCACHE_ROOT=http://$(ap6*/print_address.sh)
 export MIRRORCACHE_STAT_FLUSH_COUNT=1
+export MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3
+
 mc9*/start.sh
 mc9*/backstage/job.sh folder_sync_schedule_from_misses
 mc9*/backstage/job.sh folder_sync_schedule
@@ -28,14 +30,13 @@ pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) selec
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','/','t','cn',''" mc_test
 
-# we need to request file from two countries, so all mirrors will be scanned
 curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat
 curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat
 
 test 0 == "$(grep -c Poll mc9/.cerr)"
 
-# currently it takes some time, need to improve somehow
-sleep 20
+sleep 10
+mc9*/backstage/job.sh -e mirror_scan -a '["/folder1","cn"]'
 
 # check redirects to headquarter are logged properly
 pg9*/sql.sh -c "select * from stat" mc_test

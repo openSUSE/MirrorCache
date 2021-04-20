@@ -48,7 +48,7 @@ sub _scan {
 
     my $minion = $app->minion;
     return $job->finish('Previous mirror scan job is still active')
-        unless my $guard = $minion->guard('mirror_scan' . $path, 360);
+        unless my $guard = $minion->guard('mirror_scan' . $path . '_' .  $country, 360);
 
     $job->note($path => 1);
     my $schema = $app->schema;
@@ -87,6 +87,7 @@ sub _scan {
         my $ua = Mojo::UserAgent->new->max_redirects(10);
         $job->note("hash$server_id" => undef);
         my $promise = $ua->get_p($url)->then(sub {
+            $count++;
             my $tx = shift;
             my $sid = $folder_on_mirror->{server_id};
             # return $schema->resultset('Server')->forget_folder($folder_on_mirror->{server_id}, $folder_on_mirror->{folder_diff_id}) if $tx->result->code == 404;
@@ -185,7 +186,6 @@ sub _scan {
                 return;
             }
 
-            $count++;
             if ($old_diff_id) {
                 # we need update existing entry
                 $schema->resultset('FolderDiffServer')->update_diff_id($folder_diff->id, $max_dt, $old_diff_id, $folder_on_mirror->{server_id});

@@ -12,6 +12,7 @@ pg9*/create.sh db mc_test
 mc9*/configure_db.sh pg9
 export MIRRORCACHE_PEDANTIC=1
 export MIRRORCACHE_ROOT=http://$(ap9*/print_address.sh)
+export MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
 
 ./environ.sh ap8-system2
 ./environ.sh ap7-system2

@@ -63,14 +63,13 @@ __PACKAGE__->add_columns(
   db_sync_last => {
         data_type   => 'timestamp',
         is_nullable => 1
-  },    
+  },
   db_sync_scheduled => {
         data_type   => 'timestamp',
         dynamic_default_on_create => 'DBIx::Class::Timestamps::now',
         is_nullable => 1
   },
   db_sync_priority => { data_type => "integer", is_nullable => 1 },
-  db_sync_for_country => { data_type => "varchar", is_nullable => 0, size => 2 },
   "size",
   { data_type => "bigint", is_nullable => 1 },
 );
