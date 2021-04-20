@@ -29,7 +29,7 @@ sub emit_event {
     my $user_id = $args{user_id};
     my $tag     = $args{tag};
 
-    return $self->emit($type, [$user_id, $type, $data, $tag]);
+    return $self->emit($type, [$user_id, $type, $data]);
 }
 
 1;

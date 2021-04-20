@@ -48,8 +48,14 @@ sub register {
 }
 
 sub on_event {
-    my ($self, $app, $args, $tag) = @_;
+    my ($self, $app, $args) = @_;
     my ($user_id, $event, $event_data) = @$args;
+    my $tag;
+    if (ref $event_data eq ref {} and exists $event_data->{tag}) {
+        $tag = $event_data->{tag};
+        delete($event_data->{tag});
+    }
+    
     # no need to log mc_ prefix in mc log
     $event =~ s/^mc_//;
     $app->schema->resultset('AuditEvent')->create({
