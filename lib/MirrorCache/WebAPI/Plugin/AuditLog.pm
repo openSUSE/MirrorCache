@@ -44,7 +44,7 @@ sub register {
     # log restart
     my $schema = $app->schema;
     $schema->resultset('AuditEvent')
-      ->create({user_id => 0, name => 'startup', event_data => 'AuditLog registered'});
+      ->create({user_id => -1, name => 'startup', event_data => 'AuditLog registered'});
 }
 
 sub on_event {

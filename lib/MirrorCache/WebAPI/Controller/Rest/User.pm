@@ -26,7 +26,8 @@ sub delete {
     } elsif ($user->is_operator) {
         $role = 'operator';
     }
-    $self->emit_event('mc_user_delete', {role => $role, username => $user->username});
+    my $event_data = {role => $role, username => $user->username};
+    $self->emit_event('mc_user_delete', $event_data, $self->current_user->id);
     my $result = $user->delete();
     $self->render(json => {result => $result});
 }

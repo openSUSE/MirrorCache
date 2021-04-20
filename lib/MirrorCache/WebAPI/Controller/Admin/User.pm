@@ -52,11 +52,12 @@ sub update {
         }
         $user->update({is_admin => $is_admin, is_operator => $is_operator});
         $self->flash('info', 'User ' . $user->nickname . ' updated');
-        $self->emit_event('mc_user_update', {
+        my $event_data = {
             username => $user->username,
             role_old => $role_old,
             role_new => $role
-        });
+        };
+        $self->emit_event('mc_user_update', $event_data, $self->current_user->id);
     }
 
     $self->redirect_to($self->url_for('get_user'));

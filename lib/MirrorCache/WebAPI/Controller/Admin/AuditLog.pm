@@ -111,7 +111,12 @@ sub _prepare_data {
     my ($results) = @_;
     my @events;
     while (my $event = $results->next) {
-        my $event_owner = $event->owner ? $event->owner->nickname : 'deleted user';
+        my $event_owner;
+        if ($event->user_id == -1) {
+            $event_owner = 'system';
+        } else {
+            $event_owner = $event->owner ? $event->owner->nickname : 'deleted user';
+        }
         push(
             @events,
             {

@@ -48,9 +48,9 @@ sub register {
     $app->helper(
         # emit_event helper, adds user to events
         emit_event => sub {
-            my ($self, $name, $data) = @_;
+            my ($self, $name, $data, $user) = @_;
             die 'Missing event name' unless $name;
-            my $user = 0; # TBD
+            $user //= -1;
             return MirrorCache::Events->singleton->emit($name, [$user, $name, $data]);
         });
 
