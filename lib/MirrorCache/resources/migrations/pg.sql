@@ -9,7 +9,6 @@ create table if not exists folder (
     db_sync_last timestamp,
     db_sync_scheduled timestamp,
     db_sync_priority int NOT NULL DEFAULT 10,
-    db_sync_for_country varchar(2), -- empty means all mirrors needs to be rescanned, otherwise - only one country
     files int,
     size bigint
 );
@@ -161,3 +160,14 @@ create table if not exists stat_agg (
 create index if not exists stat_agg_dt_period on stat_agg(dt, period, mirror_id);
 -- 2 up
 alter table stat add column if not exists metalink boolean default 'f', add column if not exists head boolean default 'f';
+-- 3 up
+alter table folder drop column if exists db_sync_for_country;
+create table demand (
+    folder_id int NOT NULL references folder on delete cascade,
+    country char(2) NOT NULL,
+    last_request timestamp,
+    last_scan timestamp,
+    mirror_count_country int,
+    mirror_count_region int,
+    unique(folder_id, country)
+);

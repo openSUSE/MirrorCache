@@ -51,13 +51,13 @@ sub path_misses {
         my $path = $data->{path};
         next unless $path;
         my $country = $data->{country};
-        if (exists($path_country{$path})) {
-            # let's do for all countries if at least two coutries requested it recently
-            $path_country{$path} = "" unless $path_country{$path} eq $country;
-        } else {
-            $path_country{$path} = $country;
+        my $rec = $path_country{$path};
+        $rec = {} unless $rec;
+        if ($country) {
+            $rec->{$country} = 1;
+            $countries{$country} = 1 ;
         }
-        $countries{$country} = 1 if $country;
+        $path_country{$path} = $rec;
     }
     my @country_list = (keys %countries);
     return ($id, \%path_country, \@country_list);
@@ -121,13 +121,13 @@ sub mirror_misses {
         my $path = $data->{path};
         next unless $path;
         my $country = $data->{country};
-        if (exists($path_country{$path})) {
-            # let's do for all countries if at least two coutries requested it recently
-            $path_country{$path} = "" unless $path_country{$path} eq $country;
-        } else {
-            $path_country{$path} = $country;
+        my $rec = $path_country{$path};
+        $rec = {} unless $rec;
+        if ($country) {
+            $rec->{$country} = 1;
+            $countries{$country} = 1 ;
         }
-        $countries{$country} = 1 if $country;
+        $path_country{$path} = $rec;
     }
     my @country_list = (keys %countries);
     return ($id, \%path_country, \@country_list);

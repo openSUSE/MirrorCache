@@ -41,6 +41,7 @@ sub register_tasks {
       for (
         qw(MirrorCache::Task::MirrorScanScheduleFromMisses),
         qw(MirrorCache::Task::MirrorScanScheduleFromPathErrors),
+        qw(MirrorCache::Task::MirrorScanDemand),
         qw(MirrorCache::Task::MirrorScan),
         qw(MirrorCache::Task::MirrorLocation),
         qw(MirrorCache::Task::MirrorProbe),
@@ -113,7 +114,8 @@ sub check_permanent_jobs {
         $need_restart{ $info->{task} } = 0;
     }
 
-    for my $task ( sort keys %need_restart ) {
+    # iterate by permanent_jobs to preserve original order
+    for my $task ( @permanent_jobs ) {
         next unless $need_restart{$task};
         $app->log->warn("Haven't found running $task, starting it...");
         $minion->enqueue($task);

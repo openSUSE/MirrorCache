@@ -28,6 +28,7 @@ pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) selec
 # we need to request file from two countries, so all mirrors will be scanned
 curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat
 curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat
+curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat
 
 # also requested file in folder2 from country where no mirrors present
 curl -Is http://127.0.0.1:3190/download/folder2/file1.dat?COUNTRY=dk

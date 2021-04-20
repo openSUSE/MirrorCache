@@ -38,26 +38,49 @@ END_SQL
 }
 
 sub request_db_sync {
-    my ($self, $path, $country, $priority) = @_;
-    $country  = "" unless $country;
+    my ($self, $path, $priority) = @_;
     $priority = 10 unless $priority;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    # TODO increase priority if exists?
-
     my $sql = <<'END_SQL';
-insert into folder(path, db_sync_scheduled, db_sync_priority, db_sync_for_country)
-values (?, now(), ?, ?)
+insert into folder(path, db_sync_scheduled, db_sync_priority)
+values (?, now(), ?)
 on conflict(path) do update set
 db_sync_scheduled = CASE WHEN folder.db_sync_scheduled > folder.db_sync_last THEN folder.db_sync_scheduled ELSE now() END,
-db_sync_priority = ?,
-db_sync_for_country = CASE WHEN folder.db_sync_for_country != ? THEN '' ELSE folder.db_sync_for_country END
+db_sync_priority = ?
+returning id
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($path, $priority, $country, $priority, $country);
+    $prep->execute($path, $priority, $priority);
+    my $res = $prep->fetchrow_arrayref;
+    return $res->[0];
+}
+
+sub request_for_country {
+    my ($self, $folder_id, $country) = @_;
+    $country  = "" unless $country;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $seconds = int($ENV{'MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT'} // 120);
+
+    my $sql = <<'END_SQL';
+insert into demand as d(folder_id, country, last_request)
+values (?, ?, now())
+on conflict(folder_id, country) do update set
+last_request = now()
+where ( ? = 0 ) OR
+( 0 = date_part('day',    d.last_request - excluded.last_request) and
+0 = date_part('hour',   d.last_request - excluded.last_request) and
+? > date_part('second', d.last_request - excluded.last_request) )
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($folder_id, $country, $seconds, $seconds);
 }
 
 sub find_folder_or_redirect {
@@ -73,7 +96,7 @@ from folder
 where path = ?
 union
 select id, NULL, pathto
-from redirect 
+from redirect
 where pathfrom = ?
 limit 1
 END_SQL
@@ -198,7 +221,7 @@ sub delete_cascade {
     WHERE folder_diff_id = folder_diff.id
         AND folder_id = ?")->execute($id);
 
-            $dbh->prepare("DELETE FROM folder_diff_file 
+            $dbh->prepare("DELETE FROM folder_diff_file
     USING folder_diff
     WHERE folder_diff_id = folder_diff.id
         AND folder_id = ?")->execute($id);

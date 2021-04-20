@@ -35,7 +35,6 @@ sub show {
         db_sync_last        => $f->db_sync_last,
         db_sync_scheduled   => $f->db_sync_scheduled,
         db_sync_priority    => $f->db_sync_priority,
-        db_sync_for_country => $f->db_sync_for_country,
     };
 
     my $parent_path = dirname($f->path);
@@ -43,7 +42,7 @@ sub show {
     # for my $x ($f->files->all) {
     #    $info->{files}->{$x->key} = $x->value;
     # }
-    
+
     return $self->render('app/folder/show', folder => $info, parent_path => $parent_path);
 }
 

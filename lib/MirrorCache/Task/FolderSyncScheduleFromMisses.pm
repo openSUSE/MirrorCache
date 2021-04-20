@@ -21,6 +21,8 @@ sub register {
     $app->minion->add_task(folder_sync_schedule_from_misses => sub { _run($app, @_) });
 }
 
+my $DELAY = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
+
 sub _run {
     my ($app, $job, $prev_event_log_id) = @_;
     my $job_id = $job->id;
@@ -47,7 +49,7 @@ sub _run {
         $prev_event_log_id = $event_log_id;
         print(STDERR "$pref read id from event log up to: $event_log_id\n");
         for my $path (sort keys %$path_country_map) {
-            my $country = $path_country_map->{$path}; 
+            my $countries = $path_country_map->{$path};
             my $folder = $rs->find({ path => $path });
             if (!$folder) {
                 if (!$app->mc->root->is_dir($path)) {
@@ -55,8 +57,12 @@ sub _run {
                     next unless $app->mc->root->is_dir($path);
                 }
             }
-            $rs->request_db_sync( $path, $country );
+            my $folder_id = $rs->request_db_sync( $path );
             $cnt = $cnt + 1;
+            next unless $countries;
+            for my $country (keys %$countries) {
+                $rs->request_for_country($folder_id, $country);
+            }
         }
         for my $country (@$country_list) {
             next unless $minion->lock('mirror_probe_scheduled_' . $country, 60); # don't schedule if schedule hapened in last 60 sec
@@ -84,7 +90,7 @@ sub _run {
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
     $job->note(event_log_id => $prev_event_log_id, total => $total, last_run => $last_run);
-    return $job->retry({delay => 5});
+    return $job->retry({delay => $DELAY});
 }
 
 1;

@@ -21,6 +21,9 @@ sub register {
     $app->minion->add_task(mirror_scan_schedule_from_misses => sub { _run($app, @_) });
 }
 
+my $DELAY   = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
+my $TIMEOUT = int($ENV{MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT} // 120);
+
 sub _run {
     my ($app, $job, $prev_event_log_id) = @_;
     my $job_id = $job->id;
@@ -45,7 +48,20 @@ sub _run {
         $prev_event_log_id = $event_log_id;
         print(STDERR "$pref read id from event log up to: $event_log_id\n");
         for my $path (sort keys %$path_country_map) {
-            $minion->enqueue('mirror_scan' => [$path, $path_country_map->{$path}] => {priority => 7});
+            my $countries = $path_country_map->{$path};
+            next unless $countries && keys %$countries;
+            my $folder = $schema->resultset('Folder')->find({ path => $path });
+            next unless $folder && $folder->id;
+            my $folder_id = $folder->id;
+            for my $country (sort keys %$countries) {
+                $schema->resultset('Folder')->request_for_country($folder_id, $country);
+                # do not schedule the same job more frequently than $TIMOUT
+                if ($TIMEOUT) {
+                    my $bool = $minion->lock("mirror_scan_schedule_$path" . "_$country", $TIMEOUT);
+                    next unless $bool;
+                }
+                $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7});
+            }
             $cnt = $cnt + 1;
         }
         for my $country (@$country_list) {
@@ -74,7 +90,7 @@ sub _run {
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
     $job->note(event_log_id => $prev_event_log_id, total => $total, last_run => $last_run);
-    return $job->retry({delay => 5});
+    return $job->retry({delay => $DELAY});
 }
 
 1;

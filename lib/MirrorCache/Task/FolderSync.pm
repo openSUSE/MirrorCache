@@ -23,7 +23,7 @@ sub register {
 }
 
 sub _sync {
-    my ($app, $job, $path, $country) = @_;
+    my ($app, $job, $path) = @_;
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
 
@@ -62,21 +62,13 @@ sub _sync {
             $schema->resultset('Folder')->delete_cascade($folder->id, 0);
             return $job->finish("folder has been successfully deleted from DB");
         }
-        $folder->update({db_sync_last => datetime_now(), db_sync_priority => 10, db_sync_for_country => ''}); # prevent further sync attempts
+        $folder->update({db_sync_last => datetime_now()}); # prevent further sync attempts
         return $job->finish("$path is not a dir anymore");
     }
 
     # Mark db_sync_last early to stop other jobs to try to reschedule the sync
     my $update_db_last = sub {
-        # Task may be explicitly scheduled for particular country or have country in the DB
-        if ($folder->db_sync_for_country) {
-            if ($country) {
-                $country = '' unless $country eq $folder->db_sync_for_country;
-            } else {
-                $country = $folder->db_sync_for_country;
-            }
-        }
-        $folder->update({db_sync_last => datetime_now(), db_sync_priority => 10, db_sync_for_country => ''});
+        $folder->update({db_sync_last => datetime_now()});
     };
 
     if ($folder) {
@@ -110,7 +102,7 @@ sub _sync {
         $job->note(created => $path, count => $count);
 
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
-        $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7}) if $country;
+        $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7});
         return;
     };
     return $job->fail("Couldn't create folder $path in DB") unless $folder && $folder->id;
@@ -161,17 +153,9 @@ sub _sync {
     ) if @idstodelete;
     my $deleted = @idstodelete;
 
-    # Task may be explicitly scheduled for particular country or have country in the DB
-    if ($folder->db_sync_for_country) {
-        if ($country) {
-            $country = '' unless $country eq $folder->db_sync_for_country;
-        } else {
-            $country = $folder->db_sync_for_country;
-        }
-    }
-    $folder->update({db_sync_last => datetime_now(), db_sync_priority => 10, db_sync_for_country => ''});
-    $job->note(updated => $path, count => $cnt, deleted => $deleted, updated => $updated, for_country => $country );
-    $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7} ) if $cnt;
+    $folder->update({db_sync_last => datetime_now()});
+    $job->note(updated => $path, count => $cnt, deleted => $deleted, updated => $updated);
+    $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7} ) if $cnt;
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }
 

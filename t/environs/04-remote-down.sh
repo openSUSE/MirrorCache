@@ -11,6 +11,7 @@ pg9*/create.sh db mc_test
 ./environ.sh ap9-system2
 mc9*/configure_db.sh pg9
 export MIRRORCACHE_ROOT=http://$(ap9*/print_address.sh)
+export MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
 
 ./environ.sh ap8-system2
 ./environ.sh ap7-system2
@@ -51,7 +52,7 @@ if ap9*/status.sh ; then
     fail Root apache must be down
 fi
 
-# mc properly redirects when root is down
+echo mc properly redirects when root is down
 curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap7*/print_address.sh)
 
 # since root is unavailable repomd is taken from a mirror
