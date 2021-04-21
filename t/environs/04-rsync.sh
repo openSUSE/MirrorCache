@@ -8,8 +8,6 @@ set -ex
 pg9*/status.sh 2 > /dev/null || pg9*/start.sh
 
 pg9*/create.sh db mc_test
-pg9*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
-
 ./environ.sh rs9-system2
 rs9*/configure_dir.sh dt "$(pwd)"/rs9-system2/dt
 rs9*/start.sh

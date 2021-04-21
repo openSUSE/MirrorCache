@@ -8,8 +8,6 @@ set -ex
 pg9*/status.sh 2 > /dev/null || pg9*/start.sh
 
 pg9*/create.sh db mc_test
-pg9*/sql.sh -v ON_ERROR_STOP=1 -f $(pwd)/MirrorCache/sql/schema.sql mc_test
-
 mc9*/configure_db.sh pg9
 
 export MIRRORCACHE_PERMANENT_JOBS='folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule'

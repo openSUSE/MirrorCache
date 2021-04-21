@@ -11,7 +11,7 @@ tar.xz:
 install:
 	for i in lib script templates assets sql; do \
 		mkdir -p "${DESTDIR}"/usr/share/mirrorcache/$$i ;\
-		cp -a $$i/* "${DESTDIR}"/usr/share/mirrorcache/$$i ;\
+		[ ! -e $$i ] || cp -a $$i/* "${DESTDIR}"/usr/share/mirrorcache/$$i ;\
 	done
 	mkdir -p "${DESTDIR}"/usr/share/mirrorcache/assets/cache
 	chmod +x "${DESTDIR}"/usr/share/mirrorcache/script/*
@@ -31,8 +31,7 @@ setup_system_user:
 setup_system_db:
 	sudo -u postgres createuser mirrorcache
 	sudo -u postgres createdb mirrorcache
-	sudo -u mirrorcache psql -f sql/schema.sql mirrorcache
 
 setup_production_assets:
 	cd "${DESTDIR}"/usr/share/mirrorcache/ && \
-	    MOJO_MODE=production ${mkfile_path}/tools/generate-packed-assets 
+	    MOJO_MODE=production ${mkfile_path}/tools/generate-packed-assets

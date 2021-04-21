@@ -23,7 +23,6 @@ use MirrorCache::Schema;
 use Mojo::Pg;
 
 has app => undef, weak => 1;
-has 'dsn';
 
 sub new {
     my ( $class, $app ) = @_;
@@ -63,15 +62,7 @@ sub register {
     my $schema = $app->schema;
 
     my $conn = Mojo::Pg->new;
-    if ( ref $schema->storage->connect_info->[0] eq 'HASH' ) {
-        $self->dsn( $schema->dsn );
-        $conn->username( $schema->storage->connect_info->[0]->{user} );
-        $conn->password( $schema->storage->connect_info->[0]->{password} );
-    }
-    else {
-        $self->dsn( $schema->storage->connect_info->[0] );
-    }
-    $conn->dsn( $self->dsn() );
+    $conn->dsn( $schema->dsn );
 
     $app->plugin( Minion => { Pg => $conn } );
     $self->register_tasks;

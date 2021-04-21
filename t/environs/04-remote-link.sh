@@ -17,8 +17,6 @@ done
 pg9*/status.sh 2 > /dev/null || {
     pg9*/start.sh
     pg9*/create.sh db mc_test
-    pg9*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
-
     ln -s $(pwd)/ap9-system2/dt/folder1 $(pwd)/ap9-system2/dt/link
 echo '    RewriteEngine On
     RewriteBase "/"
@@ -37,8 +35,6 @@ done
 
 # make sure rewrite works properly in apache
 curl -I $(ap9*/print_address.sh)/link | grep -A3 302 | grep folder1
-
-pg9*/sql.sh -c "insert into folder(path, db_sync_last) select '/', now()" mc_test
 
 mc9*/start.sh
 mc9*/status.sh

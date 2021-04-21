@@ -8,8 +8,6 @@ set -ex
 pg9*/status.sh 2 > /dev/null || pg9*/start.sh
 
 pg9*/create.sh db mc_test
-pg9*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
-
 ./environ.sh ap9-system2
 mc9*/configure_db.sh pg9
 export MIRRORCACHE_ROOT=http://$(ap9*/print_address.sh)
@@ -25,12 +23,10 @@ for x in ap7-system2 ap8-system2 ap9-system2; do
     $x/start.sh
 done
 
-pg9*/sql.sh -c "insert into folder(path, db_sync_last) select '/', now()" mc_test 
-
 mc9*/start.sh
 mc9*/status.sh
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test 
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','us',''" mc_test
 
 # first request redirected to root
