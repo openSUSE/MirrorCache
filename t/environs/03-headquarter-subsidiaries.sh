@@ -12,7 +12,6 @@ for i in 6 7 8 9; do
     ./environ.sh mc$i $(pwd)/MirrorCache
     pg$i*/start.sh
     pg$i*/create.sh db mc_test
-    pg$i*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
     mc$i*/configure_db.sh pg$i
     mkdir -p mc$i/dt/{folder1,folder2,folder3}
     echo mc$i/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
@@ -25,6 +24,9 @@ eu_address=$(mc7*/print_address.sh)
 eu_interface=127.0.0.3
 as_address=$(mc8*/print_address.sh)
 as_interface=127.0.0.4
+
+# deploy db
+mc9*/backstage/shoot.sh
 
 pg9*/sql.sh -c "insert into subsidiary(hostname,region) select '$na_address','na'" mc_test
 pg9*/sql.sh -c "insert into subsidiary(hostname,region) select '$eu_address','eu'" mc_test

@@ -10,8 +10,6 @@ set -ex
 pg9*/status.sh 2 > /dev/null || pg9*/start.sh
 
 pg9*/create.sh db mc_test
-pg9*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
-
 # this will be proxy server which redirects https and http to mirrorcache
 ./environ.sh ap9-system2
 

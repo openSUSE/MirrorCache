@@ -24,19 +24,11 @@ If neither TEST_PG nor MIRRORCACHE_DSN is defined, following variables are used:
   * MIRRORCACHE_DBHOST (default empty)
   * MIRRORCACHE_DBPORT (default empty)
 
-### Database schema and initial data
-  Before starting services, schema.sql file must be loaded into database.
-  Source distribution:
-    `sql/schema.sql`
-  Package:
-    `/usr/share/mirrorcache/sql/schema.sql`
-
 ### GeoIP location
   * If environment variable MIRRORCACHE_CITY_MMDB is defined, the app will attempt to detect country of the request and find a mirror in the same country, e.g. `MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb`.
   * Refer Maxmind geoip2 on how to obtain such file.
-  * Additional dependencies must be installed as well for GeoIP location to work: perl modules Mojolicious::Plugin::ClientIP and MaxMind::DB::Reader:
+  * Additional dependencies must be installed as well for GeoIP location to work: perl modules Mojolicious::Plugin::ClientIP and MaxMind::DB::Reader :
 ```
-zypper ar https://mirrorcache.opensuse.org/repositories/home:andriinikitin:/MirrorCache:/Geo/openSUSE_Leap_15.2 mcgeo
 zypper in Mojolicious::Plugin::ClientIP MaxMind::DB::Reader
 ```
 
@@ -55,7 +47,6 @@ systemctl enable postgresql
 
 sudo -u postgres createuser mirrorcache
 sudo -u postgres createdb mirrorcache
-sudo -u mirrorcache psql -f /usr/share/mirrorcache/sql/schema.sql mirrorcache
 
 # the services read environment variables from /usr/share/mirrorcache/conf.env by default
 echo "MIRRORCACHE_ROOT=http://download.opensuse.org
@@ -177,7 +168,6 @@ cd environs
 ./environ.sh pg1-system2
 pg1*/start.sh
 pg1*/create.sh db mc
-pg1*/sql.sh -f ~/github/MirrorCache/sql/schema.sql mc
 mc1*/configure_db.sh pg1
 
 MIRRORCACHE_ROOT=http://download.opensuse.org \

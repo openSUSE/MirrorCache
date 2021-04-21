@@ -5,8 +5,10 @@ set -ex
 ./environ.sh mc9 $(pwd)/MirrorCache
 pg9*/start.sh
 pg9*/create.sh db mc_test
-pg9*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
 mc9*/configure_db.sh pg9
+
+# should deploy db
+mc9*/backstage/shoot.sh
 
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test 
 pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de',''" mc_test 

@@ -44,12 +44,12 @@ test "${PRIVILEGED_TESTS}" == 1 || {
    echo PRIVILEGED_TESTS is not set to 1
    (exit 1)
 }
-docker_info="$(docker info >/dev/null 2>&1)" || { 
+docker_info="$(docker info >/dev/null 2>&1)" || {
     echo "Docker doesn't seem to be running"
     (exit 1)
 }
 
-rsync -rt --size-only $thisdir/../../sql $thisdir/src/
+mkdir -p $thisdir/src
 cp $thisdir/../data/city.mmdb $thisdir/src/
 
 docker build -t $ident.image -f $thisdir/Dockerfile.systemd $thisdir

@@ -1,22 +1,12 @@
 use utf8;
 package MirrorCache::Schema;
 
-# Created by DBIx::Class::Schema::Loader
-# DO NOT MODIFY THE FIRST PART OF THIS FILE
-
 use strict;
 use warnings;
 
 use base 'DBIx::Class::Schema';
-
-__PACKAGE__->load_namespaces;
-
-
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2020-06-24 15:20:56
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:EdFAN9vLCRPN7CD/CZgt0A
-
-
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
+use Mojo::File qw(path);
+use Mojo::Pg;
 
 __PACKAGE__->load_namespaces;
 
@@ -56,9 +46,35 @@ sub disconnect_db {
 
 sub dsn {
     my $self = shift;
-    return $self->storage->connect_info->[0]->{dsn};
+    my $ci = $self->storage->connect_info->[0];
+    if ( $ci eq 'HASH' ) {
+        return $ci->{dsn}
+    }
+    return $ci;
 }
 
 sub singleton { $SINGLETON || connect_db() }
+
+sub has_table {
+    my ($self,$table_name) = @_;
+
+    my $sth = $self->storage->dbh->table_info(undef, 'public', $table_name, 'TABLE');
+    $sth->execute;
+    my @info = $sth->fetchrow_array;
+
+    my $exists = scalar @info;
+    return $exists;
+}
+
+sub migrate {
+    my $self = shift;
+    my $conn = Mojo::Pg->new;
+    $conn->dsn( $self->dsn );
+
+    my $dbh     = $self->storage->dbh;
+    my $dbschema = path(__FILE__)->dirname->child('resources', 'migrations', 'pg.sql');
+    $conn->auto_migrate(1)->migrations->name('mirrorcache')->from_file($dbschema);
+    $conn->db; # this will do migration
+}
 
 1;

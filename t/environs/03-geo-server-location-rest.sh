@@ -5,12 +5,12 @@ set -ex
 ./environ.sh mc9 $(pwd)/MirrorCache
 pg9*/start.sh
 pg9*/create.sh db mc_test
-pg9*/sql.sh -f $(pwd)/MirrorCache/sql/schema.sql mc_test
 mc9*/configure_db.sh pg9
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test 
-
 MIRRORCACHE_TEST_TRUST_AUTH=1 mc9*/start.sh
+
+pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test
+
 mc9*/curl.sh rest/server/location/1 -X PUT
 mc9*/backstage/shoot.sh
 
@@ -24,7 +24,7 @@ if mc9*/status.sh >/dev/null 2>&1; then
     exit 1
 fi
 
-pg9*/sql.sh -c "update server set lat = 0, lng = 0 where id = 1" mc_test 
+pg9*/sql.sh -c "update server set lat = 0, lng = 0 where id = 1" mc_test
 mc9*/start.sh
 mc9*/curl.sh rest/server/location/1 -X PUT
 mc9*/backstage/shoot.sh

@@ -31,7 +31,16 @@ sub startup {
     die("MIRRORCACHE_CITY_MMDB is not a file ($city_mmdb)") if $city_mmdb && ! -f $city_mmdb;
     my $reader;
 
-    MirrorCache::Schema->singleton;
+    eval {
+        MirrorCache::Schema->singleton;
+        1;
+    } or die("Database connect failed: $@");
+
+    eval {
+        MirrorCache::Schema->singleton->migrate();
+        1;
+    } or die("Automatic migration failed: $@\nFix table structure and insert into mojo_migrations select 'mirrorcache',version");
+
     push @{$self->commands->namespaces}, 'MirrorCache::WebAPI::Command';
 
     $self->plugin('DefaultHelpers');
