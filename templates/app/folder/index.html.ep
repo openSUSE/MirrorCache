@@ -19,7 +19,6 @@
                     <th class="col_value">Db Sync Last</th>
                     <th class="col_value">Db Sync Scheduled</th>
                     <th class="col_value">Db Sync Priority</th>
-                    <th class="col_value">Db Sync For Country</th>
                 </tr>
             </thead>
             <tbody>
