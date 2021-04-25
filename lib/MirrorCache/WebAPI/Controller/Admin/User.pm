@@ -25,8 +25,12 @@ sub index {
 }
 
 sub update {
-    my ($self)      = @_;
-    my $set         = $self->schema->resultset('Acc');
+    my ($self) = @_;
+    my $user   = $self->schema->resultset('Acc')->find($self->param('userid'));
+
+    return $self->render(json => {error => 'User not found.'}, status => 404) unless $user;
+    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $self->current_user;
+
     my $is_admin    = 0;
     my $is_operator = 0;
     my $role        = $self->param('role') // 'user';
@@ -39,26 +43,20 @@ sub update {
         $is_operator = 1;
     }
 
-    my $user = $set->find($self->param('userid'));
-    if (!$user) {
-        $self->flash('error', "Can't find that user");
+    my $role_old = 'user';
+    if ($user->is_admin) {
+        $role_old = 'admin'
+    } elsif ($user->is_operator) {
+        $role_old = 'operator';
     }
-    else {
-        my $role_old = 'user';
-        if ($user->is_admin) {
-            $role_old = 'admin'
-        } elsif ($user->is_operator) {
-            $role_old = 'operator';
-        }
-        $user->update({is_admin => $is_admin, is_operator => $is_operator});
-        $self->flash('info', 'User ' . $user->nickname . ' updated');
-        my $event_data = {
-            username => $user->username,
-            role_old => $role_old,
-            role_new => $role
-        };
-        $self->emit_event('mc_user_update', $event_data, $self->current_user->id);
-    }
+    $user->update({is_admin => $is_admin, is_operator => $is_operator});
+    my $event_data = {
+        role_new => $role,
+        role_old => $role_old,
+        updated_user_id  => $user->id,
+        username => $user->username
+    };
+    $self->emit_event('mc_user_update', $event_data, $self->current_user->id);
 
     $self->redirect_to($self->url_for('get_user'));
 }
