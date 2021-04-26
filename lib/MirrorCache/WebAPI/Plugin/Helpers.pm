@@ -91,6 +91,17 @@ sub register {
 sub _current_user {
     my $c = shift;
 
+    if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH} and $ENV{MIRRORCACHE_TEST_TRUST_AUTH} == 1) {
+        my $user_data = {
+            id => -2,
+            is_admin => 1,
+            is_operator => 1,
+            username => 'test_trust_auth',
+            nickname => 'test_trust_auth'
+        };
+        my $user = $c->schema->resultset("Acc")->new_result($user_data);
+        $c->stash(current_user => {user => $user});
+    }
     # If the value is not in the stash
     my $current_user = $c->stash('current_user');
     unless ($current_user && ($current_user->{no_user} || defined $current_user->{user})) {

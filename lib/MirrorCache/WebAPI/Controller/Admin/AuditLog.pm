@@ -114,6 +114,8 @@ sub _prepare_data {
         my $event_owner;
         if ($event->user_id == -1) {
             $event_owner = 'system';
+        } elsif ($event->user_id == -2) {
+            $event_owner = 'test_trust_auth';
         } else {
             $event_owner = $event->owner ? $event->owner->nickname : 'deleted user';
         }
