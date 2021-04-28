@@ -54,7 +54,8 @@ sub _run {
             next unless $folder && $folder->id;
             my $folder_id = $folder->id;
             for my $country (sort keys %$countries) {
-                $schema->resultset('Folder')->request_for_country($folder_id, $country);
+                next unless $country && 2 == length($country);
+                $schema->resultset('Folder')->request_for_country($folder_id, lc($country));
                 # do not schedule the same job more frequently than $TIMOUT
                 if ($TIMEOUT) {
                     my $bool = $minion->lock("mirror_scan_schedule_$path" . "_$country", $TIMEOUT);

@@ -21,7 +21,7 @@ use Encode ();
 use URI::Escape ('uri_unescape');
 use File::Basename;
 use HTML::Parser;
-use Data::Dumper;
+use Time::Piece;
 
 sub singleton { state $root = shift->SUPER::new; return $root; };
 
@@ -90,6 +90,7 @@ sub location {
 
 sub looks_like_file {
     my $f = shift;
+    return 0 if $f eq '../';
     return 0 if rindex($f, '/', length($f)-2) > -1;
     return 1;
 };
@@ -113,18 +114,48 @@ sub foreach_filename {
     # my $dom = $tx->result->dom;
 
     my $href = '';
+    my $href20 = '';
+    my $tag = '';
+    my %desc;
     my $start = sub {
-        return undef unless $_[0] eq 'a' && $_[1];
-        $href = $_[1]->{href};
-        $href =~ s{^\./}{};
-        $href = uri_unescape($href);
+        my ($tag, $v) = @_;
+        return undef unless $tag eq 'a' && $v;
+        my $h = $v->{href};
+        $h =~ s{^\./}{};
+        $h = uri_unescape($h);
+        return undef unless looks_like_file($h);
+        $href = $h;
     };
     my $end = sub {
         $href = '';
+        $href20 = '';
+        $tag = '';
     };
     my $text = sub {
-        my $t = trim shift;
-        $sub->($t) if $t && ($href eq $t) && looks_like_file($t);
+        my $t = shift;
+        $t = trim $t if $t;
+
+        $href20 = substr($href,0,20) if $href && !$href20;
+
+        if ($t && ($href20 eq substr($t,0,20))) {
+            if ($desc{name}) {
+                $sub->($desc{name}, $desc{size}, undef, $desc{mtime});
+                %desc = ();
+            }
+            $desc{name} = $href;
+        } elsif ($desc{name}) {
+            my @fields = split /(\d{2}-[A-Z][a-z]{2}-\d{4} \d{2}\:\d{2})\s+(-|\d+)/, $t;
+            if (3 == @fields) {
+                eval {
+                    my $dt = localtime->strptime($fields[1],'%d-%b-%Y %H:%M');
+                    $desc{mtime} = $dt->epoch;
+                    my $size = $fields[2];
+                    $size = undef if $size eq '-';
+                    $desc{size} = $size;
+                    1;
+                }; #  or print STDERR "Error parsing file date:" . $@;
+            }
+        }
     };
 
     my $p = HTML::Parser->new(
@@ -146,6 +177,10 @@ sub foreach_filename {
         last unless $l > 0;
         $offset += $l;
         $p->parse($chunk);
+    }
+    if ($desc{name}) {
+        $sub->($desc{name}, $desc{size}, undef, $desc{mtime});
+        %desc = ();
     }
     $p->eof;
     return 1;
