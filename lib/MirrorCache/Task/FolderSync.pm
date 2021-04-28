@@ -77,8 +77,8 @@ sub _sync {
         my $count = 0;
         my $sub = sub {
             my ($file, $size, $mmode, $mtime) = @_;
-            $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
-            $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
+            $file = $file . '/' if !$root->is_remote && $path ne '/' && $root->is_dir("$path/$file");
+            $file = $file . '/' if !$root->is_remote && $path eq '/' && $root->is_dir("$path$file");
             $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
             $count = $count+1;
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime});
@@ -123,8 +123,8 @@ sub _sync {
     my $cnt = 0, my $updated = 0;
     my $sub = sub {
         my ($file, $size, $mmode, $mtime) = @_;
-        $file = $file . '/' if !$root->is_remote && $root->is_dir("$path/$file") && $path ne '/';
-        $file = $file . '/' if !$root->is_remote && $root->is_dir("$path$file") && $path eq '/';
+        $file = $file . '/' if !$root->is_remote && $path ne '/' && $root->is_dir("$path/$file");
+        $file = $file . '/' if !$root->is_remote && $path eq '/' && $root->is_dir("$path$file");
         $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
         if ($dbfileids{$file}) {
             my $id = delete $dbfileidstodelete{$file};

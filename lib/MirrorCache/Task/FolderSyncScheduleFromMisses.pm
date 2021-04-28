@@ -61,7 +61,8 @@ sub _run {
             $cnt = $cnt + 1;
             next unless $countries;
             for my $country (keys %$countries) {
-                $rs->request_for_country($folder_id, $country);
+                next unless $country && 2 == length($country);
+                $rs->request_for_country($folder_id, lc($country));
             }
         }
         for my $country (@$country_list) {
