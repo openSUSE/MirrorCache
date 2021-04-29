@@ -25,7 +25,7 @@ sub register {
     my ($self, $app, $args ) = @_;
     my $root  = $args->{root};
     my $route = $args->{route};
-    
+
     $app->helper( 'mc.rootlocation' => sub {
         shift; # $c
         my $path = shift;
@@ -52,6 +52,22 @@ sub register {
             die 'Missing event name' unless $name;
             my $user = 0; # TBD
             return MirrorCache::Events->singleton->emit($name, [$user, $name, $data, $tag]);
+        });
+
+    $app->helper(
+        icon_url => sub {
+            my ($c, $icon) = @_;
+            my $icon_asset = $c->app->asset->processed($icon)->[0];
+            die "Could not find icon '$icon' in assets" unless $icon_asset;
+            return $c->url_for(assetpack => $icon_asset->TO_JSON);
+        });
+
+    $app->helper(
+        favicon_url => sub {
+            my ($c, $suffix) = @_;
+            return $c->icon_url("logo$suffix") unless my $job = $c->stash('job');
+            my $status = $job->status;
+            return $c->icon_url("logo-$status$suffix");
         });
 
     $app->helper(current_user     => \&_current_user);

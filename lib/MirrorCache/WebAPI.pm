@@ -65,6 +65,8 @@ sub startup {
 
         # Optional initialization with access to the app
         my $r = $self->routes->namespaces(['MirrorCache::WebAPI::Controller']);
+        $r->get('/favicon.ico' => sub { my $c = shift; $c->render_static('favicon.ico') });
+
         $r->get('/version')->to(cb => sub {
             shift->render(text => $current_version);
         }) if $current_version;
