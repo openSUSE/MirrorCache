@@ -179,7 +179,7 @@ for x in ng7-system2 ng8-system2 ng9-system2; do
 done
 
 
-mc9*/backstage/job.sh -e folder_sync -a "['/folder1']"
+mc9*/backstage/job.sh -e folder_sync -a '["/folder1"]'
 mc9*/backstage/shoot.sh
 
 mc9*/curl.sh download/folder1/ | grep -A1 $f | grep '10 Byte'

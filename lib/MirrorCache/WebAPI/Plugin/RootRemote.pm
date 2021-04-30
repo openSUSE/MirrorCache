@@ -23,25 +23,25 @@ use File::Basename;
 use HTML::Parser;
 use Time::Piece;
 
-sub singleton { state $root = shift->SUPER::new; return $root; };
+has [ 'rooturl', 'rooturlredirect', 'rooturlredirects' ];
 
-my $rooturl;
-my $rooturls; # same as $rooturl just s/http:/https:
-my $rooturlsfallback; # as defined in MIRRORCACHE_FALLBACK_HTTPS_REDIRECT
-
-my $app;
 my $uaroot = Mojo::UserAgent->new->max_redirects(10)->request_timeout(1);
 
 sub register {
-    (my $self, $app) = @_;
-    $rooturl = $app->mc->rootlocation;
-    $rooturls = $rooturl =~ s/http:/https:/r;
-    if (my $fallback = $ENV{MIRRORCACHE_FALLBACK_HTTPS_REDIRECT}) {
-        $rooturlsfallback = $fallback;
+    my ($self, $app) = @_;
+    my $rooturl = $app->mc->rootlocation;
+    $self->rooturl($rooturl);
+
+    my $redirect = $rooturl;
+    if ($redirect = $ENV{MIRRORCACHE_REDIRECT}) {
+        $redirect  = "http://$redirect" unless 'http://' eq substr($redirect, 0, length('http://'));
     } else {
-        $rooturlsfallback = $rooturls;
+        $redirect = $rooturl;
     }
-    $app->helper( 'mc.root' => sub { $self->singleton; });
+    $self->rooturlredirect($redirect);
+    my $redirects = $redirect =~ s/http:/https:/r;
+    $self->rooturlredirects($redirects);
+    $app->helper( 'mc.root' => sub { $self; });
 }
 
 sub is_remote {
@@ -51,14 +51,17 @@ sub is_remote {
 sub is_reachable {
     my $res = 0;
     eval {
-        my $tx = $uaroot->get($rooturl);
+        my $tx = $uaroot->get(shift->rooturlredirect);
         $res = 1 if $tx->result->code < 399;
     };
     return $res;
 }
 
+use Data::Dumper;
+
 sub is_file {
-    my $rooturlpath = $rooturl . $_[1];
+    my $self = shift;
+    my $rooturlpath = $self->rooturl . shift;
     my $res;
     eval {
         my $ua = Mojo::UserAgent->new->max_redirects(0);
@@ -83,9 +86,9 @@ sub render_file {
 sub location {
     my ($self, $c, $filepath) = @_;
     $filepath = "" unless $filepath;
-    return $rooturl . $filepath unless $c && $c->req->is_secure;
-    return $rooturls . $filepath if (!$filepath || substr($filepath,length($filepath)-1,1) eq "/"); # dont use fallback for folder checks
-    return $rooturlsfallback . $filepath;
+    return $self->rooturlredirect . $filepath unless $c && $c->req->is_secure;
+    # return $self->rooturlredirects . $filepath if (!$filepath || substr($filepath,length($filepath)-1,1) eq "/"); # dont use fallback for folder checks
+    return $self->rooturlredirects . $filepath;
 }
 
 sub looks_like_file {
@@ -108,7 +111,7 @@ sub foreach_filename {
         return 1;
     }
     my $ua   = Mojo::UserAgent->new;
-    my $tx   = $ua->get($rooturl . $dir . '/?F=1');
+    my $tx   = $ua->get($self->rooturl . $dir . '/?F=1');
     return 0 unless $tx->result->code == 200;
     # we cannot use mojo dom here because it takes too much RAM for huge html
     # my $dom = $tx->result->dom;
@@ -184,40 +187,6 @@ sub foreach_filename {
     }
     $p->eof;
     return 1;
-}
-
-
-# unused: $tx->result->dom takes ~70 Mb ram for 7k files TODO
-sub list_filenames {
-    my $self = shift;
-    my $dir  = shift;
-    my $tx   = Mojo::UserAgent->new->get($rooturl . $dir . '/');
-    my @res  = ();
-    return \@res unless $tx->result->code == 200;
-    my $dom = $tx->result->dom;
-    # TODO move root html tag to config
-    my @items = $dom->find('main')->each;
-    @items = $dom->find('ul')->each unless @items;
-    for my $ul (@items) {
-        for my $i ($ul->find('a')->each) {
-            my $text = trim $i->text;
-            my $href = $i->attr->{href};
-            next unless $href;
-            if ('/' eq substr($href, -1)) {
-                $href = basename($href) . '/';
-            } else {
-                $href = basename($href);
-            }
-            $href = uri_unescape($href);
-            if ($text eq $href) { # && -f $localdir . $text) {
-                # $text =~ s/\/$//;
-                push @res, $text;
-            }
-        }
-    }
-    my %hash   = map { $_, 1 } @res;
-    @res = sort keys %hash;
-    return \@res;
 }
 
 1;

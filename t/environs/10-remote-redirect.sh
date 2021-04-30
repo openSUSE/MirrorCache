@@ -19,7 +19,7 @@ ap5-system2/start.sh
 
 # here we redirect https requests as specified in MIRRORCACHE_FALLBACK_HTTPS_REDIRECT
 ./environ.sh ap4-system2
-export MIRRORCACHE_FALLBACK_HTTPS_REDIRECT=https://$(ap4*/print_address.sh)
+export MIRRORCACHE_REDIRECT=$(ap4*/print_address.sh)
 ap4-system2/start.sh
 
 mc9*/configure_db.sh pg9
