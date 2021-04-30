@@ -184,9 +184,25 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 }
 
 .break-long-content, .table td {
+}
+
+table td:nth-child(1) {
+    max-width:90%;
     overflow-wrap: break-word;
     word-wrap: break-word;
     word-break: break-word;
+}
+table td:nth-child(2) {
+    max-width:10%;
+    white-space: nowrap;
+}
+table td:nth-child(3) {
+    max-width:10%;
+    white-space: nowrap;
+}
+table td:nth-child(4) {
+    max-width:10%;
+    white-space: nowrap;
 }
 
 .breadcrumb {
@@ -196,6 +212,6 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 
 #container-download {
   width: 100%;
-  max-width: 720px;
+  max-width: 1440px;
   margin: auto;
 }
