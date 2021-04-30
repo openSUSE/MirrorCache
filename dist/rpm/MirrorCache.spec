@@ -24,7 +24,7 @@ Release:        0
 Summary:        WebApp to redirect and manage mirrors
 License:        GPL-2.0-or-later
 Group:          Productivity/Networking/Web/Servers
-URL:            https://github.com/andrii-suse/MirrorCache
+URL:            https://github.com/openSUSE/MirrorCache
 Source:         %{name}-%{version}.tar.xz
 BuildRequires:  %build_requires
 Requires:       perl(Minion) >= 10.0
