@@ -257,7 +257,7 @@ sub _guess_what_to_render {
     $ua->head_p($url1)->then(sub {
         my $res = shift->res;
 
-        if ($res->is_error) {
+        if ($res->is_error && $res->code ne 403) {
             $c->mmdb->emit_miss($path, $dm->country); # it is not a folder
         } else {
             if (!$res->is_redirect) {
