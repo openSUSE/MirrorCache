@@ -46,7 +46,7 @@
               </div>
               <div id='footer-legal' class="text-center">
                   MirrorCache is licensed
-                  %= link_to 'GPL-2.0' => 'https://github.com/andrii-suse/MirrorCache'
+                  %= link_to 'GPL-2.0' => 'https://github.com/openSUSE/MirrorCache'
                   % if (my $ver = eval '$current_version') {
                       - Version 
                       %= $ver

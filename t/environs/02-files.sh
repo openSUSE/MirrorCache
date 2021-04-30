@@ -2,7 +2,6 @@
 set -exo pipefail
 
 ./environ.sh pg9-system2
-# git clone https://github.com/andrii-suse/MirrorCache || :
 
 ./environ.sh mc9 $(pwd)/MirrorCache
 pg9*/status.sh 2 > /dev/null || pg9*/start.sh

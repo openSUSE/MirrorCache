@@ -43,4 +43,4 @@ The motivation behind this project is to rethink architecture of mirrorbrain htt
 
 ## How to report issues or ask questions:
 
-Write an email to andrii.nikitin on domain suse.com or use the issue tracker at https://github.com/andrii-suse/MirrorCache/
+Write an email to andrii.nikitin on domain suse.com or use the issue tracker at https://github.com/openSUSE/MirrorCache/

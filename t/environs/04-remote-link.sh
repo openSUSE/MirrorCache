@@ -2,7 +2,6 @@
 set -ex
 
 ./environ.sh pg9-system2
-# git clone https://github.com/andrii-suse/MirrorCache || :
 ./environ.sh ap9-system2
 ./environ.sh ap8-system2
 ./environ.sh ap7-system2
