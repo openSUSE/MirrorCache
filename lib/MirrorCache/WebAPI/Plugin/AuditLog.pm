@@ -28,7 +28,7 @@ my @mirror_events = qw(mirror_pick mirror_miss mirror_scan_complete);
 # mirror_error means there was an error while trying to HEAD a file on a mirror (without valid HTML response)
 my @error_events = qw(mirror_scan_error mirror_path_error mirror_error);
 my @other_events = qw(unknown_ip debug);
-my @user_events = qw(user_update user_delete); 
+my @user_events = qw(user_update user_delete server_create server_update server_delete);
 
 sub register {
     my ($self, $app) = @_;
