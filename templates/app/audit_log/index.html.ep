@@ -23,11 +23,11 @@
                 <table class="table">
                     <tr>
                         <td><code>older:yyyy/mm/dd</code></td>
-                        <td>events older than the specified date</td>
+                        <td class="break-long-content">events older than the specified date</td>
                     </tr>
                     <tr>
                         <td><code>newer:yyyy/mm/dd</code></td>
-                        <td>events newer than the specified date</td>
+                        <td class="break-long-content">events newer than the specified date</td>
                     </tr>
                     <tr>
                         <td><code>user:string</code></td>
