@@ -28,3 +28,21 @@ table#users {
         }
     }
 }
+
+#audit_log_table .audit_event_data {
+    white-space: pre;
+    font-family: monospace;
+}
+
+.search-popover {
+    position: relative;
+    left: -15px;
+    z-index: 10;
+    float: right;
+    margin-top: 5px;
+    margin-left: 5px;
+
+    .popover {
+        min-width: 30em;
+    }
+}

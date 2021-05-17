@@ -35,9 +35,12 @@ function setup_admin_user() {
                 findDefault(form).removeClass('default');
                 form.find('input[value="' + newRole + '"]').addClass('default');
             },
-            error: function(err) {
+            error: function(xhr, ajaxOptions, thrownError) {
                 rollback(form);
-                addFlash('danger', 'An error occurred when changing the user role');
+                var error_message = 'An error occurred when changing the user role. ';
+                if (xhr.responseJSON && xhr.responseJSON.error)
+                    error_message += xhr.responseJSON.error;
+                addFlash('danger', error_message);
             }
         });
     });
@@ -55,10 +58,10 @@ function setup_admin_user() {
                 window.admin_user_table.row($("#user_" + id)).remove().draw();
             },
             error: function(xhr, ajaxOptions, thrownError) {
+                var error_message = 'An error occurred when deleting the user. ';
                 if (xhr.responseJSON && xhr.responseJSON.error)
-                    addFlash('danger', xhr.responseJSON.error);
-                else
-                    addFlash('danger', 'An error has ocurred. Maybe there are unsatisfied foreign key restrictions in the DB for this user.');
+                    error_message += xhr.responseJSON.error;
+                addFlash('danger', error_message);
             }
         });
     };

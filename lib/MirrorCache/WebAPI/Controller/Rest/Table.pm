@@ -67,7 +67,6 @@ sub list {
             $table => [
                 map {
                     my $row      = $_;
-                    my @settings; # = sort { $a->key cmp $b->key } $row->settings;
                     my %hash     = (
                         (
                             map {
@@ -77,8 +76,7 @@ sub list {
                                 my $val = $row->get_column($col1);
                                 $val ? ($col => $val) : ()
                             } @{$tables{$table}->{cols}}
-                        ),
-                        settings => [map { {key => $_->key, value => $_->value} } @settings]);
+                        ));
                     \%hash;
                 } @result
             ]});
@@ -86,13 +84,14 @@ sub list {
 
 sub create {
     my ($self) = @_;
+
+    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $self->current_user;
+
     my $table  = $self->param("table");
+    
     my %entry  = %{$tables{$table}->{defaults}};
-
-    my ($error_message, $settings, $keys) = $self->_prepare_settings($table, \%entry);
-    return $self->render(json => {error => $error_message}, status => 400) if defined $error_message;
-
-    # $entry{settings} = $settings;
+    my $prepare_error = $self->_prepare_params($table, \%entry);
+    return $self->render(json => {error => $prepare_error}, status => 400) if defined $prepare_error;
 
     my $error;
     my $id;
@@ -102,17 +101,26 @@ sub create {
     if ($error) {
         return $self->render(json => {error => $error}, status => 400);
     }
+    my %event_data;
+    for my $k (keys %entry) {
+        next if !$entry{$k} or "$entry{$k}" eq '';
+        $event_data{$k} = $entry{$k};
+    }
+    my $name = 'mc_' . lc $table . '_create';
+    $self->emit_event($name, \%event_data, $self->current_user->id);
     $self->render(json => {id => $id});
 }
 
 sub update {
     my ($self) = @_;
+
+    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $self->current_user;
+
     my $table = $self->param("table");
 
     my $entry = {};
-    my ($error_message, $settings, $keys) = $self->_prepare_settings($table, $entry);
-
-    return $self->render(json => {error => $error_message}, status => 400) if defined $error_message;
+    my $prepare_error = $self->_prepare_params($table, $entry);
+    return $self->render(json => {error => $prepare_error}, status => 400) if defined $prepare_error;
 
     my $schema = $self->schema;
 
@@ -121,6 +129,19 @@ sub update {
     my $update = sub {
         my $rc = $schema->resultset($table)->find({id => $self->param('id')});
         if ($rc) {
+            my @event_data;
+            for my $k (keys %{ $entry }) {
+                next if !$entry->{$k} || "$entry->{$k}" eq '' and !$rc->$k || $rc->$k . '' eq '';
+                if (!$rc->$k or $rc->$k . '' eq '') {
+                    push @event_data, {"new $k" => $entry->{$k}};
+                } elsif ($entry->{$k} ne $rc->$k) {
+                    push @event_data, {"new $k" => $entry->{$k}, "old $k" => $rc->$k . ''};
+                } else {
+                    push @event_data, {$k => $entry->{$k}};
+                }
+            }
+            my $name = 'mc_' . lc $table . '_update';
+            $self->emit_event($name, \@event_data, $self->current_user->id);
             $rc->update($entry);
             $ret = 1;
         }
@@ -150,9 +171,8 @@ sub update {
 
 =item destroy()
 
-Deletes a table given its type (machine, test suite or product) and its id. Returns
-a 404 error code when the table is not found, 400 on other errors or a JSON block
-with the number of deleted tables on success.
+Deletes a table record given its type (server, folder) and its id. Returns
+a 404 error code when the table is not found, 400 on other errors.
 
 =back
 
@@ -160,6 +180,8 @@ with the number of deleted tables on success.
 
 sub destroy {
     my ($self) = @_;
+
+    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $self->current_user;
 
     my $table    = $self->param("table");
     my $schema   = $self->schema;
@@ -169,8 +191,21 @@ sub destroy {
 
     try {
         my $rs = $schema->resultset($table);
-        $res = $rs->search({id => $self->param('id')});
-        $ret = $res->delete;
+        $res = $rs->find({id => $self->param('id')});
+        if ($res) {
+            my %event_data;
+            for my $k (@{$tables{$table}->{cols}}) {
+                $k =~ tr/ /_/;
+                next if !$res->$k or $res->$k . '' eq '';
+                $event_data{$k} = $res->$k;
+            }
+            my $name = 'mc_' . lc $table . '_delete';
+            $self->emit_event($name, \%event_data, $self->current_user->id);
+            $ret = $res->delete;
+        }
+        else {
+            $ret = 0;
+        }
     }
     catch {
         # The first line of the backtrace gives us the error message we want
@@ -188,16 +223,16 @@ sub destroy {
 
 =over 4
 
-=item _prepare_settings()
+=item _prepare_params()
 
-Internal method to prepare settings when add or update admin table.
-Use by both B<create()> and B<update()> method.
+Internal method to validate and prepare parameters for adding or updating an admin table.
+Used by both B<create()> and B<update()> methods.
 
 =back
 
 =cut
 
-sub _prepare_settings {
+sub _prepare_params {
     my ($self, $table, $entry) = @_;
     my $validation = $self->validation;
 
@@ -218,20 +253,7 @@ sub _prepare_settings {
     if ($validation->has_error) {
         return "Missing parameter: " . join(', ', @{$validation->failed});
     }
-
-    # $entry->{description} = $self->param('description');
-    my $hp = $self->hparams();
-    my @settings;
-    my @keys;
-    # if ($hp->{settings}) {
-    #    for my $k (keys %{$hp->{settings}}) {
-    #        $k = trim $k;
-    #        my $value = trim $hp->{settings}->{$k};
-    #        push @settings, {key => $k, value => $value};
-    #        push @keys, $k;
-    #    }
-    # }
-    return (undef, \@settings, \@keys);
+    return undef;
 }
 
 1;

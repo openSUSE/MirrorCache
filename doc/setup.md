@@ -186,7 +186,7 @@ mc1*/status.sh
 mc1*/backstage/status.sh
 ```
 
-### Run tests from [/t/environs](/t/environs) with docker, manually for debugging
+### Run tests from [t/environs](/t/environs) with docker, manually for debugging
 
 - Requires docker configured for non-root users
 - Available configuration:
@@ -206,8 +206,11 @@ mc1*/backstage/status.sh
     # Run the test and have the container available at http://localhost:80 afterwards
     EXPOSE_PORT=3190 ./01-smoke.sh
     ```
-    To access admin actions without logging in, like the Users page, add `MIRRORCACHE_TEST_TRUST_AUTH=1` in the test you want to run:
+    To log in with a fake test-user, add `MIRRORCACHE_TEST_TRUST_AUTH=1` in the test you want to run:
     - Change `mc9*/start.sh` to `MIRRORCACHE_TEST_TRUST_AUTH=1 mc9*/start.sh`
+    
+    Setting `MIRRORCACHE_TEST_TRUST_AUTH` to any number > 1 will result in `current_user` being `undef`, so no fake test-user login.
+    You will only have access to some routes defined in [lib/MirrorCache/WebAPI.pm](/lib/MirrorCache/WebAPI.pm).
 
 **WARNING** - Be careful when working inside container:
 1. The source tree is mapped to the host, so any changes of source code inside container will be reflected on host and vice versa.

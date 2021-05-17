@@ -127,6 +127,9 @@ sub startup {
 
         my $rest_user_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
         $rest_user_r->delete('/user/<id:num>')->name('delete_user')->to('user#delete');
+        
+        $admin_r->get('/auditlog')->name('audit_log')->to('audit_log#index');
+        $admin_r->get('/auditlog/ajax')->name('audit_ajax')->to('audit_log#ajax');
 
         $r->get('/index' => sub { shift->render('main/index') });
         $r->get('/' => sub { shift->render('main/index') })->name('index');

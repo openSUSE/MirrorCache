@@ -28,7 +28,7 @@ my @mirror_events = qw(mirror_pick mirror_miss mirror_scan_complete);
 # mirror_error means there was an error while trying to HEAD a file on a mirror (without valid HTML response)
 my @error_events = qw(mirror_scan_error mirror_path_error mirror_error);
 my @other_events = qw(unknown_ip debug);
-my @user_events = qw(user_update user_delete); 
+my @user_events = qw(user_update user_delete server_create server_update server_delete);
 
 sub register {
     my ($self, $app) = @_;
@@ -44,12 +44,18 @@ sub register {
     # log restart
     my $schema = $app->schema;
     $schema->resultset('AuditEvent')
-      ->create({user_id => 0, name => 'startup', event_data => 'AuditLog registered'});
+      ->create({user_id => -1, name => 'startup', event_data => 'AuditLog registered'});
 }
 
 sub on_event {
-    my ($self, $app, $args, $tag) = @_;
+    my ($self, $app, $args) = @_;
     my ($user_id, $event, $event_data) = @$args;
+    my $tag;
+    if (ref $event_data eq ref {} and exists $event_data->{tag}) {
+        $tag = $event_data->{tag};
+        delete($event_data->{tag});
+    }
+    
     # no need to log mc_ prefix in mc log
     $event =~ s/^mc_//;
     $app->schema->resultset('AuditEvent')->create({

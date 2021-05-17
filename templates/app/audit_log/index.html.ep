@@ -1,0 +1,66 @@
+% layout 'bootstrap';
+% title 'Audit log';
+
+% content_for 'ready_function' => begin
+    audit_url   = "<%= url_for('audit_log') %>";
+    audit_ajax_url    = "<%= url_for('audit_ajax') %>";
+    searchquery = "<%= $search %>";
+    loadAuditLogTable();
+% end
+
+<div class="row">
+    <div class="col-sm-12">
+        <h2><%= title %></h2>
+
+        %= include 'layouts/info'
+
+        <span class="search-popover">
+            <%= help_popover('Search and filter the log' => '
+                <p>
+                    By default, the filter will only consider the <em>Event data</em> column.
+                    The following keywords can be used to filter the other columns:
+                </p>
+                <table class="table">
+                    <tr>
+                        <td><code>older:yyyy/mm/dd</code></td>
+                        <td class="break-long-content">events older than the specified date</td>
+                    </tr>
+                    <tr>
+                        <td><code>newer:yyyy/mm/dd</code></td>
+                        <td class="break-long-content">events newer than the specified date</td>
+                    </tr>
+                    <tr>
+                        <td><code>user:string</code></td>
+                        <td><em>User</em> column</td>
+                    </tr>
+                    <tr>
+                        <td><code>event:string</code></td>
+                        <td><em>Event</em> column</td>
+                    </tr>
+                    <tr>
+                        <td><code>data:string</code></td>
+                        <td><em>Event data</em> column</td>
+                    </tr>
+                </table>
+                <p>
+                    <strong>Example</strong><br>
+                    <code>user:eroca newer:5 days older:2021-04-12 event:user_update</code>
+                </p>
+                ', undef, undef, 'left');
+            %>
+        </span>
+
+        <table id="audit_log_table" class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Event</th>
+                    <th>Event data</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>

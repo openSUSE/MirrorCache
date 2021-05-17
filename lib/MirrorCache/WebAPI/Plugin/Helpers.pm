@@ -48,10 +48,10 @@ sub register {
     $app->helper(
         # emit_event helper, adds user to events
         emit_event => sub {
-            my ($self, $name, $data, $tag) = @_;
+            my ($c, $name, $data, $user) = @_;
             die 'Missing event name' unless $name;
-            my $user = 0; # TBD
-            return MirrorCache::Events->singleton->emit($name, [$user, $name, $data, $tag]);
+            $user //= -1;
+            return MirrorCache::Events->singleton->emit($name, [$user, $name, $data]);
         });
 
     $app->helper(
@@ -77,11 +77,31 @@ sub register {
 
     $app->helper(is_admin_js    => sub { Mojo::ByteStream->new(shift->helpers->is_admin    ? 'true' : 'false') });
 
+    $app->helper(
+        # generate popover help button with title and content
+        help_popover => sub {
+            my ($c, $title, $content, $placement) = @_;
+            my $class = 'help_popover fa fa-question-circle';
+            my $data = {toggle => 'popover', trigger => 'focus', title => $title, content => $content};
+            $data->{placement} = $placement if $placement;
+            return $c->t(a => (tabindex => 0, class => $class, role => 'button', (data => $data)));
+        });
 }
 
 sub _current_user {
     my $c = shift;
 
+    if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH} and $ENV{MIRRORCACHE_TEST_TRUST_AUTH} == 1) {
+        my $user_data = {
+            id => -2,
+            is_admin => 1,
+            is_operator => 1,
+            username => 'test_trust_auth',
+            nickname => 'test_trust_auth'
+        };
+        my $user = $c->schema->resultset("Acc")->new_result($user_data);
+        $c->stash(current_user => {user => $user});
+    }
     # If the value is not in the stash
     my $current_user = $c->stash('current_user');
     unless ($current_user && ($current_user->{no_user} || defined $current_user->{user})) {

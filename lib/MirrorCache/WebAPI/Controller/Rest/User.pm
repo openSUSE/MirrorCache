@@ -18,16 +18,20 @@ use Mojo::Base 'Mojolicious::Controller';
 
 sub delete {
     my ($self) = @_;
-    my $user = $self->schema->resultset('Acc')->find($self->param('id'));
-    return $self->render(json => {error => 'Not found'}, status => 404) unless $user;
-    my $result = $user->delete();
+    my $user   = $self->schema->resultset('Acc')->find($self->param('id'));
+
+    return $self->render(json => {error => 'User not found.'}, status => 404) unless $user;
+    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $self->current_user;
+
     my $role = 'user';
     if ($user->is_admin) {
         $role = 'admin'
     } elsif ($user->is_operator) {
         $role = 'operator';
     }
-    $self->emit_event('mc_user_delete', {role => $role, username => $user->username});
+    my $event_data = {deleted_user_id => $user->id, role => $role, username => $user->username};
+    $self->emit_event('mc_user_delete', $event_data, $self->current_user->id);
+    my $result = $user->delete();
     $self->render(json => {result => $result});
 }
 

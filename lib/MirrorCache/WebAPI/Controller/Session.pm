@@ -46,6 +46,8 @@ sub destroy {
     my $auth_module = "MirrorCache::Auth::$auth_method";
     if (my $sub = $auth_module->can('auth_logout')) { $self->$sub }
     delete $self->session->{user};
+    # MIRRORCACHE_TEST_TRUST_AUTH Relevant only for tests
+    delete $ENV{MIRRORCACHE_TEST_TRUST_AUTH} if $ENV{MIRRORCACHE_TEST_TRUST_AUTH};
     $self->redirect_to('index');
 }
 
