@@ -1,83 +1,75 @@
-#!lib/test-in-container-environs.sh
+#!lib/test-in-container-environ.sh
 set -ex
 
-./environ.sh pg9-system2
+mc=$(environ mc $(pwd))
 
-./environ.sh mc9 $(pwd)/MirrorCache
-pg9*/status.sh 2 > /dev/null || pg9*/start.sh
+$mc/start
+$mc/status
 
-pg9*/create.sh db mc_test
-mc9*/configure_db.sh pg9
+ap8=$(environ ap8)
+ap7=$(environ ap7)
 
-mc9*/start.sh
-mc9*/status.sh
-
-./environ.sh ap8-system2
-./environ.sh ap7-system2
-
-for x in mc9 ap7-system2 ap8-system2; do
+for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
 done
 
-ap7*/status.sh >& /dev/null || ap7*/start.sh
-ap7*/curl.sh folder1/ | grep file1.dat
+$ap7/start
+$ap7/curl /folder1/ | grep file1.dat
 
-ap8*/status.sh >& /dev/null || ap8*/start.sh
-ap8*/curl.sh folder1/ | grep file1.dat
+$ap8/start
+$ap8/curl /folder1/ | grep file1.dat
 
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us',''"
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','/','t','us',''" mc_test
+$mc/curl -I /download/folder1/file1.dat
 
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat
-
-mc9*/backstage/job.sh -e mirror_probe -a '["us"]'
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
-mc9*/backstage/job.sh folder_sync_schedule
-mc9*/backstage/shoot.sh
+$mc/backstage/job -e mirror_probe -a '["us"]'
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
 
 # check redirection works
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 302
+$mc/curl -I /download/folder1/file1.dat | grep 302
 
 # now shut down ap7 and do probe
-ap7*/stop.sh
-mc9*/backstage/job.sh -e mirror_probe -a '["us"]'
-mc9*/backstage/shoot.sh
+$ap7/stop
+$mc/backstage/job -e mirror_probe -a '["us"]'
+$mc/backstage/shoot
 
 # check that ap7 is marked correspondingly in server_capability_check
-test  1 == $(pg9*/sql.sh -t -c "select sum(case when success then 0 else 1 end) from server_capability_check where server_id=1 and capability='http'" mc_test)
+test 1 == $($mc/db/sql "select sum(case when success then 0 else 1 end) from server_capability_check where server_id=1 and capability='http'")
 
-# add 4 more failures in past
-pg9*/sql.sh -t -c "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'" mc_test
-pg9*/sql.sh -t -c "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'" mc_test
-pg9*/sql.sh -t -c "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'" mc_test
-pg9*/sql.sh -t -c "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'" mc_test
+# add 4 more failures from the past into DB
+$mc/db/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'"
+$mc/db/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'"
+$mc/db/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'"
+$mc/db/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'"
 
 # make sure we added properly
-test 5 == $(pg9*/sql.sh -t -c "select sum(case when success then 0 else 1 end) from server_capability_check where server_id=1 and capability='http'" mc_test)
+test 5 == $($mc/db/sql "select sum(case when success then 0 else 1 end) from server_capability_check where server_id=1 and capability='http'")
 
-ap7*/stop.sh
-mc9*/backstage/job.sh -e mirror_force_downs
-mc9*/backstage/shoot.sh
+$mc/backstage/job -e mirror_force_downs
+$mc/backstage/shoot
 
-test 1 == $(pg9*/sql.sh -t -c "select count(*) from server_capability_force where server_id=1 and capability='http'" mc_test)
+test 1 == $($mc/db/sql "select count(*) from server_capability_force where server_id=1 and capability='http'")
 
 # age entry, so next job will consider it
-pg9*/sql.sh -t -c "update server_capability_force set dt = dt - interval '3 hour'" mc_test
+$mc/db/sql "update server_capability_force set dt = dt - interval '3 hour'"
 
 # now start back ap7 and shut down ap8 but ap7 is not redirected, because it is force disabled
-ap7*/start.sh
-ap8*/stop.sh
-mc9*/backstage/job.sh -e mirror_probe -a '["us"]'
-mc9*/backstage/shoot.sh
+$ap7/start
+$ap8/stop
+$mc/backstage/job -e mirror_probe -a '["us"]'
+$mc/backstage/shoot
 
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep -v $(ap7*/print_address.sh)
+$mc/curl -I /download/folder1/file1.dat | grep -v $($ap7/print_address)
 
 # now scan those mirrors which were force disabled
-mc9*/backstage/job.sh -e mirror_force_ups
-mc9*/backstage/job.sh -e mirror_probe -a '["us"]'
-mc9*/backstage/shoot.sh
+$mc/backstage/job -e mirror_force_ups
+$mc/backstage/job -e mirror_probe -a '["us"]'
+$mc/backstage/shoot
 
 # ap7 now should serve the request
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep $(ap7*/print_address.sh)
+$mc/curl -I /download/folder1/file1.dat | grep $($ap7/print_address)

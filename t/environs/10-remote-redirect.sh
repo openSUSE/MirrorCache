@@ -1,102 +1,107 @@
-#!lib/test-in-container-environs.sh
+#!lib/test-in-container-environ.sh
 
 # Smoke test for https-only mirrors
-set -ex
+set -euxo pipefail
 
-./environ.sh pg9-system2
+mc=$(environ mc $(pwd))
 
-./environ.sh mc9 $(pwd)/MirrorCache
-pg9*/status.sh 2 > /dev/null || pg9*/start.sh
+# this is root from where mirrorcache reads lists of files
+ap5=$(environ ap5)
+$ap5/start
+# here we redirect when no mirror is found as specified in MIRRORCACHE_REDIRECT
+ap4=$(environ ap4)
+$ap4/start
 
-pg9*/create.sh db mc_test
-# this will be proxy server which redirects https and http to mirrorcache
-./environ.sh ap9-system2
+# this mirror will do only http
+ap8=$(environ ap8)
+# this mirror will do only https
+ap7=$(environ ap7)
+$ap7/configure_ssl
 
-./environ.sh ap5-system2
-export MIRRORCACHE_ROOT=http://$(ap5*/print_address.sh)
-ap5-system2/start.sh
+$mc/gen_env MIRRORCACHE_PEDANTIC=1 \
+    MIRRORCACHE_ROOT=http://$($ap5/print_address) \
+    MIRRORCACHE_REDIRECT=$($ap4/print_address) \
+    MOJO_CA_FILE=$(pwd)/ca/ca.pem \
+    MOJO_REVERSE_PROXY=1 \
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3 \
+    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
 
-# here we redirect https requests as specified in MIRRORCACHE_FALLBACK_HTTPS_REDIRECT
-./environ.sh ap4-system2
-export MIRRORCACHE_REDIRECT=$(ap4*/print_address.sh)
-ap4-system2/start.sh
+$mc/start
+$mc/status
 
-mc9*/configure_db.sh pg9
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us',''"
 
-MOJO_CA_FILE=$(pwd)/ca/ca.pem MOJO_REVERSE_PROXY=1 mc9*/start.sh
-mc9*/status.sh
-
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','us',''" mc_test
-
-pg9*/sql.sh -c "insert into server_capability_force select 1, 'http'" mc_test
+$mc/db/sql -c "insert into server_capability_force select 1, 'http'" mc_test
 
 # main server supports both http and https
-./environ.sh ap9-system2
-ap9*/configure_add_https.sh
+ap9=$(environ ap9)
+$ap9/configure_add_https
 
 #####################################
 # config apache to redirect http and https to mc
 echo 'LoadModule proxy_module /usr/lib64/apache2-prefork/mod_proxy.so
 LoadModule proxy_http_module /usr/lib64/apache2-prefork/mod_proxy_http.so
-LoadModule headers_module /usr/lib64/apache2-prefork/mod_headers.so' > ap9-system2/extra-proxy.conf
+LoadModule headers_module /usr/lib64/apache2-prefork/mod_headers.so' > $ap9/extra-proxy.conf
 
 echo 'ProxyPreserveHost On
-ProxyPass / http://127.0.0.1:3190/download/
-ProxyPassReverse / http://127.0.0.1:3190/download/
+ProxyPass / http://'$($mc/print_address)'/download/
+ProxyPassReverse / http://'$($mc/print_address)'/download/
 <If "%{HTTPS} == '"'"'on'"'"'>
 RequestHeader set X-Forwarded-HTTPS "1"
 RequestHeader set X-Forwarded-Proto "https"
 </If>
-' > ap9-system2/dir.conf
+' > $ap9/dir.conf
 #####################################
 
-ap9*/start.sh
-ap9*/status.sh
+$ap9/start
+$ap9/status
 
-# this mirror will do only http
-./environ.sh ap8-system2
-# this mirror will do only https
-./environ.sh ap7-system2
-ap7*/configure_ssl.sh
-
-for x in ap7-system2 ap8-system2 ap5-system2 ap4-system2; do
+for x in $ap7 $ap8 $ap5 $ap4; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
 done
 
-ap7*/start.sh
-ap8*/start.sh
+$ap7/start
+$ap8/start
 
-mc9*/backstage/job.sh -e mirror_probe -a '["us"]'
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
-mc9*/backstage/job.sh folder_sync_schedule
-MOJO_CA_FILE=$(pwd)/ca/ca.pem mc9*/backstage/shoot.sh
-MOJO_CA_FILE=$(pwd)/ca/ca.pem mc9*/backstage/start.sh
+$mc/backstage/job -e mirror_probe -a '["us"]'
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/start
 
 n=0
-until curl -s -k http://$(ap9*/print_address.sh)/  | grep folder1 ; do
-    sleep 1;
+until curl -s -k http://$($ap9/print_address)/  | grep folder1 ; do
+    sleep 1
     n=$((n+1))
     test $n -le 10 || ( exit 1 )
 done
 
 # the same request as above, just over https
-curl -s -k https://127.0.0.1:1524/ | grep folder1
+$ap9/curl_https / | grep folder1
 
 ######
 
 n=0
-until curl --cacert ca/ca.pem -Is https://127.0.0.1:1524/folder1/file1.dat ; do
+while : ; do
+    rc=0
+    $ap9/curl_https -IL /folder1/file1.dat | grep "200 OK" || rc=$?
+    test $rc != 0 || break
     sleep 1;
     n=$((n+1))
     test $n -le 10 || break
 done
 
+$ap9/curl_https -IL /folder1/file1.dat | grep -C30 "200 OK"
+$ap9/curl_https -IL /folder1/file1.dat | grep -C30 "200 OK" | grep https:// | grep $($ap7/print_address)
+
+
 # make sure https redirects to https
 sleep 15
-curl --cacert ca/ca.pem -I -s https://127.0.0.1:1524/folder1/file1.dat | grep https:// | grep $(ap7*/print_address.sh)
+# $ap4/curl_https --cacert ca/ca.pem -I -s https://127.0.0.1:1524/folder1/file1.dat | grep https:// | grep $($ap7/print_address)
+$ap9/curl_https -I /folder1/file1.dat | grep https:// | grep $($ap7/print_address)
 
 # shutdown ap7, then https must redirect to ap4
-ap7*/stop.sh
-curl --cacert ca/ca.pem -I -s https://127.0.0.1:1524/folder1/file1.dat?PEDANTIC=1 | grep https:// | grep $(ap4*/print_address.sh)
+$ap7/stop
+$ap9/curl_https -I /folder1/file1.dat?PEDANTIC=1 | grep https:// | grep $($ap4/print_address)

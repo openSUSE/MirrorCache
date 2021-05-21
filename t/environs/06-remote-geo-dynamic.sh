@@ -1,87 +1,97 @@
-#!lib/test-in-container-environs.sh
+#!lib/test-in-container-environ.sh
 set -ex
 
-./environ.sh pg9-system2
+mc=$(environ mc $(pwd))
 
-./environ.sh mc9 $(pwd)/MirrorCache
-pg9*/status.sh 2 > /dev/null || pg9*/start.sh
+ap9=$(environ ap9)
+ap8=$(environ ap8)
+ap7=$(environ ap7)
+ap6=$(environ ap6)
 
-pg9*/create.sh db mc_test
-mc9*/configure_db.sh pg9
+$mc/gen_env MIRRORCACHE_ROOT=http://$($ap6/print_address) \
+    MIRRORCACHE_STAT_FLUSH_COUNT=1 \
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3
 
-for x in ap6-system2 ap7-system2 ap8-system2 ap9-system2; do
-    ./environ.sh $x
+for x in $ap6 $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
-    $x/start.sh
+    $x/start
 done
+$mc/start
+$mc/status
 
-export MIRRORCACHE_ROOT=http://$(ap6*/print_address.sh)
-export MIRRORCACHE_STAT_FLUSH_COUNT=1
-export MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/start
 
-mc9*/start.sh
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
-mc9*/backstage/job.sh folder_sync_schedule
-mc9*/backstage/start.sh
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap9/print_address)','','t','cn',''"
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','/','t','cn',''" mc_test
+$mc/curl --interface 127.0.0.2 -I /download/folder1/file1.dat
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat
 
-curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat
-curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat
-
-test 0 == "$(grep -c Poll mc9/.cerr)"
+test 0 == "$(grep -c Poll $mc/.cerr)"
 
 sleep 10
-mc9*/backstage/job.sh -e mirror_scan -a '["/folder1","cn"]'
+job_id=$($mc/backstage/job -e mirror_scan -a '["/folder1","cn"]')
 
 # check redirects to headquarter are logged properly
-pg9*/sql.sh -c "select * from stat" mc_test
-test -1 == $(pg9*/sql.sh -t -c "select mirror_id from stat where country='us'" mc_test)
-test -1 == $(pg9*/sql.sh -t -c "select distinct mirror_id from stat where country='de'" mc_test)
-test -z $(pg9*/sql.sh -t -c "select mirror_id from stat where country='cn'" mc_test)
+$mc/db/sql "select * from stat"
+test -1 == $($mc/db/sql "select mirror_id from stat where country='us'")
+test -1 == $($mc/db/sql "select distinct mirror_id from stat where country='de'")
+test -z $($mc/db/sql "select mirror_id from stat where country='cn'")
 
-curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat
-curl --interface 127.0.0.4 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1324
-curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1314
-curl --interface 127.0.0.2 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 1304
+$mc/curl --interface 127.0.0.2 -I /download/folder1/file1.dat | grep $($ap7/print_address)
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat | grep $($ap8/print_address)
 
-pg9*/sql.sh -c "select * from stat" mc_test
+sleep 3
+test t == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
+test t == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
+test t == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
+test t == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
+test t == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
+test t == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
+test t == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
+$mc/backstage/status
+$mc/db/sql "select state from minion_jobs where id=$job_id"
+
+$mc/curl --interface 127.0.0.4 -I /download/folder1/file1.dat
+$mc/curl --interface 127.0.0.4 -I /download/folder1/file1.dat | grep $($ap9/print_address)
+
+$mc/db/sql "select * from stat"
 # check stats are logged properly
-test 2 == $(pg9*/sql.sh -t -c "select distinct mirror_id from stat where country='de' and mirror_id > 0" mc_test)
-test 1 == $(pg9*/sql.sh -t -c "select count(*) from stat where country='de' and mirror_id > 0" mc_test)
+test 2 == $($mc/db/sql "select distinct mirror_id from stat where country='de' and mirror_id > 0")
+test 1 == $($mc/db/sql "select count(*) from stat where country='de' and mirror_id > 0")
 
-test 3 == $(pg9*/sql.sh -t -c "select distinct mirror_id from stat where country='cn' and mirror_id > 0" mc_test)
-test 2 == $(pg9*/sql.sh -t -c "select count(*) from stat where country='cn' and mirror_id > 0" mc_test)
+test 3 == $($mc/db/sql "select distinct mirror_id from stat where country='cn' and mirror_id > 0")
+test 2 == $($mc/db/sql "select count(*) from stat where country='cn' and mirror_id > 0")
 
-test 1 == $(pg9*/sql.sh -t -c "select distinct mirror_id from stat where country='us' and mirror_id > 0" mc_test)
-test 1 == $(pg9*/sql.sh -t -c "select count(*) from stat where country='us' and mirror_id > 0" mc_test)
+test 1 == $($mc/db/sql "select distinct mirror_id from stat where country='us' and mirror_id > 0")
+test 1 == $($mc/db/sql "select count(*) from stat where country='us' and mirror_id > 0")
 
-test 0 == "$(grep -c Poll mc9/.cerr)"
+test 0 == "$(grep -c Poll $mc/.cerr)"
 
-curl -s http://127.0.0.1:3190/rest/stat
-curl -s http://127.0.0.1:3190/rest/stat | grep '"hit":4' | grep '"miss":2'
+$mc/curl /rest/stat
+$mc/curl /rest/stat | grep '"hit":4' | grep '"miss":2'
 
 # now test stat_agg job by injecting some values into yesterday
-mc9*/backstage/stop.sh
-pg9*/sql.sh -c "insert into stat(path, dt, mirror_id, secure, ipv4, metalink, head) select '/ttt', now() - interval '1 day', mirror_id, 'f', 'f', 'f', 't' from stat" mc_test
-pg9*/sql.sh -c "delete from minion_locks where name like 'stat_agg_schedule%'" mc_test
-mc9*/backstage/job.sh stat_agg_schedule
-mc9*/backstage/shoot.sh
+$mc/backstage/stop
+$mc/db/sql "insert into stat(path, dt, mirror_id, secure, ipv4, metalink, head) select '/ttt', now() - interval '1 day', mirror_id, 'f', 'f', 'f', 't' from stat"
+$mc/db/sql "delete from minion_locks where name like 'stat_agg_schedule%'"
+$mc/backstage/job stat_agg_schedule
+$mc/backstage/shoot
 
-pg9*/sql.sh -c "select * from stat_agg" mc_test
-test 4 == $(pg9*/sql.sh -t -c "select count(*) from stat_agg where period = 'day'" mc_test)
+$mc/db/sql "select * from stat_agg"
+test 4 == $($mc/db/sql "select count(*) from stat_agg where period = 'day'")
 
-curl -s http://127.0.0.1:3190/rest/stat
-curl -s http://127.0.0.1:3190/rest/stat | grep '"hit":4' | grep '"miss":2' | grep '"prev_hit":4' | grep '"prev_miss":2'
+$mc/curl /rest/stat
+$mc/curl /rest/stat | grep '"hit":4' | grep '"miss":2' | grep '"prev_hit":4' | grep '"prev_miss":2'
 
+test 0 == $($mc/db/sql "select sum(case when head then 0 else 1 end) from stat")
+$mc/curl --interface 127.0.0.2 -i /download/folder1/file1.dat
+test 1 == $($mc/db/sql "select sum(case when head then 0 else 1 end) from stat")
 
-test 0 == $(pg9*/sql.sh -t -c "select sum(case when head then 0 else 1 end) from stat" mc_test)
-curl --interface 127.0.0.2 -is http://127.0.0.1:3190/download/folder1/file1.dat
-test 1 == $(pg9*/sql.sh -t -c "select sum(case when head then 0 else 1 end) from stat" mc_test)
-
-test 0 == $(pg9*/sql.sh -t -c "select sum(case when metalink then 1 else 0 end) from stat" mc_test)
-curl --interface 127.0.0.2 -Is -H 'Accept: */*, application/metalink+xml' http://127.0.0.1:3190/download/folder1/file1.dat
-test 1 == $(pg9*/sql.sh -t -c "select sum(case when metalink then 1 else 0 end) from stat" mc_test)
+test 0 == $($mc/db/sql "select sum(case when metalink then 1 else 0 end) from stat")
+$mc/curl --interface 127.0.0.2 -Is -H 'Accept: */*, application/metalink+xml' /download/folder1/file1.dat
+test 1 == $($mc/db/sql "select sum(case when metalink then 1 else 0 end) from stat")

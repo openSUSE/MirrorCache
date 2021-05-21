@@ -63,7 +63,7 @@ systemctl enable mirrorcache-backstage
 1. Install prerequisites.
 The project is based on Perl Mojolicious framework and set of Perl packages.
 The best way to install them is to reuse zypper and cpanm commands from CI environment:
-   `t/environs/lib/Dockerfile.environs`
+   `t/environ/lib/Dockerfile.environ`
 
 You may skip installing MaxMind::DB::Reader and Mojolicious::Plugin::ClientIP if you don't need Geolocation detection, if you don't need MirrorCache to find a mirror in client's country. From now on it will be referenced as 'Geolocation feature'.
 
@@ -102,7 +102,7 @@ sudo -u mirrorcache psql -c "insert into server(hostname,urldir,enabled,country,
 1. Install prerequisites.
 The project is based on Perl Mojolicious framework and set of Perl packages.
 The best way to install them is to reuse zypper and cpanm commands from CI environment:
-   `t/environs/lib/Dockerfile.environs`
+   `t/environ/lib/Dockerfile.environ`
 
 You may skip installing MaxMind::DB::Reader and Mojolicious::Plugin::ClientIP if you don't need Geolocation detection, if you don't need MirrorCache to find a mirror in client's country. From now on it will be referenced as 'Geolocation feature'.
 
@@ -149,67 +149,59 @@ insert into server(hostname,urldir,enabled,country,region) select 'ftp.netspace.
 update acc set is_admin=1 where nickname='myusername';
 ```
 
-### Development setup using environs framework
+### Development setup using environ framework
 
-Environs framework provides a way to manage development setup of various products without root permissions.
+environ framework provides a way to manage development setup of various products without root permissions.
 Such approach is useful in manual and integration testing, especially when various topologies are required.
-MirrorCache project uses environs framework in CI, e.g. to start several Apache instances, configure them as mirrors, try different scenarios: 
+MirrorCache project uses environ framework in CI, e.g. to start several Apache instances, configure them as mirrors, try different scenarios:
 http/https redirection, one of mirrors is down, a file is gone from a mirror, etc.
 
-E.g. steps 2 - 7 above using environs framework.
+E.g. steps 2 - 7 above using environ framework.
 ```bash
-# clone environs framework
-git clone https://github.com/andrii-suse/environs
-cd environs
+# Needs environ utility installed, as well templates for Apache, nginx, postgres, rsync
+git clone https://github.com/andrii-suse/environ
+sudo make -C environ install
 # First choose a slot to use in script, mc0 - mc9 are available, so several instances at the same time
 # here we will use slot 1 => mc1, first parameter is where MirrorCache sources are located
-./environ.sh mc1 ~/github/MirrorCache
+mc=$(environ mc ~/github/MirrorCache)
 # pg1-system2 will setup local instance of Postgres server with data directory in pg1-system2/dt/
-./environ.sh pg1-system2
-pg1*/start.sh
-pg1*/create.sh db mc
-mc1*/configure_db.sh pg1
+$mc/gen_config MIRRORCACHE_ROOT=http://download.opensuse.org \
+     MIRRORCACHE_TOP_FOLDERS="'debug distribution factory history ports repositories source tumbleweed update'" \
+    MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb \
+    MOJO_REVERSE_PROXY=1
 
-MIRRORCACHE_ROOT=http://download.opensuse.org \
-MIRRORCACHE_TOP_FOLDERS='debug distribution factory history ports repositories source tumbleweed update' \
-MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb \
-MOJO_REVERSE_PROXY=1 \
-mc1*/start.sh
+$mc/start
 
-MIRRORCACHE_ROOT=http://download.opensuse.org \
-mc1*/backstage/start.sh
+$mc/backstage/start
 
-pg1*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select 'mirror.aarnet.edu.au','/pub/opensuse/opensuse','t','au',''" mc
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select 'mirror.aarnet.edu.au','/pub/opensuse/opensuse','t','au',''"
 
 # check status
-pg1*/status.sh
-mc1*/status.sh
-mc1*/backstage/status.sh
+$mc/db/status
+$mc/backstage/status
+$mc/status
 ```
 
-### Run tests from [t/environs](/t/environs) with docker, manually for debugging
+### Run tests from [t/environ](/t/environ) with docker, manually for debugging
 
 - Requires docker configured for non-root users
 - Available configuration:
   - `MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb` adds this environment variable inside the container and mounts it as a volume if the file exists on the host
     ```bash
-    cd t/environs
+    cd t/environ
     # Just run the test:
     ./01-smoke.sh
     # Run the test with your own MIRRORCACHE_CITY_MMDB
     MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb ./01-smoke.sh
     ```
-  - `EXPOSE_PORT=3190` maps port 3190 or whatever port you need from the container to host port 80, but also requires one more change, to ensure that MirrorCache is listening to requests from the host:
+  - `EXPOSE_PORT=3110` maps port 3110 or whatever port you need from the container to host port 80, but also requires one more change, to ensure that MirrorCache is listening to requests from the host:
     ```bash
-    # Add this line before mc9*/start.sh in your test
-    sed -i 's,MOJO_LISTEN=http://127.0.0.1,MOJO_LISTEN=http://*,' mc9*/start.sh
+    # Add this line before '$mc/start' in your test:
+    $mc/gen_env 'MOJO_LISTEN=MOJO_LISTEN=http://*,'
 
     # Run the test and have the container available at http://localhost:80 afterwards
     EXPOSE_PORT=3190 ./01-smoke.sh
     ```
-    To log in with a fake test-user, add `MIRRORCACHE_TEST_TRUST_AUTH=1` in the test you want to run:
-    - Change `mc9*/start.sh` to `MIRRORCACHE_TEST_TRUST_AUTH=1 mc9*/start.sh`
-    
     Setting `MIRRORCACHE_TEST_TRUST_AUTH` to any number > 1 will result in `current_user` being `undef`, so no fake test-user login.
     You will only have access to some routes defined in [lib/MirrorCache/WebAPI.pm](/lib/MirrorCache/WebAPI.pm).
 

@@ -1,51 +1,50 @@
-#!lib/test-in-container-environs.sh
+#!lib/test-in-container-environ.sh
 set -ex
 
-./environ.sh pg9-system2
+mc=$(environ mc $(pwd))
 
-./environ.sh mc9 $(pwd)/MirrorCache
-pg9*/status.sh 2 > /dev/null || pg9*/start.sh
+ap9=$(environ ap9)
+ap8=$(environ ap8)
+ap7=$(environ ap7)
+ap6=$(environ ap6)
 
-pg9*/create.sh db mc_test
-mc9*/configure_db.sh pg9
+$mc/gen_env MIRRORCACHE_ROOT=http://$($ap6/print_address) \
+    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
+    MIRRORCACHE_STAT_FLUSH_COUNT=1 \
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3 \
+    MIRRORCACHE_ROOT_COUNTRY=de
 
-for x in ap6-system2 ap7-system2 ap8-system2 ap9-system2; do
-    ./environ.sh $x
+for x in $ap6 $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
-    $x/start.sh
+    $x/start
 done
+$mc/start
+$mc/status
 
-export MIRRORCACHE_ROOT=http://$(ap6*/print_address.sh)
-export MIRRORCACHE_STAT_FLUSH_COUNT=1
-export MIRRORCACHE_ROOT_COUNTRY=de
-mc9*/start.sh
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','cz',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap9/print_address)','','t','cn',''"
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1324','/','t','cz',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','/','t','cn',''" mc_test
+$mc/backstage/job -e folder_sync -a '["/folder1"]'
+$mc/backstage/job -e mirror_scan -a '["/folder1"]'
+$mc/backstage/shoot
 
+$mc/curl -I /download/folder1/file1.dat?COUNTRY=de
+$mc/curl -I /download/folder1/file1.dat?COUNTRY=it
+$mc/curl -I /download/folder1/file1.dat?COUNTRY=cz
+$mc/curl -I /download/folder1/file1.dat?COUNTRY=cn
+$mc/curl -I /download/folder1/file1.dat?COUNTRY=au
 
-mc9*/backstage/job.sh -e folder_sync -a '["/folder1"]'
-mc9*/backstage/job.sh -e mirror_scan -a '["/folder1"]'
-mc9*/backstage/shoot.sh
+$mc/db/sql "select * from stat order by id"
+test 5 == $($mc/db/sql "select count(*) from stat")
+test 0 == $($mc/db/sql "select count(*) from stat where country='us'")
+test 1 == $($mc/db/sql "select count(*) from stat where mirror_id = -1") # only one miss
+test 1 == $($mc/db/sql "select count(*) from stat where country='cz' and mirror_id = 2")
+test 2 == $($mc/db/sql "select count(*) from stat where mirror_id = 0") # de + it
 
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=de
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=it
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=cz
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=cn
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat?COUNTRY=au
+$mc/backstage/job stat_agg_schedule
+$mc/backstage/shoot
 
-# sleep 1
-pg9*/sql.sh -c "select * from stat order by id" mc_test
-test 5 == $(pg9*/sql.sh -t -c "select count(*) from stat" mc_test)
-test 0 == $(pg9*/sql.sh -t -c "select count(*) from stat where country='us'" mc_test)
-test 1 == $(pg9*/sql.sh -t -c "select count(*) from stat where mirror_id = -1" mc_test) # only one miss
-test 1 == $(pg9*/sql.sh -t -c "select count(*) from stat where country='cz' and mirror_id = 2" mc_test)
-test 2 == $(pg9*/sql.sh -t -c "select count(*) from stat where mirror_id = 0" mc_test) # de + it
-
-mc9*/backstage/job.sh stat_agg_schedule
-mc9*/backstage/shoot.sh
-
-curl -s http://127.0.0.1:3190/rest/stat
-curl -s http://127.0.0.1:3190/rest/stat | grep '"hit":4' | grep '"miss":1'
+$mc/curl /rest/stat
+$mc/curl /rest/stat | grep '"hit":4' | grep '"miss":1'

@@ -1,32 +1,30 @@
-#!lib/test-in-container-environs.sh
-set -ex
+#!lib/test-in-container-environ.sh
+set -euxo pipefail
 
-./environ.sh pg9-system2
+mc=$(environ mc $(pwd))
 
-./environ.sh mc9 $(pwd)/MirrorCache
-pg9*/status.sh 2 > /dev/null || pg9*/start.sh
+MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL=1
+$mc/gen_env MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule'" \
+            MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL=$MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL
 
-pg9*/create.sh db mc_test
-mc9*/configure_db.sh pg9
+$mc/start
 
-export MIRRORCACHE_PERMANENT_JOBS='folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule'
+test 5 == $($mc/db/sql "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'")
 
-mc9*/start.sh
-
-test 5 == $(pg9*/sql.sh -t -c "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'" mc_test)
-
-mc9*/stop.sh
+$mc/stop
 
 # let's assume some jobs were killed
-pg9*/sql.sh -t -c "delete from minion_jobs where ctid IN (SELECT ctid FROM minion_jobs ORDER BY random() LIMIT 3)" mc_test
+$mc/db/sql "delete from minion_jobs where ctid IN (SELECT ctid FROM minion_jobs ORDER BY random() LIMIT 3)"
 
-test 2 == $(pg9*/sql.sh -t -c "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'" mc_test)
-export MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL=1
-mc9*/start.sh
+test 2 == $($mc/db/sql "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'")
 
-sleep 2
-test 5 == $(pg9*/sql.sh -t -c "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'" mc_test)
-pg9*/sql.sh -t -c "delete from minion_jobs where ctid IN (SELECT ctid FROM minion_jobs ORDER BY random() LIMIT 3)" mc_test
-sleep 2
-test 5 == $(pg9*/sql.sh -t -c "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'" mc_test)
+$mc/start
 
+sleep $MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL
+sleep 1
+test 5 == $($mc/db/sql "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'")
+$mc/db/sql "delete from minion_jobs where ctid IN (SELECT ctid FROM minion_jobs ORDER BY random() LIMIT 3)"
+sleep $MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL
+sleep 1
+
+test 5 == $($mc/db/sql "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'")

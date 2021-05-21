@@ -1,51 +1,41 @@
-#!lib/test-in-container-environs.sh
+#!lib/test-in-container-environ.sh
 set -ex
 
-./environ.sh pg9-system2
+mc=$(environ mc $(pwd))
 
-./environ.sh mc9 $(pwd)/MirrorCache
-pg9*/status.sh 2 > /dev/null || pg9*/start.sh
+MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3
+$mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+$mc/start
+$mc/status
 
-pg9*/create.sh db mc_test
-mc9*/configure_db.sh pg9
+ap8=$(environ ap8)
+ap7=$(environ ap7)
 
-mc9*/start.sh
-mc9*/status.sh
-
-./environ.sh ap8-system2
-./environ.sh ap7-system2
-
-for x in mc9 ap7-system2 ap8-system2; do
+for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
 done
 
-ap7*/status.sh >& /dev/null || ap7*/start.sh
-ap7*/curl.sh folder1/ | grep file1.dat
+$ap7/start
+$ap7/curl /folder1/ | grep file1.dat
 
-ap8*/status.sh >& /dev/null || ap8*/start.sh
-ap8*/curl.sh folder1/ | grep file1.dat
+$ap8/start
+$ap8/curl /folder1/ | grep file1.dat
 
 
-mc9*/backstage/start.sh
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
-mc9*/backstage/job.sh folder_sync_schedule
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de',''"
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','/','t','us',''" mc_test 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','/','t','de',''" mc_test
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/start
 
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat
+$mc/curl -I /download/folder1/file1.dat
 
-sleep 5
-pg9*/sql.sh -c "select * from minion_jobs order by id" mc_test
+sleep $((MIRRORCACHE_SCHEDULE_RETRY_INTERVAL+1))
+$mc/db/sql "select * from minion_jobs order by id"
 
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 302 \
-   || ( echo "retry 1" && sleep 5 && curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 302 ) \
-   || ( echo "retry 2" && sleep 5 && curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 302 ) \
-   || ( echo "retry 3" && sleep 5 && curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 302 ) \
-   || ( echo "retry 4" && sleep 5 && curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 302 ) \
-   || ( echo "retry 5" && sleep 5 && curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 302 )
+$mc/curl -I /download/folder1/file1.dat | grep 302 \
+   || ( sleep 1 && $mc/curl -I /download/folder1/file1.dat | grep 302 ) || ( sleep 10 && $mc/curl -I /download/folder1/file1.dat | grep 302 )
 
-pg9*/sql.sh -t -c "select count(*) from minion_jobs where task='folder_sync'" mc_test
-sleep 15
-pg9*/sql.sh -t -c "select count(*) from minion_jobs where task='folder_sync'" mc_test
+$mc/db/sql "select count(*) from minion_jobs where task='folder_sync'"

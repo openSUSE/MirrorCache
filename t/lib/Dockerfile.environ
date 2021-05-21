@@ -12,15 +12,18 @@ RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-P
     vim postgresql postgresql-server curl sudo git-core wget tar m4 \
     apache2 perl-Digest-MD4 tidy nginx bbe
 
+RUN zypper -vvv -n install make
+
 # this hack is needed because old nginx versions cannot run as non-root
 RUN bbe -e 's,/var/log/nginx/error.log,/tmp/log_nginx_error.log,' /usr/sbin/nginx > /usr/sbin/nginx.hacked
 RUN mv /usr/sbin/nginx.hacked /usr/sbin/nginx
 RUN chmod +x /usr/sbin/nginx
 
 WORKDIR /opt
-RUN git clone https://github.com/andrii-suse/environs
-WORKDIR /opt/environs
-
-RUN ln /usr/sbin/httpd /sbin/httpd
+RUN echo 2
+RUN git clone https://github.com/andrii-suse/environ
+WORKDIR /opt/environ
+RUN make install
+WORKDIR /opt/project
 
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]

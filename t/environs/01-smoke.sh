@@ -1,70 +1,63 @@
-#!lib/test-in-container-environs.sh
+#!lib/test-in-container-environ.sh
 set -ex
 
-./environ.sh pg9-system2
+mc=$(environ mc $(pwd))
 
-./environ.sh mc9 $(pwd)/MirrorCache
-pg9*/status.sh 2 > /dev/null || pg9*/start.sh
+$mc/start
+$mc/status
 
-pg9*/create.sh db mc_test
-mc9*/configure_db.sh pg9
+ap8=$(environ ap8)
+ap7=$(environ ap7)
 
-mc9*/start.sh
-mc9*/status.sh
-
-./environ.sh ap8-system2
-./environ.sh ap7-system2
-
-for x in mc9 ap7-system2 ap8-system2; do
+for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
 done
 
-ap7*/status.sh >& /dev/null || ap7*/start.sh
-ap7*/curl.sh folder1/ | grep file1.dat
+$ap7/start
+$ap7/curl /folder1/ | grep file1.dat
 
-ap8*/status.sh >& /dev/null || ap8*/start.sh
-ap8*/curl.sh folder1/ | grep file1.dat
+$ap8/start
+$ap8/curl /folder1/ | grep file1.dat
 
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','de',''" mc_test
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de',''"
 
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat
+$mc/curl -Is /download/folder1/file1.dat
 
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
-mc9*/backstage/job.sh folder_sync_schedule
-mc9*/backstage/shoot.sh
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
 
-pg9*/sql.sh -c "select * from minion_jobs order by id" mc_test
+$mc/db/sql "select * from minion_jobs order by id"
 
-curl -s http://127.0.0.1:3190/download/folder1/ | grep file1.dat
-# check link is correct
-curl -sI http://127.0.0.1:3190/download/folder1 | grep -i 'Location: /download/folder1/'
+$mc/curl /download/folder1/ | grep file1.dat
+# check redirect is correct
+$mc/curl -Is /download/folder1 | grep -i 'Location: /download/folder1/'
 
 # only ap7 is in US
-curl -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep -C10 302 | grep "$(ap7*/print_address.sh)"
+$mc/curl -Is /download/folder1/file1.dat | grep -C10 302 | grep "$($ap7/print_address)"
 
 ###################################
 # test files are removed properly
-rm mc9/dt/folder1/file1.dat
+rm $mc/dt/folder1/file1.dat
 
 # resync the folder
-mc9*/backstage/job.sh folder_sync_schedule
-mc9*/backstage/job.sh -e mirror_probe -a '["/folder1"]'
-mc9*/backstage/shoot.sh
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/job -e mirror_probe -a '["/folder1"]'
+$mc/backstage/shoot
 
-curl -s http://127.0.0.1:3190/download/folder1/ | grep file1.dat || :
-if curl -s http://127.0.0.1:3190/download/folder1/ | grep file1.dat ; then 
+$mc/curl -s /download/folder1/ | grep file1.dat || :
+if $mc/curl -s /download/folder1/ | grep file1.dat ; then
     fail file1.dat was deleted
 fi
 
-curl -H "Accept: */*, application/metalink+xml" -s http://127.0.0.1:3190/download/folder1/file2.dat | grep '<url type="http" location="US" preference="100">http://127.0.0.1:1304/folder1/file2.dat</url>'
-curl -s http://127.0.0.1:3190/download/folder1/file2.dat.metalink | grep '<url type="http" location="US" preference="100">http://127.0.0.1:1304/folder1/file2.dat</url>'
+$mc/curl -H "Accept: */*, application/metalink+xml" -s /download/folder1/file2.dat | grep '<url type="http" location="US" preference="100">http://127.0.0.1:1304/folder1/file2.dat</url>'
+$mc/curl -s /download/folder1/file2.dat.metalink | grep '<url type="http" location="US" preference="100">http://127.0.0.1:1304/folder1/file2.dat</url>'
 
-curl -s http://127.0.0.1:3190 | tidy --drop-empty-elements no
-curl -s http://127.0.0.1:3190/download/folder1/ | tidy --drop-empty-elements no
+$mc/curl -sL /                  | tidy --drop-empty-elements no
+$mc/curl -sL /download/folder1/ | tidy --drop-empty-elements no
 
 
-
-test "$(curl -s http://127.0.0.1:3190/version)" != ""
+test "$($mc/curl -s /version)" != ""
