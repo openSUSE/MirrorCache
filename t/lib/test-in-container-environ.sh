@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,7 +30,6 @@ testcase=$2
 
 set -eo pipefail
 
-[ -n "$testcase" ] || (echo No testcase provided; exit 1) >&2
 [ -f "$testcase" ] || (echo Cannot find file "$testcase"; exit 1 ) >&2
 
 thisdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -40,12 +39,12 @@ basename=${basename//:/_}
 ident=mc.envtest
 containername="$ident.${basename,,}"
 
-docker_info="$(docker info >/dev/null 2>&1)" || { 
+docker_info="$(docker info >/dev/null 2>&1)" || {
     echo "Docker doesn't seem to be running"
     (exit 1)
 }
 
-docker build -t $ident.image -f $thisdir/Dockerfile.environs $thisdir
+docker build -t $ident.image -f $thisdir/Dockerfile.environ $thisdir
 
 docker rm -f "$containername" >&/dev/null || :
 
@@ -56,7 +55,7 @@ if [[ -n "$MIRRORCACHE_CITY_MMDB" ]]; then
     mc_database="--env MIRRORCACHE_CITY_MMDB=$MIRRORCACHE_CITY_MMDB"
     [[ -f "$MIRRORCACHE_CITY_MMDB" ]] && mc_database+=" -v $MIRRORCACHE_CITY_MMDB:$MIRRORCACHE_CITY_MMDB"
 fi
-docker run $map_port $mc_database --env MIRRORCACHE_PERMANENT_JOBS="" --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/environs/MirrorCache -- $ident.image
+docker run $map_port $mc_database --env MIRRORCACHE_PERMANENT_JOBS="" --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/project -- $ident.image
 
 in_cleanup=0
 
@@ -88,6 +87,6 @@ echo "$*"
 [ -z $initscript ] || echo "bash -xe /opt/project/t/$initscript" | docker exec -i "$containername" bash -x
 
 set +ex
-docker exec -e TESTCASE="$testcase"  -i "$containername" bash -c "useradd $(id -nu) -u $(id -u) || :; chown $(id -nu) /opt/environs; sudo -u \#$(id -u) bash" < "$testcase"
+docker exec -e TESTCASE="$testcase"  -i "$containername" bash -c "useradd $(id -nu) -u $(id -u) || :; sudo -u \#$(id -u) bash" < "$testcase"
 ret=$?
 ( exit $ret )

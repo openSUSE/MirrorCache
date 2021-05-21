@@ -1,14 +1,14 @@
 version: 2.1
 
 jobs:
-  environs:
+  environ:
     machine:
       image: ubuntu-2004:202008-01
     working_directory: ~/project/t/environs
     steps:
       - checkout:
           path: ~/project
-      - run: 
+      - run:
           command: |
             echo '{ "ipv6": true,  "fixed-cidr-v6": "fd00::/80" }' | sudo tee /etc/docker/daemon.json
             sudo systemctl restart docker
@@ -37,5 +37,5 @@ workflows:
   version: 2.1
   test:
     jobs:
-      - environs
+      - environ
       - systemd

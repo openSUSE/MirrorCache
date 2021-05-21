@@ -1,63 +1,56 @@
-#!lib/test-in-container-environs.sh
+#!lib/test-in-container-environ.sh
 set -ex
 
-./environ.sh pg9-system2
+mc=$(environ mc $(pwd))
 
-./environ.sh mc9 $(pwd)/MirrorCache
-pg9*/start.sh
+ng9=$(environ ng9)
+ap9=$(environ ap9)
 
-pg9*/create.sh db mc_test
-./environ.sh ng9-system2
-./environ.sh ap9-system2
-mc9*/configure_db.sh pg9
-export MIRRORCACHE_PEDANTIC=1
+$mc/gen_env MIRRORCACHE_PEDANTIC=1 \
+    MIRRORCACHE_ROOT=http://$($ng9/print_address) \
+    MIRRORCACHE_REDIRECT=http://$($ap9/print_address) \
+    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
 
-# read from nginx and redirect to apache
-export MIRRORCACHE_ROOT=http://$(ng9*/print_address.sh)
-export MIRRORCACHE_REDIRECT=http://$(ap9*/print_address.sh)
-export MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
+ng8=$(environ ng8)
+ng7=$(environ ng7)
 
-./environ.sh ng8-system2
-./environ.sh ng7-system2
-
-for x in ng7-system2 ng8-system2 ng9-system2; do
+for x in $ng7 $ng8 $ng9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
     echo -n 0123456789 > $x/dt/folder1/file2.dat
-    $x/start.sh
+    $x/start
 done
 
-mc9*/start.sh
-mc9*/status.sh
+$mc/start
+$mc/status
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '$(ng7*/print_address.sh)','','t','us',''" mc_test
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '$(ng8*/print_address.sh)','','t','us',''" mc_test
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng7/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng8/print_address)','','t','us',''"
 
 # remove folder1/file1.dt from ng8
-rm ng8-system2/dt/folder1/file2.dat
+rm $ng8/dt/folder1/file2.dat
 
 # first request redirected to MIRRORCACHE_REDIRECT, eventhough files are not there
-curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap9*/print_address.sh)
+$mc/curl -I /download/folder1/file2.dat | grep $($ap9/print_address)
 
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
-mc9*/backstage/job.sh folder_sync_schedule
-mc9*/backstage/shoot.sh
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
 
+test 2 == $($mc/db/sql "select count(*) from folder_diff")
+test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
-test 2 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff" mc_test)
-test 1 == $(pg9*/sql.sh -t -c "select count(*) from folder_diff_file" mc_test)
+$mc/curl -I /download/folder1/file2.dat | grep $($ng7/print_address)
 
-curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ng7*/print_address.sh)
-
-mv ng7-system2/dt/folder1/file2.dat ng8-system2/dt/folder1/
+mv $ng7/dt/folder1/file2.dat $ng8/dt/folder1/
 
 # gets redirected to MIRRORCACHE_REDIRECT again
-curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap9*/print_address.sh)
+$mc/curl -I /download/folder1/file2.dat | grep $($ap9/print_address)
 
-mc9*/backstage/job.sh mirror_scan_schedule_from_misses
-mc9*/backstage/shoot.sh
+$mc/backstage/job mirror_scan_schedule_from_misses
+$mc/backstage/shoot
 
-curl -H "Accept: */*, application/metalink+xml" -s http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ap9*/print_address.sh)
+$mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.dat | grep $($ap9/print_address)
 
 # now redirects to ng8
-curl -Is http://127.0.0.1:3190/download/folder1/file2.dat | grep $(ng8*/print_address.sh)
+$mc/curl -I /download/folder1/file2.dat | grep $($ng8/print_address)

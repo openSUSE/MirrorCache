@@ -1,29 +1,22 @@
-#!lib/test-in-container-environs.sh
+#!lib/test-in-container-environ.sh
 set -ex
 
-./environ.sh pg9-system2
+mc=$(environ mc $(pwd))
+$mc/gen_env MIRRORCACHE_PEDANTIC=1
 
-./environ.sh mc9 $(pwd)/MirrorCache
-pg9*/status.sh 2 > /dev/null || pg9*/start.sh
+ap9=$(environ ap9)
+ap8=$(environ ap8)
+ap7=$(environ ap7)
 
-pg9*/create.sh db mc_test
-mc9*/configure_db.sh pg9
-
-./environ.sh ap9-system2
-./environ.sh ap8-system2
-./environ.sh ap7-system2
-
-export MIRRORCACHE_PEDANTIC=1
-
-for x in mc9 ap7-system2 ap8-system2 ap9-system2; do
+for x in $mc $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
-    $x/start.sh
+    $x/start
 done
 
-berlin_host=$(ap9*/print_address.sh)
-munich_host=$(ap8*/print_address.sh)
-altona_host=$(ap7*/print_address.sh)
+berlin_host=$($ap9/print_address)
+munich_host=$($ap8/print_address)
+altona_host=$($ap7/print_address)
 
 declare -A berlin=( [host]=$berlin_host [lat]=52 [lng]=13 )
 declare -A munich=( [host]=$munich_host [lat]=48 [lng]=12 )
@@ -33,26 +26,26 @@ declare -a cases=(berlin munich altona)
 
 for case in "${cases[@]}"; do
     declare -n p="$case"
-    pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '${p[host]}','','t','de','',${p[lat]},${p[lng]}" mc_test
+    $mc/db/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '${p[host]}','','t','de','',${p[lat]},${p[lng]}"
 done
 
 # first request a file, so the mirror scan will trigger on backstage run
-curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep 200
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat | grep 200
 
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
-mc9*/backstage/job.sh folder_sync_schedule
-mc9*/backstage/shoot.sh
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
 
 # 127.0.0.3 is in Nuremberg, so Munich must be chosen as the closest host
-curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat
-curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep -C 10 302 | grep $munich_host
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat | grep -C 10 302 | grep $munich_host
 
 # let's shut down Munich server - now Berlin must be selected as it closer to Nuremberg than Altona
-ap8*/stop.sh
-curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat
-curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep -C 10 302 | grep $berlin_host
+$ap8/stop
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat | grep -C 10 302 | grep $berlin_host
 
 # start Munich back - it must be chosen again
-ap8*/start.sh
-curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat
-curl --interface 127.0.0.3 -Is http://127.0.0.1:3190/download/folder1/file1.dat | grep -C 10 302 | grep $munich_host
+$ap8/start
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat | grep -C 10 302 | grep $munich_host

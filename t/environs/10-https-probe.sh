@@ -1,83 +1,79 @@
-#!lib/test-in-container-environs.sh
+#!lib/test-in-container-environ.sh
 
 # Smoke test for https-only mirrors
 set -ex
 
-./environ.sh pg9-system2
+mc=$(environ mc $(pwd))
 
-./environ.sh mc9 $(pwd)/MirrorCache
-pg9*/status.sh 2 > /dev/null || pg9*/start.sh
+$mc/gen_env MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule'" \
+            MOJO_CA_FILE=$(pwd)/ca/ca.pem MOJO_REVERSE_PROXY=1
 
-pg9*/create.sh db mc_test
-mc9*/configure_db.sh pg9
-
-
-export MIRRORCACHE_PERMANENT_JOBS='folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses'
-MOJO_CA_FILE=$(pwd)/ca/ca.pem MOJO_REVERSE_PROXY=1 mc9*/start.sh
-mc9*/status.sh
+$mc/start
+$mc/status
 
 # main server supports both http and https
-./environ.sh ap9-system2
-ap9*/configure_add_https.sh
+ap9=$(environ ap9)
+$ap9/configure_add_https
 
 #####################################
 # config apache to redirect http and https to mc
 echo 'LoadModule proxy_module /usr/lib64/apache2-prefork/mod_proxy.so
 LoadModule proxy_http_module /usr/lib64/apache2-prefork/mod_proxy_http.so
-LoadModule headers_module /usr/lib64/apache2-prefork/mod_headers.so' > ap9-system2/extra-proxy.conf
+LoadModule headers_module /usr/lib64/apache2-prefork/mod_headers.so' > $ap9/extra-proxy.conf
 
 echo 'ProxyPreserveHost On
-ProxyPass / http://127.0.0.1:3190/
-ProxyPassReverse / http://127.0.0.1:3190/
+ProxyPass / http://'$($mc/print_address)'/
+ProxyPassReverse / http://'$($mc/print_address)'/
 <If "%{HTTPS} == '"'"'on'"'"'>
 RequestHeader set X-Forwarded-HTTPS "1"
 RequestHeader set X-Forwarded-Proto "https"
 </If>
-' > ap9-system2/dir.conf
+' > $ap9/dir.conf
 #####################################
 
-ap9*/start.sh
-ap9*/status.sh
+$ap9/start
+$ap9/status
 
-ap9*/curl_https.sh / > /dev/null
+$ap9/curl_https / > /dev/null
 
 # this mirror will do only http
-./environ.sh ap8-system2
+ap8=$(environ ap8)
 # this mirror will do only https
-./environ.sh ap7-system2
-ap7*/configure_ssl.sh
+ap7=$(environ ap7)
+$ap7/configure_ssl
 
-for x in mc9 ap7-system2 ap8-system2; do
+for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
 done
 
-ap9*/curl_https.sh /download/  | grep folder1
+$ap9/curl_https /download/  | grep folder1
+$ap9/curl       /download/  | grep folder1
 
 ######
 
-ap7*/status.sh >& /dev/null || ap7*/start.sh
-ap8*/status.sh >& /dev/null || ap8*/start.sh
+$ap7/start
+$ap8/start
 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''" mc_test 
-pg9*/sql.sh -c "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','us',''" mc_test
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us',''"
 
-MOJO_CA_FILE=$(pwd)/ca/ca.pem mc9*/backstage/shoot.sh
-test f == $(pg9*/sql.sh -t -c "select success from server_capability_check where server_id=1 and capability='http'" mc_test)
-test t == $(pg9*/sql.sh -t -c "select success from server_capability_check where server_id=1 and capability='https'" mc_test)
-test t == $(pg9*/sql.sh -t -c "select success from server_capability_check where server_id=2 and capability='http'" mc_test)
-test f == $(pg9*/sql.sh -t -c "select success from server_capability_check where server_id=2 and capability='https'" mc_test)
+$mc/backstage/shoot
+test f == $($mc/db/sql "select success from server_capability_check where server_id=1 and capability='http'")
+test t == $($mc/db/sql "select success from server_capability_check where server_id=1 and capability='https'")
+test t == $($mc/db/sql "select success from server_capability_check where server_id=2 and capability='http'")
+test f == $($mc/db/sql "select success from server_capability_check where server_id=2 and capability='https'")
 
 # now explicitly force disable corresponding capabilities
-pg9*/sql.sh -t -c "insert into server_capability_force(server_id,capability,dt) select 1,'http',now();" mc_test
-pg9*/sql.sh -t -c "insert into server_capability_force(server_id,capability,dt) select 2,'https',now();" mc_test
+$mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 1,'http',now()"
+$mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 2,'https',now()"
 
-curl --cacert ca/ca.pem -I https://127.0.0.1:1524/download/folder1/file1.dat
+$ap9/curl_https --cacert ca/ca.pem -I /download/folder1/file1.dat
 
-mc9*/backstage/job.sh folder_sync_schedule_from_misses
-mc9*/backstage/job.sh folder_sync_schedule
-MOJO_CA_FILE=$(pwd)/ca/ca.pem mc9*/backstage/shoot.sh
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
 
 # make sure https redirects to https
-curl --cacert ca/ca.pem -I -s https://127.0.0.1:1524/download/folder1/file1.dat | grep https:// | grep $(ap7*/print_address.sh)
-curl -I -s http://127.0.0.1:1324/download/folder1/file1.dat | grep http:// | grep $(ap8*/print_address.sh)
+$ap9/curl_https -I /download/folder1/file1.dat | grep https:// | grep $($ap7/print_address)
+$ap9/curl -I /download/folder1/file1.dat | grep http:// | grep $($ap8/print_address)
