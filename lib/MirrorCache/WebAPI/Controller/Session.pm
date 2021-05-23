@@ -42,7 +42,7 @@ sub ensure_admin {
 sub destroy {
     my ($self) = @_;
 
-    my $auth_method = $self->app->config->{auth}->{method} || "OpenID";
+    my $auth_method = $self->auth_method;
     my $auth_module = "MirrorCache::Auth::$auth_method";
     if (my $sub = $auth_module->can('auth_logout')) { $self->$sub }
     delete $self->session->{user};
@@ -54,7 +54,7 @@ sub destroy {
 sub create {
     my ($self)      = @_;
     my $ref         = $self->req->headers->referrer;
-    my $auth_method = $self->app->config->{auth}->{method} || "OpenID";
+    my $auth_method = $self->auth_method;
     my $auth_module = "MirrorCache::Auth::$auth_method";
 
     # prevent redirecting loop when referrer is login page
@@ -76,7 +76,7 @@ sub create {
 sub response {
     my ($self)      = @_;
     my $ref         = $self->flash('ref');
-    my $auth_method = $self->app->config->{auth}->{method} || "OpenID";
+    my $auth_method = $self->auth_method;
     my $auth_module = "MirrorCache::Auth::$auth_method";
 
     croak "Method auth_response missing from class $auth_module" unless my $sub = $auth_module->can('auth_response');

@@ -17,8 +17,14 @@
 package MirrorCache::WebAPI::Plugin::Helpers;
 use Mojo::Base 'Mojolicious::Plugin';
 
+use Mojo::Loader 'load_class';
+
 use MirrorCache::Schema;
 use MirrorCache::Events;
+use MirrorCache::Utils 'random_string';
+
+my $AUTH_METHOD;
+my $AUTH_URL;
 
 sub register {
 
@@ -85,6 +91,30 @@ sub register {
             my $data = {toggle => 'popover', trigger => 'focus', title => $title, content => $content};
             $data->{placement} = $placement if $placement;
             return $c->t(a => (tabindex => 0, class => $class, role => 'button', (data => $data)));
+        });
+
+    $app->helper(
+        'auth_method' => sub {
+            unless ($AUTH_METHOD) {
+                # load auth module
+                $AUTH_URL = $ENV{MIRRORCACHE_AUTH_URL};
+                # will use default address unless it is set to empty string or other value
+                $AUTH_URL = 'https://www.opensuse.org/openid/user/' unless defined($AUTH_URL);
+                # we probably can detect method from url when new method is added
+                $AUTH_METHOD = $AUTH_URL?  "OpenID" : "Fake";
+                my $auth_module = "MirrorCache::Auth::$AUTH_METHOD";
+                if (my $err = load_class $auth_module) {
+                    $err = 'Module not found' unless ref $err;
+                    die "Unable to load auth module $auth_module: $err";
+                }
+                shift->config->{_openid_secret} = random_string(16);
+            }
+            return $AUTH_METHOD;
+        });
+    $app->helper(
+        'auth_url' => sub {
+            shift->auth_method; # make sure it is initialized
+            return $AUTH_URL;
         });
 }
 

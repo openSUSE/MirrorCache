@@ -16,12 +16,9 @@
 package MirrorCache::WebAPI;
 use Mojo::Base 'Mojolicious';
 
-use MirrorCache::Schema;
-
 use Mojolicious::Commands;
-use Mojo::Loader 'load_class';
 
-use MirrorCache::Utils 'random_string';
+use MirrorCache::Schema;
 
 # This method will run once at server start
 sub startup {
@@ -53,15 +50,6 @@ sub startup {
         if ((-1 == rindex($root, 'http', 0)) && (-1 == rindex($root, 'rsync://', 0)) ) {
             die("MIRRORCACHE_ROOT is not a directory ($root)") unless -d $root;
         }
-
-        # load auth module
-        my $auth_method = $self->config->{auth}->{method} || "OpenID";
-        my $auth_module = "MirrorCache::Auth::$auth_method";
-        if (my $err = load_class $auth_module) {
-            $err = 'Module not found' unless ref $err;
-            die "Unable to load auth module $auth_module: $err";
-        }
-        $self->config->{_openid_secret} = random_string(16);
 
         # Optional initialization with access to the app
         my $r = $self->routes->namespaces(['MirrorCache::WebAPI::Controller']);
@@ -127,7 +115,7 @@ sub startup {
 
         my $rest_user_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
         $rest_user_r->delete('/user/<id:num>')->name('delete_user')->to('user#delete');
-        
+
         $admin_r->get('/auditlog')->name('audit_log')->to('audit_log#index');
         $admin_r->get('/auditlog/ajax')->name('audit_ajax')->to('audit_log#ajax');
 
