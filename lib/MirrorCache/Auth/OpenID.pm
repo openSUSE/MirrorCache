@@ -29,11 +29,10 @@ sub auth_login {
     my $csr = Net::OpenID::Consumer->new(
         ua              => LWP::UserAgent->new,
         required_root   => $url,
-        # required_root   => 'http://mirrorcache.opensuse.org',
         consumer_secret => $self->app->config->{_openid_secret},
     );
 
-    my $claimed_id = $csr->claimed_identity($self->config->{openid}->{provider} || 'https://www.opensuse.org/openid/user/');
+    my $claimed_id = $csr->claimed_identity($self->auth_url);
     if (!defined $claimed_id) {
         print(STDERR "Claiming OpenID identity for URL '$url' failed: " . $csr->err);
         return;

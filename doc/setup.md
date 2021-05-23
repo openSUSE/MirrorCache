@@ -6,10 +6,11 @@
 
 MirrorCache can be configured with following environment variables:
   * MIRRORCACHE_ROOT (required): defines location of files, which needs redirection. It may be url, local folder or rsync address, e.g. `MIRRORCACHE_ROOT=http://download.opensuse.org` or `MIRRORCACHE_ROOT=/srv/mirrorcache` or `MIRRORCACHE_ROOT=rsync://user:password@myhost.com/module`. (Note that you must install additionally `perl-Digest-MD4` if rsync url needs password verification).
+  * MIRRORCACHE_AUTH_URL (optional) may contain remote openid server url (default https://www.opensuse.org/openid/user/). if explicitly set to empty value - all login attempt will be allowed and user set to 'Demo'.
   * MIRRORCACHE_TOP_FOLDERS (space separated values) may be set to automatically redirect /folder to /download/folder.
   * For reference of using MOJO_LISTEN variable refer Mojolicious documentation, e.g. `MOJO_LISTEN=http://*:8000`
   * It is recommended to run MirrorCache daemon behind another streamline WebService, e.g. Apache or haproxy. Thus `MOJO_REVERSE_PROXY=1` will be needed.
-  * MIRRORCACHE_REDIRECT is needed for use when MIRRORCACHE_ROOT is set to remote address. Requests will be redirected to this location when no mirror is found, e.g. MIRRORCACHE_REDIRECT=downloadcontent.opensuse.org 
+  * MIRRORCACHE_REDIRECT is needed for use when MIRRORCACHE_ROOT is set to remote address. Requests will be redirected to this location when no mirror is found, e.g. MIRRORCACHE_REDIRECT=downloadcontent.opensuse.org
   * MIRRORCACHE_METALINK_PUBLISHER may be set to customize publisher in metalink generation.
   * MIRRORCACHE_METALINK_PUBLISHER_URL may be set to customize url of publisher in metalink generation.
 

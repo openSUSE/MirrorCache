@@ -50,9 +50,6 @@ sub auth_login {
     $user->is_operator($userinfo->{operator});
     $user->update;
 
-    my $key = $user->api_keys->find_or_create({key => $userinfo->{key}, secret => '1234567890ABCDEF'});
-    # expire in a day after login
-    $key->update({t_expiration => DateTime->from_epoch(epoch => time + 24 * 3600)});
     $self->session->{user} = $userinfo->{username};
     return (error => 0);
 }
