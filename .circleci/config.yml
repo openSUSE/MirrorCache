@@ -4,7 +4,7 @@ jobs:
   environ:
     machine:
       image: ubuntu-2004:202008-01
-    working_directory: ~/project/t/environs
+    working_directory: ~/project/t/environ
     steps:
       - checkout:
           path: ~/project
