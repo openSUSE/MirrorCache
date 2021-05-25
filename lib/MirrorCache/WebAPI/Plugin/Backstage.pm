@@ -31,7 +31,7 @@ sub new {
 }
 
 my @permanent_jobs =
-  qw(folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule);
+  qw(folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule mirror_check_from_stat);
 
 sub register_tasks {
     my $self = shift;
@@ -39,6 +39,7 @@ sub register_tasks {
     my $app = $self->app;
     $app->plugin($_)
       for (
+        qw(MirrorCache::Task::MirrorCheckFromStat),
         qw(MirrorCache::Task::MirrorScanScheduleFromMisses),
         qw(MirrorCache::Task::MirrorScanScheduleFromPathErrors),
         qw(MirrorCache::Task::MirrorScanDemand),
