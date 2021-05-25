@@ -1,7 +1,7 @@
 #
 # spec file for package MirrorCache
 #
-# Copyright (c) 2020 SUSE LLC
+# Copyright (c) 2021 SUSE LLC
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -16,7 +16,7 @@
 
 %define assetpack_requires perl(CSS::Minifier::XS) >= 0.01 perl(JavaScript::Minifier::XS) >= 0.11 perl(Mojolicious::Plugin::AssetPack) >= 1.36 perl-IO-Socket-SSL
 %define main_requires %assetpack_requires perl(Carp) perl(DBD::Pg) >= 3.7.4 perl(DBI) >= 1.632 perl(DBIx::Class) >= 0.082801 perl(DBIx::Class::DynamicDefault) perl(DateTime) perl(Time::Piece) perl(Time::Seconds) perl(Time::ParseDate) perl(DateTime::Format::Pg) perl(Exporter) perl(File::Basename) perl(LWP::UserAgent) perl(Mojo::Base) perl(Mojo::ByteStream) perl(Mojo::IOLoop) perl(Mojo::JSON) perl(Mojo::Pg) perl(Mojo::URL) perl(Mojo::Util) perl(Mojolicious::Commands) perl(Mojolicious::Plugin) perl(Mojolicious::Plugin::RenderFile) perl(Mojolicious::Static) perl(Net::OpenID::Consumer) perl(POSIX) perl(URI::Encode) perl(URI::Escape) perl(XML::Writer) perl(base) perl(constant) perl(diagnostics) perl(strict) perl(warnings) shadow rubygem(sass) perl-Net-DNS perl-LWP-Protocol-https
-%define build_requires %assetpack_requires rubygem(sass) tidy
+%define build_requires %assetpack_requires rubygem(sass) tidy sysuser-shadow sysuser-tools
 
 Name:           MirrorCache
 Version:        0.1
@@ -27,9 +27,12 @@ Group:          Productivity/Networking/Web/Servers
 URL:            https://github.com/openSUSE/MirrorCache
 Source:         %{name}-%{version}.tar.xz
 BuildRequires:  %build_requires
+Source1:        %{name}-user.conf
+Source2:        %{name}-tmpfilesd.conf
 Requires:       perl(Minion) >= 10.0
 Requires:       %{main_requires}
 BuildArch:      noarch
+%{sysusers_requires}
 
 %description
 Mirror redirector web service, which automatically scans the main server and mirrors
@@ -39,6 +42,7 @@ Mirror redirector web service, which automatically scans the main server and mir
 
 %build
 # make {?_smp_mflags}
+%sysusers_generate_pre %{SOURCE1} %{name}
 
 %check
 
@@ -48,18 +52,14 @@ Mirror redirector web service, which automatically scans the main server and mir
 mkdir -p %{buildroot}%{_sbindir}
 ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache
 ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache-backstage
+install -D -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/%{name}.conf
+install -D -m 0644 %{SOURCE2} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 
-%pre
-getent group nogroup > /dev/null || groupadd nogroup
-getent passwd mirrorcache > /dev/null || %{_sbindir}/useradd -r -g nogroup -c "MirrorCache user" -d %{_localstatedir}/lib/mirrorcache mirrorcache || :
-if [ ! -e %{_localstatedir}/lib/mirrorcache ]; then
-    mkdir -p %{_localstatedir}/lib/mirrorcache
-    chown mirrorcache %{_localstatedir}/lib/mirrorcache || :
-fi
+%pre -f %{name}.pre
 %service_add_pre %{mirrorcache_services}
 
 %post
-chown mirrorcache %{_datadir}/mirrorcache/assets/cache
+%tmpfiles_create %{_tmpfilesdir}/%{name}.conf
 %service_add_post %{mirrorcache_services}
 
 %preun
@@ -72,11 +72,15 @@ chown mirrorcache %{_datadir}/mirrorcache/assets/cache
 %doc README.asciidoc
 %{_sbindir}/rcmirrorcache
 %{_sbindir}/rcmirrorcache-backstage
+%{_sysusersdir}/%{name}.conf
+%{_tmpfilesdir}/%{name}.conf
+%ghost %dir %attr(0750,mirrorcache,-) %{_localstatedir}/lib/mirrorcache/
 # init
 %dir %{_unitdir}
 %{_unitdir}/mirrorcache.service
 %{_unitdir}/mirrorcache-backstage.service
 # web libs
 %{_datadir}/mirrorcache
+%attr(-,mirrorcache,-) %{_datadir}/mirrorcache/assets/cache
 
 %changelog
