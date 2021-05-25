@@ -51,8 +51,8 @@ sub is_remote {
 sub is_reachable {
     my $res = 0;
     eval {
-        my $tx = $uaroot->get(shift->rooturlredirect);
-        $res = 1 if $tx->result->code < 399;
+        my $tx = $uaroot->head(shift->rooturlredirect);
+        $res = 1 if $tx->result->code < 399 || $tx->result->code == 403;
     };
     return $res;
 }
