@@ -73,4 +73,23 @@ END_SQL
     return $dbh->selectrow_hashref($prep);
 }
 
+sub latest_hit {
+    my ($self, $prev_stat_id) = @_;
+    $prev_stat_id = 0 unless $prev_stat_id;
+    my $dbh     = $self->result_source->schema->storage->dbh;
+
+    my $sql = <<"END_SQL";
+select stat.id, mirror_id, stat.country,
+       concat(case when secure then 'https://' else 'http://' end, server.hostname, server.urldir, path) as url,
+       substring(path,'(^(/.*)+)/') as folder
+       from stat join server on mirror_id = server.id
+       where stat.id > ?
+       order by stat.id desc
+       limit 1
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($prev_stat_id);
+    return $dbh->selectrow_array($prep);
+};
+
 1;
