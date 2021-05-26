@@ -186,22 +186,23 @@ $mc/status
 
 - Requires docker configured for non-root users
 - Available configuration:
-  - `MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb` adds this environment variable inside the container and mounts it as a volume if the file exists on the host
+  - `MIRRORCACHE_CITY_MMDB` adds this environment variable inside the container and mounts it as a volume if the file exists on the host
+  - `EXPOSE_PORT` maps whatever port you need from the container to host port 80
     ```bash
     cd t/environ
+
     # Just run the test:
     ./01-smoke.sh
+
     # Run the test with your own MIRRORCACHE_CITY_MMDB
     MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb ./01-smoke.sh
-    ```
-  - `EXPOSE_PORT=3110` maps port 3110 or whatever port you need from the container to host port 80, but also requires one more change, to ensure that MirrorCache is listening to requests from the host:
-    ```bash
-    # Add this line before '$mc/start' in your test:
-    $mc/gen_env 'MOJO_LISTEN=MOJO_LISTEN=http://*,'
 
-    # Run the test and have the container available at http://localhost:80 afterwards
-    EXPOSE_PORT=3190 ./01-smoke.sh
+    # Run the test and keep the container, while mapping port 3110 to host port 80
+    EXPOSE_PORT=3110 ./01-smoke.sh
     ```
+    
+    To log in with a fake test-user, change `$mc/start` to `MIRRORCACHE_TEST_TRUST_AUTH=1 $mc/start` in your test
+
     Setting `MIRRORCACHE_TEST_TRUST_AUTH` to any number > 1 will result in `current_user` being `undef`, so no fake test-user login.
     You will only have access to some routes defined in [lib/MirrorCache/WebAPI.pm](/lib/MirrorCache/WebAPI.pm).
 
