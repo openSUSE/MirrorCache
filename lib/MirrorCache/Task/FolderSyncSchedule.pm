@@ -32,7 +32,7 @@ sub _run {
 
     # prevent multiple scheduling tasks to run in parallel
     return $job->finish('Previous folder sync schedule job is still active')
-      unless my $guard = $minion->guard('folder_sync_schedule', 86400);
+      unless my $guard = $minion->guard('folder_sync_schedule', 60);
 
     my $schema = $app->schema;
     my $limit = 1000;

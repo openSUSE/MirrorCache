@@ -48,7 +48,7 @@ sub _location {
     $lng = sprintf("%.3f", $lng) if $lng;
     return $job->fail("Couldn't identify location") unless ($lat || $lng) && $country && $continent;
     return $job->fail("Country doesn't match, expected: " . $s->country . '; got: ' . $country) if $s->country && $country ne $s->country;
-    
+
     my ($old_region, $old_lat, $old_lng) = (($s->region // ''), ($s->lat // ''), ($s->lng // ''));
     return $job->finish("No changes detected") if $lat eq $old_lat && $lng eq $old_lng && $continent eq $old_region;
 

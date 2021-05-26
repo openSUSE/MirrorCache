@@ -35,7 +35,7 @@ sub _run {
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
     return $job->finish('Previous schedule_from_misses job is still active')
-      unless my $guard = $minion->guard('folder_sync_schedule_from_misses', 86400);
+      unless my $guard = $minion->guard('folder_sync_schedule_from_misses', 60);
 
     my $schema = $app->schema;
     my $limit = 1000;
