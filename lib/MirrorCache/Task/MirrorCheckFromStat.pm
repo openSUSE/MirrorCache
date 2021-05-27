@@ -17,7 +17,6 @@ package MirrorCache::Task::MirrorCheckFromStat;
 use Mojo::Base 'Mojolicious::Plugin';
 
 use Mojo::UserAgent;
-use Data::Dumper;
 
 # Task will endlessly check from latest hit that the file still still on the mirror
 # This task is optional but should fix occasional mirror problems
@@ -40,11 +39,10 @@ sub _run {
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
     return $job->finish('Previous job is still active')
-      unless my $guard = $minion->guard('mirror_check_from_stat', 86400);
+      unless my $guard = $minion->guard('mirror_check_from_stat', 60);
 
     my $schema = $app->schema;
 
-    print STDERR Dumper('XXXXX', $schema->resultset('Stat')->latest_hit($prev_stat_id));
     my ($stat_id, $mirror_id, $country, $url, $folder) = $schema->resultset('Stat')->latest_hit($prev_stat_id);
     my $last_run = 0;
     while ($stat_id && $stat_id > $prev_stat_id) {

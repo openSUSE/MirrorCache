@@ -8,5 +8,5 @@ __workdir/../db/status >& /dev/null || __workdir/../db/start
 
 (
 cd __workdir
-__srcdir/script/mirrorcache backstage run --oneshot
+__srcdir/script/mirrorcache backstage run --oneshot "$@"
 )

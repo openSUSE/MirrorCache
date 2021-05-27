@@ -241,7 +241,8 @@ sub _guess_what_to_render {
     my $c    = $dm->c;
     my $tx   = $c->render_later->tx;
     my ($path, $trailing_slash) = $dm->path;
-    return $c->render(status => 425, text => 'Metalink is not ready') if !$root->is_remote && $dm->metalink;
+
+    return $root->render_file($c, $path) if $dm->metalink;
 
     my $rootlocation = $root->location($c);
     my $url  = $rootlocation . $path;
