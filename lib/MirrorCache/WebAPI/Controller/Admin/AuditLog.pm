@@ -25,7 +25,7 @@ sub index {
     my ($self) = @_;
     if ($self->param('event_id')) {
         $self->stash('search', 'id:' . $self->param('event_id'));
-    } if ($self->param('user_id')) {
+    } elsif ($self->param('user_id')) {
         $self->stash('search', 'user_id:' . $self->param('user_id'));
     } else {
         $self->stash('search', $self->param('search'));

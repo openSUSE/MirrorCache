@@ -35,6 +35,9 @@ $mc/curl '/admin/auditlog/ajax?search\[value\]=event:user_delete' | grep 'user_d
 # Filter all 3 user_update events
 $mc/curl '/admin/auditlog/ajax?search\[value\]=event:user_update' | grep 'user_update' | grep '"recordsFiltered":3'
 
+# Filter one specific event by id
+$mc/curl '/admin/auditlog/ajax?search\[value\]=id:2' | grep '"recordsFiltered":1'
+
 $mc/db/sql "insert into acc(username,email,fullname,nickname,is_operator,is_admin,t_created,t_updated) select 'eli2','eli2@test','Eli2 Test','eli2',0,0,'2021-01-14 11:19:25','2021-01-14 11:19:25'"
 $mc/db/sql "select * from acc"
 
