@@ -60,7 +60,11 @@ sub foreach_filename {
     my $self = shift;
     my $dir  = shift;
     my $sub  = shift;
-    Mojo::File->new($rootpath . $dir)->list({dir => 1})->map( 'basename' )->each($sub);
+    Mojo::File->new($rootpath . $dir)->list({dir => 1})->each(sub {
+            my $f = shift;
+            my $stat = $f->stat;
+            $sub->($f->basename, $stat->size, $stat->mode, $stat->mtime);
+        });
     return 1;
 }
 
