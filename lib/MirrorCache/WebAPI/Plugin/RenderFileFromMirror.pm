@@ -37,7 +37,10 @@ sub register {
         my $f = Mojo::File->new($filepath);
         my $dirname  = $f->dirname;
         my $basename = $f->basename;
-        if ($dirname->basename eq "repodata") {
+        my $dirname_basename = $dirname->basename;
+        my $dm = $c->dm;
+        return $root->render_file($c, $filepath, 1) if ($dirname_basename eq "media.1" && (!$dm->metalink || $dm->metalink_accept) && $root->is_reachable);
+        if ($dirname_basename eq "repodata") {
             # We don't redirect inside repodata, because if a mirror is outdated,
             # then zypper will have hard time working with outdated repomd.* files
             my $prefix = "repomd.xml";
@@ -48,8 +51,7 @@ sub register {
         }
 
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
-        my $file = $c->schema->resultset('File')->find({folder_id => $folder->id, name => $basename}) if $folder;
-        my $dm = $c->dm;
+        my $file = $c->schema->resultset('File')->find_with_hash($folder->id, $basename) if $folder;
         my $country = $dm->country;
         my $region  = $dm->region;
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
@@ -63,13 +65,12 @@ sub register {
         $scheme = 'https' if $dm->is_secure;
         my $ipv = 'ipv4';
         $ipv = 'ipv6' unless $dm->is_ipv4;
-        my $ip = $dm->ip;
-        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $region, $folder->id, $file->id, $scheme, $ipv, $dm->lat, $dm->lng, $dm->avoid_countries);
+        my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $region, $folder->id, $file->{id}, $scheme, $ipv, $dm->lat, $dm->lng, $dm->avoid_countries);
 
         if ($dm->metalink && !($dm->metalink_accept && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
             my $url = $c->req->url->to_abs;
             my $origin = $url->scheme . '://' . $url->host;
-            my $xml = _build_metalink($dm, $folder->path, $basename, $file->size, $file->mtime, $country, $mirrors, $origin, 'MirrorCache', $root->is_remote? $root->location($c) : undef);
+            my $xml = _build_metalink($dm, $folder->path, $file, $country, $mirrors, $origin, 'MirrorCache', $root->is_remote? $root->location($c) : undef);
             $c->render(data => $xml, format => 'xml');
             if ($mirrors && @$mirrors) {
                 $c->stat->redirect_to_mirror($mirrors->[0]->{mirror_id});
@@ -106,7 +107,7 @@ sub register {
         my $tx = $c->render_later->tx;
         my $ua  = Mojo::UserAgent->new;
         my $recurs1;
-        my $expected_size = $file->size;
+        my $expected_size = $file->{size};
         my $recurs = sub {
             my $prev = shift;
 
@@ -154,7 +155,8 @@ sub register {
 }
 
 sub _build_metalink() {
-    my ($dm, $path, $basename, $size, $mtime, $country, $mirrors, $origin, $generator, $fileurl) = @_;
+    my ($dm, $path, $file, $country, $mirrors, $origin, $generator, $fileurl) = @_;
+    my $basename = $file->{name};
     $country = uc($country) if $country;
     my @mirrors = @$mirrors;
     my $mirror_count = @mirrors;
@@ -176,28 +178,38 @@ sub _build_metalink() {
     $writer->startTag('metalink', @attribs);
 
     $writer->startTag('publisher');
-    if ($publisher) {
-        $writer->startTag('name');
-        $writer->characters($publisher);
-        $writer->endTag('name');
-    }
-
-    if ($publisher_url) {
-        $writer->startTag('url');
-        $writer->characters($publisher_url);
-        $writer->endTag('url');
-    }
+    $writer->dataElement( name => $publisher    ) if $publisher;
+    $writer->dataElement( url  => $publisher_url) if $publisher_url;
     $writer->endTag('publisher');
 
     $writer->startTag('files');
     {
         $writer->startTag('file', name => $basename);
-        if ($size) {
-            $writer->startTag('size');
-            $writer->characters($size);
-            $writer->endTag('size');
+        $writer->dataElement( size => $file->{size} ) if $file->{size};
+        $writer->comment('<mtime>' . $file->{mtime} . '</mtime>') if ($file->{mtime});
+        if (my $md5 = $file->{md5}) {
+            $writer->startTag('hash', type => 'md5');
+            $writer->characters($md5);
+            $writer->endTag('hash');
         }
-        $writer->comment("<mtime>$mtime</mtime>") if ($mtime);
+        if (my $sha1 = $file->{sha1}) {
+            $writer->startTag('hash', type => 'sha-1');
+            $writer->characters($sha1);
+            $writer->endTag('hash');
+        }
+        if (my $sha256 = $file->{sha256}) {
+            $writer->startTag('hash', type => 'sha-256');
+            $writer->characters($sha256);
+            $writer->endTag('hash');
+        }
+        if (my $piece_size = $file->{piece_size}) {
+            $writer->startTag('pieces', length => $piece_size, type => 'sha-1');
+            for my $piece (grep {$_} split /(.{40})/, $file->{pieces}) {
+                $writer->dataElement( hash => $piece );
+            }
+            $writer->endTag('pieces');
+        }
+
         my $colon = $fileurl ? index(substr($fileurl,0,6),':') : '';
         $writer->startTag('resources');
         {

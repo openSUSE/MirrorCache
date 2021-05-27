@@ -91,7 +91,6 @@ test 1 == $($mc/db/sql "select count(*) from audit_event where name like 'mirror
 cnt=$($mc/db/sql "select count(*) from folder")
 $mc/curl -I /download//folder1//file1.dat
 sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
-# sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 $mc/backstage/shoot
 test $cnt == $($mc/db/sql -t -c "select count(*) from folder" mc_test)
 
@@ -108,16 +107,13 @@ for x in $mc $ap7 $ap8; do
     echo CONTENT2 > $x/dt/folder1/media.1/media
 done
 
-$mc/curl -I /download/folder1/media.1/media
+$mc/curl -I /download/folder1/media.1/file1.dat
 sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
-# sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
-# $mc/backstage/job folder_sync_schedule_from_misses
-# $mc/backstage/job.sh folder_sync_schedule
 $mc/backstage/shoot
 
-$mc/curl -i /download/folder1/media.1/file1.dat.metalink | grep location
-$mc/curl -i -H 'Accept: */*, application/metalink+xml' /download/folder1/media.1/file1.dat| grep location
+# requests to media.1/* are not redirected to a mirror
+$mc/curl -i /download/folder1/media.1/file1.dat.metalink | grep -v location
+$mc/curl -i -H 'Accept: */*, application/metalink+xml' /download/folder1/media.1/file1.dat| grep -v location
 
 test -z "$($mc/curl -i -H 'Accept: */*, application/metalink+xml' /download/folder1/media.1/media | grep location)" || FAIL media.1/media must not return metalink
-$mc/curl -i /download/folder1/media.1/media.metalink | grep location
 $mc/curl -iL -H 'Accept: */*, application/metalink+xml' /download/folder1/media.1/media | grep CONTENT2

@@ -24,10 +24,14 @@ has usage       => sub { shift->extract_usage };
 sub run {
     my ($self, @args) = @_;
 
-    getopt \@args, 'o|oneshot' => \my $oneshot, 'reset-locks' => \my $reset_locks;
+    getopt \@args, ['pass_through'], 'o|oneshot' => \my $oneshot, 'reset-locks' => \my $reset_locks;
 
     my $minion = $self->app->minion;
-    return $minion->perform_jobs if $oneshot;
+    if ($oneshot) {
+        getopt \@args, ['pass_through'], 'q|queue=s' => \my $queue;
+        return $minion->perform_jobs({ queues => [$queue]}) if $queue;
+        return $minion->perform_jobs;
+    }
 
     if ($reset_locks) {
         $self->app->log->info('Resetting all leftover locks after restart');

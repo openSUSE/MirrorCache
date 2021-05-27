@@ -171,3 +171,17 @@ create table demand (
     mirror_count_region int,
     unique(folder_id, country)
 );
+-- 4 up
+create table hash (
+    file_id bigint NOT NULL primary key references file on delete cascade,
+    mtime bigint,
+    size bigint NOT NULL,
+    md5 char(32),
+    sha1 char(40),
+    sha256 char(64),
+    piece_size int,
+    pieces text,
+    dt timestamp NOT NULL
+);
+create index hash_file_id_size on hash(file_id, size);
+create index hash_sha256 on hash(sha256);

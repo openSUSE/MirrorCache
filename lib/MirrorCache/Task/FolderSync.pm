@@ -17,6 +17,9 @@ package MirrorCache::Task::FolderSync;
 use Mojo::Base 'Mojolicious::Plugin';
 use MirrorCache::Utils 'datetime_now';
 
+my $HASHES_COLLECT = $ENV{MIRRORCACHE_HASHES_COLLECT} // 0;
+my $HASHES_QUEUE   = $ENV{MIRRORCACHE_HASHES_QUEUE} // 'hashes';
+
 sub register {
     my ($self, $app) = @_;
     $app->minion->add_task(folder_sync => sub { _sync($app, @_) });
@@ -101,8 +104,11 @@ sub _sync {
 
         $job->note(created => $path, count => $count);
 
+        if ($count) {
+            $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7});
+            $minion->enqueue('folder_hashes_create' => [$path] => {queue => $HASHES_QUEUE}) if !$root->is_remote && $HASHES_COLLECT && $minion->stats->{inactive_jobs} < 400;
+        }
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
-        $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7});
         return;
     };
     return $job->fail("Couldn't create folder $path in DB") unless $folder && $folder->id;
@@ -155,7 +161,10 @@ sub _sync {
 
     $folder->update({db_sync_last => datetime_now()});
     $job->note(updated => $path, count => $cnt, deleted => $deleted, updated => $updated);
-    $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7} ) if $cnt;
+    if ($cnt) {
+        $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7} );
+        $minion->enqueue('folder_hashes_create' => [$path]) unless $root->is_remote || !$HASHES_COLLECT || $minion->stats->{inactive_jobs} >= 400;
+    }
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }
 

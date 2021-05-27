@@ -46,7 +46,7 @@ select concat(s.hostname,s.urldir) as uri, s.hostname as hostname, s.id as id,
     left join server_capability_force fipv6  on fipv6.server_id  = s.id and fipv6.capability  = 'ipv6'
     where 't'
     AND (fhttp.server_id IS NULL or fhttps.server_id IS NULL) -- do not show servers which have both http and https force disabled
-    AND (fipv4.server_id IS NULL or fipv6.server_id IS NULL)  -- do not show servers which have both ipv4 and ipv6 force disabled    
+    AND (fipv4.server_id IS NULL or fipv6.server_id IS NULL)  -- do not show servers which have both ipv4 and ipv6 force disabled
     AND s.country = lower(?)
     AND s.enabled
 END_SQL
@@ -84,7 +84,7 @@ where 't'
     AND c.dt > now() - interval '2 hour'
     AND s.enabled
 group by c.server_id, c.capability, s.hostname, s.urldir
-having   sum(case when not c.success then 1 else 0 end) >= 5 and 
+having   sum(case when not c.success then 1 else 0 end) >= 5 and
          sum(case when c.success then 1 else -1 end) < 0
 END_SQL
     return $dbh->selectall_hashref($sql, 'id', {});
