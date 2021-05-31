@@ -83,7 +83,7 @@
       </tr>
       % for my $file (@$files) {
       <tr>
-        <td class="name break-long-content"><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td>
+        <td class="name"><a href='<%= $file->{url} %>'><%== $file->{name} %></a></td>
       %   if ($file->{mtime}) {
         <td class='size'><%= $file->{dir} ? '' : $file->{size} %></td>
         <td class='mtime'><%= $file->{mtime} %></td>

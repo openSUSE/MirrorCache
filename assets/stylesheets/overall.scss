@@ -183,10 +183,10 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     min-width: 100%;
 }
 
-.break-long-content {
+.break-long-content, .name {
     overflow-wrap: break-word;
     word-wrap: break-word;
-    word-break: break-word;
+    word-break: break-all;
     white-space: unset !important;
 }
 
