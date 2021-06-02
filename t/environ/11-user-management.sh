@@ -41,7 +41,7 @@ $mc/curl '/admin/auditlog/ajax?search\[value\]=id:2' | grep '"recordsFiltered":1
 $mc/db/sql "insert into acc(username,email,fullname,nickname,is_operator,is_admin,t_created,t_updated) select 'eli2','eli2@test','Eli2 Test','eli2',0,0,'2021-01-14 11:19:25','2021-01-14 11:19:25'"
 $mc/db/sql "select * from acc"
 
-$mc/curl /logout
+$mc/curl -X POST /logout
 
 # Expect error when attempting to update/delete a user and no user is logged in (current_user is undef)
 # (and /admin route is accesible due to starting MirrorCache with MIRRORCACHE_TEST_TRUST_AUTH environment variable set)
