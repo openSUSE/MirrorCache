@@ -19,6 +19,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 use POSIX;
 use Data::Dumper;
+use Sort::Naturally;
 use Mojolicious::Types;
 use MirrorCache::Utils;
 
@@ -294,7 +295,7 @@ sub _guess_what_to_render {
 
 sub _by_filename {
    $b->{dir} cmp $a->{dir} ||
-   $a->{name} cmp $b->{name};
+   ncmp(lc($a->{name}), lc($b->{name}));
 }
 
 sub _get_ext {

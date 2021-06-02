@@ -12,6 +12,9 @@ RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-P
     vim postgresql postgresql-server curl sudo git-core wget tar m4 \
     apache2 perl-Digest-MD4 tidy nginx bbe
 
+# dependencies to be deleted after they are merged and installed with the rpm package
+RUN zypper -vvv -n install perl-Sort-Naturally
+
 RUN zypper -vvv -n install make
 
 # this hack is needed because old nginx versions cannot run as non-root
