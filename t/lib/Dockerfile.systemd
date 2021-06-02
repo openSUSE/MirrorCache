@@ -12,6 +12,9 @@ RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-P
     vim postgresql postgresql-server curl sudo git-core wget tar m4 \
     apache2 perl-Digest-MD4 tidy make
 
+# dependencies to be deleted after they are merged and installed with the rpm package
+RUN zypper -vvv -n install perl-Sort-Naturally
+
 VOLUME ["/sys/fs/cgroup"]
 VOLUME ["/run"]
 VOLUME ["/opt/project"]
