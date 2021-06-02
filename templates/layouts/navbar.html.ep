@@ -40,7 +40,7 @@
                   %= link_to 'Audit log' => url_for('audit_log') => class => 'dropdown-item'
                   % }
                   %= tag 'div' => class => 'dropdown-divider'
-                  %= link_to 'Logout' => url_for('logout') => class => 'dropdown-item'
+                  %= link_to 'Logout' => url_for('logout') => 'data-method' => 'post' => class => 'dropdown-item'
                 </div>
             </li>
         % } else {

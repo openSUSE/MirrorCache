@@ -63,7 +63,6 @@ sub startup {
         $r->get('/login')->name('login')->to('session#create');
         $r->post('/login')->to('session#create');
         $r->post('/logout')->name('logout')->to('session#destroy');
-        $r->get('/logout')->to('session#destroy');
         $r->get('/response')->to('session#response');
         $r->post('/response')->to('session#response');
 
