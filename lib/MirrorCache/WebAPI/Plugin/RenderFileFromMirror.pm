@@ -38,7 +38,7 @@ sub register {
         my $dirname  = $f->dirname;
         my $basename = $f->basename;
         if ($dirname->basename eq "repodata") {
-            # We don't redirect inside repodata, because if a mirror is outdated, 
+            # We don't redirect inside repodata, because if a mirror is outdated,
             # then zypper will have hard time working with outdated repomd.* files
             my $prefix = "repomd.xml";
 
@@ -65,10 +65,6 @@ sub register {
         $ipv = 'ipv6' unless $dm->is_ipv4;
         my $ip = $dm->ip;
         my $mirrors = $c->schema->resultset('Server')->mirrors_country($country, $region, $folder->id, $file->id, $scheme, $ipv, $dm->lat, $dm->lng, $dm->avoid_countries);
-        unless (@$mirrors) {
-            $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country});
-            return $root->render_file($c, $filepath) unless $dm->metalink;
-        }
 
         if ($dm->metalink && !($dm->metalink_accept && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
             my $url = $c->req->url->to_abs;
@@ -80,9 +76,17 @@ sub register {
                 $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirrors->[0]->{country};
             } else {
                 $c->stat->redirect_to_root(0);
+                $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country;
             }
             return 1;
         }
+
+        unless (@$mirrors) {
+            $root->render_file($c, $filepath);
+            $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country;
+            return 1;
+        }
+
         unless ($dm->pedantic) {
             my $mirror = shift @$mirrors;
             # Check below is needed only when MIRRORCACHE_ROOT_COUNTRY is set
