@@ -47,17 +47,26 @@ sub _sync {
 
     my $folder_id = $folder->id;
     my $count = 0;
+    my $errcount = 0;
     my $rows = $schema->resultset('File')->hash_needed($folder_id);
     for my $id (sort keys %$rows) {
         my $file = $rows->{$id};
         my $basename = $file->{name};
         next unless $basename;
         my $block_size = calcBlockSize($file->{size});
-        my $size = calcMetalink($app->mc->rootlocation, $path, $basename, $block_size, $schema, $file->{id});
-        $count++;
+        eval {
+            calcMetalink($app->mc->rootlocation, $path, $basename, $block_size, $schema, $file->{id});
+            $count++;
+        };
+        if ($@) {
+            my $err = $@;
+            $app->log->warn("Error while calculating metalink for file $path/$basename:");
+            $app->log->warn($err);
+            $errcount++;
+        }
     }
 
-    $job->note(count => $count);
+    $job->note(count => $count, errors => $errcount);
 }
 
 sub calcBlockSize {
@@ -82,7 +91,7 @@ sub calcMetalink {
     my $buffer_length = $block_size; # $block_size may be 0, means no pieces are needed
     $buffer_length = 1024*1024 unless $buffer_length;
     while (read $fh, $data, $buffer_length) {
-        $size = length($data);
+        $size = $size + length($data);
         push @pieces, Digest::SHA::sha1_hex($data);
 
         $d1->add($data);

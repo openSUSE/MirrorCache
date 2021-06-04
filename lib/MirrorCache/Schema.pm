@@ -70,6 +70,7 @@ sub migrate {
     my $self = shift;
     my $conn = Mojo::Pg->new;
     $conn->dsn( $self->dsn );
+    $conn->password($ENV{MIRRORCACHE_DBPASS}) if $ENV{MIRRORCACHE_DBPASS};
 
     my $dbh     = $self->storage->dbh;
     my $dbschema = path(__FILE__)->dirname->child('resources', 'migrations', 'pg.sql');
