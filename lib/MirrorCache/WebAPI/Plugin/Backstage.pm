@@ -66,6 +66,7 @@ sub register {
 
     my $conn = Mojo::Pg->new;
     $conn->dsn( $schema->dsn );
+    $conn->password($ENV{MIRRORCACHE_DBPASS}) if $ENV{MIRRORCACHE_DBPASS};
 
     $app->plugin( Minion => { Pg => $conn } );
     $self->register_tasks;
