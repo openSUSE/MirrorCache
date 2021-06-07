@@ -19,11 +19,15 @@ $rs/ls_a
 mkdir -p $rs/a/bb/ccc/dddd
 echo -n '' > $rs/a/bb/ccc/a1
 echo -n '1234' > $rs/a/bb/ccc/a2
+ln -s $rs/a/bb/ccc/a2 $rs/a/bb/ccc/a3
+
+PERL5LIB="$thisdir"/../../lib perl $thisdir/lib/file-listing-rsync-init.pl rsync://$USER:$USER@$($rs/print_address)/a bb/ccc
 
 PERL5LIB="$thisdir"/../../lib perl $thisdir/lib/file-listing-rsync-init.pl rsync://$USER:$USER@$($rs/print_address)/a bb/ccc \
     | grep -C 100 "name = dddd; size = 4096; mod = 493" \
     | grep -C 100 "name = a1; size = 0; mod = 4516" \
-    | grep -C 100 "name = a2; size = 4; mod = 4516"
+    | grep -C 100 "name = a2; size = 4; mod = 4516" \
+    | grep -C 100 "name = a3; size = 4"
 
 PERL5LIB="$thisdir"/../../lib perl $thisdir/lib/file-listing-rsync-init.pl rsync://$USER:$USER@$($rs/print_address) a/bb/ccc \
     | grep -C 100 "name = dddd; size = 4096; mod = 493" \

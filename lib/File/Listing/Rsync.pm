@@ -93,7 +93,7 @@ sub readdir {
     alarm $self->timeout;
     sysread(S, $buf, 4096);
     alarm 0;
-    die("protocol error1 [Dumper($buf)]\n") if $buf !~ /^\@RSYNCD: ([\d.]+)\n/s;
+    die("protocol error1 [" . Dumper($buf) . "]\n") if $buf !~ /^\@RSYNCD: ([\d.]+)\n/s;
     $self->protocol($1);
     my $module = $self->module;
     if ($module) {
@@ -121,7 +121,7 @@ sub readdir {
             next;
         }
     }
-    my @args = ('--server', '--sender', '-rl');
+    my @args = ('--server', '--sender', '-rl', '--copy-links');
     push @args, '--exclude=/*/*';
 
     for my $arg (@args, '.', "$path/.", '') {
