@@ -242,7 +242,11 @@ sub _guess_what_to_render {
     my $tx   = $c->render_later->tx;
     my ($path, $trailing_slash) = $dm->path;
 
-    return $root->render_file($c, $path) if $dm->metalink;
+    if ($dm->metalink) {
+        my $res = $root->render_file($c, $path);
+        $c->mmdb->emit_miss($path, $dm->country);
+        return $res;
+    }
 
     my $rootlocation = $root->location($c);
     my $url  = $rootlocation . $path;
