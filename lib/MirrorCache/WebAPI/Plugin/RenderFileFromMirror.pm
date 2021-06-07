@@ -229,7 +229,7 @@ sub _build_metalink() {
                 my $url = $m->{url};
                 my $colon = index(substr($url,0,6), ':');
                 next unless $colon > 0;
-                if (!$root_included && $country ne $m->{country} && $dm->root_is_better($m->{region}, $m->{lng})) {
+                if (!$root_included && $country ne uc($m->{country}) && $dm->root_is_better($m->{region}, $m->{lng})) {
                     $root_included = 1;
                     $print_root->();
                 }

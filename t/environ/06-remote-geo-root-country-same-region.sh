@@ -41,3 +41,17 @@ $mc/curl --interface 127.0.0.4 -I '/download/folder1/file1.dat?REGION=eu' | grep
 # check order of the same in metalink file
 $mc/curl --interface 127.0.0.2 '/download/folder1/file1.dat.metalink?REGION=eu' | grep -A1 $DE_ADDRESS | grep $CZ_ADDRESS
 $mc/curl --interface 127.0.0.4 '/download/folder1/file1.dat.metalink?REGION=eu' | grep -A1 $CZ_ADDRESS | grep $DE_ADDRESS
+
+#########################################
+echo test scan is scheduled when metadata is missing
+$mc/curl -Is --interface 127.0.0.3 '/download/folder2/file1.dat.metalink?COUNTRY=de' | grep -A1 $DE_ADDRESS
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+# $mc/backstage/job mirror_scan_schedule_from_misses
+$mc/backstage/shoot
+$mc/curl -is --interface 127.0.0.3 '/download/folder2/file1.dat.metalink?COUNTRY=de' | grep -A1 $DE_ADDRESS | grep $CZ_ADDRESS
+$mc/curl -is --interface 127.0.0.3 '/download/folder2/file1.dat.metalink?COUNTRY=cz' | grep -A1 $CZ_ADDRESS | grep $DE_ADDRESS
+#########################################
+
+
+
