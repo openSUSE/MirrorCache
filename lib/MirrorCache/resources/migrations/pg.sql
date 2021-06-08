@@ -185,3 +185,5 @@ create table hash (
 );
 create index hash_file_id_size on hash(file_id, size);
 create index hash_sha256 on hash(sha256);
+-- 5 up
+create index audit_event_dt on audit_event(dt, name);
