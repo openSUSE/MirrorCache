@@ -67,7 +67,15 @@ END_SQL
         $schema->storage->dbh->prepare($sqlservercap)->execute();
         1;
     } or $job->note(last_warning => $@, at => datetime_now());
-    
+
+    # delete rows from audit_event
+    my $fail_count;
+    my $last_warning;
+    eval {
+        ($fail_count, $last_warning) = $schema->resultset('AuditEvent')->cleanup_audit_events($app);
+        $fail_count ? 0 : 1;
+    } or $job->note(last_warning => $last_warning, delete_fail_count => $fail_count, at => datetime_now());
+
     return $job->retry({delay => 60});
 }
 

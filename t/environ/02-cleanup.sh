@@ -51,6 +51,10 @@ test 4 == $($mc/db/sql "select count(*) from folder_diff")
 test 4 == $($mc/db/sql "select count(*) from folder_diff_file")
 test 8 == $($mc/db/sql "select count(*) from server_capability_check")
 
+# update dt to look older and save number of audit events
+$mc/db/sql "update audit_event set dt = dt - interval '50 day'"
+audit_events=$($mc/db/sql "select count(*) from audit_event")
+
 # run cleanup job
 $mc/backstage/job cleanup
 $mc/backstage/shoot
@@ -59,3 +63,4 @@ $mc/backstage/shoot
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 3 == $($mc/db/sql "select count(*) from folder_diff_file")
 test 4 == $($mc/db/sql "select count(*) from server_capability_check")
+test $audit_events -gt $($mc/db/sql "select count(*) from audit_event")
