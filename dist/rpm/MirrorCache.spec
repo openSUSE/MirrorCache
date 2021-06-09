@@ -12,12 +12,14 @@
 # license that conforms to the Open Source Definition (Version 1.9)
 # published by the Open Source Initiative.
 
+# Please submit bugfixes or comments via https://bugs.opensuse.org/
+#
+
+
 %define mirrorcache_services mirrorcache.service mirrorcache-backstage.service
-
 %define assetpack_requires perl(CSS::Minifier::XS) >= 0.01 perl(JavaScript::Minifier::XS) >= 0.11 perl(Mojolicious::Plugin::AssetPack) >= 1.36 perl-IO-Socket-SSL
-%define main_requires %assetpack_requires perl(Carp) perl(DBD::Pg) >= 3.7.4 perl(DBI) >= 1.632 perl(DBIx::Class) >= 0.082801 perl(DBIx::Class::DynamicDefault) perl(DateTime) perl(Time::Piece) perl(Time::Seconds) perl(Time::ParseDate) perl(DateTime::Format::Pg) perl(Exporter) perl(File::Basename) perl(LWP::UserAgent) perl(Mojo::Base) perl(Mojo::ByteStream) perl(Mojo::IOLoop) perl(Mojo::JSON) perl(Mojo::Pg) perl(Mojo::URL) perl(Mojo::Util) perl(Mojolicious::Commands) perl(Mojolicious::Plugin) perl(Mojolicious::Plugin::RenderFile) perl(Mojolicious::Static) perl(Net::OpenID::Consumer) perl(POSIX) perl(Sort::Naturally) perl(URI::Encode) perl(URI::Escape) perl(XML::Writer) perl(base) perl(constant) perl(diagnostics) perl(strict) perl(warnings) shadow rubygem(sass) perl-Net-DNS perl-LWP-Protocol-https perl-Digest-SHA
-%define build_requires %assetpack_requires rubygem(sass) tidy sysuser-shadow sysuser-tools
-
+%define main_requires %{assetpack_requires} perl(Carp) perl(DBD::Pg) >= 3.7.4 perl(DBI) >= 1.632 perl(DBIx::Class) >= 0.082801 perl(DBIx::Class::DynamicDefault) perl(DateTime) perl(Encode) perl(Time::Piece) perl(Time::Seconds) perl(Time::ParseDate) perl(DateTime::Format::Pg) perl(Exporter) perl(File::Basename) perl(LWP::UserAgent) perl(Mojo::Base) perl(Mojo::ByteStream) perl(Mojo::IOLoop) perl(Mojo::JSON) perl(Mojo::Pg) perl(Mojo::URL) perl(Mojo::Util) perl(Mojolicious::Commands) perl(Mojolicious::Plugin) perl(Mojolicious::Plugin::RenderFile) perl(Mojolicious::Static) perl(Net::OpenID::Consumer) perl(POSIX) perl(Sort::Naturally) perl(URI::Escape) perl(XML::Writer) perl(base) perl(constant) perl(diagnostics) perl(strict) perl(warnings) shadow rubygem(sass) perl-Net-DNS perl-LWP-Protocol-https perl-Digest-SHA
+%define build_requires %{assetpack_requires} rubygem(sass) tidy sysuser-shadow sysuser-tools
 Name:           MirrorCache
 Version:        0.1
 Release:        0
@@ -26,13 +28,13 @@ License:        GPL-2.0-or-later
 Group:          Productivity/Networking/Web/Servers
 URL:            https://github.com/openSUSE/MirrorCache
 Source:         %{name}-%{version}.tar.xz
-BuildRequires:  %build_requires
 Source1:        %{name}-user.conf
 Source2:        %{name}-tmpfilesd.conf
-Requires:       perl(Minion) >= 10.0
+BuildRequires:  %{build_requires}
 Requires:       %{main_requires}
+Requires:       perl(Minion) >= 10.0
 BuildArch:      noarch
-%{sysusers_requires}
+%sysusers_requires
 
 %description
 Mirror redirector web service, which automatically scans the main server and mirrors
@@ -70,6 +72,7 @@ install -D -m 0644 %{SOURCE2} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 
 %files
 %doc README.asciidoc
+%license LICENSE
 %{_sbindir}/rcmirrorcache
 %{_sbindir}/rcmirrorcache-backstage
 %{_sysusersdir}/%{name}.conf
