@@ -16,11 +16,6 @@ mirrorcache-dbobjects:
   cmd.run:
     - runas: postgres
 
-'psql -f /usr/share/mirrorcache/sql/schema.sql':
-  cmd.run:
-    - unless: test x1 == x$(psql -tAc "select 1 from information_schema.tables where table_name='acc' limit 1")
-    - runas: mirrorcache
-
 {%- if grains.id == 'mirrorcache.opensuse.org' %}
 insert-regions:
   cmd.run:
@@ -53,7 +48,6 @@ insert-regions:
 conf-env:
   file.managed:
     - user: mirrorcache
-    - group: nogroup
     - mode: 0644
     - names:
       - /usr/share/mirrorcache/conf.env:
