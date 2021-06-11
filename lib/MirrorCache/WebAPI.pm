@@ -19,6 +19,7 @@ use Mojo::Base 'Mojolicious';
 use Mojolicious::Commands;
 
 use MirrorCache::Schema;
+use MirrorCache::Utils 'random_string';
 
 # This method will run once at server start
 sub startup {
@@ -37,6 +38,10 @@ sub startup {
         MirrorCache::Schema->singleton->migrate();
         1;
     } or die("Automatic migration failed: $@\nFix table structure and insert into mojo_migrations select 'mirrorcache',version");
+    my $secret = random_string(16);
+    $self->config->{_openid_secret} = $secret;
+    $self->secrets([$secret]);
+
 
     push @{$self->commands->namespaces}, 'MirrorCache::WebAPI::Command';
 
