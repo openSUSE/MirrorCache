@@ -21,7 +21,6 @@ use Mojo::Loader 'load_class';
 
 use MirrorCache::Schema;
 use MirrorCache::Events;
-use MirrorCache::Utils 'random_string';
 
 my $AUTH_METHOD;
 my $AUTH_URL;
@@ -107,7 +106,6 @@ sub register {
                     $err = 'Module not found' unless ref $err;
                     die "Unable to load auth module $auth_module: $err";
                 }
-                shift->config->{_openid_secret} = random_string(16);
             }
             return $AUTH_METHOD;
         });
