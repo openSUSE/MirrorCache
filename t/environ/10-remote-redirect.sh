@@ -23,7 +23,7 @@ $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
     MIRRORCACHE_REDIRECT=$($ap4/print_address) \
     MOJO_CA_FILE=$(pwd)/ca/ca.pem \
     MOJO_REVERSE_PROXY=1 \
-    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3 \
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=2 \
     MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
 
 $mc/start
@@ -73,9 +73,10 @@ $mc/backstage/start
 
 n=0
 until curl -s -k http://$($ap9/print_address)/  | grep folder1 ; do
+    curl -s -k http://$($ap9/print_address)/  | grep folder1 || :
+    test $n -le 15 || ( exit 1 )
     sleep 1
     n=$((n+1))
-    test $n -le 10 || ( exit 1 )
 done
 
 # the same request as above, just over https
