@@ -1,54 +1,8 @@
 % layout 'bootstrap';
 % title 'Index of ' . $cur_path;
-% my $stats = url_for '/download' . $cur_path . '/';
 % my @breadcrumbs = split '/', 'download' . $cur_path;
 % my $bc_last = pop @breadcrumbs;
 % my $bc_url = '/';
-<script>
-      $(function () {
-        pollFolderStats('<%= $stats %>');
-      });
-</script>
-
-<nav class="navbar navbar-expand-lg navbar-light bg-light mb-3 border-bottom">
-  <div class="container">
-    <h5>Mirrors status: </h5>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarFolderStatus" aria-controls="navbarFolderStatus" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarFolderStatus">
-      <ul class="navbar-nav mr-auto">
-        <li class="nav-item">
-          <a class="nav-link" href="<%= $stats->query(status => 'recent') %>">
-          Recently scanned: <span class="badge badge-pill badge-secondary folder-stats-servers-recent">.</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="<%= $stats->query(status => 'outdated') %>">
-          Outdated: <span class="badge badge-pill badge-secondary folder-stats-servers-outdated">.</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="<%= $stats->query(status => 'not_scanned') %>">
-          Not scanned: <span class="badge badge-pill badge-secondary folder-stats-servers-not-scanned">.</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="<%= $stats->query(status => 'all') %>">
-          Last synced at <span class="badge badge-pill badge-secondary folder-stats-last-sync">.</span>
-          </a>
-        </li>
-        % if ($folder_id) {
-        <li class="nav-item">
-          <a class="nav-link" href="<%= url_for("/app/folder/$folder_id") %>">
-          Sync info: <span class="badge badge-pill badge-secondary folder-sync-job-position">retrieving...</span>
-          </a>
-        </li>
-        % }
-      </ul>
-    </div>
-  </div>
-</nav>
 
 <div id="container-download">
 
@@ -59,7 +13,7 @@
       %   $bc_url .= $bc . '/';
       <li class="breadcrumb-item"><a href="<%= $bc_url %>"><%== $bc %></a></li>
       % }
-      <li class="breadcrumb-item active"><%== $bc_last %></li>
+      <li class="breadcrumb-item active"><a href="<%= url_for("/app/folder/$folder_id") %>"><%== $bc_last %></a></li>
     </ol>
   </div>
 
