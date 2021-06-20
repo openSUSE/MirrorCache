@@ -1,5 +1,5 @@
 #!lib/test-in-container-environ.sh
-set -ex
+set -exo pipefail
 
 mc=$(environ mc $(pwd))
 
@@ -36,7 +36,7 @@ test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_sc
 $mc/db/sql "select * from minion_locks"
 
 # request from mx goes to us
-$mc/curl -Is /download/folder1/file1.dat?COUNTRY=mx | grep -C10 302 | grep "$(ap7*/print_address.sh)"
+$mc/curl -Is /download/folder1/file1.dat?COUNTRY=mx | grep -C10 302 | grep "$($ap7/print_address)"
 $mc/backstage/shoot
 $mc/db/sql "select * from minion_locks"
 # MIRRORCACHE_MIRROR_RESCAN_TIMEOUT hasn't passed yet, so no scanning job should occur
