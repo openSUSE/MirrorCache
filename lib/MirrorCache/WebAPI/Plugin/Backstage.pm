@@ -126,6 +126,28 @@ sub check_permanent_jobs {
     }
 }
 
+# estimantes the number of inactive jobs for a certain task or global
+sub estimate_inactive_jobs {
+    my ( $self, $task, $queue ) = @_;
+    $queue = 'default' unless $queue;
+    my $db = $self->app->minion->backend->pg->db;
+
+    my $sql = <<'END_SQL';
+explain select count(*) as cnt
+from minion_jobs
+where state = 'inactive' and queue = ?
+END_SQL
+    my $res;
+    if ($task) {
+        $sql = "$sql and task = ?";
+        $res = $db->query($sql, $task, $queue)->expand->hashes->to_array;
+    } else {
+        $res = $db->query($sql, $queue)->expand->hashes->to_array;
+    }
+    my $rows = rows_in_explain_array(@$res);
+    return $rows;
+}
+
 # raсe condition here souldn't be big issue
 sub enqueue_unless_scheduled_with_parameter_or_limit {
     my ( $self, $task, $arg1, $arg2 ) = @_;
@@ -134,7 +156,7 @@ sub enqueue_unless_scheduled_with_parameter_or_limit {
     my $sql = <<'END_SQL';
 explain select count(*) as cnt
 from minion_jobs
-where state = 'inactive'
+where state = 'inactive' and queue = 'default'
 END_SQL
     my $res = $db->query($sql, $task)->expand->hashes->to_array;
     my $rows = rows_in_explain_array(@$res);

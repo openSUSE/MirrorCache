@@ -37,9 +37,9 @@ sub _run {
     my $schema = $app->schema;
     my $limit = 1000;
 
-    # retry later if some folder_sync jobs are active (TODO improve it)
-    my $cnt = $minion->jobs({states => ['inactive', 'active'], tasks => ['sync_folder']})->total;
-    return $job->retry({delay => 30}) if $cnt;
+    # retry later if many folder_sync jobs are scheduled according to estimation
+    my $cnt = $app->backstage->estimate_inactive_jobs('sync_folder');
+    return $job->retry({delay => 30}) if $cnt > 100;
 
     my @folders = $schema->resultset('Folder')->search({
         db_sync_scheduled => { '>', \"COALESCE(db_sync_last - 1*interval '1 second', db_sync_scheduled - 1*interval '1 second')" }
