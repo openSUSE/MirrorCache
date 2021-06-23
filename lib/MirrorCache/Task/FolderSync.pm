@@ -106,7 +106,7 @@ sub _sync {
 
         if ($count) {
             $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7});
-            $minion->enqueue('folder_hashes_create' => [$path] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $minion->stats->{inactive_jobs} < 400;
+            $minion->enqueue('folder_hashes_create' => [$path] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $app->backstage->estimate_inactive_jobs('folder_hashes_create', $HASHES_QUEUE) < 1000;
         }
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
         return;
@@ -163,7 +163,7 @@ sub _sync {
     $job->note(updated => $path, count => $cnt, deleted => $deleted, updated => $updated);
     if ($cnt) {
         $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7} );
-        $minion->enqueue('folder_hashes_create' => [$path] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $minion->stats->{inactive_jobs} < 400;
+        $minion->enqueue('folder_hashes_create' => [$path] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $app->backstage->estimate_inactive_jobs('folder_hashes_create', $HASHES_QUEUE) < 1000;
     }
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }

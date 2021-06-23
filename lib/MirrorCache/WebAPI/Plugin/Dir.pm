@@ -291,8 +291,15 @@ sub _guess_what_to_render {
         # this should happen only if $url is a valid file or non-existing path
         return $root->render_file($c, $path . $trailing_slash);
     })->catch(sub {
+        my $res = $root->render_file($c, $path . $trailing_slash);
+        my $msg = "Error while guessing how to render $path: ";
+        if (1 == scalar(@_)) {
+            $msg = $msg . $_[0];
+        } else {
+            $msg = $msg . Dumper(@_);
+        }
+        $c->app->log->error("Error while guessing how to render $path: " . Dumper(@_));
         $c->mmdb->emit_miss($path, $dm->country);
-        return $root->render_file($c, $path . $trailing_slash);
         my $reftx = $tx;
         my $refua = $ua;
     })->timeout(2)->wait;
@@ -369,6 +376,5 @@ sub _render_dir_local {
     my @items = sort _by_filename @files;
     return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => undef );
 }
-
 
 1;

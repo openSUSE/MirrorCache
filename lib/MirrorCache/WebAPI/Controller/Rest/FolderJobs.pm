@@ -15,6 +15,7 @@
 
 package MirrorCache::WebAPI::Controller::Rest::FolderJobs;
 use Mojo::Base 'Mojolicious::Controller';
+use Mojo::Promise;
 use Data::Dumper;
 
 sub list {
@@ -23,46 +24,40 @@ sub list {
     my $id = $self->param("id");
 
     my $path;
-    eval {
-        my $rs = $self->schema->resultset('Folder');
-        $path = $rs->find($id)->path;
-    };
-    my $error = $@;
-    if ($error) {
-        return $self->render(json => {error => $error}, status => 404);
-    }
+    my $tx = $self->render_later->tx;
+    my $p = Mojo::Promise->new->timeout(5);
+    $p->then(sub {
+        $path = $self->schema->resultset('Folder')->find($id)->path;
+    }, sub {
+        my @reason = @_;
+        my $reason = scalar(@reason)? Dumper(@reason) : 'unknown';
+        $self->render(json => {error => $reason}, status => 404);
+    })->then(sub {
+        my $minion_backend = $self->minion->backend;
+        my %counts;
+        my $jobs = $minion_backend->list_jobs(0, 100,
+            {tasks => ['folder_sync','mirror_scan'], notes => [$path], states => ['active', 'inactive']})->{jobs};
 
-    my $minion_backend = $self->minion->backend;
-
-    my %res;
-    my $sync_latest_id = 0;
-    my $sync_running_count = 0;
-    my $jobs = $minion_backend->list_jobs(0, 100,
-        {tasks => ['folder_sync'], notes => [$path]})->{jobs};
-
-    for my $job (@$jobs) {
-        $sync_running_count = $sync_running_count+1 if ($job->{state} eq 'active' || $job->{state} eq 'inactive');
-        $sync_latest_id     = $job->{id} if $job->{id} > $sync_latest_id;
-    }
-
-    my $scan_latest_id = 0;
-    my $scan_running_count = 0;
-    $jobs = $minion_backend->list_jobs(0, 100,
-        {tasks => ['mirror_scan'], notes => [$path]})->{jobs};
-
-    for my $job (@$jobs) {
-        $scan_running_count = $scan_running_count+1 if ($job->{state} eq 'active' || $job->{state} eq 'inactive');
-        $scan_latest_id     = $job->{id} if $job->{id} > $scan_latest_id;
-    }
-
-    $self->render(
-        json => {
-            sync_latest_id     => $sync_latest_id,
-            sync_running_count => $sync_running_count,
-            scan_latest_id     => $scan_latest_id,
-            scan_running_count => $scan_running_count,
+        for my $job (@$jobs) {
+            $counts{$job->{task} . $job->{state}}++;
         }
-    );
+        $self->render(
+            json => {
+                sync_waiting_count => $counts{'folder_syncinactive'} // 0,
+                sync_running_count => $counts{'folder_syncactive'}   // 0,
+                scan_waiting_count => $counts{'mirror_scaninactive'} // 0,
+                scan_running_count => $counts{'mirror_scanactive'}   // 0,
+            }
+        );
+    }, sub {
+        my @reason = @_;
+        my $reason = scalar(@reason)? Dumper(@reason) : 'unknown';
+        $self->render(json => {error => $reason}, status => 500);
+        my $txkeep = $tx;
+    });
+
+    $p->resolve;
+
 }
 
 1;

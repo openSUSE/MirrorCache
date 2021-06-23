@@ -30,6 +30,8 @@ my $DELAY = int($ENV{MIRRORCACHE_MIRROR_CHECK_DELAY} // 5);
 
 sub _run {
     my ($app, $job, $prev_stat_id) = @_;
+    return $job->retry({delay => 10*$DELAY}) if $app->backstage->estimate_inactive_jobs > 200;
+
     my $job_id = $job->id;
     my $pref = "[check_from_stat $job_id]";
     my $id_in_notes = $job->info->{notes}{stat_id};
@@ -54,7 +56,7 @@ sub _run {
 
         if ($res->is_error) {
             $app->log->warn("Need rescan $url: " . $res->code);
-            return $job->retry({delay => 10*$DELAY}) if $minion->stats->{inactive_jobs} > 100;
+            return $job->retry({delay => 10*$DELAY}) if $app->backstage->estimate_inactive_jobs > 200;
             $minion->enqueue('mirror_scan' => [$folder, $country] => {priority => 6});
         }
 

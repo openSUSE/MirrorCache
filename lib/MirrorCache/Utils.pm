@@ -21,9 +21,10 @@ use DateTime;
 use Exporter 'import';
 
 our @EXPORT_OK = qw(
-  random_string
   datetime_now
+  random_string
   region_for_country
+  rows_in_explain_array
 );
 
 
@@ -36,6 +37,24 @@ sub random_string {
 
 sub datetime_now() {
     return DateTime->now( time_zone => 'local' )->stringify;
+}
+
+sub rows_in_explain_array {
+    my $rows = 0;
+    foreach (@_) {
+        my $row = $_;
+
+        if (ref $row eq ref {}) {
+            if (my $x = $row->{'QUERY PLAN'}) {
+                $row = $x;
+            }
+        }
+
+        if ($row =~ /rows=(\d+)/) {
+            $rows = $1 if $1 > $rows;
+        }
+    }
+    return $rows;
 }
 
 sub _round_a_bit {
