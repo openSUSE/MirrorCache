@@ -6,8 +6,8 @@ mc=$(environ mc $(pwd))
 # should deploy db
 $mc/backstage/shoot
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','/','t','de','eu'"
 
 $mc/backstage/job -e mirror_location -a '["1"]'
 $mc/backstage/shoot

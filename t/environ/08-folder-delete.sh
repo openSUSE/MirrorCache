@@ -20,8 +20,8 @@ $ap7/curl /folder1/ | grep file1.dat
 $ap8/start
 $ap8/curl /folder1/ | grep file1.dat
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
 # remove folder1/file1.dt from ap8
 rm $ap8/dt/folder1/file2.dat
@@ -91,4 +91,3 @@ test 1 == $($mc/db/sql "select sum(case when path='/folder1' then 1 else 0 end) 
 test 0 == $($mc/db/sql "select sum(case when path='/folder2' then 1 else 0 end) from folder")
 # folder3 shouldn't be touched
 test 1 == $($mc/db/sql "select sum(case when path='/folder3' then 1 else 0 end) from folder")
-

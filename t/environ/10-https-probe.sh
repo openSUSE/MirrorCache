@@ -55,8 +55,8 @@ $ap9/curl       /download/  | grep folder1
 $ap7/start
 $ap8/start
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
 $mc/backstage/shoot
 test f == $($mc/db/sql "select success from server_capability_check where server_id=1 and capability='http'")

@@ -5,7 +5,7 @@ mc=$(environ mc $(pwd))
 
 MIRRORCACHE_TEST_TRUST_AUTH=1 $mc/start
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us','na'"
 
 $mc/curl /rest/server/location/1 -X PUT
 $mc/backstage/shoot

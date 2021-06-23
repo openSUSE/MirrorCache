@@ -10,7 +10,7 @@ MIRRORCACHE_TEST_TRUST_AUTH=1 $mc/start
 
 $mc/curl /app/server -I | grep '200'
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us','na'"
 
 # Add new mirror
 # TODO: check why empty id needs to be given here
