@@ -23,22 +23,32 @@ sub list {
     my $tx = $self->render_later->tx;
     my ($prevminuteref, $prevhourref, $prevdayref, $curr);
 
+    my $rendered;
+    my $handle_error = sub {
+        return if $rendered;
+        $rendered = 1;
+        my @reason = @_;
+        my $reason = scalar(@reason)? Dumper(@reason) : 'unknown';
+        $self->render(json => {error => $reason}, status => 500) ;
+    };
+
     my $p = Mojo::Promise->new->timeout(5);
+    my $rs = $self->schema->resultset('Stat');
     $p->then(sub {
-        $prevdayref = $self->schema->resultset('Stat')->prev_day;
-    })->then(sub {
-        $prevhourref = $self->schema->resultset('Stat')->prev_hour;
-    })->then(sub {
-        $prevminuteref = $self->schema->resultset('Stat')->prev_minute;
-    })->then(sub {
-        $curr = $self->schema->resultset('Stat')->curr;
-    })->then(sub {
+        $prevdayref = $rs->prev_day;
+    })->catch($handle_error)->then(sub {
+        $prevhourref = $rs->prev_hour;
+    })->catch($handle_error)->then(sub {
+        $prevminuteref = $rs->prev_minute;
+    })->catch($handle_error)->then(sub {
+        $curr = $rs->curr;
+    })->catch($handle_error)->then(sub {
         my %res = ();
         my $fill = sub {
             my ($prev, $period) = @_;
             my %h = (
-                hit       => _toint($curr->{$period}->{hit}),
-                miss      => _toint($curr->{$period}->{miss}),
+                hit       => _toint($curr->{"hit_$period"}),
+                miss      => _toint($curr->{"miss_$period"}),
                 prev_hit  => _toint($prev->{hit}),
                 prev_miss => _toint($prev->{miss}),
             );
@@ -46,7 +56,7 @@ sub list {
             if (my $x = _toint($prev->{geo})) {
                 $h{'prev_geo'} = $x;
             }
-            if (my $x = _toint($curr->{$period}->{geo})) {
+            if (my $x = _toint($curr->{"geo_$period"})) {
                 $h{'geo'} = $x;
             }
             $res{$period} = \%h;
@@ -56,11 +66,7 @@ sub list {
         $fill->($prevhourref, 'hour');
         $fill->($prevdayref, 'day');
         $self->render(json => \%res);
-    }, sub {
-        my @reason = @_;
-        my $reason = scalar(@reason)? Dumper(@reason) : 'unknown';
-        $self->render(json => {error => $reason}, status => 500) ;
-    });
+    })->catch($handle_error);
 
     $p->resolve;
 }

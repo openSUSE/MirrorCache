@@ -39,20 +39,21 @@ sub curr {
 
     my $sql = <<"END_SQL";
 select
-x.per,
-sum(case when mirror_id >= 0 then 1 else 0 end) as hit,
-sum(case when mirror_id = -1 then 1 else 0 end) as miss,
-sum(case when mirror_id < -1 then 1 else 0 end) as geo
-from
-(select 'minute' per
-union select 'hour' per
-union select 'day' per) x
-join stat on stat.dt > date_trunc(x.per, now())
-group by x.per
+sum(case when mirror_id >= 0 and dt > date_trunc('minute', now()) then 1 else 0 end) as hit_minute,
+sum(case when mirror_id = -1 and dt > date_trunc('minute', now()) then 1 else 0 end) as miss_minute,
+sum(case when mirror_id < -1 and dt > date_trunc('minute', now()) then 1 else 0 end) as geo_minute,
+sum(case when mirror_id >= 0 and dt > date_trunc('hour', now()) then 1 else 0 end) as hit_hour,
+sum(case when mirror_id = -1 and dt > date_trunc('hour', now()) then 1 else 0 end) as miss_hour,
+sum(case when mirror_id < -1 and dt > date_trunc('hour', now()) then 1 else 0 end) as geo_hour,
+sum(case when mirror_id >= 0 then 1 else 0 end) as hit_day,
+sum(case when mirror_id = -1 then 1 else 0 end) as miss_day,
+sum(case when mirror_id < -1 then 1 else 0 end) as geo_day
+from stat
+where dt > date_trunc('day', now());
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute();
-    return $dbh->selectall_hashref($prep, 'per', {});
+    return $dbh->selectrow_hashref($prep);
 }
 
 sub _prev_period {
