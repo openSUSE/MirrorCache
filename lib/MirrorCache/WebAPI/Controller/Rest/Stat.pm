@@ -15,41 +15,60 @@
 
 package MirrorCache::WebAPI::Controller::Rest::Stat;
 use Mojo::Base 'Mojolicious::Controller';
-use Data::Dumper;
+use Mojo::Promise;
 
 sub list {
     my ($self) = @_;
 
-    my $rs = $self->schema->resultset('Stat');
-    my $prevminuteref = $rs->prev_minute;
-    my $prevhourref   = $rs->prev_hour;
-    my $prevdayref    = $rs->prev_day;
+    my $tx = $self->render_later->tx;
+    my ($prevminuteref, $prevhourref, $prevdayref, $curr);
 
-    my $curr = $rs->curr;
-
-    my %res = ();
-    my $fill = sub {
-        my ($prev, $period) = @_;
-        my %h = (
-            hit       => _toint($curr->{$period}->{hit}),
-            miss      => _toint($curr->{$period}->{miss}),
-            prev_hit  => _toint($prev->{hit}),
-            prev_miss => _toint($prev->{miss}),
-        );
-        # geo redirects are not always enabled, so show them only if exist
-        if (my $x = _toint($prev->{geo})) {
-            $h{'prev_geo'} = $x;
-        }
-        if (my $x = _toint($curr->{$period}->{geo})) {
-            $h{'geo'} = $x;
-        }
-        $res{$period} = \%h;
+    my $rendered;
+    my $handle_error = sub {
+        return if $rendered;
+        $rendered = 1;
+        my @reason = @_;
+        my $reason = scalar(@reason)? Dumper(@reason) : 'unknown';
+        $self->render(json => {error => $reason}, status => 500) ;
     };
 
-    $fill->($prevminuteref, 'minute');
-    $fill->($prevhourref, 'hour');
-    $fill->($prevdayref, 'day');
-    $self->render(json => \%res);
+    my $p = Mojo::Promise->new->timeout(5);
+    my $rs = $self->schema->resultset('Stat');
+    $p->then(sub {
+        $prevdayref = $rs->prev_day;
+    })->catch($handle_error)->then(sub {
+        $prevhourref = $rs->prev_hour;
+    })->catch($handle_error)->then(sub {
+        $prevminuteref = $rs->prev_minute;
+    })->catch($handle_error)->then(sub {
+        $curr = $rs->curr;
+    })->catch($handle_error)->then(sub {
+        my %res = ();
+        my $fill = sub {
+            my ($prev, $period) = @_;
+            my %h = (
+                hit       => _toint($curr->{"hit_$period"}),
+                miss      => _toint($curr->{"miss_$period"}),
+                prev_hit  => _toint($prev->{hit}),
+                prev_miss => _toint($prev->{miss}),
+            );
+            # geo redirects are not always enabled, so show them only if exist
+            if (my $x = _toint($prev->{geo})) {
+                $h{'prev_geo'} = $x;
+            }
+            if (my $x = _toint($curr->{"geo_$period"})) {
+                $h{'geo'} = $x;
+            }
+            $res{$period} = \%h;
+        };
+
+        $fill->($prevminuteref, 'minute');
+        $fill->($prevhourref, 'hour');
+        $fill->($prevdayref, 'day');
+        $self->render(json => \%res);
+    })->catch($handle_error);
+
+    $p->resolve;
 }
 
 sub _toint {
