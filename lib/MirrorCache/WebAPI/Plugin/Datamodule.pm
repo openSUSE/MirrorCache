@@ -21,7 +21,8 @@ use MirrorCache::Utils 'region_for_country';
 
 has c => undef, weak => 1;
 
-has [ 'route', 'route_len' ];
+has [ '_route', '_route_len' ]; # this is '/download'
+has [ 'route', 'route_len' ]; # this may be '/download' or empty if one of TOP_FOLDERS present
 has [ 'metalink', 'metalink_accept' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng' ];
 has [ '_avoid_countries' ];
@@ -40,8 +41,8 @@ my %subsidiary_urls;
 my @subsidiaries;
 
 sub register($self, $app, $args) {
-    $self->route($app->mc->route);
-    $self->route_len(length($self->route));
+    $self->_route($app->mc->route);
+    $self->_route_len(length($self->_route));
     $self->_root_region(region_for_country($self->root_country) || '');
 
     $app->helper( 'dm' => sub {
@@ -59,7 +60,14 @@ sub register($self, $app, $args) {
     }
 }
 
-sub reset($self, $c) {
+sub reset($self, $c, $top_folder = undef) {
+    if ($top_folder) {
+        $self->route('');
+        $self->route_len(0);
+    } else {
+        $self->route($self->_route);
+        $self->route_len($self->_route_len);
+    }
     $self->c($c);
     $self->_ip(undef);
     $self->_country(undef);
@@ -166,7 +174,8 @@ sub query1($self) {
 }
 
 sub path_query($self) {
-    return $self->path . $self->query1;
+    my ($path, $trailing_slash) = $self->path;
+    return $path . $trailing_slash . $self->query1;
 }
 
 sub original_path($self) {
@@ -177,7 +186,7 @@ sub original_path($self) {
 }
 
 sub our_path($self, $path) {
-    return 1 if 0 eq rindex($path, $self->route, 0);
+    return 1 if 0 eq rindex($path, $self->_route, 0);
     return 0;
 }
 

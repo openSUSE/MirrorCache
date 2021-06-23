@@ -49,14 +49,15 @@ sub register {
 sub indx {
     my $c = shift;
     my $reqpath = $c->req->url->path_query;
+    my $top_folder;
     if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
         my @found = grep { $reqpath =~ /^\/$_/ } @top_folders;
-        return $c->redirect_to($dm->route . $reqpath) if @found;
+        $top_folder = $found[0] if @found;
     }
 
-    return undef unless $dm->our_path($reqpath);
+    return undef unless $top_folder || $dm->our_path($reqpath);
     # don't assign c earlier because it is relatively heavy operation
-    $dm->reset($c);
+    $dm->reset($c, $top_folder);
 
     return $c if _redirect_geo($dm) ||
         _redirect_normalized($dm)   ||
@@ -135,18 +136,20 @@ sub _redirect_geo {
         return 1;
     }
     # MIRRORCACHE_ROOT_COUNTRY must be set only with remote root and when no mirrors should be used for the country
-    return $root->render_file($c, $dm->path_query, 1) if $dm->root_country && !$dm->trailing_slash && $dm->root_country eq $dm->country && $root->is_file($dm->path) && !$dm->metalink;
+    return $root->render_file($c, $dm->path_query, 1) if $dm->root_country && !$dm->trailing_slash && $dm->root_country eq $dm->country && $root->is_file($dm->_path) && !$dm->metalink;
 
     return undef;
 }
 
 sub _redirect_normalized {
-    return $dm->c->redirect_to($dm->route . $dm->path . $dm->trailing_slash . $dm->query1) unless $dm->original_path eq $dm->path;
+    my ($path, $trailing_slash, $original_path) = $dm->path;
+    $path = $path . '.metalink' if $dm->metalink && !$dm->metalink_accept;
+    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path;
     return undef;
 }
 
 sub _render_stats {
-    my $path = $dm->path;
+    my ($path, undef) = $dm->path;
     my $c = $dm->c;
     my $status = $c->param('status');
     return undef unless $status;
