@@ -96,7 +96,8 @@ my %_region = (
  za => 'af',
 
  am => 'as',
- ch => 'as',
+ cn => 'as',
+ hk => 'as',
  id => 'as',
  il => 'as',
  in => 'as',
@@ -140,6 +141,7 @@ my %_region = (
  ua => 'eu',
 
  ca => 'na',
+ cr => 'na',
  mx => 'na',
  us => 'na',
 

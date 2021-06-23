@@ -20,8 +20,8 @@ $ap7/curl /folder1/ | grep file1.dat
 $ap8/start
 $ap8/curl /folder1/ | grep file1.dat
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
 $mc/curl -I /download/folder1/file1.dat
 

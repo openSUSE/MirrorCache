@@ -22,9 +22,9 @@ done
 $mc/start
 $mc/status
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','cz',''"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap9/print_address)','','t','cn',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','cz','eu'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap9/print_address)','','t','cn','as'"
 
 $mc/backstage/job -e folder_sync -a '["/folder1"]'
 $mc/backstage/job -e mirror_scan -a '["/folder1"]'
@@ -41,7 +41,7 @@ test 5 == $($mc/db/sql "select count(*) from stat")
 test 0 == $($mc/db/sql "select count(*) from stat where country='us'")
 test 1 == $($mc/db/sql "select count(*) from stat where mirror_id = -1") # only one miss
 test 1 == $($mc/db/sql "select count(*) from stat where country='cz' and mirror_id = 2")
-test 2 == $($mc/db/sql "select count(*) from stat where mirror_id = 0") # de + it
+test 1 == $($mc/db/sql "select count(*) from stat where mirror_id = 0") # only de
 
 $mc/backstage/job stat_agg_schedule
 $mc/backstage/shoot

@@ -29,8 +29,8 @@ $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
 $mc/start
 $mc/status
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us',''"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
 $mc/db/sql -c "insert into server_capability_force select 1, 'http'" mc_test
 

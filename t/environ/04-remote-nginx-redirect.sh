@@ -24,8 +24,8 @@ done
 $mc/start
 $mc/status
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng7/print_address)','','t','us',''"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng8/print_address)','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng7/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng8/print_address)','','t','us','na'"
 
 # remove folder1/file1.dt from ng8
 rm $ng8/dt/folder1/file2.dat

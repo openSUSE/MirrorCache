@@ -30,8 +30,8 @@ done
 $ap7/start
 $ap8/start
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us',''"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '[::1]:1314','','t','us',''"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '[::1]:1314','','t','us','na'"
 
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
