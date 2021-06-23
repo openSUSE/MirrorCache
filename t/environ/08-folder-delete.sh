@@ -63,7 +63,7 @@ rm -r $mc/dt/folder1
 rm -r $mc/dt/folder2
 
 # this is only for tests - the folder will be deleted only when
-export MIRRORCACHE_FOLDER_DELETE_JOB_GRACE_TIMEOUT=3
+export MIRRORCACHE_FOLDER_DELETE_JOB_GRACE_TIMEOUT=5
 
 $mc/backstage/job -e folder_sync -a '["/folder1"]'
 $mc/backstage/job -e folder_sync -a '["/folder2"]'

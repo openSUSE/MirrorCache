@@ -136,7 +136,7 @@ sub _redirect_geo {
         return 1;
     }
     # MIRRORCACHE_ROOT_COUNTRY must be set only with remote root and when no mirrors should be used for the country
-    return $root->render_file($c, $dm->path_query, 1) if $dm->root_country && !$dm->trailing_slash && $dm->root_country eq $dm->country && $root->is_file($dm->_path) && !$dm->metalink;
+    return $root->render_file($c, $dm->path_query, 1) if $dm->root_country && !$dm->trailing_slash && $dm->root_country eq $dm->country && $root->is_file($dm->_path) && !$dm->metalink && !$dm->mirrorlist;
 
     return undef;
 }
@@ -144,7 +144,7 @@ sub _redirect_geo {
 sub _redirect_normalized {
     my ($path, $trailing_slash, $original_path) = $dm->path;
     $path = $path . '.metalink' if $dm->metalink && !$dm->metalink_accept;
-    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path;
+    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path or $dm->mirrorlist;
     return undef;
 }
 
@@ -203,7 +203,7 @@ sub _render_stats_not_scanned {
 
 sub _local_render {
     my ($path, $trailing_slash) = $dm->path;
-    return undef if $root->is_remote || $dm->metalink;
+    return undef if $root->is_remote || $dm->metalink || $dm->mirrorlist;
     my $c = $dm->c;
     if ($root->is_dir($path)) {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
@@ -245,7 +245,7 @@ sub _guess_what_to_render {
     my $tx   = $c->render_later->tx;
     my ($path, $trailing_slash) = $dm->path;
 
-    if ($dm->metalink) {
+    if ($dm->metalink or $dm->mirrorlist) {
         my $res = $root->render_file($c, $path);
         $c->mmdb->emit_miss($path, $dm->country);
         return $res;

@@ -32,6 +32,7 @@ has [ '_query', '_query1' ];
 has '_original_path';
 has '_agent';
 has [ '_is_secure', '_is_ipv4', '_is_head' ];
+has 'mirrorlist';
 
 has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
 has '_root_region';
@@ -85,6 +86,7 @@ sub reset($self, $c, $top_folder = undef) {
     $self->_is_head(undef);
     $self->metalink(undef);
     $self->metalink_accept(undef);
+    $self->mirrorlist(undef);
 
     $self->_avoid_countries(undef);
     $self->_pedantic(undef);
@@ -285,6 +287,7 @@ sub _init_path($self) {
     if ($url->query) {
         $self->_query($url->query);
         $self->_query1('?' . $url->query);
+        $self->mirrorlist(1) if defined $url->query->param('mirrorlist');
     } else {
         $self->_query('');
         $self->_query1('');
@@ -314,6 +317,12 @@ sub _init_path($self) {
         if ('.metalink' eq substr($path,$pos)) {
             $self->metalink(1);
             $path = substr($path,0,$pos);
+        }
+    }
+    if (!$trailing_slash && ((my $pos = length($path) - length('.mirrorlist')) > 1)) {
+        if ('.mirrorlist' eq substr($path, $pos)) {
+            $self->mirrorlist(1);
+            $path = substr($path, 0, $pos);
         }
     }
     $self->_path($path);

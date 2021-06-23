@@ -59,5 +59,8 @@ $mc/curl -s /download/folder1/file2.dat.metalink | grep '<url type="http" locati
 $mc/curl -sL /                  | tidy --drop-empty-elements no
 $mc/curl -sL /download/folder1/ | tidy --drop-empty-elements no
 
+$mc/curl -s '/download/folder1/file2.dat?mirrorlist' | grep 'http://127.0.0.1:1304/folder1/file2.dat'
+$mc/curl -s '/download/folder1/file2.dat.mirrorlist' | grep 'http://127.0.0.1:1304/folder1/file2.dat'
+$mc/curl -s '/download/folder1/file2.dat.mirrorlist' | tidy --drop-empty-elements no
 
 test "$($mc/curl -s /version)" != ""

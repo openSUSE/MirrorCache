@@ -1,0 +1,68 @@
+% layout 'bootstrap';
+% title 'Mirrors for ' . $cur_path;
+
+% my @breadcrumbs = split '/', 'download' . $cur_path;
+% my $bc_last = pop @breadcrumbs;
+% my $bc_url = '/';
+
+<div id="container-download">
+
+  <div id="breadcrumbs">
+    <ol class="breadcrumb break-long-content">
+      % foreach my $bc (@breadcrumbs) {
+      %   next unless (defined $bc and length $bc);
+      %   $bc_url .= $bc . '/';
+      <li class="breadcrumb-item"><a href="<%= $bc_url %>"><%== $bc %></a></li>
+      % }
+      <li class="breadcrumb-item active"><%== $bc_last %></li>
+    </ol>
+  </div>
+  
+  <h5>File information</h5>
+  <ul>
+    <li>Name: <%= $file->{name} %></li>
+    <li>Size: <%= $file->{size} %></li>
+    <li>Last modified: <%= $file->{mtime} %></li>
+    <li><a href="<%= $bc_url . $bc_last %>.metalink">Metalink (v3.0)</a></li>
+    % if ($file->{url}) {
+    <li>Origin: <a href="<%= $file->{url} %>"><%= $file->{url} %></a></li>
+    % }
+  </ul>
+
+  % if ($mirrordata && @$mirrordata) {
+  <h5>Mirrors which handle this country: <%= @$mirrordata %></h5>
+    <ul>
+    % for my $mirror (@$mirrordata) {
+      <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
+    % }
+    </ul>
+  % } else {
+  <h5>Mirrors which handle this country</h5>
+    <ul><li>None</li></ul>
+  % }
+
+  % if ($mirrordata_region && @$mirrordata_region) {
+  <h5>Mirrors in other countries, but same continent: <%= @$mirrordata_region %></h5>
+    <ul>
+    % for my $mirror (@$mirrordata_region) {
+      <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
+    % }
+    </ul>
+  % } else {
+  <h5>Mirrors in other countries, but same continent</h5>
+    <ul><li>None</li></ul>
+  % }
+
+  % if ($mirrordata_rest && @$mirrordata_rest) {
+  <h5>Mirrors in other parts of the world: <%= @$mirrordata_rest %></h5>
+    <ul>
+    % for my $mirror (@$mirrordata_rest) {
+      <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
+    % }
+    </ul>
+  % } else {
+  <h5>Mirrors in other parts of the world</h5>
+    <ul><li>None</li></ul>
+  % }
+
+</div>
