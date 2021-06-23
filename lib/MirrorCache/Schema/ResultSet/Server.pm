@@ -20,39 +20,59 @@ use warnings;
 
 use base 'DBIx::Class::ResultSet';
 
-sub mirrors_country {
-    my ($self, $country, $region, $folder_id, $file_id, $capability, $ipv, $lat, $lng, $avoid_countries) = @_;
+sub mirrors_query {
+    my (
+        $self, $country, $region, $folder_id,       $file_id, $capability,
+        $ipv,  $lat,     $lng,    $avoid_countries, $limit,   $avoid_region
+    ) = @_;
+    $country    = ''     unless $country;
+    $region     = ''     unless $region;
     $capability = 'http' unless $capability;
-    $ipv = 'ipv4' unless $ipv;
-    $lat = 0 unless $lat;
-    $lng = 0 unless $lng;
-    $country = '' unless $country;
-    $region  = '' unless $region;
+    $ipv        = 'ipv4' unless $ipv;
+    $lat        = 0      unless $lat;
+    $lng        = 0      unless $lng;
+
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
+    my $avoid_country;
     my $country_condition;
     my @country_params = ($country);
+    $avoid_region = ($region && $avoid_region) ? '!' : '';
     if ($avoid_countries && (my @list = @$avoid_countries)) {
+        $avoid_country = ($country && grep { $country eq $_ } @list) ? '!' : '';
         my $placeholder = join(',' => ('?') x scalar @list);
         $country_condition = "and s.country not in ($placeholder)";
-        @country_params = @list;
-    } elsif ($country) {
-        my $region_condition = '';
-        if ($region) {
-            $region_condition = ' or s.region = ?';
-            @country_params = ($country, $region);
+        @country_params    = @list;
+        if ($country) {
+            $avoid_country = $avoid_country || $avoid_region ? '!' : '';
+            $country_condition .= " and s.country $avoid_country= lower(?)";
+            push(@country_params, $country);
         }
-        $country_condition = " and ( s.country = lower(?) $region_condition)";
-    } else {
-        $country_condition = "";
-        @country_params = ();
         if ($region) {
-            $country_condition = ' and s.region = ?';
-            @country_params = ($region);
+            $country_condition .= " and s.region $avoid_region= ?";
+            push(@country_params, $region);
         }
     }
+    elsif ($country) {
+        $avoid_country = $avoid_region ? '!' : '';
+        my $region_condition = '';
+        if ($region) {
+            $region_condition = " and s.region $avoid_region= ?";
+            @country_params   = ($country, $region);
+        }
+        $country_condition = " and ( s.country $avoid_country= lower(?) $region_condition)";
+    }
+    else {
+        $country_condition = "";
+        @country_params    = ();
+        if ($region) {
+            $country_condition = " and s.region $avoid_region= ?";
+            @country_params    = ($region);
+        }
+    }
+    my $weight_country_case = ($avoid_country or $avoid_region) ? '' : "when country $avoid_country= '$country' then 2 ";
     my $ipvx = $ipv eq 'ipv4'? 'ipv6' : 'ipv4';
     # currently the query will select rows for both ipv4 and ipv6 if a mirror supports both formats
     # it is not big deal, but can be optimized so only one such row is selected
@@ -64,7 +84,7 @@ else
 ( 6371 * acos( cos( radians($lat) ) * cos( radians( lat ) ) * cos( radians( lng ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( lat ) ) ) )
 end as dist,
 (2*(yes1 * yes1) - 2*(case when no1 > 10 then no1 * no1 else 10 * no1 end) + (case when yes2 < 5 then yes2 else 5 * yes2 end) - (case when no2 > 10 then no2 * no2 else 10 * no2 end)) weight1,
-case when country = '$country' then 2 when region = '$region' then 1 else 0 end weight_country,
+case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end weight_country,
 (yes3 * yes3) - (case when no3 > 5 then no3 * no3 else 5 * no3 end) weight2,
 last1, last2, last3, lastdt1, lastdt2, lastdt3, score, country, region, lng
 from (
@@ -99,10 +119,10 @@ left join server_capability_check chk on s.id = chk.server_id
 group by s.id, s.country, s.region, s.score, s.hostname, s.urldir, s.lat, s.lng
 ) x
 order by last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, weight2 desc, score, lastdt1 desc nulls last, lastdt2 desc nulls last, last3 desc, lastdt3 desc, random()
-limit 10
+limit $limit
 ) xx
 order by last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, (dist/100)::int, weight2 desc, score, last3 desc nulls last, dist, random()
-limit 10;
+limit $limit;
 END_SQL
     my $prep = $dbh->prepare($sql);
 

@@ -47,7 +47,7 @@
         <td colspan="<%= $colspan %>" class="name"><a href="<%= $file->{url} %>"><%== $file->{name} %></a></td>
       %   }
       %   if (!$file->{dir}) {
-        <td class="mirrors"><a href="<%= $file->{url} %>.metalink">Details</a></td>
+        <td class="mirrors"><a href="<%= $file->{url} %>.mirrorlist">Details</a></td>
       %   }
       </tr>
       % }

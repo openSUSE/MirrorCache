@@ -49,9 +49,6 @@ $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 # $mc/backstage/job mirror_scan_schedule_from_misses
 $mc/backstage/shoot
-$mc/curl -is --interface 127.0.0.3 '/download/folder2/file1.dat.metalink?COUNTRY=de' | grep -A1 $DE_ADDRESS | grep $CZ_ADDRESS
-$mc/curl -is --interface 127.0.0.3 '/download/folder2/file1.dat.metalink?COUNTRY=cz' | grep -A1 $CZ_ADDRESS | grep $DE_ADDRESS
+$mc/curl -is --interface 127.0.0.3 '/download/folder2/file1.dat.metalink?COUNTRY=de' | grep -A2 $DE_ADDRESS | grep $CZ_ADDRESS
+$mc/curl -is --interface 127.0.0.3 '/download/folder2/file1.dat.metalink?COUNTRY=cz' | grep -A2 $CZ_ADDRESS | grep $DE_ADDRESS
 #########################################
-
-
-
