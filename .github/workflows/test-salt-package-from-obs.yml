@@ -1,9 +1,9 @@
 name: test-salt-package-from-obs
 on: workflow_dispatch
-jobs: 
-  t: 
+jobs:
+  t:
     runs-on: ubuntu-latest
-    steps: 
+    steps:
       - uses: actions/checkout@v2
       - name: "Test salt"
         run: |
@@ -15,6 +15,7 @@ jobs:
       - name: "Check server"
         if: ${{ always() }}
         run: |
+          curl -si 127.0.0.1:3000/rest/server || sleep 15
           curl -si 127.0.0.1:3000/rest/server || echo "return_code=$?"
           curl -s 127.0.0.1:3000/rest/server | grep -o mirror.23media.com
       - name: "Check download"
