@@ -67,6 +67,7 @@ sub indx {
         _guess_what_to_render($dm);
 }
 
+# render_dir_remote tries to render dir when RootRemote cannot find it in DB
 sub render_dir_remote {
     my $c      = shift;
     my $dir    = shift;
@@ -76,15 +77,12 @@ sub render_dir_remote {
 
     my $job_id = 0;
     $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir);
-    unless ($job_id > 0) {
+    # if scheduling didn't happen - let's try to render anyway
+    if ($job_id < 1) {
         return _render_dir($c, $dir, $rsFolder);
     }
 
-    $c->minion->result_p($job_id)->then(sub {
-        $c->emit_event('mc_debug', "promiseok: $job_id");
-        _render_dir($c, $dir, $rsFolder);
-        my $reftx = $tx;
-    })->catch(sub {
+    my $handle_error = sub {
         $c->mmdb->emit_miss($dir, $country);
         $c->emit_event('mc_debug', "promisefail: $job_id " . Dumper(\@_));
         my $reason = $_;
@@ -93,7 +91,13 @@ sub render_dir_remote {
         }
         $c->render(status => 500, text => Dumper($reason));
         my $reftx = $tx;
-    })->timeout(5)->wait;
+    };
+
+    $c->minion->result_p($job_id)->catch($handle_error)->then(sub {
+        $c->emit_event('mc_debug', "promiseok: $job_id");
+        _render_dir($c, $dir, $rsFolder);
+        my $reftx = $tx;
+    })->catch($handle_error)->timeout(15)->wait;
 }
 
 sub _render_dir {
@@ -103,8 +107,7 @@ sub _render_dir {
     my $folder = shift;
 
     $c->emit_event('mc_debug', 'renderdir:' . $dir);
-    my $schema = $c->app->schema;
-    $rsFolder  = $schema->resultset('Folder') unless $rsFolder;
+    $rsFolder  = $c->app->schema->resultset('Folder') unless $rsFolder;
     $folder    = $rsFolder->find({path => $dir}) unless $folder;
 
     return _render_dir_from_db($c, $folder->id, $dir) if $folder && $folder->db_sync_last;
@@ -301,7 +304,7 @@ sub _guess_what_to_render {
         } else {
             $msg = $msg . Dumper(@_);
         }
-        $c->app->log->error("Error while guessing how to render $path: " . Dumper(@_));
+        $c->app->log->error($msg);
         $c->mmdb->emit_miss($path, $dm->country);
         my $reftx = $tx;
         my $refua = $ua;

@@ -140,7 +140,7 @@ END_SQL
     my $res;
     if ($task) {
         $sql = "$sql and task = ?";
-        $res = $db->query($sql, $task, $queue)->expand->hashes->to_array;
+        $res = $db->query($sql, $queue, $task)->expand->hashes->to_array;
     } else {
         $res = $db->query($sql, $queue)->expand->hashes->to_array;
     }
@@ -158,7 +158,7 @@ explain select count(*) as cnt
 from minion_jobs
 where state = 'inactive' and queue = 'default'
 END_SQL
-    my $res = $db->query($sql, $task)->expand->hashes->to_array;
+    my $res = $db->query($sql)->expand->hashes->to_array;
     my $rows = rows_in_explain_array(@$res);
     return 0 if $rows > 100;
 
