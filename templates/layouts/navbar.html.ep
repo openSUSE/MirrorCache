@@ -10,7 +10,7 @@
             %= link_to 'Downloads' => url_for('/download/') => class => 'nav-link'
          </li>
          <li class='nav-item' id="server">
-            %= link_to 'Servers' => url_for('server') => class => 'nav-link'
+            %= link_to 'Mirrors' => url_for('server') => class => 'nav-link'
          </li>
          <li class='nav-item' id="folder">
             %= link_to 'Folders' => url_for('folder') => class => 'nav-link'

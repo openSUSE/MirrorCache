@@ -13,6 +13,7 @@ MirrorCache can be configured with following environment variables:
   * MIRRORCACHE_REDIRECT is needed for use when MIRRORCACHE_ROOT is set to remote address. Requests will be redirected to this location when no mirror is found, e.g. MIRRORCACHE_REDIRECT=downloadcontent.opensuse.org
   * MIRRORCACHE_METALINK_PUBLISHER may be set to customize publisher in metalink generation.
   * MIRRORCACHE_METALINK_PUBLISHER_URL may be set to customize url of publisher in metalink generation.
+  * MIRRORCACHE_BRANDING loads files from [templates/branding](/templates/branding). Use the `default` folder as a base for your own branding and set this environment variable to the name of the newly created folder.
 
 Without any database configuration MirrorCache will attempt to connect to database 'mirrorcache' on default PostgreSQL port 5432.
 Following variables can be used to configure database access:

@@ -1,0 +1,3 @@
+<h2>Welcome to MirrorCache</h2>
+
+<p>MirrorCache is a web server which routes download requests to an appropriate mirror.</p>
