@@ -114,6 +114,20 @@ sub register {
             shift->auth_method; # make sure it is initialized
             return $AUTH_URL;
         });
+
+    $app->helper(
+        include_branding => sub {
+            my ($c, $name, %args) = @_;
+            my $path = "branding/" . $ENV{MIRRORCACHE_BRANDING} . "/$name";
+            my $ret  = $c->render_to_string($path);
+            if (defined($ret)) {
+                return $ret;
+            }
+            else {
+                $path = "branding/default/$name";
+                return $c->render_to_string($path);
+            }
+        });
 }
 
 sub _current_user {

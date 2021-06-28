@@ -5,14 +5,13 @@
       <meta charset="utf-8">
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <meta name="keywords" content="Testing, Linux, Qemu">
-      <meta name="author" content="contributors">
-      % my $appname_safe = stash('appname') // "Default app";
-      % if ($title) {
-      <title><%= $appname_safe . ": " . title %></title>
-      % } else
-      % {
-      <title><%= $appname_safe %></title>
+      <meta name="author" content="MirrorCache contributors">
+
+      % my $title_safe = stash('title') // '';
+      % if ($title_safe) {
+      <title><%= "MirrorCache" . ": " . $title_safe %></title>
+      % } else {
+      <title>MirrorCache</title>
       % }
 
       <!-- Bootstrap core CSS -->
@@ -43,9 +42,7 @@
       <div class="container" id="content">
           %= content
       </div>
-      <footer class='footer'>
-        <div class='container'>
-        </div>
-      </footer>
+
+      %= include 'layouts/footer'
   </body>
 </html>
