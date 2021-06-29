@@ -270,6 +270,7 @@ sub _init_location($self) {
         }
         $self->_avoid_countries(\@avoid_countries);
     }
+    $country = substr($country, 0, 2) if $country;
     $self->_country($country // '');
     $self->_region($region // '');
 
