@@ -48,13 +48,17 @@ sub register {
 
 sub indx {
     my $c = shift;
-    my $reqpath = $c->req->url->path_query;
+    my $reqpath = $c->req->url->path;
+
     my $top_folder;
     if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
-        my @found = grep { $reqpath =~ /^\/$_/ } @top_folders;
-        $top_folder = $found[0] if @found;
+        if ($reqpath eq '/') {
+            $top_folder = '/';
+        } else {
+            my @found = grep { $reqpath =~ /^\/$_/ } @top_folders;
+            $top_folder = $found[0] if @found;
+        }
     }
-
     return undef unless $top_folder || $dm->our_path($reqpath);
     # don't assign c earlier because it is relatively heavy operation
     $dm->reset($c, $top_folder);
@@ -119,6 +123,7 @@ sub _render_dir {
 }
 
 sub _redirect_geo {
+    return undef if $dm->route eq '/';
     my $c = $dm->c;
     # having both MIRRORCACHE_HEADQUARTER and MIRRORCACHE_REGION means that we are Subsidiary
     if ($ENV{MIRRORCACHE_HEADQUARTER} && $ENV{MIRRORCACHE_REGION}) {
@@ -145,6 +150,7 @@ sub _redirect_geo {
 }
 
 sub _redirect_normalized {
+    return undef if $dm->route eq '/';
     my ($path, $trailing_slash, $original_path) = $dm->path;
     $path = $path . '.metalink' if $dm->metalink && !$dm->metalink_accept;
     return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path or $dm->mirrorlist;
