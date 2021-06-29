@@ -14,3 +14,5 @@ touch $mc/dt/folder3/file1.dat
 $mc/curl -I /folder3/file1.dat | grep 200
 
 $mc/curl -I /folder1//file1.dat?COUNTRY=us | grep -i 'Location: /folder1/file1.dat?COUNTRY=us'
+
+$mc/curl -i / | grep -C 30 folder1 | grep folder3

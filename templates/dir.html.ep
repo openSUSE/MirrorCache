@@ -13,7 +13,12 @@
       %   $bc_url .= $bc . '/';
       <li class="breadcrumb-item"><a href="<%= $bc_url %>"><%== $bc %></a></li>
       % }
+      % my $folder_id_safe = stash('folder_id');
+      % if ($folder_id_safe) {
       <li class="breadcrumb-item active"><a href="<%= url_for("/app/folder/$folder_id") %>"><%== $bc_last %></a></li>
+      % } else {
+      <li class="breadcrumb-item active"><%== $bc_last %></a></li>
+      % }
     </ol>
   </div>
 
