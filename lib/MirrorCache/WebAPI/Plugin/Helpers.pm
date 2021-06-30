@@ -25,6 +25,8 @@ use MirrorCache::Events;
 my $AUTH_METHOD;
 my $AUTH_URL;
 
+my $BRANDING = $ENV{MIRRORCACHE_BRANDING};
+
 sub register {
 
     my ($self, $app, $args ) = @_;
@@ -118,15 +120,11 @@ sub register {
     $app->helper(
         include_branding => sub {
             my ($c, $name, %args) = @_;
-            my $path = "branding/" . $ENV{MIRRORCACHE_BRANDING} . "/$name";
-            my $ret  = $c->render_to_string($path);
-            if (defined($ret)) {
-                return $ret;
+            if ($BRANDING) {
+                my $ret  = $c->render_to_string("branding/$BRANDING/$name");
+                return $ret if (defined($ret));
             }
-            else {
-                $path = "branding/default/$name";
-                return $c->render_to_string($path);
-            }
+            return $c->render_to_string("branding/default/$name");
         });
 }
 
