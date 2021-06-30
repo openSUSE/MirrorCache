@@ -37,14 +37,14 @@ $mc/curl -I /download/folder1/file1.dat?COUNTRY=cn
 $mc/curl -I /download/folder1/file1.dat?COUNTRY=au
 
 $mc/db/sql "select * from stat order by id"
-test 7 == $($mc/db/sql "select count(*) from stat")
+test 5 == $($mc/db/sql "select count(*) from stat")
 test 0 == $($mc/db/sql "select count(*) from stat where country='us'")
 test 1 == $($mc/db/sql "select count(*) from stat where mirror_id = -1") # only one miss
 test 1 == $($mc/db/sql "select count(*) from stat where country='cz' and mirror_id = 2")
-test 2 == $($mc/db/sql "select count(*) from stat where mirror_id = 0") # only de
+test 1 == $($mc/db/sql "select count(*) from stat where mirror_id = 0") # only de
 
 $mc/backstage/job stat_agg_schedule
 $mc/backstage/shoot
 
 $mc/curl /rest/stat
-$mc/curl /rest/stat | grep '"hit":6' | grep '"miss":1'
+$mc/curl /rest/stat | grep '"hit":4' | grep '"miss":1'

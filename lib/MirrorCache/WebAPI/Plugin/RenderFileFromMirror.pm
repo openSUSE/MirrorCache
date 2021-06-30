@@ -71,13 +71,20 @@ sub register {
         $scheme = 'https' if $dm->is_secure;
         my $ipv = 'ipv4';
         $ipv = 'ipv6' unless $dm->is_ipv4;
-        my $limit = $dm->mirrorlist ? 100 : 10;
+        my $limit = $dm->mirrorlist ? 100 : (( $dm->metalink || $dm->pedantic )? 10 : 1);
         my ($mirrors_country, $mirrors_region, $mirrors_rest, @avoid_countries);
         $mirrors_country = $c->schema->resultset('Server')->mirrors_query(
             $country, $region,  $folder->id, $file->{id},          $scheme,
             $ipv,     $dm->lat, $dm->lng,    $dm->avoid_countries, $limit
         ) if $country;
-        if ($region and ($dm->metalink or $dm->mirrorlist or !($mirrors_country && @$mirrors_country))) {
+
+        my $mirror;
+        my $found_count = 0;
+        if ($mirrors_country && @$mirrors_country) {
+            $mirror = $mirrors_country->[0];
+            $found_count = $found_count + @$mirrors_country;
+        }
+        if ($region && (($found_count < $limit))) {
             @avoid_countries = @{$dm->avoid_countries} if $dm->avoid_countries;
             push @avoid_countries, $country if ($country and !(grep { $country eq $_ } @avoid_countries));
             $mirrors_region = $c->schema->resultset('Server')->mirrors_query(
@@ -85,25 +92,24 @@ sub register {
                 $ipv,     $dm->lat, $dm->lng,    \@avoid_countries, $limit
             );
         }
-        if ($dm->metalink or $dm->mirrorlist or !($mirrors_country && @$mirrors_country) && !($mirrors_region && @$mirrors_region)) {
+        if ($mirrors_region && @$mirrors_region) {
+            $mirror = $mirrors_region->[0] unless $mirror;
+            $found_count = $found_count + @$mirrors_region;
+        }
+
+        if (($dm->metalink && $found_count < $limit) || $dm->mirrorlist || !$dm->country) {
             $mirrors_rest = $c->schema->resultset('Server')->mirrors_query(
                 $country, $region,  $folder->id, $file->{id},          $scheme,
                 $ipv,     $dm->lat, $dm->lng,    $dm->avoid_countries, $limit,  1
             );
         }
 
-        my $mirror;
-        if ($mirrors_country && @$mirrors_country) {
-            $mirror = $mirrors_country->[0];
-        }
-        elsif ($mirrors_region && @$mirrors_region) {
-            $mirror = $mirrors_region->[0];
-        }
-        elsif ($mirrors_rest && @$mirrors_rest) {
-            $mirror = $mirrors_rest->[0];
+        if ($mirrors_rest && @$mirrors_rest) {
+            $mirror = $mirrors_rest->[0] unless $mirror;
+            $found_count = $found_count + @$mirrors_rest;
         }
 
-        if ($dm->metalink or $dm->mirrorlist) {
+        if ($dm->metalink || $dm->mirrorlist) {
             if ($mirror) {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id});
                 $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
@@ -184,11 +190,10 @@ sub register {
             );
             return 1;
         }
-
-        unless ($mirrors_country && @$mirrors_country) {
+        unless ($mirror) {
             $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country;
-            $root->render_file($c, $filepath);
-            return 1 if ($dm->root_country && $dm->root_country eq $country) or !($mirrors_region && @$mirrors_region) && !($mirrors_rest && @$mirrors_rest);
+            $root->render_file($c, $filepath, $dm->root_is_hit);
+            return 1;
         }
 
         unless ($dm->pedantic) {

@@ -57,8 +57,6 @@ sub is_reachable {
     return $res;
 }
 
-use Data::Dumper;
-
 sub is_file {
     my $self = shift;
     my $rooturlpath = $self->rooturl . shift;
