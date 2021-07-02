@@ -28,7 +28,7 @@ sub connect_db {
             my $host = $ENV{MIRRORCACHE_DBHOST};
             my $port = $ENV{MIRRORCACHE_DBPORT};
             $dsn  = "DBI:Pg:dbname=$db";
-            $dsn = "$dsn:host=$host" if $host;
+            $dsn = "$dsn;host=$host" if $host;
             $dsn = "$dsn;port=$port" if $port;
         }
         $SINGLETON = __PACKAGE__->connect($dsn, $user, $pass);
