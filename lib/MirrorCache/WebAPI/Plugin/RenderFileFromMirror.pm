@@ -31,15 +31,14 @@ sub register {
     my ($self, $app) = @_;
 
     $app->helper( 'mirrorcache.render_file' => sub {
-        my ($c, $filepath)= @_;
+        my ($c, $filepath, $dm)= @_;
         $c->emit_event('mc_dispatch', $filepath);
         my $root = $c->mc->root;
         my $f = Mojo::File->new($filepath);
         my $dirname  = $f->dirname;
         my $basename = $f->basename;
         my $dirname_basename = $dirname->basename;
-        my $dm = $c->dm;
-        return $root->render_file($c, $filepath, 1)
+        return $root->render_file($dm, $filepath, 1)
           if ( $dirname_basename eq "media.1"
             && !$dm->mirrorlist
             && (!$dm->metalink || $dm->metalink_accept)
@@ -50,7 +49,7 @@ sub register {
             my $prefix = "repomd.xml";
 
             if (($prefix eq substr($basename,0,length($prefix))) && $root->is_reachable) {
-                return $root->render_file($c, $filepath, 1);
+                return $root->render_file($dm, $filepath, 1);
             }
         }
 
@@ -61,8 +60,8 @@ sub register {
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
             $c->mmdb->emit_miss($dirname, $country) unless $file;
-            return $root->render_file($c, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
-            return $root->render_file($c, $filepath)
+            return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
+            return $root->render_file($dm, $filepath)
               unless $dm->metalink # TODO we still can check file on mirrors even if it is missing in DB
               or $dm->mirrorlist;
         }
@@ -111,10 +110,10 @@ sub register {
 
         if ($dm->metalink || $dm->mirrorlist) {
             if ($mirror) {
-                $c->stat->redirect_to_mirror($mirror->{mirror_id});
+                $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
                 $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
             } else {
-                $c->stat->redirect_to_root(0);
+                $c->stat->redirect_to_root($dm, 0);
                 $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country;
             }
         }
@@ -192,7 +191,7 @@ sub register {
         }
         unless ($mirror) {
             $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country;
-            $root->render_file($c, $filepath, $dm->root_is_hit);
+            $root->render_file($dm, $filepath, $dm->root_is_hit);
             return 1;
         }
 
@@ -200,12 +199,12 @@ sub register {
             # Check below is needed only when MIRRORCACHE_ROOT_COUNTRY is set
             # only with remote root and when no mirrors should be used for the root's country
             if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
-                return $root->render_file($c, $filepath, 1);
+                return $root->render_file($dm, $filepath, 1);
             }
             my $url = $mirror->{url} . $filepath;
             $c->redirect_to($url);
             eval {
-                $c->stat->redirect_to_mirror($mirror->{mirror_id});
+                $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
                 $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
             };
             return 1;
@@ -231,12 +230,12 @@ sub register {
             }
             unless ($mirror) {
                 $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country});
-                return $root->render_file($c, $filepath);
+                return $root->render_file($dm, $filepath);
             }
             # Check below is needed only when MIRRORCACHE_ROOT_COUNTRY is set
             # only with remote root and when no mirrors should be used for the root's country
             if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
-                return $root->render_file($c, $filepath, 1);
+                return $root->render_file($dm, $filepath, 1);
             }
             my $url = $mirror->{url} . $filepath;
             my $code;
@@ -252,7 +251,7 @@ sub register {
                     $c->redirect_to($url);
                     $c->emit_event('mc_path_hit', {path => $dirname, mirror => $url});
                     $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
-                    $c->stat->redirect_to_mirror($mirror->{mirror_id});
+                    $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
                     return 1;
                 }
                 $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, server => $mirror->{id}, folder => $folder->id});

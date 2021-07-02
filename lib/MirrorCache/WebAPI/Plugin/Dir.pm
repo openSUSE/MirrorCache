@@ -22,9 +22,9 @@ use Data::Dumper;
 use Sort::Naturally;
 use Mojolicious::Types;
 use MirrorCache::Utils;
+use MirrorCache::Datamodule;
 
 my $root;
-my $dm;
 my @top_folders;
 
 sub register {
@@ -32,7 +32,6 @@ sub register {
     my $app = shift;
 
     $root = $app->mc->root;
-    $dm   = $app->dm;
 
     if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
         @top_folders = split /[:,\s]+/, $ENV{MIRRORCACHE_TOP_FOLDERS};
@@ -59,31 +58,48 @@ sub indx {
             $top_folder = $found[0] if @found;
         }
     }
+    my $dm = MirrorCache::Datamodule->new->app($c->app);
+
     return undef unless $top_folder || $dm->our_path($reqpath);
-    # don't assign c earlier because it is relatively heavy operation
     $dm->reset($c, $top_folder);
 
     return $c if _redirect_geo($dm) ||
         _redirect_normalized($dm)   ||
         _render_stats($dm)          ||
         _local_render($dm)          ||
-        _render_from_db($dm)        ||
-        _guess_what_to_render($dm);
+        _render_from_db($dm);
+
+    my $tx = $c->render_later->tx;
+    my $rendered;
+    my $handle_error = sub {
+        return if $rendered;
+        $rendered = 1;
+        my @reason = @_;
+        my $reason = scalar(@reason)? Dumper(@reason) : 'unknown';
+        $c->render(json => {error => $reason}, status => 500) ;
+    };
+
+    my $p = Mojo::Promise->new;
+    $p->then(sub {
+        $rendered = _guess_what_to_render($dm);
+    })->catch($handle_error);
+    $p->resolve;
 }
 
 # render_dir_remote tries to render dir when RootRemote cannot find it in DB
 sub render_dir_remote {
-    my $c      = shift;
-    my $dir    = shift;
+    my $dm       = shift;
+    my $dir      = shift;
     my $rsFolder = shift;
-    my $country  = shift || $c->dm->country;
+    my $country  = shift || $dm->country;
+    my $c = $dm->c;
     my $tx = $c->render_later->tx;
 
     my $job_id = 0;
     $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir);
     # if scheduling didn't happen - let's try to render anyway
     if ($job_id < 1) {
-        return _render_dir($c, $dir, $rsFolder);
+        return _render_dir($dm, $dir, $rsFolder);
     }
 
     my $handle_error = sub {
@@ -91,7 +107,7 @@ sub render_dir_remote {
         $c->emit_event('mc_debug', "promisefail: $job_id " . Dumper(\@_));
         my $reason = $_;
         if ($reason eq 'Promise timeout') {
-            return _render_dir($c, $dir, $rsFolder);
+            return _render_dir($dm, $dir, $rsFolder);
         }
         $c->render(status => 500, text => Dumper($reason));
         my $reftx = $tx;
@@ -99,23 +115,24 @@ sub render_dir_remote {
 
     $c->minion->result_p($job_id)->catch($handle_error)->then(sub {
         $c->emit_event('mc_debug', "promiseok: $job_id");
-        _render_dir($c, $dir, $rsFolder);
+        _render_dir($dm, $dir, $rsFolder);
         my $reftx = $tx;
     })->catch($handle_error)->timeout(15)->wait;
 }
 
 sub _render_dir {
-    my $c      = shift;
+    my $dm     = shift;
     my $dir    = shift;
     my $rsFolder = shift;
     my $folder = shift;
+    my $c = $dm->c;
 
     $c->emit_event('mc_debug', 'renderdir:' . $dir);
     $rsFolder  = $c->app->schema->resultset('Folder') unless $rsFolder;
     $folder    = $rsFolder->find({path => $dir}) unless $folder;
 
     return _render_dir_from_db($c, $folder->id, $dir) if $folder && $folder->db_sync_last;
-    $c->mmdb->emit_miss($dir, $c->dm->country);
+    $c->mmdb->emit_miss($dir, $dm->country);
     return _render_dir_local($c, $dir) unless $root->is_remote; # just render files if we have them locally
 
     my $pos = $rsFolder->get_db_sync_queue_position($dir);
@@ -123,6 +140,7 @@ sub _render_dir {
 }
 
 sub _redirect_geo {
+    my $dm = shift;
     my $route = $dm->route;
     my ($path, undef) = $dm->path;
     return undef if $route eq '/' && $path eq '/';
@@ -142,16 +160,17 @@ sub _redirect_geo {
         $url->port($region_url->port);
         $url->path_query($region_url->path . $url->path_query) if ($region_url->path);
         $c->redirect_to($url);
-        $c->stat->redirect_to_region;
+        $c->stat->redirect_to_region($dm);
         return 1;
     }
     # MIRRORCACHE_ROOT_COUNTRY must be set only with remote root and when no mirrors should be used for the country
-    return $root->render_file($c, $dm->path_query, 1) if $dm->root_country && !$dm->trailing_slash && $dm->root_country eq $dm->country && $root->is_file($dm->_path) && !$dm->metalink && !$dm->mirrorlist;
+    return $root->render_file($dm, $dm->path_query, 1) if $dm->root_country && !$dm->trailing_slash && $dm->root_country eq $dm->country && $root->is_file($dm->_path) && !$dm->metalink && !$dm->mirrorlist;
 
     return undef;
 }
 
 sub _redirect_normalized {
+    my $dm = shift;
     my ($path, $trailing_slash, $original_path) = $dm->path;
     return undef if $path eq '/';
     $path = $path . '.metalink' if $dm->metalink && !$dm->metalink_accept;
@@ -160,6 +179,7 @@ sub _redirect_normalized {
 }
 
 sub _render_stats {
+    my $dm = shift;
     my ($path, undef) = $dm->path;
     my $c = $dm->c;
     my $status = $c->param('status');
@@ -213,18 +233,20 @@ sub _render_stats_not_scanned {
 }
 
 sub _local_render {
+    my $dm = shift;
     my ($path, $trailing_slash) = $dm->path;
     return undef if $root->is_remote || $dm->metalink || $dm->mirrorlist;
     my $c = $dm->c;
     if ($root->is_dir($path)) {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
-        return _render_dir($c, $path);
+        return _render_dir($dm, $path);
     }
-    $c->mirrorcache->render_file($path) if !$trailing_slash && $root->is_file($path);
+    $c->mirrorcache->render_file($path, $dm) if !$trailing_slash && $root->is_file($path);
     return 1;
 }
 
 sub _render_from_db {
+    my $dm = shift;
     my $c = $dm->c;
     my $schema = $c->schema;
     my ($path, $trailing_slash) = $dm->path;
@@ -234,7 +256,7 @@ sub _render_from_db {
         return $dm->redirect($folder->{pathto}) if $folder->{pathto};
         # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
-        return _render_dir($c, $path, $rsFolder) if ($folder->{db_sync_last});
+        return _render_dir($dm, $path, $rsFolder) if ($folder->{db_sync_last});
     } elsif (!$trailing_slash && $path ne '/') {
         my $f = Mojo::File->new($path);
         my $parent_folder = $rsFolder->find({path => $f->dirname});
@@ -243,21 +265,22 @@ sub _render_from_db {
         # folders are stored with trailing slash in file table, so they will not be selected here
         if ($file) {
             # regular file has trailing slash in db? That is probably incorrect, so let the root handle it
-            return $root->render_file($c, $path . '/') if $trailing_slash;
+            return $root->render_file($dm, $path . '/') if $trailing_slash;
             # find a mirror for it
-            $c->mirrorcache->render_file($path);
+            $c->mirrorcache->render_file($path, $dm);
             return 1;
         }
     }
 }
 
 sub _guess_what_to_render {
+    my $dm   = shift;
     my $c    = $dm->c;
     my $tx   = $c->render_later->tx;
     my ($path, $trailing_slash) = $dm->path;
 
     if ($dm->metalink or $dm->mirrorlist) {
-        my $res = $root->render_file($c, $path);
+        my $res = $root->render_file($dm, $path);
         $c->mmdb->emit_miss($path, $dm->country);
         return $res;
     }
@@ -283,7 +306,7 @@ sub _guess_what_to_render {
             if (!$res->is_redirect) {
                 # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
                 return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
-                return render_dir_remote($c, $path);
+                return render_dir_remote($dm, $path);
             }
 
             # redirect on oneself
@@ -303,9 +326,9 @@ sub _guess_what_to_render {
             }
         }
         # this should happen only if $url is a valid file or non-existing path
-        return $root->render_file($c, $path . $trailing_slash);
+        return $root->render_file($dm, $path . $trailing_slash);
     })->catch(sub {
-        my $res = $root->render_file($c, $path . $trailing_slash);
+        my $res = $root->render_file($dm, $path . $trailing_slash);
         my $msg = "Error while guessing how to render $path: ";
         if (1 == scalar(@_)) {
             $msg = $msg . $_[0];

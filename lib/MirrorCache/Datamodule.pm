@@ -14,8 +14,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-package MirrorCache::WebAPI::Plugin::Datamodule;
-use Mojo::Base 'Mojolicious::Plugin', -signatures;
+package MirrorCache::Datamodule;
+use Mojo::Base -base, -signatures;
 use Mojo::URL;
 use MirrorCache::Utils 'region_for_country';
 
@@ -41,14 +41,10 @@ has '_root_longitude' => ($ENV{MIRRORCACHE_ROOT_LONGITUDE} ? int($ENV{MIRRORCACH
 my %subsidiary_urls;
 my @subsidiaries;
 
-sub register($self, $app, $args) {
+sub app($self, $app) {
     $self->_route($app->mc->route);
     $self->_route_len(length($self->_route));
     $self->_root_region(region_for_country($self->root_country) || '');
-
-    $app->helper( 'dm' => sub {
-        return $self;
-    });
 
     eval { #the table may be missing - no big deal
         @subsidiaries = $app->schema->resultset('Subsidiary')->all;
@@ -59,6 +55,7 @@ sub register($self, $app, $args) {
         $url = $url . $s->uri if $s->uri;
         $subsidiary_urls{lc($s->region)} = Mojo::URL->new($url)->to_abs;
     }
+    return $self;
 }
 
 sub reset($self, $c, $top_folder = undef) {
@@ -71,25 +68,6 @@ sub reset($self, $c, $top_folder = undef) {
     }
     $self->c($c);
     $self->_ip(undef);
-    $self->_country(undef);
-    $self->_region(undef);
-    $self->_lat(undef);
-    $self->_lng(undef);
-    $self->_path(undef);
-    $self->_trailing_slash(undef);
-    $self->_query(undef);
-    $self->_query1(undef);
-    $self->_original_path(undef);
-    $self->_agent(undef);
-    $self->_is_ipv4(undef);
-    $self->_is_secure(undef);
-    $self->_is_head(undef);
-    $self->metalink(undef);
-    $self->metalink_accept(undef);
-    $self->mirrorlist(undef);
-
-    $self->_avoid_countries(undef);
-    $self->_pedantic(undef);
 }
 
 sub ip($self) {
