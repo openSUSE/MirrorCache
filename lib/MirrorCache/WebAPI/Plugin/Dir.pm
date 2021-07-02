@@ -123,14 +123,16 @@ sub _render_dir {
 }
 
 sub _redirect_geo {
-    return undef if $dm->route eq '/';
+    my $route = $dm->route;
+    my ($path, undef) = $dm->path;
+    return undef if $route eq '/' && $path eq '/';
     my $c = $dm->c;
     # having both MIRRORCACHE_HEADQUARTER and MIRRORCACHE_REGION means that we are Subsidiary
     if ($ENV{MIRRORCACHE_HEADQUARTER} && $ENV{MIRRORCACHE_REGION}) {
         my $region = $dm->region;
         # redirect to the headquarter if country is not our region
         if ($region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region))) {
-            $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $dm->route . $dm->path_query) if $region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region));
+            $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $route . $dm->path_query) if $region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region));
             $c->stat->redirect_to_headquarter;
             return 1;
         }
@@ -150,8 +152,8 @@ sub _redirect_geo {
 }
 
 sub _redirect_normalized {
-    return undef if $dm->route eq '/';
     my ($path, $trailing_slash, $original_path) = $dm->path;
+    return undef if $path eq '/';
     $path = $path . '.metalink' if $dm->metalink && !$dm->metalink_accept;
     return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path or $dm->mirrorlist;
     return undef;
