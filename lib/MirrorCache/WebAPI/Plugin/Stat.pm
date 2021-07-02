@@ -24,7 +24,6 @@ use Data::Dumper;
 
 # has ioloop => sub { Mojo::IOLoop->new };
 
-has dm     => undef, weak => 1;
 has schema => undef, weak => 1;
 has log    => undef, weak => 1;
 has timer  => undef;
@@ -36,7 +35,6 @@ my $FLUSH_COUNT            = $ENV{MIRRORCACHE_STAT_FLUSH_COUNT} // 100;
 
 sub register($self, $app, $args) {
     my $log = $app->log;
-    $self->dm($app->dm);
     $self->schema($app->schema);
     $self->log($app->log);
 
@@ -46,21 +44,21 @@ sub register($self, $app, $args) {
     1;
 }
 
-sub redirect_to_root($self, $not_miss) {
-    return $self->redirect_to_mirror(0) if ($not_miss || $self->dm->root_is_hit);
-    return $self->redirect_to_mirror(-1);
+sub redirect_to_root($self, $dm, $not_miss) {
+    $not_miss = $dm->root_is_hit unless defined $not_miss;
+    return $self->redirect_to_mirror(0, $dm) if ($not_miss);
+    return $self->redirect_to_mirror(-1, $dm);
 }
 
-sub redirect_to_headquarter($self) {
-    return $self->redirect_to_mirror(-2);
+sub redirect_to_headquarter($self, $dm) {
+    return $self->redirect_to_mirror(-2, $dm);
 }
 
-sub redirect_to_region($self) {
-    return $self->redirect_to_mirror(-3);
+sub redirect_to_region($self, $dm) {
+    return $self->redirect_to_mirror(-3, $dm);
 }
 
-sub redirect_to_mirror($self, $mirror_id) {
-    my $dm = $self->dm;
+sub redirect_to_mirror($self, $mirror_id, $dm) {
     my ($path, $trailing_slash) = $dm->path;
     return undef if $mirror_id == -1 && 'media' eq substr($path, -length('media'));
     my $rows = $self->rows;
