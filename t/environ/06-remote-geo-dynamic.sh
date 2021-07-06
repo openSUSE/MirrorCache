@@ -10,7 +10,8 @@ ap6=$(environ ap6)
 
 $mc/gen_env MIRRORCACHE_ROOT=http://$($ap6/print_address) \
     MIRRORCACHE_STAT_FLUSH_COUNT=1 \
-    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3 \
+    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
 
 for x in $ap6 $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
@@ -37,6 +38,7 @@ test 0 == "$(grep -c Poll $mc/.cerr)"
 
 sleep 10
 job_id=$($mc/backstage/job -e mirror_scan -a '["/folder1","cn"]')
+sleep 1
 
 # check redirects to headquarter are logged properly
 $mc/db/sql "select * from stat"

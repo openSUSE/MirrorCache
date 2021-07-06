@@ -33,6 +33,7 @@ has '_original_path';
 has '_agent';
 has [ '_is_secure', '_is_ipv4', '_is_head' ];
 has 'mirrorlist';
+has [ 'folder_id', 'file_id' ]; # shortcut to requested folder and file, if known
 
 has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
 has '_root_region';
@@ -310,7 +311,7 @@ sub _init_path($self) {
 }
 
 sub root_is_hit($self) {
-    return 1 if $self->_root_region eq $self->region;
+    return 1 if $self->_root_region && $self->_root_region eq $self->region;
     return 0;
 }
 

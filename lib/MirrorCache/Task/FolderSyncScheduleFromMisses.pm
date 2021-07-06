@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,6 +15,7 @@
 
 package MirrorCache::Task::FolderSyncScheduleFromMisses;
 use Mojo::Base 'Mojolicious::Plugin';
+use Mojo::File qw(path);
 
 sub register {
     my ($self, $app) = @_;
@@ -24,13 +25,13 @@ sub register {
 my $DELAY = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
 
 sub _run {
-    my ($app, $job, $prev_event_log_id) = @_;
+    my ($app, $job, $prev_stat_id) = @_;
     my $job_id = $job->id;
     my $pref = "[schedule_from_misses $job_id]";
-    my $id_in_notes = $job->info->{notes}{event_log_id};
-    $prev_event_log_id = $id_in_notes if $id_in_notes;
+    my $id_in_notes = $job->info->{notes}{stat_id};
+    $prev_stat_id = $id_in_notes if $id_in_notes;
     print(STDERR "$pref read id from notes: $id_in_notes\n") if $id_in_notes;
-    print(STDERR "$pref use id from param: $prev_event_log_id\n") if $prev_event_log_id && (!$id_in_notes || $prev_event_log_id != $id_in_notes);
+    print(STDERR "$pref use id from param: $prev_stat_id\n") if $prev_stat_id && (!$id_in_notes || $prev_stat_id != $id_in_notes);
 
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
@@ -38,16 +39,16 @@ sub _run {
       unless my $guard = $minion->guard('folder_sync_schedule_from_misses', 60);
 
     my $schema = $app->schema;
-    my $limit = 1000;
+    my $limit = $prev_stat_id? 1000 : 10;
 
-    my ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
+    my ($stat_id, $path_country_map, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
 
     my $rs = $schema->resultset('Folder');
     my $last_run = 0;
     while (scalar(%$path_country_map)) {
         my $cnt = 0;
-        $prev_event_log_id = $event_log_id;
-        print(STDERR "$pref read id from event log up to: $event_log_id\n");
+        $prev_stat_id = $stat_id;
+        print(STDERR "$pref read id from stat up to: $stat_id\n");
         for my $path (sort keys %$path_country_map) {
             my $countries = $path_country_map->{$path};
             my $folder = $rs->find({ path => $path });
@@ -66,14 +67,15 @@ sub _run {
             }
         }
         for my $country (@$country_list) {
-            next unless $minion->lock('mirror_probe_scheduled_' . $country, 60); # don't schedule if schedule hapened in last 60 sec
-            next unless $minion->lock('mirror_probe_incomplete_for_' . $country, 6000); # don't schedule until probe job completed
+            next unless $minion->lock('mirror_probe_scheduled_' . $country, 60); # don't schedule if schedule happened in last 60 sec
+            next unless $minion->lock('mirror_probe_incomplete_for_' . $country, 600); # don't schedule until probe job completed
             $minion->unlock('mirror_force_done');
             $minion->enqueue('mirror_probe' => [$country] => {priority => 6});
         }
         $last_run = $last_run + $cnt;
         last unless $cnt;
-        ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->path_misses($prev_event_log_id, $limit);
+        $limit = 1000;
+        ($stat_id, $path_country_map, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
     }
 
     if ($minion->lock('mirror_force_done', 9000)) {
@@ -86,11 +88,11 @@ sub _run {
         }
     }
 
-    $prev_event_log_id = 0 unless $prev_event_log_id;
-    print(STDERR "$pref will retry with id: $prev_event_log_id\n");
+    $prev_stat_id = 0 unless $prev_stat_id;
+    print(STDERR "$pref will retry with id: $prev_stat_id\n");
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
-    $job->note(event_log_id => $prev_event_log_id, total => $total, last_run => $last_run);
+    $job->note(stat_id => $prev_stat_id, total => $total, last_run => $last_run);
     return $job->retry({delay => $DELAY});
 }
 

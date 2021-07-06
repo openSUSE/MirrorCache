@@ -161,7 +161,7 @@ sub _sync {
 
     $folder->update({db_sync_last => datetime_now()});
     $job->note(updated => $path, count => $cnt, deleted => $deleted, updated => $updated);
-    if ($cnt) {
+    if ($cnt || $updated) {
         $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7} );
         $minion->enqueue('folder_hashes_create' => [$path] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $app->backstage->estimate_inactive_jobs('folder_hashes_create', $HASHES_QUEUE) < 1000;
     }

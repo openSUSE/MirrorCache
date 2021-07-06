@@ -19,6 +19,7 @@ use strict;
 use warnings;
 
 use base 'DBIx::Class::ResultSet';
+use Mojo::File qw(path);
 
 
 sub prev_minute {
@@ -92,5 +93,58 @@ END_SQL
     $prep->execute($prev_stat_id);
     return $dbh->selectrow_array($prep);
 };
+
+sub path_misses {
+    my $self = shift;
+    return $self->_misses('path', @_);
+}
+
+sub mirror_misses {
+    my $self = shift;
+    return $self->_misses('mirror', @_);
+}
+
+sub _misses {
+    my ($self, $mode, $prev_stat_id, $limit) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $extra_condition   = $mode eq 'path'? ' and file_id is null' : ' and file_id is not null ';
+    my $country_condition = $ENV{MIRRORCACHE_CITY_MMDB} ? "and country <> ''" : '';
+
+    my $sql = "select id, country, path from stat where mirror_id in (-1, 0) $extra_condition $country_condition";
+    $sql = "$sql and id > $prev_stat_id" if $prev_stat_id;
+    $sql = "$sql union all select max(id), '', '-max_id' from stat"; # this is just to get max(id) in the same query
+    $sql = "$sql order by id desc";
+    $sql = "$sql limit ($limit+1)" if $limit;
+
+    my $prep = $dbh->prepare($sql);
+    $prep->execute();
+    my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
+    my $id;
+    my %path_country = ();
+    my %countries = ();
+    my %seen  = ();
+    foreach my $miss ( @$arrayref ) {
+        $id = $miss->{id} unless $id;
+        my $path = $miss->{path};
+        next unless $path;
+        next if $path eq '-max_id';
+        $path = path($path)->dirname;
+        $seen{$path} = 1;
+        my $country = $miss->{country};
+        my $rec = $path_country{$path};
+        $rec = {} unless $rec;
+        if ($country) {
+            $rec->{$country} = 1;
+            $countries{$country} = 1 ;
+        }
+        $path_country{$path} = $rec;
+    }
+    my @country_list = (keys %countries);
+    return ($id, \%path_country, \@country_list);
+}
 
 1;

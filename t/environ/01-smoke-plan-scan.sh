@@ -42,6 +42,9 @@ $mc/db/sql "select * from minion_locks"
 # MIRRORCACHE_MIRROR_RESCAN_TIMEOUT hasn't passed yet, so no scanning job should occur
 test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%mx%'")
 
+# TODO decide strategy re-scanning country when a mirror from region was picked
+exit 0
+
 sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 

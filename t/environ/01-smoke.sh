@@ -26,6 +26,9 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$
 
 $mc/curl -Is /download/folder1/file1.dat
 
+$mc/sql "select * from stat"
+$mc/sql_test 1 == "select count(*) from stat"
+
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot

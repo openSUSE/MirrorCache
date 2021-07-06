@@ -32,7 +32,6 @@ sub register {
 
     $app->helper( 'mirrorcache.render_file' => sub {
         my ($c, $filepath, $dm)= @_;
-        $c->emit_event('mc_dispatch', $filepath);
         my $root = $c->mc->root;
         my $f = Mojo::File->new($filepath);
         my $dirname  = $f->dirname;
@@ -52,14 +51,15 @@ sub register {
                 return $root->render_file($dm, $filepath, 1);
             }
         }
-
+        
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
+        $dm->folder_id($folder->id) if $folder;
         my $file = $c->schema->resultset('File')->find_with_hash($folder->id, $basename) if $folder;
+        $dm->file_id($file->{id}) if $file;
         my $country = $dm->country;
         my $region  = $dm->region;
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
-            $c->mmdb->emit_miss($dirname, $country) unless $file;
             return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
             return $root->render_file($dm, $filepath)
               unless $dm->metalink # TODO we still can check file on mirrors even if it is missing in DB
@@ -111,10 +111,8 @@ sub register {
         if ($dm->metalink || $dm->mirrorlist) {
             if ($mirror) {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
-                $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
             } else {
                 $c->stat->redirect_to_root($dm, 0);
-                $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country;
             }
         }
 
@@ -190,7 +188,6 @@ sub register {
             return 1;
         }
         unless ($mirror) {
-            $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country;
             $root->render_file($dm, $filepath, $dm->root_is_hit);
             return 1;
         }
@@ -205,7 +202,6 @@ sub register {
             $c->redirect_to($url);
             eval {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
-                $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
             };
             return 1;
         }
@@ -229,7 +225,6 @@ sub register {
                 $mirror = shift @$mirrors_rest;
             }
             unless ($mirror) {
-                $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country});
                 return $root->render_file($dm, $filepath);
             }
             # Check below is needed only when MIRRORCACHE_ROOT_COUNTRY is set
@@ -246,15 +241,14 @@ sub register {
                     my $size = $result->headers->content_length if $result->headers;
                     if ($size && $expected_size && $size ne $expected_size) {
                         $code = 409;
+                        $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country});
                         return undef;
                     }
                     $c->redirect_to($url);
-                    $c->emit_event('mc_path_hit', {path => $dirname, mirror => $url});
-                    $c->emit_event('mc_mirror_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
                     $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
                     return 1;
                 }
-                $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, server => $mirror->{id}, folder => $folder->id});
+                $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country});
             })->catch(sub {
                 $c->emit_event('mc_mirror_error', {path => $dirname, error => shift, url => $url, server => $mirror->{id}, folder => $folder->id});
             })->finally(sub {

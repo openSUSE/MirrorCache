@@ -73,17 +73,16 @@ $mc/backstage/shoot
 
 test 4 == $($mc/db/sql "select count(*) from folder_diff_server")
 
-cnt="$($mc/db/sql "select count(*) from audit_event")"
+cnt="$($mc/db/sql "select max(id) from stat")"
 
 $mc/curl -I /download/folder1/file2.dat | grep 302
 
 # it shouldn't try to reach file on mirrors yet, because scanner didn't find files
-test 0 == $($mc/db/sql "select count(*) from audit_event where name like 'mirror_miss' and id > $cnt")
-
+test 0 == $($mc/db/sql "select count(*) from stat where mirror_id = -1 and file_id is not NULL and id > $cnt")
 
 $mc/curl -I /download/folder2/file4.dat | grep 200
 # now an error must be logged
-test 1 == $($mc/db/sql "select count(*) from audit_event where name like 'mirror_miss' and id > $cnt")
+test 1 == $($mc/db/sql "select count(*) from stat where mirror_id = -1 and file_id is not NULL and id > $cnt")
 
 ##################################
 # let's test path distortions

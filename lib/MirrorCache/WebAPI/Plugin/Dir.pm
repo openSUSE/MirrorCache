@@ -103,8 +103,6 @@ sub render_dir_remote {
     }
 
     my $handle_error = sub {
-        $c->mmdb->emit_miss($dir, $country);
-        $c->emit_event('mc_debug', "promisefail: $job_id " . Dumper(\@_));
         my $reason = $_;
         if ($reason eq 'Promise timeout') {
             return _render_dir($dm, $dir, $rsFolder);
@@ -127,12 +125,12 @@ sub _render_dir {
     my $folder = shift;
     my $c = $dm->c;
 
-    $c->emit_event('mc_debug', 'renderdir:' . $dir);
     $rsFolder  = $c->app->schema->resultset('Folder') unless $rsFolder;
     $folder    = $rsFolder->find({path => $dir}) unless $folder;
+    $dm->folder_id($folder->id) if $folder;
 
     return _render_dir_from_db($c, $folder->id, $dir) if $folder && $folder->db_sync_last;
-    $c->mmdb->emit_miss($dir, $dm->country);
+    $c->stat->redirect_to_root($dm, 0);
     return _render_dir_local($c, $dir) unless $root->is_remote; # just render files if we have them locally
 
     my $pos = $rsFolder->get_db_sync_queue_position($dir);
@@ -281,7 +279,6 @@ sub _guess_what_to_render {
 
     if ($dm->metalink or $dm->mirrorlist) {
         my $res = $root->render_file($dm, $path);
-        $c->mmdb->emit_miss($path, $dm->country);
         return $res;
     }
 
@@ -300,9 +297,7 @@ sub _guess_what_to_render {
     $ua->head_p($url1)->then(sub {
         my $res = shift->res;
 
-        if ($res->is_error && $res->code ne 403) {
-            $c->mmdb->emit_miss($path, $dm->country); # it is not a folder
-        } else {
+        if (!$res->is_error || $res->code eq 403) {
             if (!$res->is_redirect) {
                 # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
                 return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
@@ -336,7 +331,6 @@ sub _guess_what_to_render {
             $msg = $msg . Dumper(@_);
         }
         $c->app->log->error($msg);
-        $c->mmdb->emit_miss($path, $dm->country);
         my $reftx = $tx;
         my $refua = $ua;
     })->timeout(2)->wait;
