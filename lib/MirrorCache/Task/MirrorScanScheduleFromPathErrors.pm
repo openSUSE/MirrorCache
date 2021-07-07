@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@ sub register {
     $app->minion->add_task(mirror_scan_schedule_from_path_errors => sub { _run($app, @_) });
 }
 
+my $DELAY   = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
+my $TIMEOUT = int($ENV{MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT} // 120);
+
 sub _run {
     my ($app, $job, $prev_event_log_id) = @_;
     my $job_id = $job->id;
@@ -36,7 +39,7 @@ sub _run {
       unless my $guard = $minion->guard('mirror_scan_schedule_from_path_errors', 86400);
 
     my $schema = $app->schema;
-    my $limit = 1000;
+    my $limit = $prev_event_log_id? 1000 : 10;
 
     my ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
     my $last_run = 0;
@@ -45,18 +48,33 @@ sub _run {
         $prev_event_log_id = $event_log_id;
         print(STDERR "$pref read id from event log up to: $event_log_id\n");
         for my $path (sort keys %$path_country_map) {
-            $minion->enqueue('mirror_scan' => [$path, $path_country_map->{$path}] => {priority => 7});
+            my $countries = $path_country_map->{$path};
+            next unless $countries && keys %$countries;
+            my $folder = $schema->resultset('Folder')->find({ path => $path });
+            next unless $folder && $folder->id;
+            my $folder_id = $folder->id;
+            for my $country (sort keys %$countries) {
+                next unless $country && 2 == length($country);
+                $schema->resultset('Folder')->request_for_country($folder_id, lc($country));
+                # do not schedule the same job more frequently than $TIMOUT
+                if ($TIMEOUT) {
+                    my $bool = $minion->lock("mirror_scan_schedule_$path" . "_$country", $TIMEOUT);
+                    next unless $bool;
+                }
+                $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7});
+            }
             $cnt = $cnt + 1;
         }
         for my $country (@$country_list) {
             next unless $minion->lock('mirror_probe_scheduled_' . $country, 60); # don't schedule if schedule hapened in last 60 sec
-            next unless $minion->lock('mirror_probe_incomplete_for_' . $country, 6000); # don't schedule until probe job completed
+            next unless $minion->lock('mirror_probe_incomplete_for_' . $country, 300); # don't schedule until probe job completed
             $minion->unlock('mirror_force_done');
             $minion->enqueue('mirror_probe' => [$country] => {priority => 6});
         }
         $last_run = $last_run + $cnt;
         last unless $cnt;
-        ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->mirror_misses($prev_event_log_id, $limit);
+        $limit = 1000;
+        ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
     }
 
     if ($minion->lock('mirror_force_done', 9000)) {
@@ -74,7 +92,7 @@ sub _run {
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
     $job->note(event_log_id => $prev_event_log_id, total => $total, last_run => $last_run);
-    return $job->retry({delay => 5});
+    return $job->retry({delay => $DELAY});
 }
 
 1;

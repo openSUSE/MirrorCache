@@ -140,6 +140,8 @@ create table if not exists stat (
     country char(2),
     dt timestamp NOT NULL,
     mirror_id int,
+    folder_id bigint,
+    file_id bigint,
     secure boolean NOT NULL,
     ipv4 boolean NOT NULL,
     metalink boolean default 'f',
@@ -187,3 +189,6 @@ create index hash_file_id_size on hash(file_id, size);
 create index hash_sha256 on hash(sha256);
 -- 5 up
 create index audit_event_dt on audit_event(dt, name);
+-- 6 up
+alter table stat add column if not exists folder_id bigint, add column if not exists file_id bigint;
+create index if not exists stat_id_mirror_folder on stat(id, mirror_id, folder_id);

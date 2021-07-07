@@ -39,7 +39,6 @@ $mc/db/sql "select * from file"
 test 0  == $($mc/db/sql "select size from file where name='file1.dat'")
 test 10 == $($mc/db/sql "select size from file where name='file2.dat'")
 
-
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
@@ -50,7 +49,7 @@ mv $ng7/dt/folder1/file2.dat $ng8/dt/folder1/
 # gets redirected to root again
 $mc/curl -I /download/folder1/file2.dat | grep $($ng9/print_address)
 
-$mc/backstage/job mirror_scan_schedule_from_misses
+$mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/shoot
 
 $mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.dat | grep $($ng9/print_address)

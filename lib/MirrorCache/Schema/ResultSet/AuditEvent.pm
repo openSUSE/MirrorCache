@@ -25,88 +25,18 @@ use Time::ParseDate;
 use base 'DBIx::Class::ResultSet';
 use Mojo::JSON qw/decode_json/;
 
-sub path_misses {
+sub mirror_path_errors {
     my ($self, $prev_event_log_id, $limit) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = "select id, event_data from audit_event where name='path_miss'";
+    my $sql = "select id, event_data from audit_event where name in ('mirror_path_error', 'mirror_country_miss')";
     $sql = "$sql and id > $prev_event_log_id" if $prev_event_log_id;
     $sql = "$sql union all select max(id), '-max_id' from audit_event";
     $sql = "$sql order by id desc";
     $sql = "$sql limit ($limit+1)" if $limit;
-
-    my $prep = $dbh->prepare($sql);
-    $prep->execute();
-    my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
-    my $id;
-    my %path_country = ();
-    my %countries = ();
-    my %seen  = ();
-    foreach my $miss ( @$arrayref ) {
-        my $event_data = $miss->{event_data};
-        next if $seen{$event_data};
-        $id = $miss->{id} unless $id;
-        next if $event_data eq '-max_id';
-        $seen{$event_data} = 1;
-        my $data = decode_json($event_data);
-        my $path = $data->{path};
-        next unless $path;
-        my $country = $data->{country};
-        my $rec = $path_country{$path};
-        $rec = {} unless $rec;
-        if ($country) {
-            $rec->{$country} = 1;
-            $countries{$country} = 1 ;
-        }
-        $path_country{$path} = $rec;
-    }
-    my @country_list = (keys %countries);
-    return ($id, \%path_country, \@country_list);
-}
-
-sub mirror_probe_errors {
-    my ($self, $prev_event_log_id, $limit) = @_;
-
-    my $rsource = $self->result_source;
-    my $schema  = $rsource->schema;
-    my $dbh     = $schema->storage->dbh;
-
-    my $sql = "select id, event_data from audit_event where name='mirror_probe_error'";
-    $sql = "$sql and id > $prev_event_log_id" if $prev_event_log_id;
-    $sql = "$sql order by id desc";
-    $sql = "$sql limit ($limit)" if $limit;
-
-    my $prep = $dbh->prepare($sql);
-    $prep->execute();
-    my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
-    my $id;
-    my @paths = ();
-    my %seen  = ();
-    foreach my $miss ( @$arrayref ) {
-        my $event_data = $miss->{event_data};
-        next if $seen{$event_data};
-        $id = $miss->{id} unless $id;
-        $seen{$event_data} = 1;
-        push @paths, from_json($event_data);
-    }
-    return ($id, \@paths);
-}
-
-sub mirror_misses {
-    my ($self, $prev_event_log_id, $limit) = @_;
-
-    my $rsource = $self->result_source;
-    my $schema  = $rsource->schema;
-    my $dbh     = $schema->storage->dbh;
-
-    my $sql = "select id, event_data from audit_event where name = 'mirror_miss'";
-    $sql = "$sql and id > $prev_event_log_id" if $prev_event_log_id;
-    $sql = "$sql union all select max(id), '-max_id' from audit_event";
-    $sql = "$sql order by id desc";
-    $sql = "$sql limit ($limit)" if $limit;
 
     my $prep = $dbh->prepare($sql);
     $prep->execute();

@@ -8,6 +8,7 @@ export MIRRORCACHE_CITY_MMDB=__srcdir/t/data/city.mmdb
 export MOJO_LISTEN=http://*:__port
 export MIRRORCACHE_AUTH_URL=''
 export MIRRORCACHE_PERMANENT_JOBS=''
+export MIRRORCACHE_STAT_FLUSH_COUNT=1
 "
 
     for i in "$@"; do

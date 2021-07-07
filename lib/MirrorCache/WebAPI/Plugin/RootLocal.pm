@@ -52,8 +52,11 @@ sub is_dir {
 }
 
 sub render_file {
-    my ($self, $dm, $filepath) = @_;
-    return !!$dm->c->reply->static($filepath);
+    my ($self, $dm, $filepath, $not_miss) = @_;
+    my $c = $dm->c;
+    my $res = !!$c->reply->static($filepath);
+    $c->stat->redirect_to_root($dm, $not_miss);
+    return $res;
 }
 
 sub foreach_filename {

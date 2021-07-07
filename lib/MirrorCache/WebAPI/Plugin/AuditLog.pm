@@ -20,13 +20,12 @@ use Mojo::IOLoop;
 use Mojo::JSON 'to_json';
 use MirrorCache::Events;
 
-my @path_events = qw(path_miss path_hit path_scan_complete);
-my @mirror_events = qw(mirror_pick mirror_miss mirror_scan_complete);
 # reasons for mirror_scan_error and mirror_path_error and mirror_error are similar
 # mirror_scan_error means we were not able to find the file on the mirror, and we don't know if it ever existed
 # mirror_path_error means we know that the file did exist on the mirror, but are not able to access it anymore, getting a valid HTML response code
 # mirror_error means there was an error while trying to HEAD a file on a mirror (without valid HTML response)
-my @error_events = qw(mirror_scan_error mirror_path_error mirror_error);
+# mirror_country_miss means that request was served by a mirror in region
+my @error_events = qw(mirror_scan_error mirror_path_error mirror_error mirror_country_miss);
 my @other_events = qw(unknown_ip debug);
 my @user_events = qw(user_update user_delete server_create server_update server_delete);
 
@@ -35,7 +34,7 @@ sub register {
 
     # register for events
     my @events = (
-        @path_events, @mirror_events, @error_events, @other_events, @user_events
+        @error_events, @other_events, @user_events
     );
     for my $e (@events) {
         MirrorCache::Events->singleton->on("mc_$e" => sub { shift; $self->on_event($app, @_) });
@@ -55,7 +54,7 @@ sub on_event {
         $tag = $event_data->{tag};
         delete($event_data->{tag});
     }
-    
+
     # no need to log mc_ prefix in mc log
     $event =~ s/^mc_//;
     $app->schema->resultset('AuditEvent')->create({

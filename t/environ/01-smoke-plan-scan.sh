@@ -4,7 +4,7 @@ set -exo pipefail
 mc=$(environ mc $(pwd))
 
 MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=3
-$mc/gen_env MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses'" \
+$mc/gen_env MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses mirror_scan_schedule_from_path_errors'" \
         MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=1 \
         MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=$MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 

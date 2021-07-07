@@ -56,7 +56,7 @@ echo -n 123456789 > $rs/dt/folder1/file2.dat
 # gets redirected to root again
 $mc/curl -I /download/folder1/file2.dat | grep fake.com
 
-# call incorrect file to force new size sync sync
+# call incorrect file to force new sync
 $mc/curl /download/folder1/incorrect
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
@@ -105,12 +105,12 @@ $mc/backstage/shoot
 
 test 2 == $($mc/db/sql "select count(*) from folder_diff_server")
 
-cnt="$($mc/db/sql 'select count(*) from audit_event')"
+cnt="$($mc/db/sql 'select max(id) from audit_event')"
 
 $mc/curl -I /download/folder1/file4.dat
 
 # it shouldn't try to probe yet, because scanner didn't find files on the mirrors
-test 0 == $($mc/db/sql "select count(*) from audit_event where name = 'mirror_probe' and id > $cnt")
+$mc/sql_test 0 == "select count(*) from audit_event where name = 'mirror_path_error' and id > $cnt"
 
 for x in $rs $ap7 $ap8; do
     mkdir $x/dt/folder1/folder11
