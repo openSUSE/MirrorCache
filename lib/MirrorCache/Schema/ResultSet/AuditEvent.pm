@@ -32,7 +32,7 @@ sub mirror_path_errors {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = "select id, event_data from audit_event where name='mirror_path_error'";
+    my $sql = "select id, event_data from audit_event where name in ('mirror_path_error', 'mirror_country_miss')";
     $sql = "$sql and id > $prev_event_log_id" if $prev_event_log_id;
     $sql = "$sql union all select max(id), '-max_id' from audit_event";
     $sql = "$sql order by id desc";

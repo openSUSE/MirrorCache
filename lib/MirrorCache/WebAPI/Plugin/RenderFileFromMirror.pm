@@ -51,7 +51,7 @@ sub register {
                 return $root->render_file($dm, $filepath, 1);
             }
         }
-        
+
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
         $dm->folder_id($folder->id) if $folder;
         my $file = $c->schema->resultset('File')->find_with_hash($folder->id, $basename) if $folder;
@@ -111,6 +111,7 @@ sub register {
         if ($dm->metalink || $dm->mirrorlist) {
             if ($mirror) {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
+                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
             } else {
                 $c->stat->redirect_to_root($dm, 0);
             }
@@ -202,6 +203,7 @@ sub register {
             $c->redirect_to($url);
             eval {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
+                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
             };
             return 1;
         }
@@ -230,7 +232,9 @@ sub register {
             # Check below is needed only when MIRRORCACHE_ROOT_COUNTRY is set
             # only with remote root and when no mirrors should be used for the root's country
             if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
-                return $root->render_file($dm, $filepath, 1);
+                $root->render_file($dm, $filepath, 1);
+                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country}) if $country ne $dm->root_country;
+                return 1;
             }
             my $url = $mirror->{url} . $filepath;
             my $code;
@@ -241,16 +245,17 @@ sub register {
                     my $size = $result->headers->content_length if $result->headers;
                     if ($size && $expected_size && $size ne $expected_size) {
                         $code = 409;
-                        $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country});
+                        $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
                         return undef;
                     }
                     $c->redirect_to($url);
                     $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
+                    $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
                     return 1;
                 }
-                $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country});
+                $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
             })->catch(sub {
-                $c->emit_event('mc_mirror_error', {path => $dirname, error => shift, url => $url, server => $mirror->{id}, folder => $folder->id});
+                $c->emit_event('mc_mirror_error', {path => $dirname, error => shift, url => $url, server => $mirror->{id}, folder => $folder->id}, id => $mirror->{mirror_id});
             })->finally(sub {
                 return $recurs1->($code);
                 my $reftx = $tx;

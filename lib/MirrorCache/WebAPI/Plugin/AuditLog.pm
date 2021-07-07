@@ -24,7 +24,8 @@ use MirrorCache::Events;
 # mirror_scan_error means we were not able to find the file on the mirror, and we don't know if it ever existed
 # mirror_path_error means we know that the file did exist on the mirror, but are not able to access it anymore, getting a valid HTML response code
 # mirror_error means there was an error while trying to HEAD a file on a mirror (without valid HTML response)
-my @error_events = qw(mirror_scan_error mirror_path_error mirror_error);
+# mirror_country_miss means that request was served by a mirror in region
+my @error_events = qw(mirror_scan_error mirror_path_error mirror_error mirror_country_miss);
 my @other_events = qw(unknown_ip debug);
 my @user_events = qw(user_update user_delete server_create server_update server_delete);
 

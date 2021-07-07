@@ -4,7 +4,7 @@ set -exo pipefail
 mc=$(environ mc $(pwd))
 
 MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=3
-$mc/gen_env MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses'" \
+$mc/gen_env MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses mirror_scan_schedule_from_path_errors'" \
         MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=1 \
         MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=$MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 
@@ -41,9 +41,6 @@ $mc/backstage/shoot
 $mc/db/sql "select * from minion_locks"
 # MIRRORCACHE_MIRROR_RESCAN_TIMEOUT hasn't passed yet, so no scanning job should occur
 test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%mx%'")
-
-# TODO decide strategy re-scanning country when a mirror from region was picked
-exit 0
 
 sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
