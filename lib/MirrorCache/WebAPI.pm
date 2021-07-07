@@ -94,6 +94,7 @@ sub startup {
         $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show') if $reader;
 
         $rest_r->get('/stat')->name('rest_stat')->to('stat#list');
+        $rest_r->get('/mystat')->name('rest_mystat')->to('stat#mylist');
 
         my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
 

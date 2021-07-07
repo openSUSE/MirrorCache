@@ -19,7 +19,6 @@ use Mojo::Base 'Mojolicious::Plugin', -signatures;
 
 use Mojo::IOLoop;
 use MirrorCache::Utils 'datetime_now';
-use Digest::SHA qw(sha1_hex);
 use Data::Dumper;
 
 # has ioloop => sub { Mojo::IOLoop->new };
@@ -63,7 +62,7 @@ sub redirect_to_mirror($self, $mirror_id, $dm) {
     return undef if $mirror_id == -1 && 'media' eq substr($path, -length('media'));
     my $rows = $self->rows;
     my @rows = defined $rows? @$rows : ();
-    push @rows, [ sha1_hex($dm->ip), scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->is_head ];
+    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->is_head ];
     my $cnt = @rows;
     if ($cnt >= $FLUSH_COUNT) {
         $self->rows(undef);

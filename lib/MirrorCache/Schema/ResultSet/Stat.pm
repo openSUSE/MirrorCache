@@ -35,7 +35,7 @@ sub prev_day {
 }
 
 sub curr {
-    my ($self, $period) = @_;
+    my ($self) = @_;
     my $dbh     = $self->result_source->schema->storage->dbh;
 
     my $sql = <<"END_SQL";
@@ -56,6 +56,31 @@ END_SQL
     $prep->execute();
     return $dbh->selectrow_hashref($prep);
 }
+
+sub mycurr {
+    my ($self, $ip_sha1) = @_;
+    my $dbh     = $self->result_source->schema->storage->dbh;
+
+    my $sql = <<"END_SQL";
+select
+sum(case when mirror_id >= 0 and dt > date_trunc('minute', now()) then 1 else 0 end) as hit_minute,
+sum(case when mirror_id = -1 and dt > date_trunc('minute', now()) then 1 else 0 end) as miss_minute,
+sum(case when mirror_id < -1 and dt > date_trunc('minute', now()) then 1 else 0 end) as geo_minute,
+sum(case when mirror_id >= 0 and dt > date_trunc('hour', now()) then 1 else 0 end) as hit_hour,
+sum(case when mirror_id = -1 and dt > date_trunc('hour', now()) then 1 else 0 end) as miss_hour,
+sum(case when mirror_id < -1 and dt > date_trunc('hour', now()) then 1 else 0 end) as geo_hour,
+sum(case when mirror_id >= 0 then 1 else 0 end) as hit_day,
+sum(case when mirror_id = -1 then 1 else 0 end) as miss_day,
+sum(case when mirror_id < -1 then 1 else 0 end) as geo_day
+from stat
+where dt > date_trunc('day', now()) and ip_sha1 = ?;
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($ip_sha1);
+    return $dbh->selectrow_hashref($prep);
+}
+
+
 
 sub _prev_period {
     my ($self, $period) = @_;

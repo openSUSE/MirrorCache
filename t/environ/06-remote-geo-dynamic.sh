@@ -78,6 +78,9 @@ test 0 == "$(grep -c Poll $mc/.cerr)"
 
 $mc/curl /rest/stat
 $mc/curl /rest/stat | grep '"hit":4' | grep '"miss":2'
+$mc/curl --interface 127.0.0.2 /rest/mystat | grep '"hit":1' | grep '"miss":1'
+$mc/curl --interface 127.0.0.3 /rest/mystat | grep '"hit":1' | grep '"miss":1'
+$mc/curl --interface 127.0.0.4 /rest/mystat | grep '"hit":2' | grep '"miss":0'
 
 # now test stat_agg job by injecting some values into yesterday
 $mc/backstage/stop

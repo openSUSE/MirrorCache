@@ -28,6 +28,7 @@
                 </a>
                 <div class="dropdown-menu">
                   %= link_to 'My IP' => url_for('/rest/myip') => class => 'dropdown-item'
+                  %= link_to 'My Statistics' => url_for('/rest/mystat') => class => 'dropdown-item'
                   % if (is_operator) {
                   %= tag 'div' => class => 'dropdown-divider'
                   %= tag 'h3' => class => 'dropdown-header' => 'Operator menu'
