@@ -16,6 +16,7 @@
 package MirrorCache::WebAPI::Controller::Rest::Stat;
 use Mojo::Base 'Mojolicious::Controller';
 use Mojo::Promise;
+use Data::Dumper;
 
 sub list {
     my ($self) = @_;
@@ -65,6 +66,53 @@ sub list {
         $fill->($prevminuteref, 'minute');
         $fill->($prevhourref, 'hour');
         $fill->($prevdayref, 'day');
+        $self->render(json => \%res);
+    })->catch($handle_error);
+
+    $p->resolve;
+}
+
+sub mylist {
+    my $self = shift;
+    my $dm = MirrorCache::Datamodule->new->app($self->app);
+    $dm->reset($self);
+    my $ip      = $dm->ip;
+    my $ip_sha1 = $dm->ip_sha1;
+    my $tx = $self->render_later->tx;
+    my $curr;
+
+    my $rendered;
+    my $handle_error = sub {
+        return if $rendered;
+        $rendered = 1;
+        my @reason = @_;
+        my $reason = scalar(@reason)? Dumper(@reason) : 'unknown';
+        $self->render(json => {error => $reason}, status => 500) ;
+    };
+
+    my $p = Mojo::Promise->new->timeout(5);
+    my $rs = $self->schema->resultset('Stat');
+    my %res = (
+        ip => $ip,
+        ip_sha1 => $ip_sha1,
+    );
+    $p->then(sub {
+        $curr = $rs->mycurr($ip_sha1);
+    })->catch($handle_error)->then(sub {
+        my $fill = sub {
+            my ($period) = @_;
+            my %h = (
+                hit  => _toint($curr->{"hit_$period"}),
+                miss => _toint($curr->{"miss_$period"}),
+            );
+            if (my $x = _toint($curr->{"geo_$period"})) {
+                $h{'geo'} = $x;
+            }
+            $res{$period} = \%h;
+        };
+        $fill->('minute');
+        $fill->('hour');
+        $fill->('day');
         $self->render(json => \%res);
     })->catch($handle_error);
 

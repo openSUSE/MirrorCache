@@ -17,6 +17,7 @@
 package MirrorCache::Datamodule;
 use Mojo::Base -base, -signatures;
 use Mojo::URL;
+use Digest::SHA qw(sha1_hex);
 use MirrorCache::Utils 'region_for_country';
 
 has c => undef, weak => 1;
@@ -69,6 +70,10 @@ sub reset($self, $c, $top_folder = undef) {
     }
     $self->c($c);
     $self->_ip(undef);
+}
+
+sub ip_sha1($self) {
+    return sha1_hex($self->ip);
 }
 
 sub ip($self) {

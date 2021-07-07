@@ -192,3 +192,5 @@ create index audit_event_dt on audit_event(dt, name);
 -- 6 up
 alter table stat add column if not exists folder_id bigint, add column if not exists file_id bigint;
 create index if not exists stat_id_mirror_folder on stat(id, mirror_id, folder_id);
+-- 7 up
+create index if not exists stat_dt_ip_mirror on stat(dt, ip_sha1, mirror_id, secure, ipv4);
