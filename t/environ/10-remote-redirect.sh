@@ -17,6 +17,8 @@ ap8=$(environ ap8)
 # this mirror will do only https
 ap7=$(environ ap7)
 $ap7/configure_ssl
+# this mirror will have disabled both http and https
+ap6=$(environ ap6)
 
 $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
     MIRRORCACHE_ROOT=http://$($ap5/print_address) \
@@ -31,6 +33,7 @@ $mc/status
 
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','us','na'"
 
 $mc/db/sql -c "insert into server_capability_force select 1, 'http'" mc_test
 
@@ -57,7 +60,7 @@ RequestHeader set X-Forwarded-Proto "https"
 $ap9/start
 $ap9/status
 
-for x in $ap7 $ap8 $ap5 $ap4; do
+for x in $ap6 $ap7 $ap8 $ap5 $ap4; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
 done
@@ -102,6 +105,41 @@ $ap9/curl_https -IL /folder1/file1.dat | grep -C30 "200 OK" | grep https:// | gr
 sleep 15
 # $ap4/curl_https --cacert ca/ca.pem -I -s https://127.0.0.1:1524/folder1/file1.dat | grep https:// | grep $($ap7/print_address)
 $ap9/curl_https -I /folder1/file1.dat | grep https:// | grep $($ap7/print_address)
+
+# disable both http and https for ap6
+$mc/db/sql -c "insert into server_capability_force select 3, 'http'" mc_test
+$mc/db/sql -c "insert into server_capability_force select 3, 'https'" mc_test
+
+$ap9/curl_https /folder1/file1.dat.metalink
+$mc/db/sql -c "insert into server_capability_force select 2, 'https'" mc_test
+$ap9/curl_https /folder1/file1.dat.metalink
+$ap9/curl_https /folder1/file1.dat.metalink | grep https://$($ap7/print_address)
+rc=0
+# metalink for https shouldn't have ap8
+$ap9/curl_https /folder1/file1.dat.metalink | grep $($ap8/print_address) || rc=$?
+test $rc -gt 0
+
+$ap9/curl /folder1/file1.dat.metalink
+$ap9/curl /folder1/file1.dat.metalink | grep http://$($ap8/print_address)
+rc=0
+# metalink for http shouldn't have ap7
+$ap9/curl /folder1/file1.dat.metalink | grep $($ap7/print_address) || rc=$?
+test $rc -gt 0
+rc=0
+# metalink for http shouldn't have ap6
+$ap9/curl /folder1/file1.dat.metalink | grep $($ap6/print_address) || rc=$?
+test $rc -gt 0
+
+
+
+# check ap8 is listed lower in the mirrorlist and has http
+$ap9/curl_https /folder1/file1.dat.mirrorlist | grep -A1 https://$($ap7/print_address) | grep http://$($ap8/print_address)
+
+$ap9/curl /folder1/file1.dat.mirrorlist | grep http
+rc=0
+# mirrorlist shouldn't have ap6
+$ap9/curl /folder1/file1.dat.mirrorlist | grep $($ap6/print_address) || rc=$?
+test $rc -gt 0
 
 # shutdown ap7, then https must redirect to ap4
 $ap7/stop
