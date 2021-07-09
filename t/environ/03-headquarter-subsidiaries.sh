@@ -23,13 +23,13 @@ as_address=$($mc8/print_address)
 as_interface=127.0.0.4
 
 # deploy db
+$mc9/gen_env MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'
 $mc9/backstage/shoot
 
 $mc9/db/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
 $mc9/db/sql "insert into subsidiary(hostname,region) select '$eu_address','eu'"
 $mc9/db/sql "insert into subsidiary(hostname,region) select '$as_address','as'"
 
-$mc9/gen_env MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'
 $mc9/start
 $mc6/gen_env MIRRORCACHE_REGION=na MIRRORCACHE_HEADQUARTER=$hq_address
 $mc6/start
