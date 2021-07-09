@@ -141,7 +141,8 @@ sub _redirect_geo {
     my $dm = shift;
     my $route = $dm->route;
     my ($path, undef) = $dm->path;
-    return undef if $route eq '/' && $path eq '/';
+    print STDERR "AAAAAA $route $path\n\n";
+    return undef if !$route && $path eq '/';
     my $c = $dm->c;
     # having both MIRRORCACHE_HEADQUARTER and MIRRORCACHE_REGION means that we are Subsidiary
     if ($ENV{MIRRORCACHE_HEADQUARTER} && $ENV{MIRRORCACHE_REGION}) {
