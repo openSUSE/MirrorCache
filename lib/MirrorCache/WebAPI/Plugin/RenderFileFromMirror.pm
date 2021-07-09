@@ -196,7 +196,7 @@ sub register {
             return 1;
         }
 
-        unless ($dm->pedantic) {
+        unless ($dm->pedantic || index($filepath, '-Current') > 0) {
             # Check below is needed only when MIRRORCACHE_ROOT_COUNTRY is set
             # only with remote root and when no mirrors should be used for the root's country
             if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
