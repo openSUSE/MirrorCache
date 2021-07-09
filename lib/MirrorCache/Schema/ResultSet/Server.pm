@@ -23,7 +23,8 @@ use base 'DBIx::Class::ResultSet';
 sub mirrors_query {
     my (
         $self, $country, $region, $folder_id,       $file_id, $capability,
-        $ipv,  $lat,     $lng,    $avoid_countries, $limit,   $avoid_region
+        $ipv,  $lat,     $lng,    $avoid_countries, $limit,   $avoid_region,
+        $mirrorlist
     ) = @_;
     $country    = ''     unless $country;
     $region     = ''     unless $region;
@@ -74,11 +75,12 @@ sub mirrors_query {
     }
     my $weight_country_case = ($avoid_country or $avoid_region) ? '' : "when country $avoid_country= '$country' then 2 ";
     my $ipvx = $ipv eq 'ipv4'? 'ipv6' : 'ipv4';
-    # currently the query will select rows for both ipv4 and ipv6 if a mirror supports both formats
-    # it is not big deal, but can be optimized so only one such row is selected
+    my $capabilityx = $capability eq 'http'? 'https' : 'http';
+    my $extra = $mirrorlist? '': "WHERE no4 = 0 and no5 = 0";
+
     my $sql = <<"END_SQL";
 select * from (
-select x.id as mirror_id, url,
+select x.id as mirror_id, concat(case when no4 = 0 then '$capability' else '$capabilityx' end, '://', uri) as url,
 case when $lat=0 and $lng=0 then 0  -- prefer servers which were checked recently when geoip is unavailable
 else
 ( 6371 * acos( cos( radians($lat) ) * cos( radians( lat ) ) * cos( radians( lng ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( lat ) ) ) )
@@ -89,8 +91,7 @@ case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end
 last1, last2, last3, lastdt1, lastdt2, lastdt3, score, country, region, lng
 from (
 select s.id,
-    concat(
-        '$capability://',s.hostname,s.urldir) as url,
+    concat(s.hostname,s.urldir) as uri,
 s.lat as lat,
 s.lng as lng,
 s.country, s.region, s.score,
@@ -100,6 +101,8 @@ sum(case when chk.capability = '$ipv' and chk.success then 1 else 0 end)/10 yes2
 sum(case when chk.capability = '$ipv' and not chk.success then 1 else 0 end) no2,
 sum(case when chk.capability = '$ipvx' and chk.success then 1 else 0 end)/10 yes3,
 sum(case when chk.capability = '$ipvx' and not chk.success then 1 else 0 end) no3,
+sum(case when scd.server_id is not null or scf.server_id is not null then 1 else 0 end) no4,
+sum(case when scd2.server_id is not null or scf2.server_id is not null then 1 else 0 end) no5,
 (select success from server_capability_check where server_id = s.id and capability = '$capability' order by dt desc limit 1) as last1,
 (select success from server_capability_check where server_id = s.id and capability = '$ipv' order by dt desc limit 1) as last2,
 (select success from server_capability_check where server_id = s.id and capability = '$ipvx' order by dt desc limit 1) as last3,
@@ -116,8 +119,13 @@ from (
     where fl.folder_id = ? and fl.id = ? and fdf.file_id is NULL
 ) s
 left join server_capability_check chk on s.id = chk.server_id
+left join server_capability_declaration scd on s.id = scd.server_id and scd.capability = '$capability' and NOT scd.enabled
+left join server_capability_force scf on s.id = scf.server_id and scf.capability = '$capability'
+left join server_capability_declaration scd2 on s.id = scd2.server_id and scd.capability = '$ipv' and NOT scd.enabled
+left join server_capability_force scf2 on s.id = scf2.server_id and scf2.capability = '$ipv'
 group by s.id, s.country, s.region, s.score, s.hostname, s.urldir, s.lat, s.lng
 ) x
+$extra
 order by last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, weight2 desc, score, lastdt1 desc nulls last, lastdt2 desc nulls last, last3 desc, lastdt3 desc, random()
 limit $limit
 ) xx

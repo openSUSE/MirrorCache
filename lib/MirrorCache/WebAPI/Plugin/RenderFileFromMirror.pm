@@ -42,7 +42,7 @@ sub register {
             && !$dm->mirrorlist
             && (!$dm->metalink || $dm->metalink_accept)
             && $root->is_reachable);
-        if ($dirname_basename eq "repodata" && !$dm->mirrorlist && !$dm->metalink) {
+        if ($dirname_basename eq "repodata" && !$dm->mirrorlist && (!$dm->metalink || $dm->metalink_accept) && $root->is_reachable) {
             # We don't redirect inside repodata, because if a mirror is outdated,
             # then zypper will have hard time working with outdated repomd.* files
             my $prefix = "repomd.xml";
@@ -74,7 +74,8 @@ sub register {
         my ($mirrors_country, $mirrors_region, $mirrors_rest, @avoid_countries);
         $mirrors_country = $c->schema->resultset('Server')->mirrors_query(
             $country, $region,  $folder->id, $file->{id},          $scheme,
-            $ipv,     $dm->lat, $dm->lng,    $dm->avoid_countries, $limit
+            $ipv,     $dm->lat, $dm->lng,    $dm->avoid_countries, $limit,      0,
+            $dm->mirrorlist
         ) if $country;
 
         my $mirror;
@@ -88,7 +89,8 @@ sub register {
             push @avoid_countries, $country if ($country and !(grep { $country eq $_ } @avoid_countries));
             $mirrors_region = $c->schema->resultset('Server')->mirrors_query(
                 $country, $region,  $folder->id, $file->{id},       $scheme,
-                $ipv,     $dm->lat, $dm->lng,    \@avoid_countries, $limit
+                $ipv,     $dm->lat, $dm->lng,    \@avoid_countries, $limit,     0,
+                $dm->mirrorlist
             );
         }
         if ($mirrors_region && @$mirrors_region) {
@@ -99,7 +101,8 @@ sub register {
         if (($dm->metalink && $found_count < $limit) || $dm->mirrorlist || !$dm->country) {
             $mirrors_rest = $c->schema->resultset('Server')->mirrors_query(
                 $country, $region,  $folder->id, $file->{id},          $scheme,
-                $ipv,     $dm->lat, $dm->lng,    $dm->avoid_countries, $limit,  1
+                $ipv,     $dm->lat, $dm->lng,    $dm->avoid_countries, $limit,  1,
+                $dm->mirrorlist
             );
         }
 
@@ -383,7 +386,7 @@ sub _build_metalink() {
                 my $url   = $m->{url};
                 my $colon = index(substr($url, 0, 6), ':');
                 next unless $colon > 0;
-                
+
                 $print_root->() if $dm->root_is_better($m->{region}, $m->{lng});
                 $writer->startTag(
                     'url',
