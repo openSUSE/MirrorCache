@@ -106,6 +106,7 @@
 < https://cdn.datatables.net/1.10.16/js/dataTables.bootstrap4.js
 < http://timeago.yarp.com/jquery.timeago.js
 < javascripts/mirrorcache.js
+< javascripts/mirrorlist.js
 < javascripts/admintable.js
 < javascripts/admin_user.js
 < javascripts/audit_log.js

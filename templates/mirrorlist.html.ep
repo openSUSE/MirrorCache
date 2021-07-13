@@ -5,6 +5,19 @@
 % my $bc_last = pop @breadcrumbs;
 % my $bc_url = '/';
 
+% if ($regions && @$regions) {
+% content_for 'ready_function' => begin
+%   my $i = 0;
+%   for my $region (@$regions) {
+%     my $url = "/rest/$region?file=$cur_path";
+%     if ($region) {
+         loadMirrorlist("<%= $url %>", "ul1000", "ul1001", "ul1002");
+%     }
+%     $i = $i+1;
+%   }
+% end
+% }
+
 <div id="container-download">
 
   <div id="breadcrumbs">
@@ -17,18 +30,32 @@
       <li class="breadcrumb-item active"><%== $bc_last %></li>
     </ol>
   </div>
-  
-  <h5>File information</h5>
+
+  <h4>File information</h4>
   <ul>
-    <li>Name: <%= $file->{name} %></li>
-    <li>Size: <%= $file->{size} %></li>
-    <li>Last modified: <%= $file->{mtime} %></li>
+    <li>Filename: <%= $file->{name} %></li>
+    <li>Path: <%= $cur_path %></li>
+    <li>Size: <%= $file->{hsize} %> (<%= $file->{size} %> bytes)</li>
+    <li>Last modified: <%= $file->{hmtime} %> (Unix timestamp: <%= $file->{mtime} %>)</li>
+    % if ($file->{sha256}) {
+    <li>SHA-256 Hash: <%= $file->{sha256} %></li>
+    % }
+    % if ($file->{sha1}) {
+    <li>SHA-1 Hash: <%= $file->{sha1} %></li>
+    % }
+    % if ($file->{md5}) {
+    <li>MD5 Hash: <%= $file->{md5} %></li>
+    % }
     <li><a href="<%= $bc_url . $bc_last %>.metalink">Metalink (v3.0)</a></li>
     % if ($file->{url}) {
     <li>Origin: <a href="<%= $file->{url} %>"><%= $file->{url} %></a></li>
     % }
   </ul>
 
+  <h4>Mirrors</h4>
+  % if ($ip && $lat && $lng) {
+  <p>List of best mirrors for IP address <%= $ip %>, located at <%=$lat%>,<%=$lng%> in (<%=$country%>)</p>
+  % }
   % if ($mirrordata && @$mirrordata) {
   <h5>Mirrors which handle this country: <%= @$mirrordata %></h5>
     <ul>
@@ -37,32 +64,44 @@
     % }
     </ul>
   % } else {
-  <h5>Mirrors which handle this country</h5>
+  <h5>Mirrors which handle this country: </h5>
+  %   if ($regions && @$regions && $regions->[0]) {
+    <ul id="ul1000"><p id="ul1000tohide">Loading...</p></ul>
+  %   } else {
     <ul><li>None</li></ul>
+  %   }
   % }
 
   % if ($mirrordata_region && @$mirrordata_region) {
-  <h5>Mirrors in other countries, but same continent: <%= @$mirrordata_region %></h5>
-    <ul>
+  <h5>Mirrors in other countries, but same continent:</h5>
+    <ul id="ul1001">
     % for my $mirror (@$mirrordata_region) {
       <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
     % }
     </ul>
   % } else {
   <h5>Mirrors in other countries, but same continent</h5>
+  %   if ($regions && @$regions && $regions->[0]) {
+    <ul id="ul1001"><p id="ul1001tohide">Loading...</p></ul>
+  %   } else {
     <ul><li>None</li></ul>
+  %   }
   % }
 
   % if ($mirrordata_rest && @$mirrordata_rest) {
-  <h5>Mirrors in other parts of the world: <%= @$mirrordata_rest %></h5>
-    <ul>
+  <h5>Mirrors in other parts of the world:</h5>
+    <ul id="ul1002">
     % for my $mirror (@$mirrordata_rest) {
       <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
     % }
     </ul>
   % } else {
   <h5>Mirrors in other parts of the world</h5>
+  %   if ($regions && @$regions > 1) {
+    <ul id="ul1002"><p id="ul1002tohide">Loading...</p></ul>
+  %   } else {
     <ul><li>None</li></ul>
+  %   }
   % }
 
 </div>

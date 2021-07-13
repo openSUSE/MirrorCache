@@ -72,9 +72,10 @@ sub register {
         $ipv = 'ipv6' unless $dm->is_ipv4;
         my $limit = $dm->mirrorlist ? 100 : (( $dm->metalink || $dm->pedantic )? 10 : 1);
         my ($mirrors_country, $mirrors_region, $mirrors_rest, @avoid_countries);
+        my ($lat, $lng) = $dm->coord;
         $mirrors_country = $c->schema->resultset('Server')->mirrors_query(
             $country, $region,  $folder->id, $file->{id},          $scheme,
-            $ipv,     $dm->lat, $dm->lng,    $dm->avoid_countries, $limit,      0,
+            $ipv,     $lat, $lng,    $dm->avoid_countries, $limit,      0,
             $dm->mirrorlist
         ) if $country;
 
@@ -89,7 +90,7 @@ sub register {
             push @avoid_countries, $country if ($country and !(grep { $country eq $_ } @avoid_countries));
             $mirrors_region = $c->schema->resultset('Server')->mirrors_query(
                 $country, $region,  $folder->id, $file->{id},       $scheme,
-                $ipv,     $dm->lat, $dm->lng,    \@avoid_countries, $limit,     0,
+                $ipv,     $lat, $lng,    \@avoid_countries, $limit,     0,
                 $dm->mirrorlist
             );
         }
@@ -101,7 +102,7 @@ sub register {
         if (($dm->metalink && $found_count < $limit) || $dm->mirrorlist || !$dm->country) {
             $mirrors_rest = $c->schema->resultset('Server')->mirrors_query(
                 $country, $region,  $folder->id, $file->{id},          $scheme,
-                $ipv,     $dm->lat, $dm->lng,    $dm->avoid_countries, $limit,  1,
+                $ipv,     $lat, $lng,    $dm->avoid_countries, $limit,  1,
                 $dm->mirrorlist
             );
         }
@@ -132,21 +133,6 @@ sub register {
 
         if ($dm->mirrorlist) {
             my $url    = $c->req->url->to_abs;
-            my $origin = $url->scheme . '://' . $url->host;
-
-            my $size = $file->{size};
-            $size = MirrorCache::Utils::human_readable_size($size) if $size;
-            my $mtime = $file->{mtime};
-            $mtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
-            my $fileorigin = $root->is_remote ? $root->location($c) . $filepath : undef;
-
-            my $filedata = {
-                url   => $fileorigin,
-                name  => $basename,
-                size  => $size,
-                mtime => $mtime,
-            };
-
             my @mirrordata;
             if ($country and !$dm->avoid_countries || !(grep { $country eq $_ } $dm->avoid_countries)) {
                 for my $m (@$mirrors_country) {
@@ -168,7 +154,7 @@ sub register {
                         location => uc($m->{country}),
                       };
                 }
-                @mirrordata_region = sort { $a->{url} cmp $b->{url} } @mirrordata_region;
+                @mirrordata_region = sort { $a->{location} cmp $b->{location} || $a->{url} cmp $b->{url} } @mirrordata_region;
             }
 
             my @mirrordata_rest;
@@ -179,7 +165,27 @@ sub register {
                     location => uc($m->{country}),
                   };
             }
-            @mirrordata_rest = sort { $a->{url} cmp $b->{url} } @mirrordata_rest;
+            @mirrordata_rest = sort { $a->{location} cmp $b->{location} || $a->{url} cmp $b->{url} } @mirrordata_rest;
+            return $c->render(json => {l1 => \@mirrordata, l2 => \@mirrordata_region, l3 => \@mirrordata_rest}) if ($dm->json);
+
+            my $origin = $url->scheme . '://' . $url->host;
+
+            my $size = $file->{size};
+            my $hsize = MirrorCache::Utils::human_readable_size($size) if defined $size;
+            my $mtime = $file->{mtime};
+            my $hmtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
+            my $fileorigin = $root->is_remote ? $root->location($c) . $filepath : undef;
+
+            my $filedata = {
+                url    => $fileorigin,
+                name   => $basename,
+                size   => $size,
+                hsize  => $hsize,
+                mtime  => $mtime,
+                hmtime => $hmtime,
+            };
+
+            my @regions = $c->subsidiary->regions($region) if $region;
 
             $c->render(
                 'mirrorlist',
@@ -187,7 +193,12 @@ sub register {
                 file              => $filedata,
                 mirrordata        => \@mirrordata,
                 mirrordata_region => \@mirrordata_region,
-                mirrordata_rest   => \@mirrordata_rest
+                mirrordata_rest   => \@mirrordata_rest,
+                country           => uc($country),
+                ip                => $dm->ip,
+                lat               => $lat,
+                lng               => $lng,
+                regions           => \@regions,
             );
             return 1;
         }
