@@ -150,6 +150,7 @@ sub startup {
     $self->plugin('Mmdb', { reader => $reader });
 
     $self->plugin('Helpers', root => $root, route => '/download');
+    $self->plugin('Subsidiary');
     if ($root) {
         # check prefix
         if ('rsync://' eq substr($root, 0, 8)) {

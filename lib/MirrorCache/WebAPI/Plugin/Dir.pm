@@ -140,24 +140,19 @@ sub _render_dir {
 sub _redirect_geo {
     my $dm = shift;
     my $route = $dm->route;
-    my ($path, undef) = $dm->path;
-    print STDERR "AAAAAA $route $path\n\n";
-    return undef if !$route && $path eq '/';
+    my ($path, $trailing_slash) = $dm->path;
+    return undef if $trailing_slash || $path eq '/' || $dm->mirrorlist;
     my $c = $dm->c;
-    # having both MIRRORCACHE_HEADQUARTER and MIRRORCACHE_REGION means that we are Subsidiary
-    if ($ENV{MIRRORCACHE_HEADQUARTER} && $ENV{MIRRORCACHE_REGION}) {
-        my $region = $dm->region;
-        # redirect to the headquarter if country is not our region
-        if ($region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region))) {
-            $c->redirect_to($c->req->url->to_abs->scheme . "://" . $ENV{MIRRORCACHE_HEADQUARTER} . $route . $dm->path_query) if $region && (lc($ENV{MIRRORCACHE_REGION}) ne lc($region));
-            $c->stat->redirect_to_headquarter;
+    my $subsidiary = $c->subsidiary;
+
+    if ($subsidiary->headquarter_url) {
+        if (my $redirect = $subsidiary->redirect_headquarter($dm->region)) {
+            my $path_query = $dm->path_query;
+            $c->redirect_to($dm->scheme . "://" . $redirect . $route . $path_query);
+            $c->stat->redirect_to_headquarter($dm);
             return 1;
         }
-    } elsif (my $region_url = $dm->has_subsidiary) {
-        my $url = $c->req->url->to_abs->clone;
-        $url->host($region_url->host);
-        $url->port($region_url->port);
-        $url->path_query($region_url->path . $url->path_query) if ($region_url->path);
+    } elsif (my $url = $subsidiary->has($dm->region, $c->req->url)) {
         $c->redirect_to($url);
         $c->stat->redirect_to_region($dm);
         return 1;

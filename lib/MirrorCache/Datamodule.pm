@@ -28,36 +28,23 @@ has [ 'metalink', 'metalink_accept' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng' ];
 has [ '_avoid_countries' ];
 has [ '_pedantic' ];
-has [ '_path', '_trailing_slash' ];
+has [ '_scheme', '_path', '_trailing_slash' ];
 has [ '_query', '_query1' ];
 has '_original_path';
 has '_agent';
 has [ '_is_secure', '_is_ipv4', '_is_head' ];
 has 'mirrorlist';
+has 'json';
 has [ 'folder_id', 'file_id' ]; # shortcut to requested folder and file, if known
 
 has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
 has '_root_region';
 has '_root_longitude' => ($ENV{MIRRORCACHE_ROOT_LONGITUDE} ? int($ENV{MIRRORCACHE_ROOT_LONGITUDE}) : 11);
 
-my %subsidiary_urls;
-my @subsidiaries;
-
 sub app($self, $app) {
     $self->_route($app->mc->route);
     $self->_route_len(length($self->_route));
     $self->_root_region(region_for_country($self->root_country) || '');
-
-    eval { #the table may be missing - no big deal
-        @subsidiaries = $app->schema->resultset('Subsidiary')->all;
-    };
-    for my $s (@subsidiaries) {
-        my $url = $s->hostname;
-        $url = "http://" . $url unless 'http' eq substr($url, 0, 4);
-        $url = $url . $s->uri if $s->uri;
-        $subsidiary_urls{lc($s->region)} = Mojo::URL->new($url)->to_abs;
-    }
-    return $self;
 }
 
 sub reset($self, $c, $top_folder = undef) {
@@ -125,10 +112,18 @@ sub lng($self) {
     return $self->_lng;
 }
 
-sub has_subsidiary($self) {
-    return undef unless keys %subsidiary_urls;
-    my $url = $subsidiary_urls{$self->region};
-    return $url;
+sub coord($self) {
+    unless (defined $self->_lat) {
+        $self->_init_location;
+    }
+    return ($self->_lat, $self->_lng);
+}
+
+sub scheme($self) {
+    unless (defined $self->_scheme) {
+        $self->_init_path;
+    }
+    return $self->_scheme;
 }
 
 sub path($self) {
@@ -225,7 +220,6 @@ sub _init_req($self) {
     if (my $ip = $self->ip) {
         $self->_is_ipv4(0) if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1'
     }
-
 }
 
 sub _init_location($self) {
@@ -268,11 +262,13 @@ sub _init_location($self) {
 }
 
 sub _init_path($self) {
-    my $url = $self->c->req->url;
+    my $url = $self->c->req->url->to_abs;
+    $self->_scheme($url->scheme);
     if ($url->query) {
         $self->_query($url->query);
         $self->_query1('?' . $url->query);
         $self->mirrorlist(1) if defined $url->query->param('mirrorlist');
+        $self->json(1)       if defined $url->query->param('json');
     } else {
         $self->_query('');
         $self->_query1('');
