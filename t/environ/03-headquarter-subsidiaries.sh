@@ -10,7 +10,7 @@ set -ex
 for i in 6 7 8 9; do
     x=$(environ mc$i $(pwd))
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     eval mc$i=$x
 done
 
@@ -42,28 +42,28 @@ echo the root folder is not redirected
 curl --interface $eu_interface -Is http://$hq_address/ | grep '200 OK'
 
 echo check redirection from headquarter
-curl --interface $na_interface -Is http://$hq_address/download/folder1/file1.dat | grep "Location: http://$na_address/download/folder1/file1.dat"
-curl --interface $eu_interface -Is http://$hq_address/download/folder1/file1.dat | grep "Location: http://$eu_address/download/folder1/file1.dat"
-curl --interface $as_interface -Is http://$hq_address/download/folder1/file1.dat | grep "Location: http://$as_address/download/folder1/file1.dat"
+curl --interface $na_interface -Is http://$hq_address/download/folder1/file1.1.dat | grep "Location: http://$na_address/download/folder1/file1.1.dat"
+curl --interface $eu_interface -Is http://$hq_address/download/folder1/file1.1.dat | grep "Location: http://$eu_address/download/folder1/file1.1.dat"
+curl --interface $as_interface -Is http://$hq_address/download/folder1/file1.1.dat | grep "Location: http://$as_address/download/folder1/file1.1.dat"
 
 echo check redirection from na
-curl --interface $na_interface -Is http://$na_address/download/folder1/file1.dat | grep '200 OK'
-curl --interface $eu_interface -Is http://$na_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
-curl --interface $as_interface -Is http://$na_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
+curl --interface $na_interface -Is http://$na_address/download/folder1/file1.1.dat | grep '200 OK'
+curl --interface $eu_interface -Is http://$na_address/download/folder1/file1.1.dat | grep "Location: http://$hq_address/download/folder1/file1.1.dat"
+curl --interface $as_interface -Is http://$na_address/download/folder1/file1.1.dat | grep "Location: http://$hq_address/download/folder1/file1.1.dat"
 
 echo check redirection from eu
-curl --interface $na_interface -Is http://$eu_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
-curl --interface $eu_interface -Is http://$eu_address/download/folder1/file1.dat | grep '200 OK'
-curl --interface $as_interface -Is http://$eu_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
+curl --interface $na_interface -Is http://$eu_address/download/folder1/file1.1.dat | grep "Location: http://$hq_address/download/folder1/file1.1.dat"
+curl --interface $eu_interface -Is http://$eu_address/download/folder1/file1.1.dat | grep '200 OK'
+curl --interface $as_interface -Is http://$eu_address/download/folder1/file1.1.dat | grep "Location: http://$hq_address/download/folder1/file1.1.dat"
 
 echo check redirection from as
-curl --interface $na_interface -Is http://$as_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
-curl --interface $eu_interface -Is http://$as_address/download/folder1/file1.dat | grep "Location: http://$hq_address/download/folder1/file1.dat"
-curl --interface $as_interface -Is http://$as_address/download/folder1/file1.dat | grep '200 OK'
-curl --interface $as_interface -Is http://$as_address/download/folder1/file1.dat?COUNTRY=us | grep "Location: http://$hq_address/download/folder1/file1.dat"
-curl --interface $as_interface -Is http://$as_address/download/folder1/file1.dat?COUNTRY=cn | grep '200 OK'
-curl --interface $as_interface -Is http://$as_address/download/folder1/file1.dat?REGION=na | grep "Location: http://$hq_address/download/folder1/file1.dat"
-curl --interface $as_interface -Is "http://$as_address/download/folder1/file1.dat?COUNTRY=cn&REGION=na" | grep "Location: http://$hq_address/download/folder1/file1.dat"
+curl --interface $na_interface -Is http://$as_address/download/folder1/file1.1.dat | grep "Location: http://$hq_address/download/folder1/file1.1.dat"
+curl --interface $eu_interface -Is http://$as_address/download/folder1/file1.1.dat | grep "Location: http://$hq_address/download/folder1/file1.1.dat"
+curl --interface $as_interface -Is http://$as_address/download/folder1/file1.1.dat | grep '200 OK'
+curl --interface $as_interface -Is http://$as_address/download/folder1/file1.1.dat?COUNTRY=us | grep "Location: http://$hq_address/download/folder1/file1.1.dat"
+curl --interface $as_interface -Is http://$as_address/download/folder1/file1.1.dat?COUNTRY=cn | grep '200 OK'
+curl --interface $as_interface -Is http://$as_address/download/folder1/file1.1.dat?REGION=na | grep "Location: http://$hq_address/download/folder1/file1.1.dat"
+curl --interface $as_interface -Is "http://$as_address/download/folder1/file1.1.dat?COUNTRY=cn&REGION=na" | grep "Location: http://$hq_address/download/folder1/file1.1.dat"
 
 echo check non-download routers shouldnt be redirected
 curl --interface $na_interface -Is http://$hq_address/rest/server | grep '200 OK'

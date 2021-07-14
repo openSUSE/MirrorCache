@@ -16,27 +16,27 @@ ap7=$(environ ap7)
 
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 done
 
 $ap7/start
-$ap7/curl /folder1/ | grep file1.dat
+$ap7/curl /folder1/ | grep file1.1.dat
 
 $ap8/start
-$ap8/curl /folder1/ | grep file1.dat
+$ap8/curl /folder1/ | grep file1.1.dat
 
 
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us','na'"
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','de','eu'"
 
-$mc/curl -I /download/folder1/file1.dat?COUNTRY=mx
+$mc/curl -I /download/folder1/file1.1.dat?COUNTRY=mx
 $mc/backstage/shoot
 test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%mx%'")
 
 $mc/db/sql "select * from minion_locks"
 
 # request from mx goes to us
-$mc/curl -Is /download/folder1/file1.dat?COUNTRY=mx | grep -C10 302 | grep "$($ap7/print_address)"
+$mc/curl -Is /download/folder1/file1.1.dat?COUNTRY=mx | grep -C10 302 | grep "$($ap7/print_address)"
 $mc/backstage/shoot
 $mc/db/sql "select * from minion_locks"
 # MIRRORCACHE_MIRROR_RESCAN_TIMEOUT hasn't passed yet, so no scanning job should occur
@@ -45,7 +45,7 @@ test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_sc
 sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 
-$mc/curl -I /download/folder1/file1.dat?COUNTRY=mx | grep -C10 302 | grep "$($ap7/print_address)"
+$mc/curl -I /download/folder1/file1.1.dat?COUNTRY=mx | grep -C10 302 | grep "$($ap7/print_address)"
 $mc/backstage/shoot
 # now another job should start
 test 2 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%mx%'")

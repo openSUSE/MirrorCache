@@ -16,8 +16,8 @@ ng7=$(environ ng7)
 
 for x in $ng7 $ng8 $ng9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
-    echo -n 0123456789 > $x/dt/folder1/file2.dat
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    echo -n 0123456789 > $x/dt/folder1/file2.1.dat
     $x/start
 done
 
@@ -27,11 +27,11 @@ $mc/status
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng7/print_address)','','t','us','na'"
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng8/print_address)','','t','us','na'"
 
-# remove folder1/file1.dt from ng8
-rm $ng8/dt/folder1/file2.dat
+# remove folder1/file1.1.dt from ng8
+rm $ng8/dt/folder1/file2.1.dat
 
 # first request redirected to MIRRORCACHE_REDIRECT, eventhough files are not there
-$mc/curl -I /download/folder1/file2.dat | grep $($ap9/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
@@ -40,17 +40,17 @@ $mc/backstage/shoot
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
-$mc/curl -I /download/folder1/file2.dat | grep $($ng7/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ng7/print_address)
 
-mv $ng7/dt/folder1/file2.dat $ng8/dt/folder1/
+mv $ng7/dt/folder1/file2.1.dat $ng8/dt/folder1/
 
 # gets redirected to MIRRORCACHE_REDIRECT again
-$mc/curl -I /download/folder1/file2.dat | grep $($ap9/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
 $mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/shoot
 
-$mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.dat | grep $($ap9/print_address)
+$mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
 # now redirects to ng8
-$mc/curl -I /download/folder1/file2.dat | grep $($ng8/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ng8/print_address)

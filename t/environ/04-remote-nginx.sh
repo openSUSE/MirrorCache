@@ -14,8 +14,8 @@ ng7=$(environ ng7)
 
 for x in $ng7 $ng8 $ng9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
-    echo -n 0123456789 > $x/dt/folder1/file2.dat
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    echo -n 0123456789 > $x/dt/folder1/file2.1.dat
     $x/start
 done
 
@@ -25,47 +25,47 @@ $mc/status
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng7/print_address)','','t','us','na'"
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng8/print_address)','','t','us','na'"
 
-# remove folder1/file1.dt from ng8
-rm $ng8/dt/folder1/file2.dat
+# remove folder1/file1.1.dt from ng8
+rm $ng8/dt/folder1/file2.1.dat
 
 # first request redirected to root
-$mc/curl -I /download/folder1/file2.dat | grep $($ng9/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ng9/print_address)
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
 $mc/db/sql "select * from file"
-test 0  == $($mc/db/sql "select size from file where name='file1.dat'")
-test 10 == $($mc/db/sql "select size from file where name='file2.dat'")
+test 0  == $($mc/db/sql "select size from file where name='file1.1.dat'")
+test 10 == $($mc/db/sql "select size from file where name='file2.1.dat'")
 
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
-$mc/curl -I /download/folder1/file2.dat | grep $($ng7/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ng7/print_address)
 
-mv $ng7/dt/folder1/file2.dat $ng8/dt/folder1/
+mv $ng7/dt/folder1/file2.1.dat $ng8/dt/folder1/
 
 # gets redirected to root again
-$mc/curl -I /download/folder1/file2.dat | grep $($ng9/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ng9/print_address)
 
 $mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/shoot
 
-$mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.dat | grep $($ng9/print_address)
+$mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.1.dat | grep $($ng9/print_address)
 
 # now redirects to ng8
-$mc/curl -I /download/folder1/file2.dat | grep $($ng8/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ng8/print_address)
 
 # now add new file everywhere
 for x in $ng9 $ng7 $ng8; do
-    touch $x/dt/folder1/file3.dat
+    touch $x/dt/folder1/file3.1.dat
 done
 
 $mc/backstage/job folder_sync_schedule # this will find new file and trigger mirror rescan
 $mc/backstage/shoot
 # now expect to hit
-$mc/curl -I /download/folder1/file3.dat | grep -E "$($ng8/print_address)|$($ng7/print_address)"
+$mc/curl -I /download/folder1/file3.1.dat | grep -E "$($ng8/print_address)|$($ng7/print_address)"
 
 # now add new file only on main server and make sure it doesn't try to redirect
 touch $ng9/dt/folder1/file4.dat
@@ -85,17 +85,17 @@ test 0 == $($mc/db/sql "select count(*) from audit_event where name = 'mirror_pr
 
 for x in $ng9 $ng7 $ng8; do
     mkdir $x/dt/folder1/folder11
-    touch $x/dt/folder1/folder11/file1.dat
+    touch $x/dt/folder1/folder11/file1.1.dat
 done
 
 # this is needed for schedule jobs to retry on next shoot
-$mc/curl -I /download/folder1/folder11/file1.dat
+$mc/curl -I /download/folder1/folder11/file1.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
-$mc/curl -I /download/folder1/folder11/file1.dat | grep -E "$($ng7/print_address)|$($ng8/print_address)"
-$mc/curl /download/folder1/folder11/ | grep file1.dat
+$mc/curl -I /download/folder1/folder11/file1.1.dat | grep -E "$($ng7/print_address)|$($ng8/print_address)"
+$mc/curl /download/folder1/folder11/ | grep file1.1.dat
 
 
 $mc/curl /download/folder1?status=all | grep '"recent":2'| grep '"not_scanned":0' | grep '"outdated":0'
@@ -107,16 +107,16 @@ test {} == $($mc/curl /download/folder1?status=not_scanned)
 # let's test path distortions
 # remember number of folders in DB
 cnt=$($mc/db/sql "select count(*) from folder")
-$mc/curl -I /download//folder1//file1.dat
+$mc/curl -I /download//folder1//file1.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 test $cnt == $($mc/db/sql "select count(*) from folder")
 
-$mc/curl -I /download//folder1//file1.dat              | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
-$mc/curl -I /download//folder1///file1.dat             | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
-$mc/curl -I /download/./folder1/././file1.dat          | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
-$mc/curl -I /download/./folder1/../folder1/./file1.dat | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
+$mc/curl -I /download//folder1//file1.1.dat              | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
+$mc/curl -I /download//folder1///file1.1.dat             | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
+$mc/curl -I /download/./folder1/././file1.1.dat          | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
+$mc/curl -I /download/./folder1/../folder1/./file1.1.dat | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
 ##################################
 
 
@@ -157,7 +157,7 @@ order by f.id, s.id, fl.name
 "
 
 # now expect to hit
-$mc/curl /download/folder1/ | grep file1.dat
+$mc/curl /download/folder1/ | grep file1.1.dat
 $mc/curl /download/folder1/ | grep file:4.dat
 $mc/curl -I /download/folder1/file:4.dat | grep -E "$($ng8/print_address)|$(ng7*/print_address)"
 ##################################

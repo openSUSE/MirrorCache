@@ -10,7 +10,7 @@ ap7=$(environ ap7)
 
 for x in $mc $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     $x/start
 done
 
@@ -30,22 +30,22 @@ for case in "${cases[@]}"; do
 done
 
 # first request a file, so the mirror scan will trigger on backstage run
-$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat | grep 200
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep 200
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
 # 127.0.0.3 is in Nuremberg, so Munich must be chosen as the closest host
-$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat
-$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat | grep -C 10 302 | grep $munich_host
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep -C 10 302 | grep $munich_host
 
 # let's shut down Munich server - now Berlin must be selected as it closer to Nuremberg than Altona
 $ap8/stop
-$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat
-$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat | grep -C 10 302 | grep $berlin_host
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep -C 10 302 | grep $berlin_host
 
 # start Munich back - it must be chosen again
 $ap8/start
-$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat
-$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat | grep -C 10 302 | grep $munich_host
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep -C 10 302 | grep $munich_host

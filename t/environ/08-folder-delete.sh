@@ -11,22 +11,22 @@ ap7=$(environ ap7)
 
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 done
 
 $ap7/start
-$ap7/curl /folder1/ | grep file1.dat
+$ap7/curl /folder1/ | grep file1.1.dat
 
 $ap8/start
-$ap8/curl /folder1/ | grep file1.dat
+$ap8/curl /folder1/ | grep file1.1.dat
 
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
-# remove folder1/file1.dt from ap8
-rm $ap8/dt/folder1/file2.dat
+# remove folder1/file1.1.dt from ap8
+rm $ap8/dt/folder1/file2.1.dat
 
-$mc/curl -I /download/folder1/file2.dat
+$mc/curl -I /download/folder1/file2.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
@@ -49,9 +49,9 @@ test 0 == $($mc/db/sql "select count(*) from folder")
 ######################################################################
 # test automated database cleanup for folders that don't exist anymore
 # create some entries in table folder
-$mc/curl -I /download/folder1/file1.dat
-$mc/curl -I /download/folder2/file1.dat
-$mc/curl -I /download/folder3/file1.dat
+$mc/curl -I /download/folder1/file1.1.dat
+$mc/curl -I /download/folder2/file1.1.dat
+$mc/curl -I /download/folder3/file1.1.dat
 # force rescan
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule

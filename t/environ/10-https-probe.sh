@@ -44,7 +44,7 @@ $ap7/configure_ssl
 
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 done
 
 $ap9/curl_https /download/  | grep folder1
@@ -68,12 +68,12 @@ test f == $($mc/db/sql "select success from server_capability_check where server
 $mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 1,'http',now()"
 $mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 2,'https',now()"
 
-$ap9/curl_https --cacert ca/ca.pem -I /download/folder1/file1.dat
+$ap9/curl_https --cacert ca/ca.pem -I /download/folder1/file1.1.dat
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
 # make sure https redirects to https
-$ap9/curl_https -I /download/folder1/file1.dat | grep https:// | grep $($ap7/print_address)
-$ap9/curl -I /download/folder1/file1.dat | grep http:// | grep $($ap8/print_address)
+$ap9/curl_https -I /download/folder1/file1.1.dat | grep https:// | grep $($ap7/print_address)
+$ap9/curl -I /download/folder1/file1.1.dat | grep http:// | grep $($ap8/print_address)

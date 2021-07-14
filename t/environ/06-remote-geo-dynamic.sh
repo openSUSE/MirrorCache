@@ -15,7 +15,7 @@ $mc/gen_env MIRRORCACHE_ROOT=http://$($ap6/print_address) \
 
 for x in $ap6 $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     $x/start
 done
 $mc/start
@@ -30,9 +30,9 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap9/print_address)','','t','cn','as'"
 
-$mc/curl --interface 127.0.0.3 /download/folder1/ | grep file1.dat
-$mc/curl --interface 127.0.0.2 -I /download/folder1/file1.dat
-$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat
+$mc/curl --interface 127.0.0.3 /download/folder1/ | grep file1.1.dat
+$mc/curl --interface 127.0.0.2 -I /download/folder1/file1.1.dat
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat
 
 test 0 == "$(grep -c Poll $mc/.cerr)"
 
@@ -46,8 +46,8 @@ test -1 == $($mc/db/sql "select mirror_id from stat where country='us'")
 test -1 == $($mc/db/sql "select distinct mirror_id from stat where country='de'")
 test -z $($mc/db/sql "select mirror_id from stat where country='cn'")
 
-$mc/curl --interface 127.0.0.2 -I /download/folder1/file1.dat | grep $($ap7/print_address)
-$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.dat | grep $($ap8/print_address)
+$mc/curl --interface 127.0.0.2 -I /download/folder1/file1.1.dat | grep $($ap7/print_address)
+$mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep $($ap8/print_address)
 
 sleep 3
 test t == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
@@ -60,8 +60,8 @@ test t == $($mc/db/sql "select state in ('finished','failed') from minion_jobs w
 $mc/backstage/status
 $mc/db/sql "select state from minion_jobs where id=$job_id"
 
-$mc/curl --interface 127.0.0.4 -I /download/folder1/file1.dat
-$mc/curl --interface 127.0.0.4 -I /download/folder1/file1.dat | grep $($ap9/print_address)
+$mc/curl --interface 127.0.0.4 -I /download/folder1/file1.1.dat
+$mc/curl --interface 127.0.0.4 -I /download/folder1/file1.1.dat | grep $($ap9/print_address)
 
 $mc/db/sql "select * from stat"
 # check stats are logged properly
@@ -96,9 +96,9 @@ $mc/curl /rest/stat
 $mc/curl /rest/stat | grep '"hit":4' | grep '"miss":2' | grep '"prev_hit":4' | grep '"prev_miss":2'
 
 test 0 == $($mc/db/sql "select sum(case when head then 0 else 1 end) from stat")
-$mc/curl --interface 127.0.0.2 -i /download/folder1/file1.dat
+$mc/curl --interface 127.0.0.2 -i /download/folder1/file1.1.dat
 test 1 == $($mc/db/sql "select sum(case when head then 0 else 1 end) from stat")
 
 test 0 == $($mc/db/sql "select sum(case when metalink then 1 else 0 end) from stat")
-$mc/curl --interface 127.0.0.2 -Is -H 'Accept: */*, application/metalink+xml' /download/folder1/file1.dat
+$mc/curl --interface 127.0.0.2 -Is -H 'Accept: */*, application/metalink+xml' /download/folder1/file1.1.dat
 test 1 == $($mc/db/sql "select sum(case when metalink then 1 else 0 end) from stat")

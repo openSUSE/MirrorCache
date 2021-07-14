@@ -14,7 +14,7 @@ ap7=$(environ ap7)
 
 for x in $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 done
 
 ln -s $ap9/dt/folder1 $ap9/dt/link

@@ -11,16 +11,16 @@ set -ex
 for i in 9 6; do
     x=$(environ mc$i $(pwd))
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
-    echo 1111111111 > $x/dt/folder1/file1.dat
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    echo 1111111111 > $x/dt/folder1/file1.1.dat
     eval mc$i=$x
 done
 
 for i in 1 2 3 4; do
     x=$(environ ap$i)
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
-    echo 1111111111 > $x/dt/folder1/file1.dat
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    echo 1111111111 > $x/dt/folder1/file1.1.dat
     eval ap$i=$x
     $x/start
 done
@@ -50,8 +50,8 @@ for i in 9 6; do
     mc$i/backstage/shoot -q hashes
 done
 
-curl -s "http://$hq_address/folder1/?hashes" | grep file1.dat
-curl -s "http://$na_address/folder1/?hashes&since=2021-01-01" | grep file1.dat
+curl -s "http://$hq_address/folder1/?hashes" | grep file1.1.dat
+curl -s "http://$na_address/folder1/?hashes&since=2021-01-01" | grep file1.1.dat
 
 for i in 9 6; do
     test b2c5860a03d2c4f1f049a3b2409b39a8 == $(mc$i/db/sql 'select md5 from hash where file_id=1')
