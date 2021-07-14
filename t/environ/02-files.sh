@@ -16,6 +16,7 @@ ap7=$(environ ap7)
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    echo $x/dt/folder1/file1.dat | xargs -n 1 touch
 done
 
 $ap7/start
@@ -26,6 +27,8 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$
 
 # remove a file from one mirror
 rm $ap8/dt/folder1/file2.1.dat
+# this file is different size on one mirrors
+echo 1 > $ap8/dt/folder1/file1.dat
 
 # force scan
 $mc/curl -I /download/folder1/file2.1.dat
@@ -38,17 +41,25 @@ test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
 $mc/curl -I /download/folder1/file2.1.dat | grep 302
+$mc/curl -I /download/folder1/file1.dat   | grep 302
 
 mv $ap7/dt/folder1/file2.1.dat $ap8/dt/folder1/
+mv $ap8/dt/folder1/file1.dat $ap7/dt/folder1/
 
 $mc/curl -I /download/folder1/file2.1.dat?PEDANTIC=0 | grep 302
 $mc/curl -I /download/folder1/file2.1.dat?PEDANTIC=1 | grep 200
+# file1 isn't considered versioned, so pedantic mode is automatic
+$mc/curl -I /download/folder1/file1.dat | grep 200
+
+# make root the same size of folder1/file1.dat
+echo 1 > $mc/dt/folder1/file1.dat
 
 $mc/backstage/job mirror_scan_schedule_from_misses
 $mc/backstage/shoot
 
 $mc/curl -I /download/folder1/file2.1.dat | grep 302
 $mc/curl -I /download/folder1/file1.1.dat | grep 302
+$mc/curl -I /download/folder1/file1.dat   | grep 302
 
 # now add new file everywhere
 for x in $mc $ap7 $ap8; do

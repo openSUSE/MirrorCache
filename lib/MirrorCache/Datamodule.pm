@@ -251,14 +251,15 @@ sub _init_location($self) {
     $country = substr($country, 0, 2) if $country;
     $self->_country($country // '');
     $self->_region($region // '');
-
-    my $pedantic;
-    if(my $p = $query->param('PEDANTIC')) {
-        $pedantic = $p;
-    } else {
-        $pedantic = $ENV{'MIRRORCACHE_PEDANTIC'};
+    my $pedantic = $self->_pedantic;
+    unless (defined $pedantic) {
+        if(my $p = $query->param('PEDANTIC')) {
+            $pedantic = $p;
+        } else {
+            $pedantic = $ENV{'MIRRORCACHE_PEDANTIC'};
+        }
+        $self->_pedantic($pedantic // 0);
     }
-    $self->_pedantic($pedantic // 0);
 }
 
 sub _init_path($self) {
@@ -306,6 +307,8 @@ sub _init_path($self) {
             $path = substr($path, 0, $pos);
         }
     }
+    $self->_pedantic(1) if $path =~ m/.*\/([^\/]*-Current[^\/]*)/;
+    $self->_pedantic(1) unless $path =~ m/.*\/([^\/]*\d\.?\d[^\/]*)/;
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);
     $self->agent; # parse headers

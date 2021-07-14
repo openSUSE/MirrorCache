@@ -207,7 +207,7 @@ sub register {
             return 1;
         }
 
-        unless ($dm->pedantic || index($filepath, '-Current') > 0) {
+        unless ($dm->pedantic) {
             # Check below is needed only when MIRRORCACHE_ROOT_COUNTRY is set
             # only with remote root and when no mirrors should be used for the root's country
             if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
@@ -223,7 +223,7 @@ sub register {
         }
 
         my $tx = $c->render_later->tx;
-        my $ua  = Mojo::UserAgent->new;
+        my $ua  = Mojo::UserAgent->new->max_redirects(8);
         my $recurs1;
         my $expected_size = $file->{size};
         my $recurs = sub {
@@ -257,7 +257,7 @@ sub register {
                 $code = $result->code;
                 if ($code == 200 || $code == 302 || $code == 301) {
                     my $size = $result->headers->content_length if $result->headers;
-                    if ($size && $expected_size && $size ne $expected_size) {
+                    if ((defined $size && defined $expected_size) && ($size || $expected_size) && $size ne $expected_size) {
                         $code = 409;
                         $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
                         return undef;
