@@ -44,4 +44,44 @@ END_SQL
     $prep->execute($file_id, $mtime, $size, $md5hex, $sha1hex, $sha256hex, $block_size, $pieceshex);
 }
 
+sub hashes_since {
+    my ($self, $folder_id, $time_constraint) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $time_constraint_condition = '';
+    my @query_params              = ($folder_id);
+    if ($time_constraint) {
+        $time_constraint_condition = $time_constraint ? 'and hash.dt >= ?' : '';
+        push(@query_params, $time_constraint);
+    }
+
+    my $sql = <<"END_SQL";
+select file.name, hash.mtime, hash.size, md5, sha1, sha256, piece_size, pieces, hash.dt
+from hash left join file on file_id = id
+where file_id in ( select id from file where folder_id = ? )
+$time_constraint_condition limit 100000
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute(@query_params);
+    return $dbh->selectall_arrayref($prep, {Slice => {}});
+}
+
+sub hashes_max_dt {
+    my ($self, $folder_id) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+select max(hash.dt) from hash where file_id in ( select id from file where folder_id = ? )
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($folder_id);
+    return $dbh->selectrow_array($prep);
+}
+
 1;

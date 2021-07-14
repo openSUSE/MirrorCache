@@ -20,6 +20,9 @@ use Mojo::Base 'Mojolicious::Plugin';
 use POSIX;
 use Data::Dumper;
 use Sort::Naturally;
+use Time::Piece;
+use Time::Seconds;
+use Time::ParseDate;
 use Mojolicious::Types;
 use MirrorCache::Utils;
 use MirrorCache::Datamodule;
@@ -63,11 +66,13 @@ sub indx {
     return undef unless $top_folder || $dm->our_path($reqpath);
     $dm->reset($c, $top_folder);
 
-    return $c if _redirect_geo($dm) ||
-        _redirect_normalized($dm)   ||
-        _render_stats($dm)          ||
-        _local_render($dm)          ||
-        _render_from_db($dm);
+    return $c
+      if _render_hashes($dm)
+      || _redirect_geo($dm)
+      || _redirect_normalized($dm)
+      || _render_stats($dm)
+      || _local_render($dm)
+      || _render_from_db($dm);
 
     my $tx = $c->render_later->tx;
     my $rendered;
@@ -407,6 +412,30 @@ sub _render_dir_local {
     }
     my @items = sort _by_filename @files;
     return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => undef );
+}
+
+sub _render_hashes {
+    my $dm = shift;
+    my ($path, undef) = $dm->path;
+    my $c = $dm->c;
+    return undef unless $root->is_dir($path) && defined($c->param('hashes'));
+
+    my $time_constraint;
+    if (defined $c->param("since") && $c->param("since")) {
+        $time_constraint = parsedate($c->param("since"), PREFER_PAST => 1, DATE_REQUIRED => 1);
+        return $c->render(status => 404, text => $c->param('since') . ' is not a valid date') unless $time_constraint;
+
+        $time_constraint = localtime($time_constraint);
+    }
+
+    my $schema   = $c->app->schema;
+    my $rsFolder = $schema->resultset('Folder');
+    my $folder   = $rsFolder->find({path => $path});
+    return $c->render(status => 404, text => "path $path not found") unless $folder;
+
+    my $rsHash    = $schema->resultset('Hash');
+    my $folder_id = $folder->id;
+    return $c->render(json => $rsHash->hashes_since($folder_id, $time_constraint));
 }
 
 1;

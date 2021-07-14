@@ -48,6 +48,7 @@ sub register_tasks {
         qw(MirrorCache::Task::MirrorLocation),
         qw(MirrorCache::Task::MirrorProbe),
         qw(MirrorCache::Task::FolderHashesCreate),
+        qw(MirrorCache::Task::FolderHashesImport),
         qw(MirrorCache::Task::FolderSyncScheduleFromMisses),
         qw(MirrorCache::Task::FolderSyncSchedule),
         qw(MirrorCache::Task::FolderSync),
