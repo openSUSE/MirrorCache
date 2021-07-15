@@ -24,7 +24,7 @@ ap7=$(environ ap7)
 
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 done
 
 $ap7/start
@@ -44,12 +44,12 @@ test t == $($mc/db/sql "select success from server_capability_check where server
 $mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 1,'ipv6',now()"
 $mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 2,'ipv4',now()"
 
-$mc/curl -I /download/folder1/file1.dat # access file to schedule jobs
+$mc/curl -I /download/folder1/file1.1.dat # access file to schedule jobs
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
 # make sure it redirects to ipv4 and ipv6 as requested
-curl -I -s $ipv4/download/folder1/file1.dat | grep $($ap7/print_address)
-curl -I -s $ipv6/download/folder1/file1.dat | grep Location | grep ::1
+curl -I -s $ipv4/download/folder1/file1.1.dat | grep $($ap7/print_address)
+curl -I -s $ipv6/download/folder1/file1.1.dat | grep Location | grep ::1

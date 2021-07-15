@@ -13,14 +13,14 @@ set -ex
 for i in 9 6 7; do
     x=$(environ mc$i $(pwd))
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     eval mc$i=$x
 done
 
 for i in 1 2 3 4 5 6; do
     x=$(environ ap$i)
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     eval ap$i=$x
     $x/start
 done
@@ -58,16 +58,16 @@ for i in 9 6 7; do
 done
 
 
-curl -s "http://$na_address/folder1/file1.dat?mirrorlist&json"
-curl -s "http://$eu_address/folder1/file1.dat?mirrorlist&json"
+curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json"
+curl -s "http://$eu_address/folder1/file1.1.dat?mirrorlist&json"
 
-curl -s "http://$hq_address/rest/eu?file=/folder1/file1.dat" | grep -C50 $($ap5/print_address) | grep $($ap6/print_address)
-curl -s "http://$hq_address/rest/na?file=/folder1/file1.dat" | grep -C50 $($ap3/print_address) | grep $($ap4/print_address)
+curl -s "http://$hq_address/rest/eu?file=/folder1/file1.1.dat" | grep -C50 $($ap5/print_address) | grep $($ap6/print_address)
+curl -s "http://$hq_address/rest/na?file=/folder1/file1.1.dat" | grep -C50 $($ap3/print_address) | grep $($ap4/print_address)
 
-curl -sL http://$hq_address/folder1/file1.dat.metalink | grep file1.dat
-curl -sL --interface 127.0.0.4 http://$hq_address/folder1/file1.dat.metalink | grep file1.dat
+curl -sL http://$hq_address/folder1/file1.1.dat.metalink | grep file1.1.dat
+curl -sL --interface 127.0.0.4 http://$hq_address/folder1/file1.1.dat.metalink | grep file1.1.dat
 
-curl -s http://$hq_address/folder1/file1.dat.mirrorlist | grep file1.dat
-curl -s --interface $eu_interface http://$eu_address/folder1/file1.dat.mirrorlist | grep file1.dat
-curl -s http://$hq_address/download/folder1/file2.dat.mirrorlist | grep file2.dat
-curl -s --interface $eu_interface http://$eu_address/download/folder1/file2.dat.mirrorlist | grep file2.dat
+curl -s http://$hq_address/folder1/file1.1.dat.mirrorlist | grep file1.1.dat
+curl -s --interface $eu_interface http://$eu_address/folder1/file1.1.dat.mirrorlist | grep file1.1.dat
+curl -s http://$hq_address/download/folder1/file2.1.dat.mirrorlist | grep file2.1.dat
+curl -s --interface $eu_interface http://$eu_address/download/folder1/file2.1.dat.mirrorlist | grep file2.1.dat

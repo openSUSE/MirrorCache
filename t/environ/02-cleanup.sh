@@ -15,7 +15,7 @@ ap7=$(environ ap7)
 
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 done
 
 $ap7/start
@@ -25,10 +25,10 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
 # remove a file from one mirror
-rm $ap8/dt/folder1/file2.dat
+rm $ap8/dt/folder1/file2.1.dat
 
 # force scan
-$mc/curl -I /download/folder1/file2.dat
+$mc/curl -I /download/folder1/file2.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
@@ -38,11 +38,11 @@ $mc/db/sql "update folder_diff set dt = dt - interval '5 day'"
 $mc/db/sql "update server_capability_check set dt = dt - interval '5 day' where server_id = 1"
 
 # now add new files on some mirrors to generate diff
-touch {$mc,$ap7}/dt/folder1/file3.dat
+touch {$mc,$ap7}/dt/folder1/file3.1.dat
 touch {$mc,$ap8}/dt/folder1/file4.dat
 
 # force rescan
-$mc/curl -Is /download/folder1/file3.dat
+$mc/curl -Is /download/folder1/file3.1.dat
 sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 $mc/backstage/shoot

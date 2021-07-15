@@ -11,19 +11,19 @@ ap7=$(environ ap7)
 
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 done
 
 $ap7/start
-$ap7/curl /folder1/ | grep file1.dat
+$ap7/curl /folder1/ | grep file1.1.dat
 
 $ap8/start
-$ap8/curl /folder1/ | grep file1.dat
+$ap8/curl /folder1/ | grep file1.1.dat
 
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
-$mc/curl -I /download/folder1/file1.dat
+$mc/curl -I /download/folder1/file1.1.dat
 
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/job folder_sync_schedule_from_misses
@@ -31,7 +31,7 @@ $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
 # check redirection works
-$mc/curl -I /download/folder1/file1.dat | grep 302
+$mc/curl -I /download/folder1/file1.1.dat | grep 302
 
 # now shut down ap7 and do probe
 $ap7/stop
@@ -64,7 +64,7 @@ $ap8/stop
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
 
-$mc/curl -I /download/folder1/file1.dat | grep -v $($ap7/print_address)
+$mc/curl -I /download/folder1/file1.1.dat | grep -v $($ap7/print_address)
 
 # now scan those mirrors which were force disabled
 $mc/backstage/job -e mirror_force_ups
@@ -72,4 +72,4 @@ $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
 
 # ap7 now should serve the request
-$mc/curl -I /download/folder1/file1.dat | grep $($ap7/print_address)
+$mc/curl -I /download/folder1/file1.1.dat | grep $($ap7/print_address)

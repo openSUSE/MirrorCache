@@ -16,7 +16,7 @@ $mc/gen_env MIRRORCACHE_ROOT=http://$($ap6/print_address) \
 
 for x in $ap6 $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     $x/start
 done
 $mc/start
@@ -30,11 +30,11 @@ $mc/backstage/job -e folder_sync -a '["/folder1"]'
 $mc/backstage/job -e mirror_scan -a '["/folder1"]'
 $mc/backstage/shoot
 
-$mc/curl -I /download/folder1/file1.dat?COUNTRY=de
-$mc/curl -I /download/folder1/file1.dat?COUNTRY=it
-$mc/curl -I /download/folder1/file1.dat?COUNTRY=cz
-$mc/curl -I /download/folder1/file1.dat?COUNTRY=cn
-$mc/curl -I /download/folder1/file1.dat?COUNTRY=au
+$mc/curl -I /download/folder1/file1.1.dat?COUNTRY=de
+$mc/curl -I /download/folder1/file1.1.dat?COUNTRY=it
+$mc/curl -I /download/folder1/file1.1.dat?COUNTRY=cz
+$mc/curl -I /download/folder1/file1.1.dat?COUNTRY=cn
+$mc/curl -I /download/folder1/file1.1.dat?COUNTRY=au
 
 $mc/db/sql "select * from stat order by id"
 test 5 == $($mc/db/sql "select count(*) from stat")

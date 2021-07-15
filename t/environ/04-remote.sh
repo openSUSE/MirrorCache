@@ -14,7 +14,7 @@ ap7=$(environ ap7)
 
 for x in $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1,file2}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     $x/start
 done
 
@@ -24,11 +24,11 @@ $mc/status
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
-# remove folder1/file1.dt from ap8
-rm $ap8/dt/folder1/file2.dat
+# remove folder1/file1.1.dt from ap8
+rm $ap8/dt/folder1/file2.1.dat
 
 # first request redirected to root
-$mc/curl -I /download/folder1/file2.dat | grep $($ap9/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
@@ -38,30 +38,30 @@ $mc/db/sql "select * from file"
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
-$mc/curl -I /download/folder1/file2.dat | grep $($ap7/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ap7/print_address)
 
-mv $ap7/dt/folder1/file2.dat $ap8/dt/folder1/
+mv $ap7/dt/folder1/file2.1.dat $ap8/dt/folder1/
 
 # gets redirected to root again
-$mc/curl -I /download/folder1/file2.dat | grep $($ap9/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
 $mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/shoot
 
-$mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.dat | grep $($ap9/print_address)
+$mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
 # now redirects to ap8
-$mc/curl -I /download/folder1/file2.dat | grep $($ap8/print_address)
+$mc/curl -I /download/folder1/file2.1.dat | grep $($ap8/print_address)
 
 # now add new file everywhere
 for x in $ap9 $ap7 $ap8; do
-    touch $x/dt/folder1/file3.dat
+    touch $x/dt/folder1/file3.1.dat
 done
 
 $mc/backstage/job folder_sync_schedule # this will find new file and trigger mirror rescan
 $mc/backstage/shoot
 # now expect to hit
-$mc/curl -I /download/folder1/file3.dat | grep -E "$($ap8/print_address)|$($ap7/print_address)"
+$mc/curl -I /download/folder1/file3.1.dat | grep -E "$($ap8/print_address)|$($ap7/print_address)"
 
 # now add new file only on main server and make sure it doesn't try to redirect
 touch $ap9/dt/folder1/file4.dat
@@ -81,17 +81,17 @@ test 0 == $($mc/db/sql "select count(*) from audit_event where name = 'mirror_pr
 
 for x in $ap9 $ap7 $ap8; do
     mkdir $x/dt/folder1/folder11
-    touch $x/dt/folder1/folder11/file1.dat
+    touch $x/dt/folder1/folder11/file1.1.dat
 done
 
 # this is needed for schedule jobs to retry on next shoot
-$mc/curl -I /download/folder1/folder11/file1.dat
+$mc/curl -I /download/folder1/folder11/file1.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
-$mc/curl -I /download/folder1/folder11/file1.dat | grep -E "$($ap7/print_address)|$($ap8/print_address)"
-$mc/curl /download/folder1/folder11/ | grep file1.dat
+$mc/curl -I /download/folder1/folder11/file1.1.dat | grep -E "$($ap7/print_address)|$($ap8/print_address)"
+$mc/curl /download/folder1/folder11/ | grep file1.1.dat
 
 
 $mc/curl /download/folder1?status=all | grep '"recent":2'| grep '"not_scanned":0' | grep '"outdated":0'
@@ -103,16 +103,16 @@ test {} == $($mc/curl /download/folder1?status=not_scanned)
 # let's test path distortions
 # remember number of folders in DB
 cnt=$($mc/db/sql "select count(*) from folder")
-$mc/curl -I /download//folder1//file1.dat
+$mc/curl -I /download//folder1//file1.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 test $cnt == $($mc/db/sql "select count(*) from folder")
 
-$mc/curl -I /download//folder1//file1.dat              | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
-$mc/curl -I /download//folder1///file1.dat             | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
-$mc/curl -I /download/./folder1/././file1.dat          | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
-$mc/curl -I /download/./folder1/../folder1/./file1.dat | grep -C 10 -P '[^/]/folder1/file1.dat' | grep 302
+$mc/curl -I /download//folder1//file1.1.dat              | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
+$mc/curl -I /download//folder1///file1.1.dat             | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
+$mc/curl -I /download/./folder1/././file1.1.dat          | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
+$mc/curl -I /download/./folder1/../folder1/./file1.1.dat | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
 ##################################
 
 
@@ -154,7 +154,7 @@ order by f.id, s.id, fl.name
 "
 
 # now expect to hit
-$mc/curl /download/folder1/ | grep file1.dat
+$mc/curl /download/folder1/ | grep file1.1.dat
 $mc/curl /download/folder1/ | grep file:4.dat
 $mc/curl -I /download/folder1/file:4.dat | grep -E "$($ap8/print_address)|$(ap7*/print_address)"
 ##################################
