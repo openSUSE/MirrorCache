@@ -411,9 +411,10 @@ sub _render_dir_local {
 
 sub _render_hashes {
     my $dm = shift;
-    my ($path, undef) = $dm->path;
     my $c = $dm->c;
-    return undef unless $root->is_dir($path) && defined($c->param('hashes'));
+    return undef unless defined($c->param('hashes'));
+    my ($path, undef) = $dm->path;
+    return undef unless $root->is_dir($path);
 
     my $time_constraint;
     if (defined $c->param("since") && $c->param("since")) {
