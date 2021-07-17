@@ -37,20 +37,7 @@ sub register {
         my $dirname  = $f->dirname;
         my $basename = $f->basename;
         my $dirname_basename = $dirname->basename;
-        return $root->render_file($dm, $filepath, 1)
-          if ( $dirname_basename eq "media.1"
-            && !$dm->mirrorlist
-            && (!$dm->metalink || $dm->metalink_accept)
-            && $root->is_reachable);
-        if ($dirname_basename eq "repodata" && !$dm->mirrorlist && (!$dm->metalink || $dm->metalink_accept) && $root->is_reachable) {
-            # We don't redirect inside repodata, because if a mirror is outdated,
-            # then zypper will have hard time working with outdated repomd.* files
-            my $prefix = "repomd.xml";
-
-            if (($prefix eq substr($basename,0,length($prefix))) && $root->is_reachable) {
-                return $root->render_file($dm, $filepath, 1);
-            }
-        }
+        return $root->render_file($dm, $filepath, 1) if $dm->must_render_from_root && $root->is_reachable;
 
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
         $dm->folder_id($folder->id) if $folder;

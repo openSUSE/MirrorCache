@@ -31,6 +31,7 @@ has [ '_pedantic' ];
 has [ '_scheme', '_path', '_trailing_slash' ];
 has [ '_query', '_query1' ];
 has '_original_path';
+has 'must_render_from_root';
 has '_agent';
 has [ '_is_secure', '_is_ipv4', '_is_head' ];
 has 'mirrorlist';
@@ -307,6 +308,11 @@ sub _init_path($self) {
         || ( $path !~ m/.*\/([^\/]*\d\.?\d[^\/]*)$/ ) );
 
     $self->_pedantic($pedantic) if defined $pedantic;
+
+    $self->must_render_from_root(1)
+        if !$self->mirrorlist
+        && ( !$self->metalink || $self->metalink_accept )
+        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media)$/;
 
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);

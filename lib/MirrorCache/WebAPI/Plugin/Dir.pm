@@ -147,6 +147,8 @@ sub _redirect_geo {
     my $route = $dm->route;
     my ($path, $trailing_slash) = $dm->path;
     return undef if $trailing_slash || $path eq '/' || $dm->mirrorlist;
+    return undef if $dm->must_render_from_root;
+
     my $c = $dm->c;
     my $subsidiary = $c->subsidiary;
 

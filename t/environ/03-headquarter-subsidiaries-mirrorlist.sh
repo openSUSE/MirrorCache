@@ -14,6 +14,11 @@ for i in 9 6 7; do
     x=$(environ mc$i $(pwd))
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    mkdir $x/dt/folder1/media.1/
+    touch $x/dt/folder1/media.1/media
+    mkdir $x/dt/folder1/repodata/
+    touch $x/dt/folder1/repodata/repomd.xml
+    touch $x/dt/folder1/repodata/repomd.xml.asc
     eval mc$i=$x
 done
 
@@ -21,6 +26,11 @@ for i in 1 2 3 4 5 6; do
     x=$(environ ap$i)
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    mkdir $x/dt/folder1/media.1/
+    touch $x/dt/folder1/media.1/media
+    mkdir $x/dt/folder1/repodata/
+    touch $x/dt/folder1/repodata/repomd.xml
+    touch $x/dt/folder1/repodata/repomd.xml.asc
     eval ap$i=$x
     $x/start
 done
@@ -71,3 +81,9 @@ curl -s http://$hq_address/folder1/file1.1.dat.mirrorlist | grep file1.1.dat
 curl -s --interface $eu_interface http://$eu_address/folder1/file1.1.dat.mirrorlist | grep file1.1.dat
 curl -s http://$hq_address/download/folder1/file2.1.dat.mirrorlist | grep file2.1.dat
 curl -s --interface $eu_interface http://$eu_address/download/folder1/file2.1.dat.mirrorlist | grep file2.1.dat
+
+# media.1/media is served from root even when asked from EU
+curl -Is --interface $eu_interface http://$hq_address/folder1/media.1/media | grep 200
+# repodata/repomd.xml is served from root even when asked from EU
+curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml | grep 200
+curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml.asc | grep 200
