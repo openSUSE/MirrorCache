@@ -31,6 +31,7 @@ has [ '_pedantic' ];
 has [ '_scheme', '_path', '_trailing_slash' ];
 has [ '_query', '_query1' ];
 has '_original_path';
+has 'must_render_from_root';
 has '_agent';
 has [ '_is_secure', '_is_ipv4', '_is_head' ];
 has 'mirrorlist';
@@ -251,25 +252,18 @@ sub _init_location($self) {
     $country = substr($country, 0, 2) if $country;
     $self->_country($country // '');
     $self->_region($region // '');
-    my $pedantic = $self->_pedantic;
-    unless (defined $pedantic) {
-        if(my $p = $query->param('PEDANTIC')) {
-            $pedantic = $p;
-        } else {
-            $pedantic = $ENV{'MIRRORCACHE_PEDANTIC'};
-        }
-        $self->_pedantic($pedantic // 0);
-    }
 }
 
 sub _init_path($self) {
     my $url = $self->c->req->url->to_abs;
     $self->_scheme($url->scheme);
-    if ($url->query) {
-        $self->_query($url->query);
-        $self->_query1('?' . $url->query);
-        $self->mirrorlist(1) if defined $url->query->param('mirrorlist');
-        $self->json(1)       if defined $url->query->param('json');
+    my $pedantic;
+    if (my $query = $url->query) {
+        $self->_query($query);
+        $self->_query1('?' . $query);
+        $self->mirrorlist(1) if defined $query->param('mirrorlist');
+        $self->json(1)       if defined $query->param('json');
+        $pedantic = $query->param('PEDANTIC');
     } else {
         $self->_query('');
         $self->_query1('');
@@ -307,8 +301,19 @@ sub _init_path($self) {
             $path = substr($path, 0, $pos);
         }
     }
-    $self->_pedantic(1) if $path =~ m/.*\/([^\/]*-Current[^\/]*)/;
-    $self->_pedantic(1) unless $path =~ m/.*\/([^\/]*\d\.?\d[^\/]*)/;
+    $pedantic = $ENV{'MIRRORCACHE_PEDANTIC'} unless defined $pedantic;
+    $pedantic = 1
+      if ( !defined $pedantic )
+      && ( ( $path =~ m/.*\/([^\/]*-Current[^\/]*)$/ )
+        || ( $path !~ m/.*\/([^\/]*\d\.?\d[^\/]*)$/ ) );
+
+    $self->_pedantic($pedantic) if defined $pedantic;
+
+    $self->must_render_from_root(1)
+        if !$self->mirrorlist
+        && ( !$self->metalink || $self->metalink_accept )
+        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media)$/;
+
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);
     $self->agent; # parse headers

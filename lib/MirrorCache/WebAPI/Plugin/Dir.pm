@@ -147,6 +147,8 @@ sub _redirect_geo {
     my $route = $dm->route;
     my ($path, $trailing_slash) = $dm->path;
     return undef if $trailing_slash || $path eq '/' || $dm->mirrorlist;
+    return undef if $dm->must_render_from_root;
+
     my $c = $dm->c;
     my $subsidiary = $c->subsidiary;
 
@@ -411,9 +413,10 @@ sub _render_dir_local {
 
 sub _render_hashes {
     my $dm = shift;
-    my ($path, undef) = $dm->path;
     my $c = $dm->c;
-    return undef unless $root->is_dir($path) && defined($c->param('hashes'));
+    return undef unless defined($c->param('hashes'));
+    my ($path, undef) = $dm->path;
+    return undef unless $root->is_dir($path);
 
     my $time_constraint;
     if (defined $c->param("since") && $c->param("since")) {
