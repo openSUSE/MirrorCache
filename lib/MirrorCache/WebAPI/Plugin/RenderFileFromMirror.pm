@@ -170,6 +170,9 @@ sub register {
                 hsize  => $hsize,
                 mtime  => $mtime,
                 hmtime => $hmtime,
+                md5    => $file->{md5},
+                sha1   => $file->{sha1},
+                sha256 => $file->{sha256},
             };
 
             my @regions = $c->subsidiary->regions($region) if $region;
