@@ -25,6 +25,9 @@ for i in 1 2 3 4; do
     $x/start
 done
 
+# set the same modification time for file1.1.dat
+touch -d "$(date -R -r $mc9/dt/folder1/file1.1.dat)" {$mc6,$ap1,$ap2,$ap3,$ap4}/dt/folder1/file1.1.dat
+
 hq_address=$($mc9/print_address)
 na_address=$($mc6/print_address)
 na_interface=127.0.0.2
@@ -59,3 +62,7 @@ for i in 9 6; do
     test 63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458 == $(mc$i/db/sql 'select sha256 from hash where file_id=1')
     test 5179db3d4263c9cb4ecf0edbc653ca460e3678b7 == $(mc$i/db/sql 'select pieces from hash where file_id=1')
 done
+
+mc9/curl -sL /folder1/file1.1.dat.metalink | grep 63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458
+mc9/curl -s /folder1/file1.1.dat.metalink?COUNTRY=xx | grep 63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458
+mc9/curl -s /folder1/file1.1.dat.mirrorlist | grep 63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458
