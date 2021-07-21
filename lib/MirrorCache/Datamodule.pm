@@ -302,17 +302,21 @@ sub _init_path($self) {
         }
     }
     $pedantic = $ENV{'MIRRORCACHE_PEDANTIC'} unless defined $pedantic;
-    $pedantic = 1
-      if ( !defined $pedantic )
-      && ( ( $path =~ m/.*\/([^\/]*-Current[^\/]*)$/ )
-        || ( $path !~ m/.*\/([^\/]*\d\.?\d[^\/]*)$/ ) );
+    if (!defined $pedantic) {
+        if ( $path =~ m/.*\/([^\/]*-Current[^\/]*)$/ ) {
+            $pedantic = 1;
+        } else {
+            my $path_without_common_digit_patterns = $path =~ s/(Leap-\d\d\.\d|x86_64|s390x|ppc64|aarch64|E20|sha256(\.asc)?$)\b//gr;
+            $pedantic = 1 if $path_without_common_digit_patterns !~ m/.*\/([^\/]*\d\.?\d[^\/]*)$/;
+        }
+    }
 
     $self->_pedantic($pedantic) if defined $pedantic;
 
     $self->must_render_from_root(1)
         if !$self->mirrorlist
         && ( !$self->metalink || $self->metalink_accept )
-        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media)$/;
+        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc))$/;
 
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);

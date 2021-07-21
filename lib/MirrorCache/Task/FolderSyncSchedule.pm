@@ -55,7 +55,7 @@ sub _run {
     $job->note(count => $cnt);
     # set sync request for 10 oldest folders
     $schema->storage->dbh->prepare(
-        "update folder set db_sync_scheduled = now(), db_sync_priority = 10 where id in ( select id from folder where db_sync_last < now() - interval '2 hour' order by db_sync_last limit 10)"
+        "update folder set db_sync_scheduled = now(), db_sync_priority = 10 where id in ( select id from folder where db_sync_last < now() - interval '2 hour' and db_sync_scheduled < db_sync_last order by db_sync_last limit 50)"
     )->execute();
 
     return $job->retry({delay => $DELAY});

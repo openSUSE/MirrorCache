@@ -13,10 +13,24 @@ $mc/status
 ap8=$(environ ap8)
 ap7=$(environ ap7)
 
+unversionedfiles="
+    Leap-15.3.aarch64-libvirt_aarch64.box
+    Leap-15.3.aarch64-libvirt_aarch64.box.sha256.asc
+    Leap-15.3.x86_64-libvirt.box.sha256
+    openSUSE-Leap-15.3-ARM-E20-efi.aarch64.raw.xz.sha256.asc
+    openSUSE-Leap-15.3-NET-x86_64.iso
+"
+
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     echo $x/dt/folder1/file1.dat | xargs -n 1 touch
+    mkdir -p $x/dt/folder1.11test/
+    for f in $unversionedfiles; do
+        str=1
+        [ $x != $mc ] || str=11
+        echo $str > $x/dt/folder1.11test/$f
+    done
 done
 
 $ap7/start
@@ -127,3 +141,16 @@ $mc/curl -i -H 'Accept: */*, application/metalink+xml' /download/folder1/media.1
 
 test -z "$($mc/curl -i -H 'Accept: */*, application/metalink+xml' /download/folder1/media.1/media | grep location)" || FAIL media.1/media must not return metalink
 $mc/curl -iL -H 'Accept: */*, application/metalink+xml' /download/folder1/media.1/media | grep CONTENT2
+
+
+#####################################
+# test PEDANTCI is on for unversioned files
+$mc/backstage/job -e folder_sync -a '["/folder1.11test"]'
+$mc/backstage/job -e mirror_scan -a '["/folder1.11test","us"]'
+$mc/backstage/shoot
+
+for f in $unversionedfiles; do
+    $mc/curl -I /download/folder1.11test/$f | grep 200
+    # sha256 must be served from root
+    [[ $f =~ sha256 ]] || $mc/curl -I /download/folder1.11test/$f?PEDANTIC=0 | grep 302
+done
