@@ -62,7 +62,7 @@ sub redirect_to_mirror($self, $mirror_id, $dm) {
     return undef if $mirror_id == -1 && 'media' eq substr($path, -length('media'));
     my $rows = $self->rows;
     my @rows = defined $rows? @$rows : ();
-    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->is_head ];
+    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head ];
     my $cnt = @rows;
     if ($cnt >= $FLUSH_COUNT) {
         $self->rows(undef);
@@ -85,8 +85,8 @@ sub flush($self, $rows) {
     $self->rows(undef);
     my @rows = @$rows;
     my $sql = <<'END_SQL';
-insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, head)
-values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, mirrorlist, head)
+values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 END_SQL
 
     eval {

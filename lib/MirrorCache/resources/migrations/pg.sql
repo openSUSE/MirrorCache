@@ -204,3 +204,4 @@ create table project (
     db_sync_every int default 1,
     db_sync_full_every int default 4
 );
+alter table stat add column if not exists mirrorlist boolean default 'f';
