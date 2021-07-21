@@ -75,6 +75,9 @@ sub startup {
         my $rest_r    = $rest->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
         $rest_r->get('/server')->name('rest_server')->to('table#list', table => 'Server');
         $rest_r->get('/server/:id')->to('table#list', table => 'Server');
+        $rest_r->get('/project/:name')->to('project#show');
+        $rest_r->get('/project/:name/mirror_summary')->to('project#mirror_summary');
+        $rest_r->get('/project/:name/mirror_list')->to('project#mirror_list');
 
         my $rest_operator_auth;
         if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH}) {

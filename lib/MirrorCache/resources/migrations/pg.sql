@@ -194,3 +194,13 @@ alter table stat add column if not exists folder_id bigint, add column if not ex
 create index if not exists stat_id_mirror_folder on stat(id, mirror_id, folder_id);
 -- 7 up
 create index if not exists stat_dt_ip_mirror on stat(dt, ip_sha1, mirror_id, secure, ipv4);
+-- 8 up
+create table project (
+    id serial NOT NULL primary key,
+    name varchar(64) unique not null,
+    path varchar(512) unique not null,
+    etalon int NULL references server,
+    db_sync_last timestamp,
+    db_sync_every int default 1,
+    db_sync_full_every int default 4
+);
