@@ -24,6 +24,7 @@ use POSIX;
 use XML::Writer;
 
 use Mojo::File;
+use Mojo::Date;
 use Mojolicious::Static;
 use Mojo::IOLoop::Subprocess;
 
@@ -193,7 +194,7 @@ sub register {
             return 1;
         }
         unless ($mirror) {
-            $root->render_file($dm, $filepath, $dm->root_is_hit);
+            $root->render_file($dm, $filepath);
             return 1;
         }
 
@@ -215,7 +216,8 @@ sub register {
         my $tx = $c->render_later->tx;
         my $ua  = Mojo::UserAgent->new->max_redirects(8);
         my $recurs1;
-        my $expected_size = $file->{size};
+        my $expected_size  = $file->{size};
+        my $expected_mtime = $file->{mtime};
         my $recurs = sub {
             my $prev = shift;
 
@@ -248,8 +250,12 @@ sub register {
                 if ($code == 200 || $code == 302 || $code == 301) {
                     my $size = $result->headers->content_length if $result->headers;
                     if ((defined $size && defined $expected_size) && ($size || $expected_size) && $size ne $expected_size) {
+                        if ($expected_mtime && $expected_mtime < Mojo::Date->new($result->headers->last_modified)->epoch) {
+                            return $root->render_file($dm, $filepath, 0);
+                        } else {
+                            $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                        }
                         $code = 409;
-                        $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
                         return undef;
                     }
                     $c->redirect_to($url);
