@@ -37,7 +37,7 @@ $ap7/start
 $ap8/start
 
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','ca','na'"
 
 # remove a file from one mirror
 rm $ap8/dt/folder1/file2.1.dat
@@ -46,6 +46,7 @@ echo 1 > $ap8/dt/folder1/file1.dat
 
 # force scan
 $mc/curl -I /download/folder1/file2.1.dat
+$mc/curl -I /download/folder1/file2.1.dat?COUNTRY=ca
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
@@ -93,6 +94,7 @@ $mc/curl -I /download/folder1/file3.1.dat | grep 302
 touch $mc/dt/folder2/file4.dat
 
 $mc/curl -I /download/folder2/file4.dat | grep 200
+$mc/curl -I /download/folder2/file4.dat?COUNTRY=ca | grep 200
 sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 $mc/backstage/shoot
 
@@ -153,4 +155,15 @@ for f in $unversionedfiles; do
     $mc/curl -I /download/folder1.11test/$f | grep 200
     # sha256 must be served from root
     [[ $f =~ sha256 ]] || $mc/curl -I /download/folder1.11test/$f?PEDANTIC=0 | grep 302
+    cp $ap7/dt/folder1.11test/$f $mc/dt/folder1.11test/
 done
+
+# it should schedule folder_sync because file on mirror was newer than on root
+$mc/backstage/shoot
+
+# now unversioned files are served from mirror because they are the same as on root
+for f in $unversionedfiles; do
+    # sha256 must be served from root
+    [[ $f =~ sha256 ]] || $mc/curl -I /download/folder1.11test/$f | grep 302
+done
+
