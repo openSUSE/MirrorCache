@@ -4,7 +4,7 @@ jobs:
   environ:
     machine:
       image: ubuntu-2004:202008-01
-    working_directory: ~/project/t/environ
+    working_directory: ~/project
     steps:
       - checkout:
           path: ~/project
@@ -12,26 +12,18 @@ jobs:
           command: |
             echo '{ "ipv6": true,  "fixed-cidr-v6": "fd00::/80" }' | sudo tee /etc/docker/daemon.json
             sudo systemctl restart docker
-      - run:
-          command: |
-            for f in ./*.sh; do \
-                $f ;\
-            done
+      - run: make test_docker
 
   systemd:
     machine:
       image: ubuntu-2004:202008-01
     environment:
       PRIVILEGED_TESTS: 1
-    working_directory: ~/project/t/systemd
+    working_directory: ~/project
     steps:
       - checkout:
           path: ~/project
-      - run:
-          command: |
-            for f in ./*.sh; do \
-                $f ;\
-            done
+      - run: make test_systemd
 
 workflows:
   version: 2.1
