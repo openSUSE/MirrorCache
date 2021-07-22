@@ -5,6 +5,16 @@ MIRRORCACHE_DNS ?= 'DBI:Pg:database=mirrorcache'
 
 mkfile_path := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
+test_local:
+	( for f in t/environ/*.sh; do bash -x $$f && continue; echo FAIL $$f; exit 1 ; done )
+
+test_docker:
+	( cd t/environ; for f in *.sh; do ./$$f && continue; echo FAIL $$f; exit 1 ; done )
+
+test_systemd:
+	( cd t/systemd; for f in *.sh; do ./$$f && continue; echo FAIL $$f; exit 1 ; done )
+
+
 tar.xz:
 	git archive --format=tar HEAD | xz > mirrorcache-0.1.tar.xz
 
