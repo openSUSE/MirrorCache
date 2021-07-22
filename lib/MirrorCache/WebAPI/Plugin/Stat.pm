@@ -43,7 +43,13 @@ sub register($self, $app, $args) {
     1;
 }
 
+my $subsidiary_region = $ENV{MIRRORCACHE_REGION} // '';
+$subsidiary_region = lc($subsidiary_region);
+
+
 sub redirect_to_root($self, $dm, $not_miss = undef) {
+    return $self->redirect_to_mirror(-5, $dm) if $dm->mirrorlist && $subsidiary_region && $dm->region ne $subsidiary_region;
+
     $not_miss = $dm->root_is_hit unless defined $not_miss;
     return $self->redirect_to_mirror(0, $dm) if ($not_miss);
     return $self->redirect_to_mirror(-1, $dm);
