@@ -158,6 +158,7 @@ for f in $unversionedfiles; do
     cp $ap7/dt/folder1.11test/$f $mc/dt/folder1.11test/
 done
 
+sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 # it should schedule folder_sync because file on mirror was newer than on root
 $mc/backstage/shoot
 
