@@ -1,2 +1,2 @@
 #!/bin/sh -e
-exec "$(dirname "$0")"/mirrorcache backstage run -j 6 -q hashes
+exec "$(dirname "$0")"/mirrorcache backstage run -j 12 -q hashes
