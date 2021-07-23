@@ -36,7 +36,9 @@
 
   </head>
   <body>
+      % unless (stash('nonavbar')) {
       %= include 'layouts/navbar'
+      % }
 
       <div class="container-fluid" id="content">
           %= content

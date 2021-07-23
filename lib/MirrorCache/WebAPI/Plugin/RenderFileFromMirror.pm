@@ -38,7 +38,7 @@ sub register {
         my $dirname  = $f->dirname;
         my $basename = $f->basename;
         my $dirname_basename = $dirname->basename;
-        return $root->render_file($dm, $filepath, 1) if $dm->must_render_from_root && $root->is_reachable;
+        return $root->render_file($dm, $filepath, 1) if $dm->must_render_from_root; # && $root->is_reachable;
 
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
         $dm->folder_id($folder->id) if $folder;
@@ -177,7 +177,7 @@ sub register {
             };
 
             my @regions = $c->subsidiary->regions($region) if $region;
-
+            $c->stash('nonavbar' => 1) if ($ENV{MIRRORCACHE_BRANDING} // '') eq 'SUSE';
             $c->render(
                 'mirrorlist',
                 cur_path          => $filepath,
