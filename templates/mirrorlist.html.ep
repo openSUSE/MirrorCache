@@ -1,7 +1,7 @@
 % layout 'bootstrap';
 % title 'Mirrors for ' . $cur_path;
 
-% my @breadcrumbs = split '/', 'download' . $cur_path;
+% my @breadcrumbs = split '/', ( $ENV{'MIRRORCACHE_TOP_FOLDERS'}? '' : 'download') . $cur_path;
 % my $bc_last = pop @breadcrumbs;
 % my $bc_url = '/';
 
@@ -9,9 +9,9 @@
 % content_for 'ready_function' => begin
 %   my $i = 0;
 %   for my $region (@$regions) {
-%     my $url = "/rest/$region?file=$cur_path";
 %     if ($region) {
-         loadMirrorlist("<%= $url %>", "ul1000", "ul1001", "ul1002");
+%       my $url = "/rest/$region?file=$cur_path";
+        loadMirrorlist("<%= $url %>", "ul1000", "ul1001", "ul1002");
 %     }
 %     $i = $i+1;
 %   }
@@ -96,7 +96,7 @@
     % }
     </ul>
   % } else {
-  <h5>Mirrors in other parts of the world</h5>
+  <h5>Mirrors in other parts of the world:</h5>
   %   if ($regions && @$regions > 1) {
     <ul id="ul1002"><p id="ul1002tohide">Loading...</p></ul>
   %   } else {

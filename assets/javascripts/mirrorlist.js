@@ -83,6 +83,21 @@ function loadMirrorlist(url, element1, element2, element3) {
             }
         },
         error: function(xhr, ajaxOptions, thrownError, controlToShow) {
+            var ulh = document.getElementById(element1.concat('tohide'));
+            if (ulh) {
+                ulh.style.display = "none";
+            }
+            ulh = document.getElementById(element2.concat('tohide'));
+            if (ulh) {
+                ulh.style.display = "none";
+            }
+            ulh = document.getElementById(element3.concat('tohide'));
+            if (ulh) {
+                ulh.style.display = "none";
+            }
+
+
+
             handleMirrorlistAjaxError(xhr, ajaxOptions, thrownError, element);
         },
     });

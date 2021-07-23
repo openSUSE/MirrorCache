@@ -33,7 +33,7 @@ na_address=$($mc6/print_address)
 na_interface=127.0.0.2
 
 # deploy db
-$mc9/gen_env MIRRORCACHE_HASHES_COLLECT=1 MIRRORCACHE_HASHES_PIECES_MIN_SIZE=5 "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
+$mc9/gen_env MIRRORCACHE_HASHES_COLLECT=1 MIRRORCACHE_HASHES_PIECES_MIN_SIZE=5 "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'" MIRRORCACHE_BRANDING=SUSE
 $mc9/backstage/shoot
 
 $mc9/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
@@ -66,3 +66,8 @@ done
 mc9/curl -sL /folder1/file1.1.dat.metalink | grep 63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458
 mc9/curl -s /folder1/file1.1.dat.metalink?COUNTRY=xx | grep 63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458
 mc9/curl -s /folder1/file1.1.dat.mirrorlist | grep 63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458
+
+rc=0
+echo /download shouldnt be shown when MIRRORCACHE_TOP_FOLDERS is set and MIRRORCACHE_BRANDING==SUSE
+mc9/curl -s /folder1/file1.1.dat.mirrorlist | grep /download || rc=$?
+test $rc -gt 0

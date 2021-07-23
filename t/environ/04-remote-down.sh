@@ -52,8 +52,6 @@ fi
 echo mc properly redirects when root is down
 $mc/curl -I /download/folder1/file2.1.dat | grep $($ap7/print_address)
 
-# since root is unavailable repomd is taken from a mirror
-$mc/curl -I /download/folder1/repodata/repomd.xml | grep -E "$($ap7/print_address)|$($ap8/print_address)"
 $ap9/start
 $ap9/status
 # since root is up again, redirect to root
