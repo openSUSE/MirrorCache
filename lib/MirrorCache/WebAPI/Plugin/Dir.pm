@@ -285,7 +285,7 @@ sub _guess_what_to_render {
         return $res;
     }
 
-    my $rootlocation = $root->location($c);
+    my $rootlocation = $root->location;
     my $url  = $rootlocation . $path;
 
     my $ua = Mojo::UserAgent->new->max_redirects(0);
@@ -327,7 +327,7 @@ sub _guess_what_to_render {
         return $root->render_file($dm, $path . $trailing_slash);
     })->catch(sub {
         my $res = $root->render_file($dm, $path . $trailing_slash);
-        my $msg = "Error while guessing how to render $path: ";
+        my $msg = "Error while guessing how to render $url: ";
         if (1 == scalar(@_)) {
             $msg = $msg . $_[0];
         } else {

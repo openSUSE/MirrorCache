@@ -29,7 +29,7 @@ use MirrorCache::Utils;
 
 # rooturlredirect as defined in MIRRORCACHE_REDIRECT
 # rooturlsredirect same as above just https
-has [ 'app', 'reader', 'rooturlredirect', 'rooturlsredirect' ];
+has [ 'app', 'reader', 'rooturlredirect', 'rooturlsredirect', 'rooturlredirectvpn', 'rooturlredirectvpns' ];
 
 sub register {
     my ($self, $app, $args) = @_;
@@ -47,6 +47,13 @@ sub register {
     $self->rooturlredirect($redirect);
     substr($redirect,0,length('http://'),'https://');
     $self->rooturlsredirect($redirect);
+
+    if (my $redirectvpn = $ENV{MIRRORCACHE_REDIRECT_VPN}) {
+        $redirectvpn = "http://$redirectvpn" unless 'http://' eq substr($redirectvpn, 0, length('http://'));
+        $self->rooturlredirectvpn($redirectvpn);
+        my $redirectvpns = $redirectvpn =~ s/http:/https/r;
+        $self->rooturlredirectvpns($redirectvpns);
+    }
     $app->helper( 'mc.root' => sub { $self; });
 }
 
@@ -97,14 +104,20 @@ sub is_dir {
 sub render_file {
     my ($self, $dm, $filepath, $not_miss) = @_;
     my $c = $dm->c;
-    $c->redirect_to($self->location($c, $filepath));
+    $c->redirect_to($self->location($dm, $filepath));
     $c->stat->redirect_to_root($dm, $not_miss);
     return 1;
 }
 
 sub location {
-    my ($self, $c, $filepath) = @_;
+    my ($self, $dm, $filepath) = @_;
     $filepath = "" unless $filepath;
+    my $c;
+    $c = $dm->c if $dm;
+    if ($dm && $ENV{MIRRORCACHE_REDIRECT_VPN} && $dm->vpn) {
+        return $self->rooturlredirectvpn . $filepath unless $c && $c->req->is_secure;
+        return $self->rooturlredirectbpns . $filepath;
+    }
     return $self->rooturlredirect . $filepath unless $c && $c->req->is_secure;
     return $self->rooturlsredirect . $filepath;
 }

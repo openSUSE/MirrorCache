@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -61,10 +61,12 @@ sub register {
         my $limit = $dm->mirrorlist ? 100 : (( $dm->metalink || $dm->pedantic )? 10 : 1);
         my ($mirrors_country, $mirrors_region, $mirrors_rest, @avoid_countries);
         my ($lat, $lng) = $dm->coord;
+        my $vpn = $dm->vpn;
+
         $mirrors_country = $c->schema->resultset('Server')->mirrors_query(
             $country, $region,  $folder->id, $file->{id},          $scheme,
             $ipv,     $lat, $lng,    $dm->avoid_countries, $limit,      0,
-            $dm->mirrorlist
+            $dm->mirrorlist, $vpn
         ) if $country;
 
         my $mirror;
@@ -79,7 +81,7 @@ sub register {
             $mirrors_region = $c->schema->resultset('Server')->mirrors_query(
                 $country, $region,  $folder->id, $file->{id},       $scheme,
                 $ipv,     $lat, $lng,    \@avoid_countries, $limit,     0,
-                $dm->mirrorlist
+                $dm->mirrorlist, $vpn
             );
         }
         if ($mirrors_region && @$mirrors_region) {
@@ -91,7 +93,7 @@ sub register {
             $mirrors_rest = $c->schema->resultset('Server')->mirrors_query(
                 $country, $region,  $folder->id, $file->{id},          $scheme,
                 $ipv,     $lat, $lng,    $dm->avoid_countries, $limit,  1,
-                $dm->mirrorlist
+                $dm->mirrorlist, $vpn
             );
         }
 
@@ -114,7 +116,7 @@ sub register {
             my $origin = $url->scheme . '://' . $url->host;
             my $xml    = _build_metalink(
                 $dm, $folder->path, $file, $country, $region, $mirrors_country, $mirrors_region,
-                $mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($c) : undef);
+                $mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : undef);
             $c->render(data => $xml, format => 'xml');
             return 1;
         }
@@ -162,7 +164,7 @@ sub register {
             my $hsize = MirrorCache::Utils::human_readable_size($size) if defined $size;
             my $mtime = $file->{mtime};
             my $hmtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
-            my $fileorigin = $root->is_remote ? $root->location($c) . $filepath : undef;
+            my $fileorigin = $root->is_remote ? $root->location($dm) . $filepath : undef;
 
             my $filedata = {
                 url    => $fileorigin,

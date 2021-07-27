@@ -59,7 +59,7 @@ sub register {
     });
 
     if ($reader) {
-        $app->plugin('ClientIP');
+        $app->plugin('ClientIP', private => [qw(127.0.0.0/8 192.168.0.0/16)]);
         $app->helper( 'mmdb.client_ip' => sub { return shift->client_ip; } );
     } else {
         $app->helper( 'mmdb.client_ip' => sub { return shift->tx->remote_address; } );

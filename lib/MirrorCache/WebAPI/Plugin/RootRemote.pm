@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,9 @@ use File::Basename;
 use HTML::Parser;
 use Time::Piece;
 
-has [ 'rooturl', 'rooturlredirect', 'rooturlredirects' ];
+# rooturlredirect as defined in MIRRORCACHE_REDIRECT
+# rooturlsredirect same as above just https
+has [ 'rooturl', 'rooturlredirect', 'rooturlredirects', 'rooturlredirectvpn', 'rooturlredirectvpns' ];
 
 my $uaroot = Mojo::UserAgent->new->max_redirects(10)->request_timeout(1);
 
@@ -41,6 +43,13 @@ sub register {
     $self->rooturlredirect($redirect);
     my $redirects = $redirect =~ s/http:/https:/r;
     $self->rooturlredirects($redirects);
+
+    if (my $redirectvpn = $ENV{MIRRORCACHE_REDIRECT_VPN}) {
+        $redirectvpn = "http://$redirectvpn" unless 'http://' eq substr($redirectvpn, 0, length('http://'));
+        $self->rooturlredirectvpn($redirectvpn);
+        my $redirectvpns = $redirectvpn =~ s/http:/https/r;
+        $self->rooturlredirectvpns($redirectvpns);
+    }
     $app->helper( 'mc.root' => sub { $self; });
 }
 
@@ -77,16 +86,21 @@ sub is_dir {
 sub render_file {
     my ($self, $dm, $filepath, $not_miss) = @_;
     my $c = $dm->c;
-    $c->redirect_to($self->location($c, $filepath));
+    $c->redirect_to($self->location($dm, $filepath));
     $c->stat->redirect_to_root($dm, $not_miss);
     return 1;
 }
 
 sub location {
-    my ($self, $c, $filepath) = @_;
+    my ($self, $dm, $filepath) = @_;
     $filepath = "" unless $filepath;
+    my $c;
+    $c = $dm->c if $dm;
+    if ($dm && $ENV{MIRRORCACHE_REDIRECT_VPN} && $dm->vpn) {
+        return $self->rooturlredirectvpn . $filepath unless $c && $c->req->is_secure;
+        return $self->rooturlredirectbpns . $filepath;
+    }
     return $self->rooturlredirect . $filepath unless $c && $c->req->is_secure;
-    # return $self->rooturlredirects . $filepath if (!$filepath || substr($filepath,length($filepath)-1,1) eq "/"); # dont use fallback for folder checks
     return $self->rooturlredirects . $filepath;
 }
 
