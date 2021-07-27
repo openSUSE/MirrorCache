@@ -19,7 +19,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 use POSIX;
 use Data::Dumper;
-use Sort::Naturally;
+use Sort::Versions;
 use Time::Piece;
 use Time::Seconds;
 use Time::ParseDate;
@@ -341,7 +341,7 @@ sub _guess_what_to_render {
 
 sub _by_filename {
    $b->{dir} cmp $a->{dir} ||
-   ncmp(lc($a->{name}), lc($b->{name}));
+   versioncmp(lc($a->{name}), lc($b->{name}));
 }
 
 sub _get_ext {
