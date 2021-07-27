@@ -25,7 +25,7 @@ has c => undef, weak => 1;
 has [ '_route', '_route_len' ]; # this is '/download'
 has [ 'route', 'route_len' ]; # this may be '/download' or empty if one of TOP_FOLDERS present
 has [ 'metalink', 'metalink_accept' ];
-has [ '_ip', '_country', '_region', '_lat', '_lng' ];
+has [ '_ip', '_country', '_region', '_lat', '_lng', '_vpn' ];
 has [ '_avoid_countries' ];
 has [ '_pedantic' ];
 has [ '_scheme', '_path', '_trailing_slash' ];
@@ -66,9 +66,20 @@ sub ip_sha1($self) {
 
 sub ip($self) {
     unless (defined $self->_ip) {
-       $self->_ip($self->c->mmdb->client_ip);
+        $self->_ip($self->c->mmdb->client_ip);
     }
     return $self->_ip;
+}
+
+sub vpn($self) {
+    unless (defined $self->_vpn) {
+        if (rindex($self->ip, "10.", 0) == 0) {
+            $self->_vpn(1);
+        } else {
+            $self->_vpn(0);
+        }
+    }
+    return $self->_vpn;
 }
 
 sub region($self) {

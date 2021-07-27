@@ -32,6 +32,7 @@ create table if not exists redirect (
 create table if not exists server (
     id serial NOT NULL PRIMARY KEY,
     hostname  varchar(128) NOT NULL UNIQUE,
+    hostname_vpn varchar(128) UNIQUE,
     urldir    varchar(128) NOT NULL,
     enabled  boolean NOT NULL,
     region  varchar(2),
@@ -205,3 +206,5 @@ create table project (
     db_sync_full_every int default 4
 );
 alter table stat add column if not exists mirrorlist boolean default 'f';
+-- 9 up
+alter table server add column if not exists hostname_vpn varchar(128) UNIQUE;

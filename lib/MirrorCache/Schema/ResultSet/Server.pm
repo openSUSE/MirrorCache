@@ -24,7 +24,7 @@ sub mirrors_query {
     my (
         $self, $country, $region, $folder_id,       $file_id, $capability,
         $ipv,  $lat,     $lng,    $avoid_countries, $limit,   $avoid_region,
-        $mirrorlist
+        $mirrorlist, $vpn
     ) = @_;
     $country    = ''     unless $country;
     $region     = ''     unless $region;
@@ -77,6 +77,7 @@ sub mirrors_query {
     my $ipvx = $ipv eq 'ipv4'? 'ipv6' : 'ipv4';
     my $capabilityx = $capability eq 'http'? 'https' : 'http';
     my $extra = $mirrorlist? '': "WHERE no4 = 0 and no5 = 0";
+    my $hostname = $vpn? "COALESCE(s.hostname_vpn,s.hostname)" : "s.hostname";
 
     my $sql = <<"END_SQL";
 select * from (
@@ -91,7 +92,7 @@ case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end
 last1, last2, last3, lastdt1, lastdt2, lastdt3, score, country, region, lng
 from (
 select s.id,
-    concat(s.hostname,s.urldir) as uri,
+    concat($hostname,s.urldir) as uri,
 s.lat as lat,
 s.lng as lng,
 s.country, s.region, s.score,
@@ -123,7 +124,7 @@ left join server_capability_declaration scd on s.id = scd.server_id and scd.capa
 left join server_capability_force scf on s.id = scf.server_id and scf.capability = '$capability'
 left join server_capability_declaration scd2 on s.id = scd2.server_id and scd.capability = '$ipv' and NOT scd.enabled
 left join server_capability_force scf2 on s.id = scf2.server_id and scf2.capability = '$ipv'
-group by s.id, s.country, s.region, s.score, s.hostname, s.urldir, s.lat, s.lng
+group by s.id, s.country, s.region, s.score, $hostname, s.urldir, s.lat, s.lng
 ) x
 $extra
 order by last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, weight2 desc, score, lastdt1 desc nulls last, lastdt2 desc nulls last, last3 desc, lastdt3 desc, random()
