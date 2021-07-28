@@ -13,7 +13,7 @@ RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-P
     apache2 perl-Digest-MD4 tidy make || cat /var/log/zypper.log
 
 # dependencies to be deleted after they are merged and installed with the rpm package
-RUN zypper -vvv -n install perl-Sort-Naturally
+RUN zypper -vvv -n install perl-Sort-Versions
 
 VOLUME ["/sys/fs/cgroup"]
 VOLUME ["/run"]
