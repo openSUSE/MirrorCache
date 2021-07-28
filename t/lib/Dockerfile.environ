@@ -10,7 +10,7 @@ RUN zypper --gpg-auto-import-keys ref
 # install MirrorCache here to fetch all dependencies
 RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-Plugin-ClientIP \
     vim postgresql postgresql-server curl sudo git-core wget tar m4 \
-    apache2 perl-Digest-MD4 tidy nginx bbe perl-Digest-SHA
+    apache2 perl-Digest-MD4 tidy nginx bbe
 
 # dependencies to be deleted after they are merged and installed with the rpm package
 RUN zypper -vvv -n install perl-Sort-Versions
