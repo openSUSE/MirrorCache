@@ -51,7 +51,7 @@ sub register {
     if (my $redirectvpn = $ENV{MIRRORCACHE_REDIRECT_VPN}) {
         $redirectvpn = "http://$redirectvpn" unless 'http://' eq substr($redirectvpn, 0, length('http://'));
         $self->rooturlredirectvpn($redirectvpn);
-        my $redirectvpns = $redirectvpn =~ s/http:/https/r;
+        my $redirectvpns = $redirectvpn =~ s/http:/https:/r;
         $self->rooturlredirectvpns($redirectvpns);
     }
     $app->helper( 'mc.root' => sub { $self; });
@@ -116,7 +116,7 @@ sub location {
     $c = $dm->c if $dm;
     if ($dm && $ENV{MIRRORCACHE_REDIRECT_VPN} && $dm->vpn) {
         return $self->rooturlredirectvpn . $filepath unless $c && $c->req->is_secure;
-        return $self->rooturlredirectbpns . $filepath;
+        return $self->rooturlredirectvpns . $filepath;
     }
     return $self->rooturlredirect . $filepath unless $c && $c->req->is_secure;
     return $self->rooturlsredirect . $filepath;

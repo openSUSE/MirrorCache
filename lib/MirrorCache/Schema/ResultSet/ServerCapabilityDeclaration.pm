@@ -27,7 +27,7 @@ sub search_by_country {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select concat(s.hostname,s.urldir) as uri, s.hostname as hostname, s.id as id,
+select concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir) as uri, CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END as hostname, s.id as id,
     -- server has capability enabled when two conditions are true:
     -- 1. server_id is not mentioned in server_capability_force
     -- 2. there is no entry in server_capability_declaration which has enabled='F' for the server_id.
@@ -75,7 +75,7 @@ sub search_all_downs {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select c.server_id as id, c.capability, concat(s.hostname,s.urldir) as uri
+select c.server_id as id, c.capability, concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir) as uri
 from server_capability_check c
     join server s on c.server_id = s.id
     left join server_capability_force f on f.server_id  = s.id and f.capability  = c.capability
@@ -83,7 +83,7 @@ where 't'
     AND f.server_id IS NULL
     AND c.dt > now() - interval '2 hour'
     AND s.enabled
-group by c.server_id, c.capability, s.hostname, s.urldir
+group by c.server_id, c.capability, s.hostname, s.hostname_vpn, s.urldir
 having   sum(case when not c.success then 1 else 0 end) >= 5 and
          sum(case when c.success then 1 else -1 end) < 0
 END_SQL
@@ -112,7 +112,7 @@ sub search_all_forced {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select f.server_id as id, f.capability, concat(s.hostname,s.urldir) as uri
+select f.server_id as id, f.capability, concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir) as uri
 from server_capability_force f
     join server s on f.server_id = s.id
 where 't'

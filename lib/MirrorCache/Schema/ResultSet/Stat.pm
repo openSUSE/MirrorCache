@@ -107,7 +107,7 @@ sub latest_hit {
 
     my $sql = <<"END_SQL";
 select stat.id, mirror_id, stat.country,
-       concat(case when secure then 'https://' else 'http://' end, server.hostname, server.urldir, case when metalink then regexp_replace(path, '(.*)\.metalink', E'\\1') else path end) as url,
+       concat(case when secure then 'https://' else 'http://' end, CASE WHEN length(server.hostname_vpn)>0 THEN server.hostname_vpn ELSE server.hostname END, server.urldir, case when metalink then regexp_replace(path, '(.*)\.metalink', E'\\1') else path end) as url,
        substring(path,'(^(/.*)+)/') as folder
        from stat join server on mirror_id = server.id
        where stat.id > ?
