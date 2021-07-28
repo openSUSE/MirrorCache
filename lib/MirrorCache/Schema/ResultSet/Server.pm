@@ -77,7 +77,7 @@ sub mirrors_query {
     my $ipvx = $ipv eq 'ipv4'? 'ipv6' : 'ipv4';
     my $capabilityx = $capability eq 'http'? 'https' : 'http';
     my $extra = $mirrorlist? '': "WHERE no4 = 0 and no5 = 0";
-    my $hostname = $vpn? "COALESCE(s.hostname_vpn,s.hostname)" : "s.hostname";
+    my $hostname = $vpn? "CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END" : "s.hostname";
 
     my $sql = <<"END_SQL";
 select * from (
@@ -160,8 +160,11 @@ concat(
     case
         when (cap_http.server_id is null and cap_fhttp.server_id is null) then 'http'
         else 'https'
-    end
-,'://',s.hostname,s.urldir,f.path) as url, max(fds.folder_diff_id) as diff_id, extract(epoch from max(fd.dt)) as dt_epoch
+    end,
+    '://',
+    CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,
+    s.urldir,f.path) as url,
+max(fds.folder_diff_id) as diff_id, extract(epoch from max(fd.dt)) as dt_epoch
 from server s join folder f on f.id=?
 left join server_capability_declaration cap_http  on cap_http.server_id  = s.id and cap_http.capability  = 'http' and not cap_http.enabled
 left join server_capability_declaration cap_https on cap_https.server_id = s.id and cap_https.capability = 'https' and not cap_https.enabled

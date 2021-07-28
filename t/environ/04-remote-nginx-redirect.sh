@@ -26,9 +26,9 @@ $mc/start
 $mc/status
 
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,hostname_vpn,urldir,enabled,country,region) select '$($ng8/print_address)','mirror.vpn.us','','t','us','na'"
+$mc/db/sql "insert into server(hostname,hostname_vpn,urldir,enabled,country,region) select 'non-vpn.us','$($ng8/print_address)','','t','us','na'"
 
-# remove folder1/file1.1.dt from ng8
+# remove a file from ng8
 rm $ng8/dt/folder1/file2.1.dat
 
 # first request redirected to MIRRORCACHE_REDIRECT, eventhough files are not there
@@ -56,6 +56,6 @@ $mc/backstage/shoot
 $mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
 # now redirects to ng8
-$mc/curl -I /download/folder1/file2.1.dat | grep $($ng8/print_address)
+$mc/curl -I /download/folder1/file2.1.dat?PEDANTIC=0 | grep non-vpn.us
 # 10.* redirected to mirror.vpn.us
-$mc/curl  -H 'X-Forwarded-For: 10.0.1.1' -I '/download/folder1/file2.1.dat?PEDANTIC=0&COUNTRY=us' | grep mirror.vpn.us
+$mc/curl  -H 'X-Forwarded-For: 10.0.1.1' -I '/download/folder1/file2.1.dat?COUNTRY=us' | grep $($ng8/print_address)
