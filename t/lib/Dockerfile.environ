@@ -15,7 +15,7 @@ RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-P
 # dependencies to be deleted after they are merged and installed with the rpm package
 RUN zypper -vvv -n install perl-Sort-Versions
 
-RUN zypper -vvv -n install make
+RUN zypper -vvv -n install make rsync
 
 # this hack is needed because old nginx versions cannot run as non-root
 RUN bbe -e 's,/var/log/nginx/error.log,/tmp/log_nginx_error.log,' /usr/sbin/nginx > /usr/sbin/nginx.hacked
