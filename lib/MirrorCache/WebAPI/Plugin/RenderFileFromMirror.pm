@@ -117,7 +117,9 @@ sub register {
             my $xml    = _build_metalink(
                 $dm, $folder->path, $file, $country, $region, $mirrors_country, $mirrors_region,
                 $mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : undef);
-            $c->render(data => $xml, format => 'xml');
+            $c->app->types->type(metalink => 'application/metalink+xml; charset=UTF-8');
+            $c->res->headers->content_disposition('attachment; filename="' .$basename. '.metalink"');
+            $c->render(data => $xml, format => 'metalink');
             return 1;
         }
 
