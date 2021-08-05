@@ -98,7 +98,7 @@ sub location {
     $c = $dm->c if $dm;
     if ($dm && $ENV{MIRRORCACHE_REDIRECT_VPN} && $dm->vpn) {
         return $self->rooturlredirectvpn . $filepath unless $c && $c->req->is_secure;
-        return $self->rooturlredirectbpns . $filepath;
+        return $self->rooturlredirectvpns . $filepath;
     }
     return $self->rooturlredirect . $filepath unless $c && $c->req->is_secure;
     return $self->rooturlredirects . $filepath;
