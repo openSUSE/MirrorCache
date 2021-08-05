@@ -47,7 +47,7 @@ sub register {
     if (my $redirectvpn = $ENV{MIRRORCACHE_REDIRECT_VPN}) {
         $redirectvpn = "http://$redirectvpn" unless 'http://' eq substr($redirectvpn, 0, length('http://'));
         $self->rooturlredirectvpn($redirectvpn);
-        my $redirectvpns = $redirectvpn =~ s/http:/https/r;
+        my $redirectvpns = $redirectvpn =~ s/http:/https:/r;
         $self->rooturlredirectvpns($redirectvpns);
     }
     $app->helper( 'mc.root' => sub { $self; });
