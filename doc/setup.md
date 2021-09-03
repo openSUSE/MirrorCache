@@ -30,7 +30,7 @@ If neither TEST_PG nor MIRRORCACHE_DSN is defined, following variables are used:
   * Refer Maxmind geoip2 on how to obtain such file.
   * Additional dependencies must be installed as well for GeoIP location to work: perl modules Mojolicious::Plugin::ClientIP and MaxMind::DB::Reader :
 ```
-zypper in Mojolicious::Plugin::ClientIP MaxMind::DB::Reader
+zypper in perl-Mojolicious-Plugin-ClientIP perl-MaxMind-DB-Reader
 ```
 
 ## Types of install
