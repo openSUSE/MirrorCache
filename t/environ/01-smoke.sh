@@ -65,5 +65,7 @@ $mc/curl -sL /download/folder1/ | tidy --drop-empty-elements no
 $mc/curl -s '/download/folder1/file2.1.dat?mirrorlist' | grep 'http://127.0.0.1:1304/folder1/file2.1.dat'
 $mc/curl -s '/download/folder1/file2.1.dat.mirrorlist' | grep 'http://127.0.0.1:1304/folder1/file2.1.dat'
 $mc/curl -s '/download/folder1/file2.1.dat.mirrorlist' | tidy --drop-empty-elements no
+$mc/curl -s '/download/folder1/file2.1.dat.mirrorlist' | grep "Origin: " | grep $($mc/print_address)/download/folder1/file2.1.dat
+$mc/curl -s '/download/folder1/file2.1.dat.metalink'   | grep "origin"   | grep $($mc/print_address)/download/folder1/file2.1.dat
 
 test "$($mc/curl -s /version)" != ""
