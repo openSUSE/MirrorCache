@@ -114,6 +114,8 @@ sub register {
         if ($dm->metalink && !($dm->metalink_accept && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
             my $url = $c->req->url->to_abs;
             my $origin = $url->scheme . '://' . $url->host;
+            $origin = $origin . ":" . $url->port if $url->port && $url->port != "80";
+            $origin = $origin . $dm->route . $filepath;
             my $xml    = _build_metalink(
                 $dm, $folder->path, $file, $country, $region, $mirrors_country, $mirrors_region,
                 $mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : undef);
@@ -161,12 +163,13 @@ sub register {
             return $c->render(json => {l1 => \@mirrordata, l2 => \@mirrordata_region, l3 => \@mirrordata_rest}) if ($dm->json);
 
             my $origin = $url->scheme . '://' . $url->host;
+            $origin = $origin . ":" . $url->port if $url->port && $url->port != "80";
 
             my $size = $file->{size};
             my $hsize = MirrorCache::Utils::human_readable_size($size) if defined $size;
             my $mtime = $file->{mtime};
             my $hmtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
-            my $fileorigin = $root->is_remote ? $root->location($dm) . $filepath : undef;
+            my $fileorigin = ( $root->is_remote ? $root->location($dm) : $origin . $dm->route ) . $filepath;
 
             my $filedata = {
                 url    => $fileorigin,
@@ -301,7 +304,7 @@ sub _build_metalink() {
         xmlns => 'http://www.metalinker.org/',
         type => 'dynamic',
     );
-    push @attribs, (origin => $origin) if $origin;
+    push @attribs, (origin => "$origin.metalink") if $origin;
     push @attribs, (generator => $generator) if $generator;
     push @attribs, (pubdate => strftime("%Y-%m-%d %H:%M:%S %Z", localtime time));
 
