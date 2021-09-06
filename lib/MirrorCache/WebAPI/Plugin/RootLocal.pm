@@ -71,16 +71,15 @@ sub foreach_filename {
     return 1;
 }
 
-sub list_filenames {
-    my $self    = shift;
-    my $dir = shift || return [];
+sub list_files {
+    my $self = shift;
+    my $dir  = shift;
+
     my @files;
-    my $cb = sub {
-        my $f = shift;
-        next if $f eq '.' or $f eq '..';
-        push @files, Encode::decode_utf8($f);
-    };
-    $self->foreach_filename($dir, $cb);
+    Mojo::File->new($rootpath . $dir)->list({dir => 1})->each(sub {
+            my $f = shift;
+            push @files, $f;
+        });
     return \@files;
 }
 

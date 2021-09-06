@@ -358,7 +358,7 @@ sub _render_dir_from_db {
     my @childrenfiles = $c->schema->resultset('File')->search({folder_id => $id});
 
     for my $child ( @childrenfiles ) {
-        my $basename  = $child->name;
+        my $basename = $child->name;
         my $size     = $child->size;
         $size        = MirrorCache::Utils::human_readable_size($size) if $size;
         my $mtime    = $child->mtime;
@@ -385,25 +385,27 @@ sub _render_dir_local {
     my $c     = shift;
     my $dir   = shift;
     my @files;
-    my $filenames = $root->list_filenames($dir);
+    my $files = $root->list_files($dir);
 
-    for my $name ( @$filenames ) {
-        my $basename = $name;
-        # my $size     = $child->size;
-        # $size        = MirrorCache::Utils::human_readable_size($size) if $size;
-        # my $mtime    = $child->mtime;
-        # mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
+    for my $f ( @$files ) {
+        my $basename = $f->basename;
+        my $stat     = $f->stat;
+        $basename = $basename . '/' if -d $stat;
+        my $size     = $stat->size;
+        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
+        my $mtime    = $stat->mtime;
+        $mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
 
         my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
-        # my $encoded   = Encode::decode_utf8( './' . $basename );
+        my $encoded   = Encode::decode_utf8( './' . $basename );
         my $mime_type = $types->type( _get_ext($basename) || 'txt' ) || 'text/plain';
 
         push @files, {
-            url   => './' . $basename,
+            url   => './' . $encoded,
             name  => $basename,
-            size  => 0,
+            size  => $size,
             type  => $mime_type,
-            mtime => 0,
+            mtime => $mtime,
             dir   => $is_dir,
         };
     }
