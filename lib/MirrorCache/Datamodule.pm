@@ -42,6 +42,8 @@ has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_C
 has '_root_region';
 has '_root_longitude' => ($ENV{MIRRORCACHE_ROOT_LONGITUDE} ? int($ENV{MIRRORCACHE_ROOT_LONGITUDE}) : 11);
 
+has vpn_prefix => ($ENV{MIRRORCACHE_VPN_PREFIX} ? lc($ENV{MIRRORCACHE_VPN_PREFIX}) : "10.");
+
 sub app($self, $app) {
     $self->_route($app->mc->route);
     $self->_route_len(length($self->_route));
@@ -73,7 +75,7 @@ sub ip($self) {
 
 sub vpn($self) {
     unless (defined $self->_vpn) {
-        if (rindex($self->ip, "10.", 0) == 0) {
+        if ($self->vpn_prefix && (rindex($self->ip, $self->vpn_prefix, 0) == 0)) {
             $self->_vpn(1);
         } else {
             $self->_vpn(0);
@@ -269,9 +271,10 @@ sub _init_path($self) {
     my $url = $self->c->req->url->to_abs;
     $self->_scheme($url->scheme);
     my $pedantic;
-    if (my $query = $url->query) {
+    my $query = $url->query;
+    if (my $query_string = $url->query->to_string) {
         $self->_query($query);
-        $self->_query1('?' . $query);
+        $self->_query1('?' . $query_string);
         $self->mirrorlist(1) if defined $query->param('mirrorlist');
         $self->json(1)       if defined $query->param('json');
         $pedantic = $query->param('PEDANTIC');

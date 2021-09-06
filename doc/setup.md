@@ -14,6 +14,7 @@ MirrorCache can be configured with following environment variables:
   * MIRRORCACHE_METALINK_PUBLISHER may be set to customize publisher in metalink generation.
   * MIRRORCACHE_METALINK_PUBLISHER_URL may be set to customize url of publisher in metalink generation.
   * MIRRORCACHE_BRANDING loads files from [templates/branding](/templates/branding). Use the `default` folder as a base for your own branding and set this environment variable to the name of the newly created folder.
+  * MIRRORCACHE_VPN_PREFIX - MirrorCache will use column server.hostname_vpn for redirecting if client IP has prefix as defined by MIRRORCACHE_VPN_PREFIX.
 
 Without any database configuration MirrorCache will attempt to connect to database 'mirrorcache' on default PostgreSQL port 5432.
 Following variables can be used to configure database access:
