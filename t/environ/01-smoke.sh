@@ -2,6 +2,9 @@
 set -ex
 
 mc=$(environ mc $(pwd))
+MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3
+
+$mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 
 $mc/start
 $mc/status
@@ -69,3 +72,20 @@ $mc/curl -s '/download/folder1/file2.1.dat.mirrorlist' | grep "Origin: " | grep 
 $mc/curl -s '/download/folder1/file2.1.dat.metalink'   | grep "origin"   | grep $($mc/print_address)/download/folder1/file2.1.dat
 
 test "$($mc/curl -s /version)" != ""
+
+# test metalink and mirrorlist when file is unknow yet
+$mc/curl /download/folder3/file1.1.dat.metalink   | grep 'retry later'
+$mc/curl /download/folder3/file1.1.dat.mirrorlist | grep 'retry later'
+
+sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+sleep 0.1
+$mc/backstage/shoot
+rc=0
+$mc/curl /download/folder3/file1.1.dat.metalink   | grep 'retry later' || rc=$?
+test $rc -gt 0
+$mc/curl /download/folder3/file1.1.dat.metalink   | grep '<url type="http" location="US" preference="100">http://127.0.0.1:1304/folder3/file1.1.dat</url>'
+
+rc=0
+$mc/curl /download/folder3/file1.1.dat.mirrorlist | grep 'retry later' || rc=$?
+test $rc -gt 0
+$mc/curl /download/folder3/file1.1.dat.mirrorlist | grep 'http://127.0.0.1:1304/folder3/file1.1.dat'

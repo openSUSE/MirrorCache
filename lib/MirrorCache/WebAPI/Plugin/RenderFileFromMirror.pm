@@ -54,6 +54,10 @@ sub register {
               or $dm->mirrorlist;
         }
 
+        if (!$folder || !$file) {
+            return $c->render(status => 404, text => "File not found");
+        }
+
         my $scheme = 'http';
         $scheme = 'https' if $dm->is_secure;
         my $ipv = 'ipv4';

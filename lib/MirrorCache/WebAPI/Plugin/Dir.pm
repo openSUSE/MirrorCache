@@ -234,9 +234,10 @@ sub _render_stats_not_scanned {
 }
 
 sub _local_render {
+    return undef if $root->is_remote;
     my $dm = shift;
+    return undef if $dm->metalink || $dm->mirrorlist;
     my ($path, $trailing_slash) = $dm->path;
-    return undef if $root->is_remote || $dm->metalink || $dm->mirrorlist;
     my $c = $dm->c;
     if ($root->is_dir($path)) {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
@@ -281,7 +282,11 @@ sub _guess_what_to_render {
     my ($path, $trailing_slash) = $dm->path;
 
     if ($dm->metalink or $dm->mirrorlist) {
-        my $res = $root->render_file($dm, $path);
+        return $root->render_file($dm, $path) if $dm->metalink_accept;
+        # the file is unknown, we cannot show generate meither mirrorlist or metalink
+        my $res = $c->render(status => 425, text => "The file is unknown, retry later");
+        # log miss here even thoough we haven't rendered anything
+        $c->stat->redirect_to_root($dm, 0);
         return $res;
     }
 
