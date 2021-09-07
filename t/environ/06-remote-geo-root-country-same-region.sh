@@ -46,7 +46,7 @@ $mc/curl --interface 127.0.0.4 '/download/folder1/file1.1.dat.metalink?REGION=eu
 
 #########################################
 echo test scan is scheduled when metadata is missing
-$mc/curl -Is --interface 127.0.0.3 '/download/folder2/file1.1.dat.metalink?COUNTRY=de' | grep -A1 $DE_ADDRESS
+$mc/curl -Is --interface 127.0.0.3 '/download/folder2/file1.1.dat.metalink?COUNTRY=de'
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 # $mc/backstage/job mirror_scan_schedule_from_misses
