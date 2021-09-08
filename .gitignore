@@ -4,3 +4,4 @@ assets/assetpack.db
 t/lib/src/
 /*[0-9]
 /ca
+templates/branding/SUSE*
