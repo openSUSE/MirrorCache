@@ -53,7 +53,9 @@ sub startup {
     $self->app->hook(before_server_start => sub {
         die("MIRRORCACHE_ROOT is not set") unless $root;
         if ((-1 == rindex($root, 'http', 0)) && (-1 == rindex($root, 'rsync://', 0)) ) {
-            die("MIRRORCACHE_ROOT is not a directory ($root)") unless -d $root;
+            my $i = index($root, ':');
+            my $dir = ($i > -1 ? substr($root, 0, $i) : $root);
+            die("MIRRORCACHE_ROOT is not a directory ($root)") unless -d $dir;
         }
 
         # Optional initialization with access to the app
