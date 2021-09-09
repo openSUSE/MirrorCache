@@ -122,7 +122,7 @@ sub register {
             $origin = $origin . $dm->route . $filepath;
             my $xml    = _build_metalink(
                 $dm, $folder->path, $file, $country, $region, $mirrors_country, $mirrors_region,
-                $mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : undef);
+                $mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : $root->redirect($dm,$folder->path) );
             $c->app->types->type(metalink => 'application/metalink+xml; charset=UTF-8');
             $c->res->headers->content_disposition('attachment; filename="' .$basename. '.metalink"');
             $c->render(data => $xml, format => 'metalink');
@@ -166,17 +166,26 @@ sub register {
             @mirrordata_rest = sort { $a->{location} cmp $b->{location} || $a->{url} cmp $b->{url} } @mirrordata_rest;
             return $c->render(json => {l1 => \@mirrordata, l2 => \@mirrordata_region, l3 => \@mirrordata_rest}) if ($dm->json);
 
-            my $origin = $url->scheme . '://' . $url->host;
-            $origin = $origin . ":" . $url->port if $url->port && $url->port != "80";
-
             my $size = $file->{size};
             my $hsize = MirrorCache::Utils::human_readable_size($size) if defined $size;
             my $mtime = $file->{mtime};
             my $hmtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
-            my $fileorigin = ( $root->is_remote ? $root->location($dm) : $origin . $dm->route ) . $filepath;
+            my $fileorigin;
+            if ($root->is_remote) {
+                $fileorigin = $root->location($dm);
+            } else {
+                my $redirect = $root->redirect($dm, $filepath);
+                if ($redirect) {
+                    $fileorigin = $redirect;
+                } else {
+                    $fileorigin = $url->scheme . '://' . $url->host;
+                    $fileorigin = $fileorigin . ":" . $url->port if $url->port && $url->port != "80";
+                    $fileorigin = $fileorigin . $dm->route;
+                }
+            }
 
             my $filedata = {
-                url    => $fileorigin,
+                url    => $fileorigin . $filepath,
                 name   => $basename,
                 size   => $size,
                 hsize  => $hsize,
@@ -292,7 +301,7 @@ sub register {
 sub _build_metalink() {
     my (
         $dm,             $path,         $file,   $country,   $region, $mirrors_country,
-        $mirrors_region, $mirrors_rest, $origin, $generator, $fileurl
+        $mirrors_region, $mirrors_rest, $origin, $generator, $rooturl
     ) = @_;
     my $basename = $file->{name};
     $country = uc($country) if $country;
@@ -347,21 +356,21 @@ sub _build_metalink() {
             $writer->endTag('pieces');
         }
 
-        my $colon = $fileurl ? index(substr($fileurl,0,6),':') : '';
+        my $colon = $rooturl ? index(substr($rooturl,0,6),':') : '';
         $writer->startTag('resources');
         {
             my $preference = 100;
             my $fullname = $path . '/' . $basename;
             my $root_included = 0;
             my $print_root = sub {
-                return unless $fileurl;
+                return unless $rooturl;
 
                 my $print = shift;
                 return if $root_included and !$print;
 
                 $writer->comment("File origin location: ") if $print;
-                $writer->startTag('url', type => substr($fileurl,0,$colon), location => uc($dm->root_country), preference => $preference);
-                $writer->characters($fileurl . $fullname);
+                $writer->startTag('url', type => substr($rooturl,0,$colon), location => uc($dm->root_country), preference => $preference);
+                $writer->characters($rooturl . $fullname);
                 $writer->endTag('url');
                 $root_included = 1;
                 $preference--;
