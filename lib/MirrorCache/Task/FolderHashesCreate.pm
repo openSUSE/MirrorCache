@@ -55,7 +55,8 @@ sub _sync {
         next unless $basename;
         my $block_size = calcBlockSize($file->{size});
         eval {
-            calcMetalink($app->mc->rootlocation, $path, $basename, $block_size, $schema, $file->{id});
+            my $indir = $root->rootpath($path);
+            calcMetalink($indir, $path, $basename, $block_size, $schema, $file->{id});
             $count++;
         };
         if ($@) {
