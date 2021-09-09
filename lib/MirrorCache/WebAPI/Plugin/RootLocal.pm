@@ -92,6 +92,16 @@ sub redirect {
     return undef;
 }
 
+sub rootpath {
+    my ($self, $filepath) = @_;
+    $filepath = "" unless $filepath;
+    for my $root (@roots) {
+        return $root->[dir] if -e $root->[dir] . $filepath;
+    }
+    return undef;
+}
+
+
 sub foreach_filename {
     my $self = shift;
     my $dir  = shift;
