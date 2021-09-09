@@ -6,21 +6,7 @@
 
 %= include 'layouts/info'
 
-% if ($cur_path eq '/') {
-<div class="jumbotron">
-  <div class='container'>
-    <div class="row">
-      <div class="col-md-9">
-        %= include_branding 'greet'
-      </div>
-      <div class="col-md-3 text-right">
-        %= include_branding 'logo'
-      </div>
-    </div>
-    %= include_branding 'text'
-  </div>
-</div>
-% }
+%= include_branding 'dir_details'
 
 <div id="container-download">
 

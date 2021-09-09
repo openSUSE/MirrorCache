@@ -11,7 +11,9 @@
       <meta name="csrf-param" content="csrf_token" />
 
       % my $title_safe = stash('title') // '';
-      % if ($title_safe) {
+      % if ($title_safe && index($title_safe, 'Index of') != -1) {
+      <title><%= $title_safe %></title>
+      % } elsif ($title_safe) {
       <title><%= "MirrorCache" . ": " . $title_safe %></title>
       % } else {
       <title>MirrorCache</title>
@@ -36,14 +38,12 @@
 
   </head>
   <body>
-      % unless (stash('nonavbar')) {
-      %= include 'layouts/navbar'
-      % }
+      %= include_branding 'header'
 
       <div class="container-fluid" id="content">
           %= content
       </div>
 
-      %= include 'layouts/footer'
+      %= include_branding 'footer'
   </body>
 </html>

@@ -198,6 +198,7 @@ sub register {
 
             my @regions = $c->subsidiary->regions($region) if $region;
             $c->stash('nonavbar' => 1) if ($ENV{MIRRORCACHE_BRANDING});
+            $c->stash('mirrorlist' => 1);
             $c->render(
                 'mirrorlist',
                 cur_path          => $filepath,
