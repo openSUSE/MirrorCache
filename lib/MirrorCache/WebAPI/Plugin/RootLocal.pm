@@ -71,7 +71,7 @@ sub render_file {
     my $redirect = $self->redirect($dm, $filepath);
     my $res;
     if ($redirect) {
-        $res = !!$c->redirect_to($redirect);
+        $res = !!$c->redirect_to($redirect . $filepath);
     } else {
         $res = !!$c->reply->static($filepath);
     }
@@ -101,7 +101,11 @@ sub foreach_filename {
         Mojo::File->new($root->[dir] . $dir)->list({dir => 1})->each(sub {
             my $f = shift;
             my $stat = $f->stat;
-            $sub->($f->basename, $stat->size, $stat->mode, $stat->mtime);
+            if ($stat) {
+                $sub->($f->basename, $stat->size, $stat->mode, $stat->mtime);
+            } else {
+                $sub->($f->basename, undef, undef, undef);
+            }
         });
     }
     return 1;

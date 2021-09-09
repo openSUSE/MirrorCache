@@ -395,10 +395,10 @@ sub _render_dir_local {
     for my $f ( @$files ) {
         my $basename = $f->basename;
         my $stat     = $f->stat;
-        $basename = $basename . '/' if -d $stat;
-        my $size     = $stat->size;
+        $basename = $basename . '/' if $stat && -d $stat;
+        my $size     = $stat->size if $stat;
         $size        = MirrorCache::Utils::human_readable_size($size) if $size;
-        my $mtime    = $stat->mtime;
+        my $mtime    = $stat->mtime if $stat;
         $mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
 
         my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;

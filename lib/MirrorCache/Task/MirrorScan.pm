@@ -44,6 +44,7 @@ sub _scan {
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
     $country = "" unless $country;
+    $country =~ s/^\s+|\s+$//g;
     $region  = "" unless $region;
 
     my $minion = $app->minion;
