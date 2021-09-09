@@ -1,1 +1,12 @@
-<a href="https://en.opensuse.org/Imprint" ><i class="fas fa-balance-scale"></i> Legal notice</a>
+<footer class='footer'>
+  <div class='container-fluid'>
+    <div id="footer-links" class="text-center">
+      <a href="https://en.opensuse.org/Imprint" ><i class="fas fa-balance-scale"></i> Legal notice</a>
+      <a href="https://github.com/openSUSE/MirrorCache"><i class="fab fa-github"></i> Source code</a>
+      <a href="https://github.com/openSUSE/MirrorCache/issues/new"><i class="fas fa-bug"></i> Report issue</a>
+      % if (my $ver = eval '$current_version') {
+        <i class="fas fa-code-branch"></i> Version <%= $ver %>
+      % }
+    </div>
+  </div>
+</footer>

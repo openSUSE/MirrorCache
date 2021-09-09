@@ -1,0 +1,18 @@
+<div class="jumbotron">
+  <div class='container'>
+    <div class="row">
+      <div class="col-md-9">
+        <h2>Welcome to MirrorCache!</h2>
+        <p>MirrorCache routes your download requests to appropriate mirrors.</p>
+      </div>
+      <div class="col-md-3 text-right">
+        <a href="https://opensuse.org" title="openSUSE">
+          <img src="<%= icon_url 'opensuse.svg'%>" width="150" alt="openSUSE"/>
+        </a>
+      </div>
+      <p>This instance serves as a download area for the <a href="https://software.opensuse.org/distributions">openSUSE distributions</a> and the <a href="http://build.opensuse.org/">openSUSE Build Service</a>. If you are searching for a specific package for your distribution, use the <a href="https://software.opensuse.org/">software portal</a> instead.</p>
+
+      <p>If you have a server with some space left, and want to help with making the openSUSE experience better for other users,  <a href="https://en.opensuse.org/openSUSE:Mirror_howto">become a mirror</a>! (guide may need to be updated for MirrorCache)</p>
+    </div>
+  </div>
+</div>

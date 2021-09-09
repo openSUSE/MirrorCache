@@ -1,3 +1,0 @@
-<a href="https://opensuse.org" title="openSUSE">
-    <img src="<%= icon_url 'opensuse.svg'%>" width="150" alt="openSUSE"/>
-</a>

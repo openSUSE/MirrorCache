@@ -1,0 +1,13 @@
+<div class="jumbotron">
+  <div class='container'>
+    <div class="row">
+      <div class="col-md-9">
+        <h2>Welcome to MirrorCache!</h2>
+        <p>MirrorCache routes your download requests to appropriate mirrors.</p>
+      </div>
+      <div class="col-md-3 text-right">
+        <img src="<%= icon_url 'logo.svg'%>" width="100" alt="MirrorCache"/>
+      </div>
+    </div>
+  </div>
+</div>
