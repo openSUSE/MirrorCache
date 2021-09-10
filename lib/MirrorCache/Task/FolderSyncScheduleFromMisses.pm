@@ -41,7 +41,7 @@ sub _run {
     my $schema = $app->schema;
     my $limit = $prev_stat_id? 1000 : 10;
 
-    my ($stat_id, $path_country_map, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
+    my ($stat_id, $path_country_map, $country_list, $mirrorlist) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
 
     my $rs = $schema->resultset('Folder');
     my $last_run = 0;
@@ -60,6 +60,7 @@ sub _run {
             }
             my $folder_id = $rs->request_db_sync( $path );
             $cnt = $cnt + 1;
+            $rs->request_for_mirrorlist($folder_id) if $mirrorlist->{$path};
             next unless $countries;
             for my $country (keys %$countries) {
                 next unless $country && 2 == length($country);

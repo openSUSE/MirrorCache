@@ -139,9 +139,9 @@ sub _misses {
     my $extra_condition   = $mode eq 'path'? ' and file_id is null' : ' and file_id is not null ';
     my $country_condition = $ENV{MIRRORCACHE_CITY_MMDB} ? "and country <> ''" : '';
 
-    my $sql = "select id, country, path from stat where mirror_id in (-1, 0) $extra_condition $country_condition";
+    my $sql = "select id, country, path, case when mirrorlist then 1 else 0 end as mirrorlist from stat where mirror_id in (-1, 0) $extra_condition $country_condition";
     $sql = "$sql and id > $prev_stat_id" if $prev_stat_id;
-    $sql = "$sql union all select max(id), '', '-max_id' from stat"; # this is just to get max(id) in the same query
+    $sql = "$sql union all select max(id), '', '-max_id', null from stat"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";
     $sql = "$sql limit ($limit+1)" if $limit;
 
@@ -152,6 +152,7 @@ sub _misses {
     my %path_country = ();
     my %countries = ();
     my %seen  = ();
+    my %mirrorlist  = ();
     foreach my $miss ( @$arrayref ) {
         $id = $miss->{id} unless $id;
         my $path = $miss->{path};
@@ -162,6 +163,9 @@ sub _misses {
         my $country = $miss->{country};
         my $rec = $path_country{$path};
         $rec = {} unless $rec;
+        if ($miss->{mirrorlist}) {
+            $mirrorlist{$path} = 1;
+        }
         if ($country) {
             $rec->{$country} = 1;
             $countries{$country} = 1 ;
@@ -169,7 +173,7 @@ sub _misses {
         $path_country{$path} = $rec;
     }
     my @country_list = (keys %countries);
-    return ($id, \%path_country, \@country_list);
+    return ($id, \%path_country, \@country_list, \%mirrorlist);
 }
 
 1;

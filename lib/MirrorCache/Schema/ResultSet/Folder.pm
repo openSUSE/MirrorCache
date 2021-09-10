@@ -61,7 +61,7 @@ END_SQL
 
 sub request_for_country {
     my ($self, $folder_id, $country) = @_;
-    $country  = "" unless $country;
+    return undef unless $country;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
@@ -81,6 +81,29 @@ where ( ? = 0 ) OR
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($folder_id, $country, $seconds, $seconds);
+}
+
+sub request_for_mirrorlist {
+    my ($self, $folder_id) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $seconds = int($ENV{'MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT'} // 120);
+
+    my $sql = <<'END_SQL';
+insert into demand_mirrorlist as d(folder_id, last_request)
+values (?, now())
+on conflict(folder_id) do update set
+last_request = now()
+where ( ? = 0 ) OR
+( 0 = date_part('day',    d.last_request - excluded.last_request) and
+0 = date_part('hour',   d.last_request - excluded.last_request) and
+? > date_part('second', d.last_request - excluded.last_request) )
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($folder_id, $seconds, $seconds);
 }
 
 sub find_folder_or_redirect {

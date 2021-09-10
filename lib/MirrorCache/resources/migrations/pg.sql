@@ -208,3 +208,12 @@ create table project (
 alter table stat add column if not exists mirrorlist boolean default 'f';
 -- 9 up
 alter table server add column if not exists hostname_vpn varchar(128) UNIQUE;
+-- 10 up
+create table demand_mirrorlist (
+    folder_id int NOT NULL references folder on delete cascade,
+    last_request timestamp,
+    last_scan timestamp,
+    mirror_count_country int,
+    mirror_count_region int,
+    unique(folder_id)
+);
