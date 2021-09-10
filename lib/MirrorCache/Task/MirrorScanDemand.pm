@@ -32,15 +32,28 @@ sub _run {
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
     return $job->finish('Previous job is still active')
-      unless my $guard = $minion->guard('mirror_scan_demand_' . $path, 86400);
+      unless my $guard = $minion->guard('mirror_scan_demand_' . $path, 8640);
 
     my $schema = $app->schema;
     my $folder = $schema->resultset('Folder')->find({path => $path});
     my $folder_id = $folder->id if $folder;
     return $job->finish("Cannot find folder {$path}") unless $folder && $folder_id; # folder is not added to db yet
 
+    my %seen = ();
+
+    for my $demand ($schema->resultset('DemandMirrorlist')->search({folder_id => $folder_id, last_request => { '>=', \'COALESCE(last_scan, last_request)' }})) {
+        if ($TIMEOUT) {
+            my $bool = $minion->lock("mirror_scan_schedule_mirrorlist_$path", $TIMEOUT);
+            next unless $bool;
+        }
+        $minion->enqueue('mirror_scan' => [$path] => {priority => 7});
+        $seen{$path} = 1;
+        $job->note("mirrorlist" => 1);
+    }
+
     for my $demand ($schema->resultset('Demand')->search({folder_id => $folder_id, last_request => { '>=', \'COALESCE(last_scan, last_request)' }})) {
         next unless my $country = $demand->country;
+        next if $seen{path};
         if ($TIMEOUT) {
             my $bool = $minion->lock("mirror_scan_schedule_$path" . "_$country", $TIMEOUT);
             next unless $bool;
