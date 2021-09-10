@@ -33,10 +33,10 @@ sub _run {
     # purge unreferenced folder_diff
     my $sql = <<'END_SQL';
 with DiffToDelete as (
-   select fd.id 
-   from folder_diff fd 
-   left join folder_diff_server fds on fds.folder_diff_id = fd.id 
-   where 
+   select fd.id
+   from folder_diff fd
+   left join folder_diff_server fds on fds.folder_diff_id = fd.id
+   where
    fds.folder_diff_id is null
    and fd.dt < current_timestamp - interval '2 day'
    limit 1000
@@ -44,7 +44,7 @@ with DiffToDelete as (
 FilesDeleted as (
    delete from folder_diff_file where folder_diff_id in
    (select * from DiffToDelete))
-delete from folder_diff where id in 
+delete from folder_diff where id in
    (select * from DiffToDelete)
 END_SQL
 
@@ -52,13 +52,29 @@ END_SQL
         $schema->storage->dbh->prepare($sql)->execute();
         1;
     } or $job->note(last_warning => $@, at => datetime_now());
-    
-    # delete rows from server_capability_check to avoid overload
+
+    # delete rows with success from server_capability_check,
+    # otherwise postgres is slow when looking for operational mirrors
     my $sqlservercap = <<'END_SQL';
-delete from server_capability_check 
+delete from server_capability_check
 where ctid in (
    select ctid from server_capability_check
-   where dt < (current_timestamp - interval '1 day') 
+   where success and dt < (current_timestamp - interval '3 hour')
+   LIMIT 10000
+)
+END_SQL
+
+    eval {
+        $schema->storage->dbh->prepare($sql)->execute();
+        1;
+    } or $job->note(last_warning => $@, at => datetime_now());
+
+    # delete rows from server_capability_check to avoid overload
+    $sqlservercap = <<'END_SQL';
+delete from server_capability_check
+where ctid in (
+   select ctid from server_capability_check
+   where dt < (current_timestamp - interval '1 day')
    LIMIT 1000
 )
 END_SQL
