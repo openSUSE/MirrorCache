@@ -276,7 +276,7 @@ sub _init_path($self) {
         $self->_query($query);
         $self->_query1('?' . $query_string);
         $self->mirrorlist(1) if defined $query->param('mirrorlist');
-        $self->json(1)       if defined $query->param('json');
+        $self->json(1)       if defined $query->param('json') || defined $query->param('JSON');
         $pedantic = $query->param('PEDANTIC');
     } else {
         $self->_query('');

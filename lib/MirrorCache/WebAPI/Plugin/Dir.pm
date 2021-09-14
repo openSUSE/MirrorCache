@@ -134,9 +134,9 @@ sub _render_dir {
     $folder    = $rsFolder->find({path => $dir}) unless $folder;
     $dm->folder_id($folder->id) if $folder;
 
-    return _render_dir_from_db($c, $folder->id, $dir) if $folder && $folder->db_sync_last;
+    return _render_dir_from_db($dm, $folder->id, $dir) if $folder && $folder->db_sync_last;
     $c->stat->redirect_to_root($dm, 0);
-    return _render_dir_local($c, $dir) unless $root->is_remote; # just render files if we have them locally
+    return _render_dir_local($dm, $dir) unless $root->is_remote; # just render files if we have them locally
 
     my $pos = $rsFolder->get_db_sync_queue_position($dir);
     return $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
@@ -356,17 +356,27 @@ sub _get_ext {
 my $types = Mojolicious::Types->new;
 
 sub _render_dir_from_db {
-    my $c     = shift;
-    my $id    = shift;
-    my $dir   = shift;
+    my $dm  = shift;
+    my $id  = shift;
+    my $dir = shift;
+    my $c   = $dm->c;
     my @files;
     my @childrenfiles = $c->schema->resultset('File')->search({folder_id => $id});
+    my $json = $dm->json;
 
     for my $child ( @childrenfiles ) {
         my $basename = $child->name;
         my $size     = $child->size;
-        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
         my $mtime    = $child->mtime;
+        if ($json) {
+            push @files, {
+                name  => $basename,
+                size  => $size,
+                mtime => $mtime,
+            };
+            next;
+        }
+        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
         $mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
 
         my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
@@ -383,22 +393,34 @@ sub _render_dir_from_db {
         };
     }
     my @items = sort _by_filename @files;
+    return $c->render( json => \@items) if $json;
     return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => $id );
 }
 
 sub _render_dir_local {
-    my $c     = shift;
-    my $dir   = shift;
+    my $dm  = shift;
+    my $dir = shift;
+    my $c   = $dm->c;
     my @files;
     my $files = $root->list_files($dir);
+    my $json = $dm->json;
 
     for my $f ( @$files ) {
         my $basename = $f->basename;
         my $stat     = $f->stat;
         $basename = $basename . '/' if $stat && -d $stat;
         my $size     = $stat->size if $stat;
-        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
         my $mtime    = $stat->mtime if $stat;
+        if ($json) {
+            push @files, {
+                name  => $basename,
+                size  => $size,
+                mtime => $mtime,
+            };
+            next;
+        }
+
+        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
         $mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
 
         my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
@@ -406,7 +428,7 @@ sub _render_dir_local {
         my $mime_type = $types->type( _get_ext($basename) || 'txt' ) || 'text/plain';
 
         push @files, {
-            url   => './' . $encoded,
+            url   => $encoded,
             name  => $basename,
             size  => $size,
             type  => $mime_type,
@@ -415,6 +437,7 @@ sub _render_dir_local {
         };
     }
     my @items = sort _by_filename @files;
+    return $c->render( json => \@items) if $json;
     return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => undef );
 }
 
