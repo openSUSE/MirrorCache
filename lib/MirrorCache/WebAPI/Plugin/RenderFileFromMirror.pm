@@ -34,7 +34,7 @@ sub register {
     $app->helper( 'mirrorcache.render_file' => sub {
         my ($c, $filepath, $dm)= @_;
         my $root = $c->mc->root;
-        my $f = Mojo::File->new($filepath);
+        my $f = Mojo::File->new($dm->root_subtree . $filepath);
         my $dirname  = $f->dirname;
         my $basename = $f->basename;
         my $dirname_basename = $dirname->basename;
@@ -122,7 +122,7 @@ sub register {
             $origin = $origin . $dm->route . $filepath;
             my $xml    = _build_metalink(
                 $dm, $folder->path, $file, $country, $region, $mirrors_country, $mirrors_region,
-                $mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : $root->redirect($dm,$folder->path) );
+                $mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : $root->redirect($dm, $folder->path) );
             $c->app->types->type(metalink => 'application/metalink+xml; charset=UTF-8');
             $c->res->headers->content_disposition('attachment; filename="' .$basename. '.metalink"');
             $c->render(data => $xml, format => 'metalink');
@@ -225,7 +225,7 @@ sub register {
             if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
                 return $root->render_file($dm, $filepath, 1);
             }
-            my $url = $mirror->{url} . $filepath;
+            my $url = $mirror->{url} . $dm->root_subtree . $filepath;
             $c->redirect_to($url);
             eval {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
