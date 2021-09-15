@@ -23,12 +23,12 @@ install:
 		mkdir -p "${DESTDIR}"/usr/share/mirrorcache/$$i ;\
 		[ ! -e $$i ] || cp -a $$i/* "${DESTDIR}"/usr/share/mirrorcache/$$i ;\
 	done
-	mkdir -p "${DESTDIR}"/usr/share/mirrorcache/assets/cache
 	chmod +x "${DESTDIR}"/usr/share/mirrorcache/script/*
 	install -d -m 755 "${DESTDIR}"/usr/lib/systemd/system
 	for i in dist/systemd/*.service; do \
 		install -m 644 $$i "${DESTDIR}"/usr/lib/systemd/system ;\
 	done
+	install -D -m 755 -d "${DESTDIR}"/etc/mirrorcache
 
 setup_system_user:
 	getent group nogroup > /dev/null || groupadd nogroup

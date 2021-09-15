@@ -3,7 +3,7 @@
 set -ex
 
 make install
-echo MIRRORCACHE_ROOT=/srv/mirrorcache > /usr/share/mirrorcache/conf.env
+echo MIRRORCACHE_ROOT=/srv/mirrorcache > /etc/mirrorcache/conf.env
 make setup_production_assets
 make setup_system_user
 
@@ -28,7 +28,7 @@ systemctl is-active --quiet mirrorcache || systemctl is-active mirrorcache
 systemctl is-active --quiet mirrorcache-backstage || systemctl is-active mirrorcache-backstage
 
 systemctl stop mirrorcache
-echo 'MOJO_LISTEN=http://*:8000' >> /usr/share/mirrorcache/conf.env
+echo 'MOJO_LISTEN=http://*:8000' >> /etc/mirrorcache/conf.env
 systemctl start mirrorcache
 systemctl is-active --quiet mirrorcache || systemctl is-active mirrorcache
 

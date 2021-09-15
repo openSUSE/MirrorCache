@@ -3,10 +3,11 @@ Description=MirrorCache daemon for file hashes calculation jobs
 
 [Service]
 User=mirrorcache
+Group=mirrorcache
 ExecStart=/usr/share/mirrorcache/script/mirrorcache-backstage-hashes
 Nice=19
 Restart=on-failure
-EnvironmentFile=/usr/share/mirrorcache/conf.env
+EnvironmentFile=/etc/mirrorcache/conf.env
 
 [Install]
 WantedBy=multi-user.target

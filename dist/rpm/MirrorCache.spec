@@ -27,9 +27,12 @@ Summary:        WebApp to redirect and manage mirrors
 License:        GPL-2.0-or-later
 Group:          Productivity/Networking/Web/Servers
 URL:            https://github.com/openSUSE/MirrorCache
-Source:         %{name}-%{version}.tar.xz
-Source1:        %{name}-user.conf
-Source2:        %{name}-tmpfilesd.conf
+Source0:        %{name}-%{version}.tar.xz
+Source1:        cache.tar.xz
+Source2:        %{name}-user.conf
+Source3:        %{name}-tmpfilesd.conf
+# use update-cache (or tools/generate-packed-assets) to generate/update cache.tar.xz
+Source101:      update-cache.sh
 BuildRequires:  %{build_requires}
 Requires:       %{main_requires}
 Requires:       perl(Minion) >= 10.0
@@ -40,11 +43,11 @@ BuildArch:      noarch
 Mirror redirector web service, which automatically scans the main server and mirrors
 
 %prep
-%setup -q
+%setup -q -a1
 
 %build
 # make {?_smp_mflags}
-%sysusers_generate_pre %{SOURCE1} %{name}
+%sysusers_generate_pre %{SOURCE2} %{name}
 
 %check
 
@@ -55,8 +58,8 @@ mkdir -p %{buildroot}%{_sbindir}
 ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache
 ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache-backstage
 ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache-backstage-hashes
-install -D -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/%{name}.conf
-install -D -m 0644 %{SOURCE2} %{buildroot}%{_tmpfilesdir}/%{name}.conf
+install -D -m 0644 %{SOURCE2} %{buildroot}%{_sysusersdir}/%{name}.conf
+install -D -m 0644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 
 %pre -f %{name}.pre
 %service_add_pre %{mirrorcache_services}
@@ -79,6 +82,7 @@ install -D -m 0644 %{SOURCE2} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 %{_sbindir}/rcmirrorcache-backstage-hashes
 %{_sysusersdir}/%{name}.conf
 %{_tmpfilesdir}/%{name}.conf
+%config(noreplace) %attr(-,root,mirrorcache) %{_sysconfdir}/mirrorcache/
 %ghost %dir %attr(0750,mirrorcache,-) %{_localstatedir}/lib/mirrorcache/
 # init
 %dir %{_unitdir}
@@ -87,6 +91,5 @@ install -D -m 0644 %{SOURCE2} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 %{_unitdir}/mirrorcache-backstage-hashes.service
 # web libs
 %{_datadir}/mirrorcache
-%attr(-,mirrorcache,-) %{_datadir}/mirrorcache/assets/cache
 
 %changelog
