@@ -66,6 +66,7 @@ sub redirect_to_region($self, $dm) {
 sub redirect_to_mirror($self, $mirror_id, $dm) {
     my ($path, $trailing_slash) = $dm->path;
     return undef if $mirror_id == -1 && 'media' eq substr($path, -length('media'));
+    $path = $dm->root_subtree . $path;
     my $rows = $self->rows;
     my @rows = defined $rows? @$rows : ();
     push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head ];

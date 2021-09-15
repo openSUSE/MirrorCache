@@ -28,6 +28,8 @@ sub singleton { state $root = shift->SUPER::new; return $root; };
 my @roots;
 my $app;
 
+my $root_subtree = $ENV{MIRRORCACHE_SUBTREE} // "";
+
 sub register {
     (my $self, $app) = @_;
     my $rootpath = $app->mc->rootlocation;
@@ -52,7 +54,7 @@ sub is_reachable {
 sub is_file {
     return 1 unless $_[1];
     for my $root (@roots) {
-        return 1 if -f $root->[dir] . $_[1];
+        return 1 if -f $root->[dir] . $root_subtree . $_[1];
     }
     return 0;
 }
@@ -60,7 +62,7 @@ sub is_file {
 sub is_dir {
     return 1 unless $_[1];
     for my $root (@roots) {
-        return 1 if -d $root->[dir] . $_[1];
+        return 1 if -d $root->[dir] . $root_subtree . $_[1];
     }
     return 0;
 }
@@ -71,9 +73,9 @@ sub render_file {
     my $redirect = $self->redirect($dm, $filepath);
     my $res;
     if ($redirect) {
-        $res = !!$c->redirect_to($redirect . $filepath);
+        $res = !!$c->redirect_to($redirect . $root_subtree . $filepath);
     } else {
-        $res = !!$c->reply->static($filepath);
+        $res = !!$c->reply->static($root_subtree . $filepath);
     }
     $c->stat->redirect_to_root($dm, $not_miss);
     return $res;
@@ -83,7 +85,7 @@ sub redirect {
     my ($self, $dm, $filepath) = @_;
     $filepath = "" unless $filepath;
     for my $root (@roots) {
-        next unless -e $root->[dir] . $filepath;
+        next unless -e $root->[dir] . $root_subtree . $filepath;
 
         return $dm->scheme . "://" . $root->[host_vpn] if ($dm->vpn && $root->[host_vpn]);
         return $dm->scheme . "://" . $root->[host] if ($root->[host]);

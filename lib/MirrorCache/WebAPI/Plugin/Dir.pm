@@ -131,7 +131,8 @@ sub _render_dir {
     my $c = $dm->c;
 
     $rsFolder  = $c->app->schema->resultset('Folder') unless $rsFolder;
-    $folder    = $rsFolder->find({path => $dir}) unless $folder;
+
+    $folder    = $rsFolder->find({path => $dm->root_subtree . $dir}) unless $folder;
     $dm->folder_id($folder->id) if $folder;
 
     return _render_dir_from_db($dm, $folder->id, $dir) if $folder && $folder->db_sync_last;
@@ -254,14 +255,14 @@ sub _render_from_db {
     my ($path, $trailing_slash) = $dm->path;
     my $rsFolder = $schema->resultset('Folder');
 
-    if (my $folder = $rsFolder->find_folder_or_redirect($path)) {
+    if (my $folder = $rsFolder->find_folder_or_redirect($dm->root_subtree . $path)) {
         return $dm->redirect($folder->{pathto}) if $folder->{pathto};
         # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
         return _render_dir($dm, $path, $rsFolder) if ($folder->{db_sync_last});
     } elsif (!$trailing_slash && $path ne '/') {
         my $f = Mojo::File->new($path);
-        my $parent_folder = $rsFolder->find({path => $f->dirname});
+        my $parent_folder = $rsFolder->find({path => $dm->root_subtree . $f->dirname});
         my $file;
         $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $parent_folder->id }) if $parent_folder && !$trailing_slash;
         # folders are stored with trailing slash in file table, so they will not be selected here
@@ -402,7 +403,7 @@ sub _render_dir_local {
     my $dir = shift;
     my $c   = $dm->c;
     my @files;
-    my $files = $root->list_files($dir);
+    my $files = $root->list_files($dm->root_subtree . $dir);
     my $json = $dm->json;
 
     for my $f ( @$files ) {
