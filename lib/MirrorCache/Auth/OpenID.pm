@@ -25,6 +25,7 @@ sub auth_login {
 
     # force secure connection after login
     $url =~ s,^http://,https://, if $self->app->config->{openid}->{httpsonly};
+    $url = $ENV{MIRRORCACHE_PROXY_URL} if $ENV{MIRRORCACHE_PROXY_URL};
 
     my $csr = Net::OpenID::Consumer->new(
         ua              => LWP::UserAgent->new,
@@ -71,6 +72,8 @@ sub auth_response {
 
     my %params = @{$self->req->params->pairs};
     my $url    = $self->app->config->{global}->{base_url} || $self->req->url->base;
+
+    $url = $ENV{MIRRORCACHE_PROXY_URL} if $ENV{MIRRORCACHE_PROXY_URL};
     return (error => 'Got response on http but https is forced. MOJO_REVERSE_PROXY not set?')
       if ($self->app->config->{openid}->{httpsonly} && $url !~ /^https:\/\//);
     %params = map { $_ => URI::Escape::uri_unescape($params{$_}) } keys %params;
