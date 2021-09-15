@@ -19,14 +19,14 @@ use Mojo::Base 'Mojolicious::Controller';
 sub show {
     my ($c) = @_;
 
-    my $ip      = $c->mmdb->client_ip;
-    my ($region, $country) = $c->mmdb->region($ip);
+    my $ip      = $c->geodb->client_ip;
+    my ($country, $region) = $c->geodb->country_and_region($ip);
 
     $c->render(
         json => {
             ip      => $ip,
-            country => $country // 'Unknown',
-            region  => $region  // 'Unknown',
+            country => $country ? $country : 'Unknown',
+            region  => $region ? $region : 'Unknown',
         }
     );
 }

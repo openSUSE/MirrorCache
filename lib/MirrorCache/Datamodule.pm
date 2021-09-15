@@ -68,7 +68,7 @@ sub ip_sha1($self) {
 
 sub ip($self) {
     unless (defined $self->_ip) {
-        $self->_ip($self->c->mmdb->client_ip);
+        $self->_ip($self->c->geodb->client_ip);
     }
     return $self->_ip;
 }
@@ -237,7 +237,7 @@ sub _init_req($self) {
 }
 
 sub _init_location($self) {
-    my ($lat, $lng, $country, $region) = $self->c->mmdb->location($self->ip);
+    my ($lat, $lng, $country, $region) = $self->c->geodb->location($self->ip);
     $self->_lat($lat);
     $self->_lng($lng);
     my $query = $self->c->req->url->query;

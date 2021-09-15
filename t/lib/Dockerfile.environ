@@ -13,7 +13,7 @@ RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-P
     apache2 perl-Digest-MD4 tidy nginx bbe
 
 # dependencies to be deleted after they are merged and installed with the rpm package
-RUN zypper -vvv -n install perl-Sort-Versions
+RUN zypper -vvv -n install perl-Sort-Versions perl-Geo-IP2Location
 
 RUN zypper -vvv -n install make rsync
 

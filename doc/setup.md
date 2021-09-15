@@ -27,11 +27,15 @@ If neither TEST_PG nor MIRRORCACHE_DSN is defined, following variables are used:
   * MIRRORCACHE_DBPORT (default empty)
 
 ### GeoIP location
-  * If environment variable MIRRORCACHE_CITY_MMDB is defined, the app will attempt to detect country of the request and find a mirror in the same country, e.g. `MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb`.
-  * Refer Maxmind geoip2 on how to obtain such file.
+  * If environment variable MIRRORCACHE_CITY_MMDB or MIRRORCACHE_IP2LOCATION is defined, the app will attempt to detect country of the request and find a mirror in the same country, e.g. `MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb` or `MIRRORCACHE_IP2LOCATION=/var/lib/GeoIP/IP2LOCATION-LITE-DB5.IPV6.BIN`.
+  * See Maxmind or IP2Location website to obtain such file.
   * Additional dependencies must be installed as well for GeoIP location to work: perl modules Mojolicious::Plugin::ClientIP and MaxMind::DB::Reader :
 ```
+# for Maxmind
 zypper in perl-Mojolicious-Plugin-ClientIP perl-MaxMind-DB-Reader
+
+# for IP2Location
+zypper in perl-Geo-IP2Location
 ```
 
 ## Types of install
@@ -70,10 +74,13 @@ The best way to install them is to reuse zypper and cpanm commands from CI envir
 You may skip installing MaxMind::DB::Reader and Mojolicious::Plugin::ClientIP if you don't need Geolocation detection, if you don't need MirrorCache to find a mirror in client's country. From now on it will be referenced as 'Geolocation feature'.
 
 2. You may need GeoIP database (optional, if 'Geolocation feature' is needed).
-`/var/lib/GeoIP/GeoLite2-City.mmdb`
+`/var/lib/GeoIP/GeoLite2-City.mmdb` or `/var/lib/GeoIP/IP2LOCATION-LITE-DB5.IPV6.BIN`
 In such case you will also need following command in next step:
 ```bash
+# for MaxMind database
 echo MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb >> /etc/mirrorcache/conf.env
+# or for IP2Location database
+echo MIRRORCACHE_IP2LOCATION=/var/lib/GeoIP/IP2LOCATION-LITE-DB5.IPV6.BIN >> /usr/share/mirrorcache/conf.env
 ```
 
 3. Setup
@@ -109,7 +116,7 @@ The best way to install them is to reuse zypper and cpanm commands from CI envir
 You may skip installing MaxMind::DB::Reader and Mojolicious::Plugin::ClientIP if you don't need Geolocation detection, if you don't need MirrorCache to find a mirror in client's country. From now on it will be referenced as 'Geolocation feature'.
 
 2. You may need GeoIP database (optional, if 'Geolocation feature' is needed).
-`/var/lib/GeoIP/GeoLite2-City.mmdb`
+`/var/lib/GeoIP/GeoLite2-City.mmdb` or `/var/lib/GeoIP/IP2LOCATION-LITE-DB5.IPV6.BIN`
 
 3. You will need PostgreSQL server running, create database for mirrorcache and create tables:
 ```
@@ -124,7 +131,7 @@ It is possible to run PostgreSQL on dedicated server as well.
 TEST_PG='DBI:Pg:dbname=mc_dev;host=/path/to/pg' \
 MIRRORCACHE_ROOT=http://download.opensuse.org \
 MIRRORCACHE_TOP_FOLDERS='debug distribution factory history ports repositories source tumbleweed update' \
-MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb \
+MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb \ # MIRRORCACHE_IP2LOCATION=/var/lib/GeoIP/IP2LOCATION-LITE-DB5.IPV6.BIN \
 MOJO_REVERSE_PROXY=1 \
 MOJO_LISTEN=http://*:8000 \
 script/mirrorcache daemon
@@ -169,7 +176,7 @@ mc=$(environ mc ~/github/MirrorCache)
 # pg1-system2 will setup local instance of Postgres server with data directory in pg1-system2/dt/
 $mc/gen_config MIRRORCACHE_ROOT=http://download.opensuse.org \
      MIRRORCACHE_TOP_FOLDERS="'debug distribution factory history ports repositories source tumbleweed update'" \
-    MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb \
+    MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb \ # MIRRORCACHE_IP2LOCATION=/var/lib/GeoIP/IP2LOCATION-LITE-DB5.IPV6.BIN \
     MOJO_REVERSE_PROXY=1
 
 $mc/start
