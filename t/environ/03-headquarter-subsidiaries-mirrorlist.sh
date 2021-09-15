@@ -41,8 +41,8 @@ na_interface=127.0.0.2
 eu_address=$($mc7/print_address)
 eu_interface=127.0.0.3
 
-# deploy db
 $mc9/gen_env "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
+# deploy db
 $mc9/backstage/shoot
 
 $mc9/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
@@ -87,3 +87,26 @@ curl -Is --interface $eu_interface http://$hq_address/folder1/media.1/media | gr
 # repodata/repomd.xml is served from root even when asked from EU
 curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml | grep 200
 curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml.asc | grep 200
+
+###########################################
+# test table demand_mirrorlist:
+# if mirrorlist was requested for known file - all countries will be scanned
+mc9/backstage/job -e folder_sync -a '["/folder2"]'
+mc9/backstage/shoot
+
+curl -sL --interface 127.0.0.4 http://$hq_address/folder2/file1.1.dat.mirrorlist | grep 'file1.1.dat'
+mc9/backstage/job -e mirror_scan_schedule_from_misses
+mc9/backstage/shoot
+
+curl -sL --interface 127.0.0.4 http://$hq_address/folder2/file1.1.dat.mirrorlist | grep -C10 $($ap1/print_address) | grep $($ap2/print_address)
+
+###########################################
+# test table demand_mirrorlist:
+# if mirrorlist was requested for unknown file - all countries will be scanned
+curl -sL --interface 127.0.0.4 http://$hq_address/folder3/file1.1.dat.mirrorlist | grep 'unknown'
+
+mc9/backstage/job -e folder_sync_schedule_from_misses
+mc9/backstage/job -e folder_sync_schedule
+mc9/backstage/shoot
+
+curl -sL --interface 127.0.0.4 http://$hq_address/folder3/file1.1.dat.mirrorlist | grep -C10 $($ap1/print_address) | grep $($ap2/print_address)
