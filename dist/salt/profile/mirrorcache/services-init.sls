@@ -50,21 +50,21 @@ conf-env:
     - user: mirrorcache
     - mode: 0644
     - names:
-      - /usr/share/mirrorcache/conf.env:
+      - /etc/mirrorcache/conf.env:
 {%- if grains.osfullname == 'SLES'  %}
-        - source: salt://profile/mirrorcache/files/usr/share/mirrorcache/conf.env.SLES
+        - source: salt://profile/mirrorcache/files/etc/mirrorcache/conf.env.SLES
 {%- else %}
-        - source: salt://profile/mirrorcache/files/usr/share/mirrorcache/conf.env.openSUSE
+        - source: salt://profile/mirrorcache/files/etc/mirrorcache/conf.env.openSUSE
 {%- endif %}
 
-'echo "MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb" >> /usr/share/mirrorcache/conf.env':
+'echo "MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb" >> /etc/mirrorcache/conf.env':
   cmd.run:
     - unless: test ! -f /var/lib/GeoIP/GeoLite2-City.mmdb
 
 {%- if grains.id == 'mirrorcache-eu.opensuse.org' %}
-'echo -e "MIRRORCACHE_REGION=eu\nMIRRORCACHE_HEADQUARTER=mirrorcache.opensuse.org" >> /usr/share/mirrorcache/conf.env':
+'echo -e "MIRRORCACHE_REGION=eu\nMIRRORCACHE_HEADQUARTER=mirrorcache.opensuse.org" >> /etc/mirrorcache/conf.env':
   cmd.run:
 {%- elif grains.id == 'mirrorcache-na.opensuse.org' %}
-'echo -e "MIRRORCACHE_REGION=na\nMIRRORCACHE_HEADQUARTER=mirrorcache.opensuse.org" >> /usr/share/mirrorcache/conf.env':
+'echo -e "MIRRORCACHE_REGION=na\nMIRRORCACHE_HEADQUARTER=mirrorcache.opensuse.org" >> /etc/mirrorcache/conf.env':
   cmd.run:
 {%- endif %}

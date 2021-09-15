@@ -50,11 +50,11 @@ systemctl enable postgresql
 sudo -u postgres createuser mirrorcache
 sudo -u postgres createdb mirrorcache
 
-# the services read environment variables from /usr/share/mirrorcache/conf.env by default
+# the services read environment variables from /etc/mirrorcache/conf.env by default
 echo "MIRRORCACHE_ROOT=http://download.opensuse.org
 MIRRORCACHE_TOP_FOLDERS='debug distribution factory history ports repositories source tumbleweed update'
 MOJO_LISTEN=http://*:8000
-" >> /usr/share/mirrorcache/conf.env
+" >> /etc/mirrorcache/conf.env
 
 systemctl enable mirrorcache
 systemctl enable mirrorcache-backstage
@@ -73,7 +73,7 @@ You may skip installing MaxMind::DB::Reader and Mojolicious::Plugin::ClientIP if
 `/var/lib/GeoIP/GeoLite2-City.mmdb`
 In such case you will also need following command in next step:
 ```bash
-echo MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb >> /usr/share/mirrorcache/conf.env
+echo MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb >> /etc/mirrorcache/conf.env
 ```
 
 3. Setup
@@ -84,11 +84,11 @@ make install
 make setup_production_assets
 make setup_system_user
 make setup_system_db
-# the services read environment variables from /usr/share/mirrorcache/conf.env by default
+# the services read environment variables from /etc/mirrorcache/conf.env by default
 echo "MIRRORCACHE_ROOT=http://download.opensuse.org
 MIRRORCACHE_TOP_FOLDERS='debug distribution factory history ports repositories source tumbleweed update'
 MOJO_LISTEN=http://*:8000
-" >> /usr/share/mirrorcache/conf.env
+" >> /etc/mirrorcache/conf.env
 
 systemctl enable mirrorcache
 systemctl enable mirrorcache-backstage
@@ -202,7 +202,7 @@ $mc/status
     # Run the test and keep the container, while mapping port 3110 to host port 80
     EXPOSE_PORT=3110 ./01-smoke.sh
     ```
-    
+
     To log in with a fake test-user, change `$mc/start` to `MIRRORCACHE_TEST_TRUST_AUTH=1 $mc/start` in your test
 
     Setting `MIRRORCACHE_TEST_TRUST_AUTH` to any number > 1 will result in `current_user` being `undef`, so no fake test-user login.

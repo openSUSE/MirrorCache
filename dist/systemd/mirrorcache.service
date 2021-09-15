@@ -2,12 +2,12 @@
 Description=MirrorCache webApp
 Before=apache2.service
 After=postgresql.service nss-lookup.target
-Requires=postgresql.service
 
 [Service]
 User=mirrorcache
+Group=mirrorcache
 ExecStart=/usr/share/mirrorcache/script/mirrorcache-daemon
-EnvironmentFile=/usr/share/mirrorcache/conf.env
+EnvironmentFile=/etc/mirrorcache/conf.env
 
 [Install]
 WantedBy=multi-user.target
