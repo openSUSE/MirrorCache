@@ -25,9 +25,10 @@ use MirrorCache::Utils 'random_string';
 sub startup {
     my $self = shift;
     my $root = $ENV{MIRRORCACHE_ROOT} || "";
-    my $city_mmdb = $ENV{MIRRORCACHE_CITY_MMDB};
-    die("MIRRORCACHE_CITY_MMDB is not a file ($city_mmdb)") if $city_mmdb && ! -f $city_mmdb;
-    my $reader;
+    my $geodb_file = $ENV{MIRRORCACHE_CITY_MMDB} || $ENV{MIRRORCACHE_IP2LOCATION};
+    
+    die("Geo IP location database is not a file ($geodb_file)\nPlease check MIRRORCACHE_CITY_MMDB or MIRRORCACHE_IP2LOCATION") if $geodb_file && ! -f $geodb_file;
+    my $geodb;
 
     eval {
         MirrorCache::Schema->singleton;
@@ -96,7 +97,7 @@ sub startup {
         $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
 
         $rest_r->get('/folder_jobs/:id')->name('rest_folder_jobs')->to('folder_jobs#list');
-        $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show') if $reader;
+        $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show') if $geodb;
 
         $rest_r->get('/stat')->name('rest_stat')->to('stat#list');
         $rest_r->get('/mystat')->name('rest_mystat')->to('stat#mylist');
@@ -148,11 +149,23 @@ sub startup {
     $self->plugin('AuditLog');
     $self->plugin('RenderFileFromMirror');
     $self->plugin('HashedParams');
-    if ($city_mmdb) {
+
+    if ($geodb_file && $geodb_file =~ /\.mmdb$/i) {
         require MaxMind::DB::Reader;
-        $reader = MaxMind::DB::Reader->new( file => $city_mmdb );
+        $geodb = MaxMind::DB::Reader->new(file => $geodb_file);
+        $self->plugin('Mmdb', { reader => $geodb });
     }
-    $self->plugin('Mmdb', { reader => $reader });
+    elsif ($geodb_file && $geodb_file =~ /\.BIN$/i) {
+        require Geo::IP2Location;
+        $geodb = Geo::IP2Location->open($geodb_file);
+        $self->plugin('Geolocation', { geodb => $geodb });
+    }
+    elsif ($geodb_file) {
+        die("Unsupported geo IP location database ($geodb_file)\nPlease check MIRRORCACHE_CITY_MMDB or MIRRORCACHE_IP2LOCATION environment variables");
+    }
+    else {
+        $self->plugin('Mmdb', { reader => $geodb });
+    }
 
     $self->plugin('Helpers', root => $root, route => '/download');
     $self->plugin('Subsidiary');

@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,46 +14,61 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-package MirrorCache::WebAPI::Plugin::Mmdb;
+package MirrorCache::WebAPI::Plugin::Geolocation;
 use Mojo::Base 'Mojolicious::Plugin';
+use MirrorCache::Utils 'region_for_country';
 
-
-my $reader;
+my $geodb;
 
 sub register {
     my ($self, $app, $conf) = @_;
-    $reader = $conf->{reader} if $conf;
+    $geodb = $conf->{geodb} if $conf;
 
     $app->helper( 'geodb.country_and_region' => sub {
         my ($c, $ip) = @_;
-        return ("", "") unless $reader;
+        return ("", "") unless $geodb;
         $ip = shift->client_ip unless $ip;
         return ('us','na') if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
-        my $record = $reader->record_for_address($ip);
-        my ($region, $country) = ("","");
-        eval {
-            $region  = $record->{continent}->{code};
-            $country = $record->{country}->{iso_code};
-        } if $record;
+
+        my $country = _get_country($geodb, $ip) // '';
+        my $region  = region_for_country($country) // '';
+
         return ($country, $region);
     });
 
     $app->helper( 'geodb.location' => sub {
         my ($c, $ip) = @_;
-        return "" unless $reader;
+        return "" unless $geodb;
         $ip = shift->client_ip unless $ip;
         return (0,0,'us','na') if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
-        my $record = $reader->record_for_address($ip);
-        return ($record->{location}->{latitude},$record->{location}->{longitude},lc($record->{country}->{iso_code}),lc($record->{continent}->{code})) if $record;
-        return undef;
+
+        my $country = _get_country($geodb, $ip) // '';
+        my $region  = region_for_country($country) // '';
+
+        my $latitude = $geodb->get_latitude($ip);
+        $latitude = undef unless int($latitude);
+
+        my $longitude = $geodb->get_longitude($ip);
+        $longitude = undef unless int($longitude);
+
+        return ($latitude,$longitude,$country,$region);
     });
 
-    if ($reader) {
+    if ($geodb) {
         $app->plugin('ClientIP', private => [qw(127.0.0.0/8 192.168.0.0/16)]);
         $app->helper( 'geodb.client_ip' => sub { return shift->client_ip; } );
     } else {
         $app->helper( 'geodb.client_ip' => sub { return shift->tx->remote_address; } );
     }
 }
+
+sub _get_country {
+  my ($geodb, $ip) = @_;
+
+  my $country = $geodb->get_country_short($ip);
+  return '' if $country eq '-';
+  return lc($country);
+}
+
 
 1;

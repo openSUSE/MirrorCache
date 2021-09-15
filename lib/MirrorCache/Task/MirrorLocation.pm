@@ -43,7 +43,7 @@ sub _location {
     my $uri = URI->new($hostname)->canonical;
     my $ip = $uri->host;
     $ip = nslookup($ip) unless _isValidIP($ip);
-    my ($lat, $lng, $country, $continent) = $app->mmdb->location($ip);
+    my ($lat, $lng, $country, $continent) = $app->geodb->location($ip);
     $lat = sprintf("%.3f", $lat) if $lat;
     $lng = sprintf("%.3f", $lng) if $lng;
     return $job->fail("Couldn't identify location") unless ($lat || $lng) && $country && $continent;
