@@ -69,3 +69,15 @@ test $rc -gt 0
 $mc/curl --interface 127.0.0.3 /download/folder3/file1.1.dat.mirrorlist | grep $($ap8/print_address)
 $mc/curl --interface 127.0.0.3 /download/folder3/file1.1.dat.mirrorlist | grep $($ap7/print_address)
 #######################################
+
+#######################################
+# a folder is deleted from one of mirrors
+# do rescan and make sure the mirror gone from mirrorlist
+rm -r $ap8/dt/folder2
+$mc/curl /download/folder2/file1.1.dat.mirrorlist | grep $($ap8/print_address)
+$mc/backstage/job -e mirror_scan -a '["/folder2"]'
+$mc/backstage/shoot
+res=0
+$mc/curl /download/folder2/file1.1.dat.mirrorlist | grep $($ap8/print_address) || res=$?
+test $res -gt 0
+#######################################

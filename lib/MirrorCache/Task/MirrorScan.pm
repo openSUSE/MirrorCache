@@ -91,8 +91,13 @@ sub _scan {
             $count++;
             my $tx = shift;
             my $sid = $folder_on_mirror->{server_id};
-            # return $schema->resultset('Server')->forget_folder($folder_on_mirror->{server_id}, $folder_on_mirror->{folder_diff_id}) if $tx->result->code == 404;
-            # return undef if $tx->result->code == 404;
+            if ($tx->result->code == 404) {
+                my $sql = 'delete from folder_diff_server where server_id = ? and folder_diff_id in (select id from folder_diff where folder_id = ?)';
+                eval {
+                    $schema->storage->dbh->prepare($sql)->execute($sid, $folder->id);
+                    1;
+                } or $job->note(last_warning => $@, at => datetime_now());
+            }
             return $app->emit_event('mc_mirror_probe_error', {mirror => $sid, url => "u$url", err => $tx->result->code}, $folder_on_mirror->{server_id}) if $tx->result->code > 299;
             # we cannot mojo dom here because it takes too much RAM for huge html page
             # my $dom = $tx->result->dom;
