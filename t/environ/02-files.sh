@@ -167,4 +167,3 @@ for f in $unversionedfiles; do
     # sha256 must be served from root
     [[ $f =~ sha256 ]] || $mc/curl -I /download/folder1.11test/$f | grep 302
 done
-

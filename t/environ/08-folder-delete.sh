@@ -27,8 +27,8 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$
 rm $ap8/dt/folder1/file2.1.dat
 
 $mc/curl -I /download/folder1/file2.1.dat
-$mc/backstage/job folder_sync_schedule_from_misses
-$mc/backstage/job folder_sync_schedule
+$mc/backstage/job -e folder_sync -a '["/folder1"]'
+$mc/backstage/job -e mirror_scan -a '["/folder1"]'
 $mc/backstage/shoot
 
 $mc/db/sql "select * from file"
@@ -53,8 +53,9 @@ $mc/curl -I /download/folder1/file1.1.dat
 $mc/curl -I /download/folder2/file1.1.dat
 $mc/curl -I /download/folder3/file1.1.dat
 # force rescan
-$mc/backstage/job folder_sync_schedule_from_misses
-$mc/backstage/job folder_sync_schedule
+$mc/backstage/job -e folder_sync -a '["/folder1"]'
+$mc/backstage/job -e folder_sync -a '["/folder2"]'
+$mc/backstage/job -e folder_sync -a '["/folder3"]'
 $mc/backstage/shoot
 
 test 3 == $($mc/db/sql "select count(*) from folder")

@@ -35,14 +35,21 @@ sub register {
         my ($c, $filepath, $dm)= @_;
         my $root = $c->mc->root;
         my $f = Mojo::File->new($dm->root_subtree . $filepath);
-        my $dirname  = $f->dirname;
+        my $dirname = $f->dirname;
+        my $realdirname = $root->realpath($f->dirname) // $dirname;
         my $basename = $f->basename;
         my $dirname_basename = $dirname->basename;
         return $root->render_file($dm, $filepath, 1) if $dm->must_render_from_root; # && $root->is_reachable;
 
         my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
         $dm->folder_id($folder->id) if $folder;
-        my $file = $c->schema->resultset('File')->find_with_hash($folder->id, $basename) if $folder;
+        my $folder_id = $folder->id if $folder;
+        my $realfolder_id;
+        if ($realdirname ne $dirname) {
+            my $realfolder = $c->schema->resultset('Folder')->find({path => $realdirname});
+            $realfolder_id = $realfolder->id if $realfolder;
+        }
+        my $file = $c->schema->resultset('File')->find_with_hash($realfolder_id // $folder_id, $basename) if $folder;
         $dm->file_id($file->{id}) if $file;
         my $country = $dm->country;
         my $region  = $dm->region;
@@ -58,53 +65,16 @@ sub register {
             return $c->render(status => 404, text => "File not found");
         }
 
-        my $scheme = 'http';
-        $scheme = 'https' if $dm->is_secure;
-        my $ipv = 'ipv4';
-        $ipv = 'ipv6' unless $dm->is_ipv4;
-        my $limit = $dm->mirrorlist ? 100 : (( $dm->metalink || $dm->pedantic )? 10 : 1);
-        my ($mirrors_country, $mirrors_region, $mirrors_rest, @avoid_countries);
-        my ($lat, $lng) = $dm->coord;
-        my $vpn = $dm->vpn;
+        my (@mirrors_country, @mirrors_region, @mirrors_rest, @avoid_countries);
 
-        $mirrors_country = $c->schema->resultset('Server')->mirrors_query(
-            $country, $region,  $folder->id, $file->{id},          $scheme,
-            $ipv,     $lat, $lng,    $dm->avoid_countries, $limit,      0,
-            $dm->mirrorlist, $vpn
-        ) if $country;
+        _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $folder_id);
 
+        # add mirrors that have realpath
+        _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $realfolder_id) if $realfolder_id;
         my $mirror;
-        my $found_count = 0;
-        if ($mirrors_country && @$mirrors_country) {
-            $mirror = $mirrors_country->[0];
-            $found_count = $found_count + @$mirrors_country;
-        }
-        if ($region && (($found_count < $limit))) {
-            @avoid_countries = @{$dm->avoid_countries} if $dm->avoid_countries;
-            push @avoid_countries, $country if ($country and !(grep { $country eq $_ } @avoid_countries));
-            $mirrors_region = $c->schema->resultset('Server')->mirrors_query(
-                $country, $region,  $folder->id, $file->{id},       $scheme,
-                $ipv,     $lat, $lng,    \@avoid_countries, $limit,     0,
-                $dm->mirrorlist, $vpn
-            );
-        }
-        if ($mirrors_region && @$mirrors_region) {
-            $mirror = $mirrors_region->[0] unless $mirror;
-            $found_count = $found_count + @$mirrors_region;
-        }
-
-        if (($dm->metalink && $found_count < $limit) || $dm->mirrorlist || !$dm->country) {
-            $mirrors_rest = $c->schema->resultset('Server')->mirrors_query(
-                $country, $region,  $folder->id, $file->{id},          $scheme,
-                $ipv,     $lat, $lng,    $dm->avoid_countries, $limit,  1,
-                $dm->mirrorlist, $vpn
-            );
-        }
-
-        if ($mirrors_rest && @$mirrors_rest) {
-            $mirror = $mirrors_rest->[0] unless $mirror;
-            $found_count = $found_count + @$mirrors_rest;
-        }
+        $mirror = $mirrors_country[0] if @mirrors_country;
+        $mirror = $mirrors_region[0]     if !$mirror && @mirrors_region;
+        $mirror = $mirrors_rest[0]       if !$mirror && @mirrors_rest;
 
         if ($dm->metalink || $dm->mirrorlist) {
             if ($mirror) {
@@ -121,8 +91,8 @@ sub register {
             $origin = $origin . ":" . $url->port if $url->port && $url->port != "80";
             $origin = $origin . $dm->route . $filepath;
             my $xml    = _build_metalink(
-                $dm, $folder->path, $file, $country, $region, $mirrors_country, $mirrors_region,
-                $mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : $root->redirect($dm, $folder->path) );
+                $dm, $folder->path, $file, $country, $region, \@mirrors_country, \@mirrors_region,
+                \@mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : $root->redirect($dm, $folder->path) );
             $c->app->types->type(metalink => 'application/metalink+xml; charset=UTF-8');
             $c->res->headers->content_disposition('attachment; filename="' .$basename. '.metalink"');
             $c->render(data => $xml, format => 'metalink');
@@ -133,22 +103,21 @@ sub register {
             my $url    = $c->req->url->to_abs;
             my @mirrordata;
             if ($country and !$dm->avoid_countries || !(grep { $country eq $_ } $dm->avoid_countries)) {
-                for my $m (@$mirrors_country) {
-                    my $url = $m->{url};
+                for my $m (@mirrors_country) {
                     push @mirrordata,
                       {
-                        url        => $url . $filepath,
-                        location   => uc($m->{country}),
+                        url      => $m->{url},
+                        location => uc($m->{country}),
                       };
                 }
             }
 
             my @mirrordata_region;
             if ($region) {
-                for my $m (@$mirrors_region) {
+                for my $m (@mirrors_region) {
                     push @mirrordata_region,
                       {
-                        url      => $m->{url} . $filepath,
+                        url      => $m->{url},
                         location => uc($m->{country}),
                       };
                 }
@@ -156,10 +125,10 @@ sub register {
             }
 
             my @mirrordata_rest;
-            for my $m (@$mirrors_rest) {
+            for my $m (@mirrors_rest) {
                 push @mirrordata_rest,
                   {
-                    url      => $m->{url} . $filepath,
+                    url      => $m->{url},
                     location => uc($m->{country}),
                   };
             }
@@ -199,6 +168,7 @@ sub register {
             my @regions = $c->subsidiary->regions($region) if $region;
             $c->stash('nonavbar' => 1) if ($ENV{MIRRORCACHE_BRANDING});
             $c->stash('mirrorlist' => 1);
+            my ($lat, $lng) = $dm->coord;
             $c->render(
                 'mirrorlist',
                 cur_path          => $filepath,
@@ -225,7 +195,7 @@ sub register {
             if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
                 return $root->render_file($dm, $filepath, 1);
             }
-            my $url = $mirror->{url} . $dm->root_subtree . $filepath;
+            my $url = $mirror->{url};
             $c->redirect_to($url);
             eval {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
@@ -244,14 +214,14 @@ sub register {
 
             return if $prev && ($prev == 200 || $prev == 302 || $prev == 301);
             my $mirror;
-            if ($mirrors_country && @$mirrors_country) {
-                $mirror = shift @$mirrors_country;
+            if (@mirrors_country) {
+                $mirror = shift @mirrors_country;
             }
-            elsif ($mirrors_region && @$mirrors_region) {
-                $mirror = shift @$mirrors_region;
+            elsif (@mirrors_region) {
+                $mirror = shift @mirrors_region;
             }
-            elsif ($mirrors_rest && @$mirrors_rest) {
-                $mirror = shift @$mirrors_rest;
+            elsif (@mirrors_rest) {
+                $mirror = shift @mirrors_rest;
             }
             unless ($mirror) {
                 return $root->render_file($dm, $filepath);
@@ -263,7 +233,7 @@ sub register {
                 $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country}) if $country ne $dm->root_country;
                 return 1;
             }
-            my $url = $mirror->{url} . $filepath;
+            my $url = $mirror->{url};
             my $code;
             $ua->head_p($url)->then(sub {
                 my $result = shift->result;
@@ -384,7 +354,7 @@ sub _build_metalink() {
 
                 $print_root->() if $country ne uc($m->{country}) && $dm->root_is_better($m->{region}, $m->{lng});
                 $writer->startTag('url', type => substr($url,0,$colon), location => uc($m->{country}), preference => $preference);
-                $writer->characters($url . $fullname);
+                $writer->characters($url);
                 $writer->endTag('url');
                 $preference--;
             }
@@ -403,7 +373,7 @@ sub _build_metalink() {
                     location   => uc($m->{country}),
                     preference => $preference
                 );
-                $writer->characters($url . $fullname);
+                $writer->characters($url);
                 $writer->endTag('url');
                 $preference--;
             }
@@ -422,7 +392,7 @@ sub _build_metalink() {
                     location   => uc($m->{country}),
                     preference => $preference
                 );
-                $writer->characters($url . $fullname);
+                $writer->characters($url);
                 $writer->endTag('url');
                 $preference--;
             }
@@ -436,6 +406,60 @@ sub _build_metalink() {
     $writer->endTag('metalink');
 
     return $writer->end();
+}
+
+sub _collect_mirrors {
+    my ($dm, $mirrors_country, $mirrors_region, $mirrors_rest, $file_id, $folder_id) = @_;
+
+    my $country = $dm->country;
+    my $region  = $dm->region;
+    my $scheme  = $dm->scheme;
+    my $ipv = $dm->ipv;
+    my $vpn = $dm->vpn;
+    my ($lat, $lng) = $dm->coord;
+    my $avoid_countries = $dm->avoid_countries;
+    my $mirrorlist = $dm->mirrorlist;
+    my $metalink   = $dm->metalink;
+    my $limit = $mirrorlist ? 100 : (( $metalink || $dm->pedantic )? 10 : 1);
+    my $rs = $dm->c->schema->resultset('Server');
+
+    my $m = $rs->mirrors_query(
+            $country, $region,  $folder_id, $file_id,        $scheme,
+            $ipv,     $lat, $lng,    $avoid_countries, $limit,      0,
+            $mirrorlist, $vpn
+    ) if $country;
+
+    push @$mirrors_country, @$m if $m && scalar(@$m);
+    my $found_count = scalar(@$mirrors_country) + scalar(@$mirrors_region) + scalar(@$mirrors_rest);
+
+    if ($region && (($found_count < $limit))) {
+        my @avoid_countries = @{$avoid_countries} if $avoid_countries;
+        push @avoid_countries, $country if ($country and !(grep { $country eq $_ } @avoid_countries));
+        $m = $rs->mirrors_query(
+            $country, $region,  $folder_id, $file_id,       $scheme,
+            $ipv,     $lat, $lng,    \@avoid_countries, $limit,     0,
+            $mirrorlist, $vpn
+        );
+        my $found_more = scalar(@$m) if $m;
+        if ($found_more) {
+            $found_count += $found_more;
+            push @$mirrors_region, @$m;
+        }
+    }
+
+    if (($metalink && $found_count < $limit) || $dm->mirrorlist || !$dm->country) {
+        $m = $rs->mirrors_query(
+            $country, $region,  $folder_id, $file_id,          $scheme,
+            $ipv,  $lat, $lng,    $avoid_countries, $limit,  1,
+            $mirrorlist, $vpn
+        );
+        my $found_more = scalar(@$m) if $m;
+        if ($found_more) {
+            $found_count += $found_more;
+            push @$mirrors_rest, @$m;
+        }
+    }
+    return $found_count;
 }
 
 1;

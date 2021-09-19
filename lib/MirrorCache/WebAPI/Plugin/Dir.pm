@@ -263,7 +263,8 @@ sub _render_from_db {
         return _render_dir($dm, $path, $rsFolder) if ($folder->{db_sync_last});
     } elsif (!$trailing_slash && $path ne '/') {
         my $f = Mojo::File->new($path);
-        my $parent_folder = $rsFolder->find({path => $dm->root_subtree . $f->dirname});
+        my $dirname = $root->realpath($f->dirname) // $f->dirname;
+        my $parent_folder = $rsFolder->find({path => $dm->root_subtree . $dirname});
         my $file;
         $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $parent_folder->id }) if $parent_folder && !$trailing_slash;
         # folders are stored with trailing slash in file table, so they will not be selected here
@@ -405,7 +406,9 @@ sub _render_dir_local {
     my $dir = shift;
     my $c   = $dm->c;
     my @files;
-    my $files = $root->list_files($dm->root_subtree . $dir);
+
+    my $realpath = $root->realpath($dm->root_subtree . $dir) // $dm->root_subtree . $dir;
+    my $files = $root->list_files($realpath);
     my $json = $dm->json;
 
     for my $f ( @$files ) {

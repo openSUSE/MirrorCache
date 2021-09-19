@@ -61,6 +61,11 @@ sub is_remote {
     return 1;
 }
 
+sub realpath {
+    return undef;
+}
+
+
 sub is_reachable {
     my $res = 0;
     eval {

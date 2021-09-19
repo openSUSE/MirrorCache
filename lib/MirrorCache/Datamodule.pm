@@ -208,6 +208,11 @@ sub is_ipv4($self) {
     return $self->_is_ipv4;
 }
 
+sub ipv($self) {
+    return "ipv4" if $self->is_ipv4;
+    return "ipv6";
+}
+
 sub is_head($self) {
     unless (defined $self->_is_head) {
         $self->_init_req;

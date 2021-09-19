@@ -55,15 +55,17 @@ sub _scan {
     my $schema = $app->schema;
     my $folder = $schema->resultset('Folder')->find({path => $path});
     return undef unless $folder && $folder->id; # folder is not added to db yet
+    my $realpath = $app->mc->root->realpath($path);
+    my $realfolder = $schema->resultset('Folder')->find({path => $realpath}) if $realpath;
     # we collect max(dt) here to avoid race with new files added to DB
-    my $latestdt = $schema->resultset('File')->find({folder_id => $folder->id}, {
+    my $latestdt = $schema->resultset('File')->find({folder_id => $realfolder? $realfolder->id : $folder->id}, {
         columns => [ { max_dt => { max => "dt" } }, ]
     })->get_column('max_dt');
 
     unless ($latestdt) {
         return $job->note(skip_reason => 'latestdt empty', folder_id => $folder->id);
     }
-    my $folder_id = $folder->id;
+    my $folder_id = $realfolder? $realfolder->id : $folder->id;
     my @dbfiles = ();
     my %dbfileids = ();
     my %dbfileprefixes = ();
@@ -171,9 +173,9 @@ sub _scan {
                 push @missing_files, $dbfileids{$file};
             }
             my $digest = $ctx->hexdigest;
-            my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest});
+            my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder->id, hash => $digest});
             unless ($folder_diff) {
-                $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder_id, hash => $digest});
+                $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder->id, hash => $digest});
                 unless($folder_diff->in_storage) {
                     $folder_diff->dt($latestdt);
                     $folder_diff->insert;

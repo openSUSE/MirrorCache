@@ -92,7 +92,7 @@ case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end
 last1, last2, last3, lastdt1, lastdt2, lastdt3, score, country, region, lng
 from (
 select s.id,
-    concat($hostname,s.urldir) as uri,
+    concat($hostname,s.urldir,f.path,'/',s.name) as uri,
 s.lat as lat,
 s.lng as lng,
 s.country, s.region, s.score,
@@ -111,20 +111,21 @@ sum(case when scd2.server_id is not null or scf2.server_id is not null then 1 el
 (select date_trunc('minute',dt) from server_capability_check where server_id = s.id and capability = '$ipv' order by dt desc limit 1) as lastdt2,
 (select date_trunc('minute',dt) from server_capability_check where server_id = s.id and capability = '$ipvx' order by dt desc limit 1) as lastdt3
 from (
-    select s.*
-    from file fl
-    join folder_diff fd on fl.folder_id = fd.folder_id
+    select s.*, fl.name
+    from folder_diff fd
+    join file fl on fl.id = ?
     join folder_diff_server fds on fd.id = fds.folder_diff_id and fl.dt <= fds.dt
-    left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
     join server s on fds.server_id = s.id and s.enabled  $country_condition
-    where fl.folder_id = ? and fl.id = ? and fdf.file_id is NULL
+    left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
+    where fd.folder_id = ? and fdf.file_id is NULL
 ) s
+join folder f on f.id = ?
 left join server_capability_check chk on s.id = chk.server_id
 left join server_capability_declaration scd on s.id = scd.server_id and scd.capability = '$capability' and NOT scd.enabled
 left join server_capability_force scf on s.id = scf.server_id and scf.capability = '$capability'
 left join server_capability_declaration scd2 on s.id = scd2.server_id and scd.capability = '$ipv' and NOT scd.enabled
 left join server_capability_force scf2 on s.id = scf2.server_id and scf2.capability = '$ipv'
-group by s.id, s.country, s.region, s.score, $hostname, s.urldir, s.lat, s.lng
+group by s.id, s.country, s.region, s.score, $hostname, s.urldir, s.name, s.lat, s.lng, f.path
 ) x
 $extra
 order by last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, weight2 desc, score, lastdt1 desc nulls last, lastdt2 desc nulls last, last3 desc, lastdt3 desc, random()
@@ -135,7 +136,7 @@ limit $limit;
 END_SQL
     my $prep = $dbh->prepare($sql);
 
-    $prep->execute(@country_params, $folder_id, $file_id);
+    $prep->execute($file_id, @country_params, $folder_id, $folder_id);
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
 }

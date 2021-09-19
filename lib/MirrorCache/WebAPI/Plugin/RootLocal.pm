@@ -21,6 +21,8 @@ use Encode ();
 use DirHandle;
 use Mojolicious::Types;
 
+use Cwd;
+
 use constant { dir=>0, host=>1, host_vpn=>2 };
 
 sub singleton { state $root = shift->SUPER::new; return $root; };
@@ -94,11 +96,28 @@ sub redirect {
     return undef;
 }
 
+sub realpath {
+    my ($self, $path) = @_;
+    return undef unless $path;
+
+    my $rootpath = $self->rootpath($root_subtree . $path);
+    return undef unless $rootpath;
+    my $localpath = $rootpath . $root_subtree . $path;
+    my $realpathlocal = Cwd::realpath($localpath);
+
+    if ($realpathlocal && (0 == rindex($realpathlocal, $rootpath, 0))) {
+        my $realpath = substr($realpathlocal, length($rootpath));
+        return $realpath if $realpath ne $path;
+    }
+    return undef;
+}
+
+
 sub rootpath {
     my ($self, $filepath) = @_;
     $filepath = "" unless $filepath;
     for my $root (@roots) {
-        return $root->[dir] if -e $root->[dir] . $filepath;
+        return $root->[dir] if -e $root->[dir] . $root_subtree . $filepath;
     }
     return undef;
 }
