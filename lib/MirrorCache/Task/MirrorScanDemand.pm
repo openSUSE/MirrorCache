@@ -39,7 +39,11 @@ sub _run {
     my $folder_id = $folder->id if $folder;
     return $job->finish("Cannot find folder {$path}") unless $folder && $folder_id; # folder is not added to db yet
 
-    my %seen = ();
+    my $root = $app->mc->root;
+    my $anotherpath = $root->realpath($path);
+    $job->note(anotherpath => $anotherpath) if $anotherpath;
+
+    my $seen;
 
     for my $demand ($schema->resultset('DemandMirrorlist')->search({folder_id => $folder_id, last_request => { '>=', \'COALESCE(last_scan, last_request)' }})) {
         if ($TIMEOUT) {
@@ -47,18 +51,20 @@ sub _run {
             next unless $bool;
         }
         $minion->enqueue('mirror_scan' => [$path] => {priority => 7});
-        $seen{$path} = 1;
+        $minion->enqueue('mirror_scan' => [$anotherpath] => {priority => 7}) if $anotherpath;
+        $seen = 1;
         $job->note("mirrorlist" => 1);
     }
 
     for my $demand ($schema->resultset('Demand')->search({folder_id => $folder_id, last_request => { '>=', \'COALESCE(last_scan, last_request)' }})) {
+        last if $seen;
         next unless my $country = $demand->country;
-        next if $seen{path};
         if ($TIMEOUT) {
             my $bool = $minion->lock("mirror_scan_schedule_$path" . "_$country", $TIMEOUT);
             next unless $bool;
         }
         $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7});
+        $minion->enqueue('mirror_scan' => [$anotherpath, $country] => {priority => 7}) if $anotherpath;
         $job->note($country => 1);
     }
 

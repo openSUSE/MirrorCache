@@ -22,7 +22,7 @@ sub register {
     $app->minion->add_task(folder_sync_schedule_from_misses => sub { _run($app, @_) });
 }
 
-my $DELAY = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
+my $DELAY = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
 
 sub _run {
     my ($app, $job, $prev_stat_id) = @_;

@@ -38,12 +38,18 @@ sub _sync {
     my $root   = $app->mc->root;
     $job->note($path => 1);
 
-    my $folder = $schema->resultset('Folder')->find({path => $path});
-    unless ($root->is_dir($path)) {
+    my $realpath = $root->realpath($path) // $path;
+    if ($realpath ne $path) {
+        $job->note(realpath => $realpath);
+        $job->note($realpath => 1);
+    }
+
+    my $folder = $schema->resultset('Folder')->find({path => $realpath});
+    unless ($root->is_dir($realpath)) {
         return $job->finish("not found") unless $folder;
         # Collect outcomes from recent jobs
         my %outcomes;
-        my $jobs = $minion->jobs({tasks => ['folder_sync'], notes => [$path]});
+        my $jobs = $minion->jobs({tasks => ['folder_sync'], notes => [$realpath]});
         while (my $info = $jobs->next) {
             $outcomes{$info->{finished}} = $info->{result} if $info->{finished};
         }
@@ -88,25 +94,25 @@ sub _sync {
             return undef;
         };
         eval {
-            $folder = $schema->resultset('Folder')->find_or_create({path => $path});
+            $folder = $schema->resultset('Folder')->find_or_create({path => $realpath});
             1;
         } or do {
             # folder often is concurently created fron FolderSyncScheduleFromMisses
-            $folder = $schema->resultset('Folder')->find_or_create({path => $path}) unless $folder;
+            $folder = $schema->resultset('Folder')->find_or_create({path => $realpath}) unless $folder;
         };
         $update_db_last->();
         eval {
             $schema->txn_do(sub {
-                $app->mc->root->foreach_filename($path, $sub);
+                $app->mc->root->foreach_filename($realpath, $sub);
             });
             1;
         } or return $job->fail('Error while reading files from root :' . $@);
 
-        $job->note(created => $path, count => $count);
+        $job->note(created => $realpath, count => $count);
 
         if ($count) {
             $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7});
-            $minion->enqueue('folder_hashes_create' => [$path] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $app->backstage->estimate_inactive_jobs('folder_hashes_create', $HASHES_QUEUE) < 1000;
+            $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $app->backstage->estimate_inactive_jobs('folder_hashes_create', $HASHES_QUEUE) < 1000;
         }
         $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
         return;
@@ -146,7 +152,7 @@ sub _sync {
         $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime});
         return undef;
     };
-    $app->mc->root->foreach_filename($path, $sub)  or
+    $app->mc->root->foreach_filename($realpath, $sub)  or
             return $job->fail('Error while reading files from root');
     my @idstodelete = values %dbfileidstodelete;
     $schema->storage->dbh->do(
@@ -160,10 +166,10 @@ sub _sync {
     my $deleted = @idstodelete;
 
     $folder->update({db_sync_last => datetime_now()});
-    $job->note(updated => $path, count => $cnt, deleted => $deleted, updated => $updated);
+    $job->note(updated => $realpath, count => $cnt, deleted => $deleted, updated => $updated);
     if ($cnt || $updated) {
         $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7} );
-        $minion->enqueue('folder_hashes_create' => [$path] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $app->backstage->estimate_inactive_jobs('folder_hashes_create', $HASHES_QUEUE) < 1000;
+        $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $app->backstage->estimate_inactive_jobs('folder_hashes_create', $HASHES_QUEUE) < 1000;
     }
     $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }

@@ -65,7 +65,7 @@ where ctid in (
 END_SQL
 
     eval {
-        $schema->storage->dbh->prepare($sql)->execute();
+        $schema->storage->dbh->prepare($sqlservercap)->execute();
         1;
     } or $job->note(last_warning => $@, at => datetime_now());
 

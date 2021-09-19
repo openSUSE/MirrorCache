@@ -26,7 +26,6 @@ $ap8/curl /updates/f1/ | grep f1.1.dat
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
 
-
 mcsub=$mc/sub
 
 $mcsub/gen_env MIRRORCACHE_SUBTREE=/updates
