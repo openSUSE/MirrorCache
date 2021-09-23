@@ -16,7 +16,7 @@
 #
 
 
-%define mirrorcache_services mirrorcache.service mirrorcache-backstage.service mirrorcache-backstage-hashes.service
+%define mirrorcache_services mirrorcache.service mirrorcache-backstage.service mirrorcache-backstage-hashes.service mirrorcache-subtree.service
 %define assetpack_requires perl(CSS::Minifier::XS) >= 0.01 perl(JavaScript::Minifier::XS) >= 0.11 perl(Mojolicious::Plugin::AssetPack) >= 1.36 perl(IO::Socket::SSL)
 %define main_requires %{assetpack_requires} perl(Carp) perl(DBD::Pg) >= 3.7.4 perl(DBI) >= 1.632 perl(DBIx::Class) >= 0.082801 perl(DBIx::Class::DynamicDefault) perl(DateTime) perl(Encode) perl(Time::Piece) perl(Time::Seconds) perl(Time::ParseDate) perl(DateTime::Format::Pg) perl(Exporter) perl(File::Basename) perl(LWP::UserAgent) perl(Mojo::Base) perl(Mojo::ByteStream) perl(Mojo::IOLoop) perl(Mojo::JSON) perl(Mojo::Pg) perl(Mojo::URL) perl(Mojo::Util) perl(Mojolicious::Commands) perl(Mojolicious::Plugin) perl(Mojolicious::Plugin::RenderFile) perl(Mojolicious::Static) perl(Net::OpenID::Consumer) perl(POSIX) perl(Sort::Versions) perl(URI::Escape) perl(XML::Writer) perl(base) perl(constant) perl(diagnostics) perl(strict) perl(warnings) shadow rubygem(sass) perl(Net::DNS) perl(LWP::Protocol::https) perl(Digest::SHA)
 %define build_requires %{assetpack_requires} rubygem(sass) tidy sysuser-shadow sysuser-tools
@@ -80,6 +80,7 @@ install -D -m 0644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 %{_sbindir}/rcmirrorcache
 %{_sbindir}/rcmirrorcache-backstage
 %{_sbindir}/rcmirrorcache-backstage-hashes
+%{_sbindir}/rcmirrorcache-subtree
 %{_sysusersdir}/%{name}.conf
 %{_tmpfilesdir}/%{name}.conf
 %config(noreplace) %attr(-,root,mirrorcache) %{_sysconfdir}/mirrorcache/
@@ -89,6 +90,7 @@ install -D -m 0644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 %{_unitdir}/mirrorcache.service
 %{_unitdir}/mirrorcache-backstage.service
 %{_unitdir}/mirrorcache-backstage-hashes.service
+%{_unitdir}/mirrorcache-subtree.service
 # web libs
 %{_datadir}/mirrorcache
 
