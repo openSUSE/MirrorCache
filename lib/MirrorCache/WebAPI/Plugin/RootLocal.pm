@@ -62,9 +62,10 @@ sub is_file {
 }
 
 sub is_dir {
-    return 1 unless $_[1];
+    my ($self, $path) = @_;
+    return 1 if !$path || $path eq '/';
     for my $root (@roots) {
-        return 1 if -d $root->[dir] . $root_subtree . $_[1];
+        return 1 if -d $root->[dir] . $root_subtree . $path;
     }
     return 0;
 }
@@ -100,7 +101,7 @@ sub realpath {
     my ($self, $path) = @_;
     return undef unless $path;
 
-    my $rootpath = $self->rootpath($root_subtree . $path);
+    my $rootpath = $self->rootpath($path);
     return undef unless $rootpath;
     my $localpath = $rootpath . $root_subtree . $path;
     my $realpathlocal = Cwd::realpath($localpath);
@@ -123,6 +124,7 @@ sub rootpath {
 }
 
 
+# we cannot use $subtree here, because we may actually render from realdir, which is outside subtree
 sub foreach_filename {
     my $self = shift;
     my $dir  = shift;
@@ -142,6 +144,7 @@ sub foreach_filename {
     return 1;
 }
 
+# we cannot use $subtree here, because we may actually render from realdir, which is outside subtree
 sub list_files {
     my $self = shift;
     my $dir  = shift;

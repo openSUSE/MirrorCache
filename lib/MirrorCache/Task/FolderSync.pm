@@ -38,7 +38,8 @@ sub _sync {
     my $root   = $app->mc->root;
     $job->note($path => 1);
 
-    my $realpath = $root->realpath($path) // $path;
+    my $realpath = $root->realpath($path);
+    $realpath = $path unless $realpath;
     if ($realpath ne $path) {
         $job->note(realpath => $realpath);
         $job->note($realpath => 1);
@@ -78,6 +79,10 @@ sub _sync {
     # Mark db_sync_last early to stop other jobs to try to reschedule the sync
     my $update_db_last = sub {
         $folder->update({db_sync_last => datetime_now()});
+        if ($realpath ne $path) {
+            my $otherFolder = $schema->resultset('Folder')->find({path => $path});
+            $otherFolder->update({db_sync_last => datetime_now()}) if $otherFolder;
+        }
     };
 
     if ($folder) {

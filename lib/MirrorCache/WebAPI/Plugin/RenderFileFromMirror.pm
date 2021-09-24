@@ -34,14 +34,16 @@ sub register {
     $app->helper( 'mirrorcache.render_file' => sub {
         my ($c, $filepath, $dm)= @_;
         my $root = $c->mc->root;
-        my $f = Mojo::File->new($dm->root_subtree . $filepath);
+        my $f = Mojo::File->new($filepath);
         my $dirname = $f->dirname;
-        my $realdirname = $root->realpath($f->dirname) // $dirname;
+        my $realdirname = $root->realpath($f->dirname);
+        $realdirname = $dirname unless $realdirname;
         my $basename = $f->basename;
         my $dirname_basename = $dirname->basename;
+        my $subtree = $dm->root_subtree;
         return $root->render_file($dm, $filepath, 1) if $dm->must_render_from_root; # && $root->is_reachable;
 
-        my $folder = $c->schema->resultset('Folder')->find({path => $dirname});
+        my $folder = $c->schema->resultset('Folder')->find({path => $subtree . $dirname});
         $dm->folder_id($folder->id) if $folder;
         my $folder_id = $folder->id if $folder;
         my $realfolder_id;
@@ -49,7 +51,7 @@ sub register {
             my $realfolder = $c->schema->resultset('Folder')->find({path => $realdirname});
             $realfolder_id = $realfolder->id if $realfolder;
         }
-        my $file = $c->schema->resultset('File')->find_with_hash($realfolder_id // $folder_id, $basename) if $folder;
+        my $file = $c->schema->resultset('File')->find_with_hash(($realfolder_id? $realfolder_id : $folder_id), $basename) if $folder;
         $dm->file_id($file->{id}) if $file;
         my $country = $dm->country;
         my $region  = $dm->region;
@@ -79,7 +81,7 @@ sub register {
         if ($dm->metalink || $dm->mirrorlist) {
             if ($mirror) {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
-                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
+                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country, mirror3 => $mirror->{country}}) if $country && $country ne $mirror->{country} && $country ne $dm->root_country;
             } else {
                 $c->stat->redirect_to_root($dm);
             }
@@ -199,7 +201,7 @@ sub register {
             $c->redirect_to($url);
             eval {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
-                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
+                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country, mirror => $mirror->{country}}) if $country && $country ne $mirror->{country};
             };
             return 1;
         }
@@ -230,7 +232,7 @@ sub register {
             # only with remote root and when no mirrors should be used for the root's country
             if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
                 $root->render_file($dm, $filepath, 1);
-                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country}) if $country ne $dm->root_country;
+                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country, mirror1 => $mirror->{country}}) if $country && $country ne $dm->root_country;
                 return 1;
             }
             my $url = $mirror->{url};
@@ -251,7 +253,7 @@ sub register {
                     }
                     $c->redirect_to($url);
                     $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
-                    $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country}) if $country && $country ne $mirror->{country};
+                    $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country, mirror2 => $mirror->{country}}) if $country && $country ne $mirror->{country};
                     return 1;
                 }
                 $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});

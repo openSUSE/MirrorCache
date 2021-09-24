@@ -136,8 +136,9 @@ sub _render_dir {
     $dm->folder_id($folder->id) if $folder;
 
     my $folder_id = $folder->id if $folder;
-    $c->stat->redirect_to_root($dm, 0) unless $folder_id && $folder->db_sync_last;
     return _render_dir_local($dm, $folder_id, $dir) unless $root->is_remote; # just render files if we have them locally
+
+    $c->stat->redirect_to_root($dm, 0) unless $folder_id && $folder->db_sync_last ;
     return _render_dir_from_db($dm, $folder_id, $dir) if $folder && $folder->db_sync_last;
 
     my $pos = $rsFolder->get_db_sync_queue_position($dir);
@@ -240,12 +241,11 @@ sub _local_render {
     my $dm = shift;
     return undef if $dm->metalink || $dm->mirrorlist;
     my ($path, $trailing_slash) = $dm->path;
-    my $c = $dm->c;
     if ($root->is_dir($path)) {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
         return _render_dir($dm, $path);
     }
-    $c->mirrorcache->render_file($path, $dm) if !$trailing_slash && $root->is_file($path);
+    $dm->c->mirrorcache->render_file($path, $dm) if !$trailing_slash && $root->is_file($path);
     return 1;
 }
 
@@ -263,8 +263,9 @@ sub _render_from_db {
         return _render_dir($dm, $path, $rsFolder) if ($folder->{db_sync_last});
     } elsif (!$trailing_slash && $path ne '/') {
         my $f = Mojo::File->new($path);
-        my $dirname = $root->realpath($f->dirname) // $f->dirname;
-        my $parent_folder = $rsFolder->find({path => $dm->root_subtree . $dirname});
+        my $dirname = $root->realpath($f->dirname);
+        $dirname = $dm->root_subtree . $f->dirname unless $dirname;
+        my $parent_folder = $rsFolder->find({path => $dirname});
         my $file;
         $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $parent_folder->id }) if $parent_folder && !$trailing_slash;
         # folders are stored with trailing slash in file table, so they will not be selected here
@@ -407,7 +408,8 @@ sub _render_dir_local {
     my $c   = $dm->c;
     my @files;
 
-    my $realpath = $root->realpath($dm->root_subtree . $dir) // $dm->root_subtree . $dir;
+    my $realpath = $root->realpath($dir);
+    $realpath =  $dm->root_subtree . $dir unless $realpath;
     my $files = $root->list_files($realpath);
     my $json = $dm->json;
 
