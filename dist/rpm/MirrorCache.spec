@@ -58,6 +58,7 @@ mkdir -p %{buildroot}%{_sbindir}
 ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache
 ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache-backstage
 ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache-backstage-hashes
+ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache-subtree
 install -D -m 0644 %{SOURCE2} %{buildroot}%{_sysusersdir}/%{name}.conf
 install -D -m 0644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 
