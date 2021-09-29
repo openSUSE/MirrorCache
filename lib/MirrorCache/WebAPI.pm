@@ -50,6 +50,8 @@ sub startup {
     my $current_version = $self->detect_current_version() || "unknown";
     $self->defaults(current_version => $current_version);
     $self->log->info("initializing $current_version");
+    
+    $self->defaults(branding => $ENV{MIRRORCACHE_BRANDING});
 
     $self->app->hook(before_server_start => sub {
         die("MIRRORCACHE_ROOT is not set") unless $root;
