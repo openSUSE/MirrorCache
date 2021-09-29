@@ -258,7 +258,7 @@ sub register {
                 }
                 $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
             })->catch(sub {
-                $c->emit_event('mc_mirror_error', {path => $dirname, error => shift, url => $url, server => $mirror->{id}, folder => $folder->id}, id => $mirror->{mirror_id});
+                $c->emit_event('mc_mirror_error', {path => $dirname, error => shift, url => $url, folder => $folder->id, id => $mirror->{mirror_id}});
             })->finally(sub {
                 return $recurs1->($code);
                 my $reftx = $tx;
