@@ -1,0 +1,231 @@
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  list-style: none;
+  background-color: #e9ecef;
+  border-radius: 0.25rem;
+}
+
+.breadcrumb-item + .breadcrumb-item {
+  padding-left: 0.5rem;
+}
+.breadcrumb-item + .breadcrumb-item::before {
+  display: inline-block;
+  padding-right: 0.5rem;
+  color: #6c757d;
+  content: "/";
+}
+.breadcrumb-item + .breadcrumb-item:hover::before {
+  text-decoration: underline;
+}
+.breadcrumb-item + .breadcrumb-item:hover::before {
+  text-decoration: none;
+}
+.breadcrumb-item.active {
+  color: #6c757d;
+}
+
+
+.megamenu {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 56px;
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  margin-top: 2px;
+  background-color: #173f4f;
+  color: #e9ecef;
+  z-index: 1000;
+}
+
+.megamenu .row {
+  padding-bottom: 16px;
+}
+
+.megamenu-heading {
+  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-top: 16px;
+  margin-bottom: 0;
+  color: inherit;
+}
+
+.megamenu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.megamenu a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.megamenu svg {
+  vertical-align: -2.4px;
+}
+
+
+.navbar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+}
+.navbar .container,
+.navbar .container-fluid,
+.navbar .container-sm,
+.navbar .container-md,
+.navbar .container-lg,
+.navbar .container-xl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+
+.navbar-nav {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0;
+  margin-bottom: 0;
+  list-style: none;
+}
+.navbar-nav .dropdown-menu {
+  position: static;
+  float: none;
+}
+
+
+@media (max-width: 767.98px) {
+  .navbar-collapse {
+    order: 1;
+    margin-top: 0.5rem;
+  }
+}
+
+
+.navbar {
+  background: #e9ecef;
+  border-bottom: 2px solid #73ba25;
+}
+.navbar.navbar-transparent {
+  background-color: transparent;
+  border: 0;
+}
+.navbar .navbar-brand {
+  color: rgba(0, 0, 0, 0.9);
+  display: inline-flex;
+}
+.navbar .navbar-brand img {
+  margin-right: 0.5rem;
+}
+.navbar .navbar-brand:hover, .navbar .navbar-brand:focus {
+  color: rgba(0, 0, 0, 0.9);
+}
+.navbar .navbar-nav .nav-link {
+  color: rgba(0, 0, 0, 0.5);
+}
+.navbar .navbar-nav .nav-link:hover, .navbar .navbar-nav .nav-link:focus {
+  color: rgba(0, 0, 0, 0.7);
+}
+.navbar .navbar-nav .nav-link.disabled {
+  color: rgba(0, 0, 0, 0.3);
+}
+.navbar .navbar-nav .show > .nav-link,
+.navbar .navbar-nav .active > .nav-link,
+.navbar .navbar-nav .nav-link.show,
+.navbar .navbar-nav .nav-link.active {
+  color: rgba(0, 0, 0, 0.9);
+}
+.navbar .navbar-toggler {
+  color: rgba(0, 0, 0, 0.5);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+.navbar .navbar-text {
+  color: rgba(0, 0, 0, 0.5);
+}
+.navbar .navbar-text a {
+  color: rgba(0, 0, 0, 0.9);
+}
+.navbar .navbar-text a:hover, .navbar .navbar-text a:focus {
+  color: rgba(0, 0, 0, 0.9);
+}
+.navbar .form-control {
+  border: 0;
+}
+.navbar .btn-secondary {
+  border: 0;
+  background-color: #ffffff;
+  color: rgba(0, 0, 0, 0.5);
+}
+.navbar .btn-secondary:hover, .navbar .btn-secondary:focus {
+  color: rgba(0, 0, 0, 0.7);
+}
+.navbar .avatar {
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 1em;
+  margin-top: -0.3em;
+  margin-bottom: -0.2em;
+}
+.navbar .dropdown-menu {
+  max-height: calc(100vh - 3.3em);
+  overflow: auto;
+}
+
+.navbar-toggler {
+  margin-left: auto;
+  padding: .25rem .25rem;
+  line-height: .75rem;
+  font-size: 1.25rem;
+  border-radius: .25rem;
+}
+
+.megamenu-toggler,
+.darkmode-toggler {
+  display: block !important;
+  margin-left: 10px;
+}
+
+
+.navbar-brand {
+  display: inline-block;
+  padding-top: 0.3125rem;
+  padding-bottom: 0.3125rem;
+  margin-right: 1rem;
+  font-size: 1.25rem;
+  line-height: inherit;
+  white-space: nowrap;
+}
+
+
+a {
+  color: #21a4df;
+}
+body {
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+#content {
+  margin-bottom: 1.5rem !important;
+  margin-top: 1.5rem !important;
+}
+footer, .footer {
+  padding: 30px 0;
+  color: #6c757d;
+  background: #f8f9fa;
+  position: absolute;
+  bottom: 0;
+}

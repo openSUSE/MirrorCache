@@ -23,6 +23,18 @@
       %= asset 'bootstrap.css'
       %= asset 'bootstrap.js'
 
+      % my $mc_branding = eval '$branding' // '';
+      % if ($mc_branding eq 'openSUSE') {
+      <!-- Chameleon Style -->
+      <!-- <link rel="stylesheet" href="https://static.opensuse.org/chameleon-3.0/dist/css/chameleon.css" /> -->
+      %= asset 'chameleon.css'
+      <!-- Chameleon Script -->
+      <script defer src="https://static.opensuse.org/chameleon-3.0/dist/js/chameleon.js"></script>
+      % } else {
+      <!-- other assets -->
+      %= asset 'navigation.css'
+      % }
+
       %= content_for 'head'
 
       %= javascript begin

@@ -1,4 +1,7 @@
 body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     font-family: $default-font;
     line-height: 1.428571429;
     -webkit-font-smoothing: antialiased;
@@ -21,15 +24,14 @@ body {
     #content {
         padding-left: 40px;
         padding-right: 40px;
+        flex: 1;
     }
 }
 
 // footer
 .footer {
-    position: absolute;
-    bottom: 0;
     width: 100%;
-    background-color: #f5f5f5;
+    background-color: rgba(0, 0, 0, 0.1);
 }
 #footer-links {
     &.left {
@@ -185,11 +187,12 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 }
 
 .breadcrumb {
+    margin-top: 5px;
     margin-bottom: 2px;
     background-color: $gray-100;
 }
 
-#container-download {
+.container-download {
   width: 100%;
   max-width: 1080px;
   margin: auto;

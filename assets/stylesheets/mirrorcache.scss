@@ -7,10 +7,9 @@
 @import url($web-font-path);
 
 // include Bootstrap 4
-@import "../cache/raw.githubusercontent.com/twbs/bootstrap/v4.1.1/scss/bootstrap.scss";
+@import "../cache/raw.githubusercontent.com/twbs/bootstrap/v4.5.2/scss/bootstrap.scss";
 
 // include custom css for various aspects of the pages
 @import "admin-pages.scss";
-@import "navigation.scss";
 @import "overall.scss";
 @import "tables.scss";

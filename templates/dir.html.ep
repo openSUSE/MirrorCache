@@ -6,9 +6,16 @@
 
 %= include 'layouts/info'
 
+% my $mc_branding = eval '$branding' // '';
+% if ($mc_branding eq 'openSUSE') {
+  % if ($bc_last eq 'download') {
 %= include_branding 'dir_details'
+  % }
+% } else {
+%= include_branding 'dir_details'
+% }
 
-<div id="container-download">
+<div class="container-download">
 
   <div id="breadcrumbs">
     <ol class="breadcrumb break-long-content">
@@ -38,9 +45,7 @@
     <thead>
     <tbody>
       <tr>
-      % if ($cur_path eq '/') {
-        <td colspan="4" class="breadcrumb-item active">Parent Directory</td>
-      % } else {
+      % if ($cur_path ne '/') {
         <td colspan="4" class="breadcrumb-item"><a href="../">Parent Directory</a></td>
       % }
       </tr>
