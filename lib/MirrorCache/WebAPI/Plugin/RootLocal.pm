@@ -88,7 +88,7 @@ sub redirect {
     my ($self, $dm, $filepath) = @_;
     $filepath = "" unless $filepath;
     for my $root (@roots) {
-        next unless -e $root->[dir] . $root_subtree . $filepath;
+        next unless ( -e $root->[dir] . $root_subtree . $filepath || ( $root_subtree && ( -e $root->[dir] . $filepath  ) ) );
 
         return $dm->scheme . "://" . $root->[host_vpn] if ($dm->vpn && $root->[host_vpn]);
         return $dm->scheme . "://" . $root->[host] if ($root->[host]);
