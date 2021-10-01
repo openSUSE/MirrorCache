@@ -29,6 +29,7 @@ sub register {
         return ("", "") unless $reader;
         $ip = shift->client_ip unless $ip;
         return ('us','na') if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
+        $ip =~ s/^::ffff://;
         my $record = $reader->record_for_address($ip);
         my ($region, $country) = ("","");
         eval {
@@ -42,6 +43,7 @@ sub register {
         my ($c, $ip) = @_;
         return "" unless $reader;
         $ip = shift->client_ip unless $ip;
+        $ip =~ s/^::ffff://;
         return (0,0,'us','na') if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
         my $record = $reader->record_for_address($ip);
         return ($record->{location}->{latitude},$record->{location}->{longitude},lc($record->{country}->{iso_code}),lc($record->{continent}->{code})) if $record;

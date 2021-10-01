@@ -239,7 +239,8 @@ sub _init_req($self) {
     $self->_is_head('HEAD' eq uc($self->c->req->method)? 1 : 0);
     $self->_is_ipv4(1);
     if (my $ip = $self->ip) {
-        $self->_is_ipv4(0) if index($ip,':') > -1 && $ip ne '::ffff:127.0.0.1'
+        $ip =~ s/^::ffff://;
+        $self->_is_ipv4(0) if index($ip,':') > -1;
     }
 }
 

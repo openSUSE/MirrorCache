@@ -30,6 +30,7 @@ sub register {
         $ip = shift->client_ip unless $ip;
         return ('us','na') if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
 
+        $ip =~ s/^::ffff://;
         my $country = _get_country($geodb, $ip) // '';
         my $region  = region_for_country($country) // '';
 
@@ -42,6 +43,7 @@ sub register {
         $ip = shift->client_ip unless $ip;
         return (0,0,'us','na') if $ip eq '::1' || $ip eq '::ffff:127.0.0.1'; # for testing only
 
+        $ip =~ s/^::ffff://;
         my $country = _get_country($geodb, $ip) // '';
         my $region  = region_for_country($country) // '';
 
