@@ -3,7 +3,6 @@ package File::Listing::Rsync;
 
 use Mojo::Base -base;
 use Socket;
-# use Mojo::Exception;
 use Data::Dumper;
 
 has 'addr';
@@ -52,7 +51,7 @@ sub init {
     }
 
     die "Cannot parse url '$url'\n" unless $url =~ m{^([^:/]+)(:(\d*))?(/(.*)/?)?$};
-    my ($host, $_, $port, $path) = ($1,$2,$3,$4);
+    my ($host, undef, $port, $path) = ($1,$2,$3,$4);
     $path = $5 if $path;
     $self->set_host($host);
     $self->port($port) if $port;
