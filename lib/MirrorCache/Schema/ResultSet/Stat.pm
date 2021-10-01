@@ -137,9 +137,8 @@ sub _misses {
     my $dbh     = $schema->storage->dbh;
 
     my $extra_condition   = $mode eq 'path'? ' and file_id is null' : ' and file_id is not null ';
-    my $country_condition = $ENV{MIRRORCACHE_CITY_MMDB} ? "and country <> ''" : '';
 
-    my $sql = "select id, country, path, case when mirrorlist then 1 else 0 end as mirrorlist from stat where mirror_id in (-1, 0) $extra_condition $country_condition";
+    my $sql = "select id, country, path, case when mirrorlist then 1 else 0 end as mirrorlist from stat where mirror_id in (-1, 0) $extra_condition";
     $sql = "$sql and id > $prev_stat_id" if $prev_stat_id;
     $sql = "$sql union all select max(id), '', '-max_id', null from stat"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";

@@ -2,7 +2,10 @@
 set -ex
 
 mc=$(environ mc $(pwd))
-$mc/gen_env MIRRORCACHE_PEDANTIC=1
+MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=2
+
+$mc/gen_env MIRRORCACHE_PEDANTIC=1 \
+            MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 
 ap9=$(environ ap9)
 ap8=$(environ ap8)
@@ -49,3 +52,12 @@ $mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep -C 10 302
 $ap8/start
 $mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat
 $mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep -C 10 302 | grep $munich_host
+
+
+$mc/curl --interface 127.0.0.15 /rest/myip
+$mc/curl --interface 127.0.0.15 /download/folder2/file1.1.dat.mirrorlist
+
+$mc/sql 'select * from stat order by id desc limit 1'
+sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+$mc/backstage/shoot
+$mc/curl --interface 127.0.0.15 /download/folder2/file1.1.dat.mirrorlist | grep -C10 $munich_host | grep -C10 $berlin_host | grep -C10 $altona_host | grep http
