@@ -22,8 +22,11 @@ ln -s ../../folder2 v2
 ls -la $mc/dt/updates/tool/
 
 cp -r $mc/dt/folder1/ $ap7/dt/
+cp -r $mc/dt/folder2/ $ap7/dt/
 mkdir -p $ap8/dt/updates/tool/v1
+mkdir -p $ap8/dt/updates/tool/v2
 cp $mc/dt/folder1/* $ap8/dt/updates/tool/v1/
+cp $mc/dt/folder2/* $ap8/dt/updates/tool/v2/
 
 
 $ap7/start
@@ -45,11 +48,11 @@ $mcsub/gen_env MIRRORCACHE_ROOT="'$mc/dt:testhost.com:testhost.vpn'" \
 $mcsub/start
 
 $mc/curl -Is /download/updates/tool/v1/file1.1.dat.mirrorlist
-$mc/curl -Is /download/updates/tool/v2/file1.1.dat.mirrorlist?COUNTRY=xx
+$mc/curl -Is --interface 127.0.0.15 /download/updates/tool/v2/file1.1.dat.mirrorlist
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
 $mcsub/curl /tool/v1/file1.1.dat.metalink  | grep -C10 $($ap7/print_address)/folder1/file1.1.dat | grep -C10 $($ap8/print_address)/updates/tool/v1/file1.1.dat | grep testhost.com
-$mcsub/curl /tool/v2/file1.1.dat.metalink  | grep -C10 $($ap7/print_address)/folder2/file1.1.dat | grep -C10 $($ap8/print_address)/updates/tool/v2/file1.1.dat | grep testhost.com
+$mcsub/curl /tool/v2/file1.1.dat.metalink  | grep -C10 $($ap8/print_address)/updates/tool/v2/file1.1.dat | grep testhost.com
