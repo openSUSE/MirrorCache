@@ -67,7 +67,7 @@ sub register {
             return $c->render(status => 404, text => "File not found");
         }
 
-        my (@mirrors_country, @mirrors_region, @mirrors_rest, @avoid_countries);
+        my (@mirrors_country, @mirrors_region, @mirrors_rest);
 
         _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $folder_id);
 
@@ -435,7 +435,8 @@ sub _collect_mirrors {
     my $found_count = scalar(@$mirrors_country) + scalar(@$mirrors_region) + scalar(@$mirrors_rest);
 
     if ($region && (($found_count < $limit))) {
-        my @avoid_countries = @{$avoid_countries} if $avoid_countries;
+        my @avoid_countries;
+        push @avoid_countries, @$avoid_countries if $avoid_countries && scalar(@$avoid_countries);
         push @avoid_countries, $country if ($country and !(grep { $country eq $_ } @avoid_countries));
         $m = $rs->mirrors_query(
             $country, $region,  $folder_id, $file_id,       $scheme,
