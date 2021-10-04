@@ -421,6 +421,7 @@ sub _collect_mirrors {
     my ($lat, $lng) = $dm->coord;
     my $avoid_countries = $dm->avoid_countries;
     my $mirrorlist = $dm->mirrorlist;
+    my $ipvstrict  = $dm->ipvstrict;
     my $metalink   = $dm->metalink;
     my $limit = $mirrorlist ? 100 : (( $metalink || $dm->pedantic )? 10 : 1);
     my $rs = $dm->c->schema->resultset('Server');
@@ -428,7 +429,7 @@ sub _collect_mirrors {
     my $m = $rs->mirrors_query(
             $country, $region,  $folder_id, $file_id,        $scheme,
             $ipv,     $lat, $lng,    $avoid_countries, $limit,      0,
-            $mirrorlist, $vpn
+            !$mirrorlist, $ipvstrict, $vpn
     ) if $country;
 
     push @$mirrors_country, @$m if $m && scalar(@$m);
@@ -441,7 +442,7 @@ sub _collect_mirrors {
         $m = $rs->mirrors_query(
             $country, $region,  $folder_id, $file_id,       $scheme,
             $ipv,     $lat, $lng,    \@avoid_countries, $limit,     0,
-            $mirrorlist, $vpn
+            !$mirrorlist, $ipvstrict, $vpn
         );
         my $found_more = scalar(@$m) if $m;
         if ($found_more) {
@@ -450,11 +451,11 @@ sub _collect_mirrors {
         }
     }
 
-    if (($metalink && $found_count < $limit) || $dm->mirrorlist || !$dm->country) {
+    if (($metalink && $found_count < $limit) || $mirrorlist || !$country) {
         $m = $rs->mirrors_query(
             $country, $region,  $folder_id, $file_id,          $scheme,
             $ipv,  $lat, $lng,    $avoid_countries, $limit,  1,
-            $mirrorlist, $vpn
+            !$mirrorlist, $ipvstrict, $vpn
         );
         my $found_more = scalar(@$m) if $m;
         if ($found_more) {

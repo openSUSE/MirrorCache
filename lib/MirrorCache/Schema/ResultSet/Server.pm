@@ -24,7 +24,7 @@ sub mirrors_query {
     my (
         $self, $country, $region, $folder_id,       $file_id, $capability,
         $ipv,  $lat,     $lng,    $avoid_countries, $limit,   $avoid_region,
-        $mirrorlist, $vpn
+        $schemastrict, $ipvstrict, $vpn
     ) = @_;
     $country    = ''     unless $country;
     $region     = ''     unless $region;
@@ -76,7 +76,14 @@ sub mirrors_query {
     my $weight_country_case = ($avoid_country or $avoid_region) ? '' : "when country $avoid_country= '$country' then 2 ";
     my $ipvx = $ipv eq 'ipv4'? 'ipv6' : 'ipv4';
     my $capabilityx = $capability eq 'http'? 'https' : 'http';
-    my $extra = $mirrorlist? '': "WHERE no4 = 0 and no5 = 0";
+    my $extra = '';
+    if ($schemastrict && $ipvstrict) {
+        $extra = "WHERE no4 = 0 and no5 = 0";
+    } elsif ($schemastrict) {
+        $extra = "WHERE no4 = 0";
+    } elsif ($ipvstrict) {
+        $extra = "WHERE no5 = 0";
+    }
     my $hostname = $vpn? "CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END" : "s.hostname";
 
     my $sql = <<"END_SQL";
@@ -89,7 +96,7 @@ end as dist,
 (2*(yes1 * yes1) - 2*(case when no1 > 10 then no1 * no1 else 10 * no1 end) + (case when yes2 < 5 then yes2 else 5 * yes2 end) - (case when no2 > 10 then no2 * no2 else 10 * no2 end)) weight1,
 case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end weight_country,
 (yes3 * yes3) - (case when no3 > 5 then no3 * no3 else 5 * no3 end) weight2,
-last1, last2, last3, lastdt1, lastdt2, lastdt3, score, country, region, lng
+last1, last2, last3, lastdt1, lastdt2, lastdt3, score, country, region, lng, no4, no5
 from (
 select s.id,
     concat($hostname,s.urldir,f.path,'/',s.name) as uri,
@@ -128,10 +135,10 @@ left join server_capability_force scf2 on s.id = scf2.server_id and scf2.capabil
 group by s.id, s.country, s.region, s.score, $hostname, s.urldir, s.name, s.lat, s.lng, f.path
 ) x
 $extra
-order by last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, weight2 desc, score, lastdt1 desc nulls last, lastdt2 desc nulls last, last3 desc, lastdt3 desc, random()
+order by no4, no5, last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, weight2 desc, score, lastdt1 desc nulls last, lastdt2 desc nulls last, last3 desc, lastdt3 desc, random()
 limit $limit
 ) xx
-order by last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, (dist/100)::int, weight2 desc, score, last3 desc nulls last, dist, random()
+order by no4, no5, last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, (dist/100)::int, weight2 desc, score, last3 desc nulls last, dist, random()
 limit $limit;
 END_SQL
     my $prep = $dbh->prepare($sql);

@@ -33,7 +33,7 @@ has [ '_query', '_query1' ];
 has '_original_path';
 has 'must_render_from_root';
 has '_agent';
-has [ '_is_secure', '_is_ipv4', '_is_head' ];
+has [ '_is_secure', '_is_ipv4', '_ipvstrict', '_is_head' ];
 has 'mirrorlist';
 has 'json';
 has [ 'folder_id', 'file_id' ]; # shortcut to requested folder and file, if known
@@ -213,6 +213,13 @@ sub ipv($self) {
     return "ipv6";
 }
 
+sub ipvstrict($self) {
+    unless (defined $self->_ipvstrict) {
+        $self->_init_req;
+    }
+    return $self->_ipvstrict;
+}
+
 sub is_head($self) {
     unless (defined $self->_is_head) {
         $self->_init_req;
@@ -237,10 +244,29 @@ sub _init_headers($self) {
 sub _init_req($self) {
     $self->_is_secure($self->c->req->is_secure? 1 : 0);
     $self->_is_head('HEAD' eq uc($self->c->req->method)? 1 : 0);
-    $self->_is_ipv4(1);
-    if (my $ip = $self->ip) {
-        $ip =~ s/^::ffff://;
-        $self->_is_ipv4(0) if index($ip,':') > -1;
+    $self->_ipvstrict(0);
+    my $query = $self->c->req->url->query;
+    my $p;
+    $p = $query->every_param('IPV');
+    if (scalar(@$p) && $p->[-1] ne '0') {
+        $self->_ipvstrict(1);
+    }
+    $p = $query->every_param('IPV4');
+    if (scalar(@$p) && $p->[-1] ne '0') {
+        $self->_is_ipv4(1);
+        $self->_ipvstrict(1);
+    }
+    $p = $query->every_param('IPV6');
+    if (scalar(@$p) && $p->[-1] ne '0') {
+        $self->_is_ipv4(0);
+        $self->_ipvstrict(1);
+    }
+    unless (defined $self->_is_ipv4) {
+        $self->_is_ipv4(1);
+        if (my $ip = $self->ip) {
+            $ip =~ s/^::ffff://;
+            $self->_is_ipv4(0) if index($ip,':') > -1;
+        }
     }
 }
 

@@ -51,5 +51,39 @@ $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
 # make sure it redirects to ipv4 and ipv6 as requested
-curl -I -s $ipv4/download/folder1/file1.1.dat | grep $($ap7/print_address)
-curl -I -s $ipv6/download/folder1/file1.1.dat | grep Location | grep ::1
+curl -Is $ipv4/download/folder1/file1.1.dat | grep $($ap7/print_address)
+curl -Is $ipv6/download/folder1/file1.1.dat | grep Location | grep ::1
+
+
+# make sure order in metalink honorc ipv
+curl -s $ipv4/download/folder1/file1.1.dat.metalink | grep -A1 $($ap7/print_address) | grep ::1
+curl -s $ipv6/download/folder1/file1.1.dat.metalink | grep -A1 ::1 | grep $($ap7/print_address)
+
+# make sure ipv is strict with IPV parameter
+curl -s $ipv4/download/folder1/file1.1.dat.metalink?IPV  | grep $($ap7/print_address)
+curl -s $ipv4/download/folder1/file1.1.dat.metalink?IPV4 | grep $($ap7/print_address)
+curl -s $ipv4/download/folder1/file1.1.dat.metalink?IPV6 | grep ::1
+
+curl -s $ipv6/download/folder1/file1.1.dat.metalink?IPV  | grep ::1
+curl -s $ipv6/download/folder1/file1.1.dat.metalink?IPV6 | grep ::1
+curl -s $ipv6/download/folder1/file1.1.dat.metalink?IPV4 | grep $($ap7/print_address)
+
+rc=0
+curl -s $ipv4/download/folder1/file1.1.dat.metalink?IPV  | grep ::1 || rc=$?
+test $rc -gt 0
+rc=0
+curl -s $ipv4/download/folder1/file1.1.dat.metalink?IPV4 | grep ::1 || rc=$?
+test $rc -gt 0
+rc=0
+curl -s $ipv4/download/folder1/file1.1.dat.metalink?IPV6 | grep $($ap7/print_address) || rc=$?
+test $rc -gt 0
+
+rc=0
+curl -s $ipv6/download/folder1/file1.1.dat.metalink?IPV  | grep $($ap7/print_address) || rc=$?
+test $rc -gt 0
+rc=0
+curl -s $ipv6/download/folder1/file1.1.dat.metalink?IPV6 | grep $($ap7/print_address) || rc=$?
+test $rc -gt 0
+rc=0
+curl -s $ipv6/download/folder1/file1.1.dat.metalink?IPV4 | grep file1.dat | grep ::1 || rc=$?
+test $rc -gt 0
