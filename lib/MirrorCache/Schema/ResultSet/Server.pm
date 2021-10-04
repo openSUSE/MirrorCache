@@ -165,7 +165,8 @@ concat(
     '://',
     CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,
     s.urldir,f.path) as url,
-max(fds.folder_diff_id) as diff_id, extract(epoch from max(fd.dt)) as dt_epoch
+max(fds.folder_diff_id) as diff_id, extract(epoch from max(fd.dt)) as dt_epoch,
+cap_hasall.capability as hasall
 from server s join folder f on f.id=?
 left join server_capability_declaration cap_http  on cap_http.server_id  = s.id and cap_http.capability  = 'http' and not cap_http.enabled
 left join server_capability_declaration cap_https on cap_https.server_id = s.id and cap_https.capability = 'https' and not cap_https.enabled
@@ -173,12 +174,13 @@ left join server_capability_force cap_fhttp  on cap_fhttp.server_id  = s.id and 
 left join server_capability_force cap_fhttps on cap_fhttps.server_id = s.id and cap_fhttps.capability = 'https'
 left join folder_diff fd on fd.folder_id = f.id
 left join folder_diff_server fds on fd.id = fds.folder_diff_id and fds.server_id=s.id
+left join server_capability_declaration cap_hasall on cap_hasall.server_id  = s.id and cap_hasall.capability  = 'hasall' and cap_hasall.enabled
 where
 (fds.folder_diff_id IS NOT DISTINCT FROM fd.id OR fds.server_id is null)
 AND (cap_fhttp.server_id IS NULL or cap_fhttps.server_id IS NULL)
 END_SQL
 
-    $sql = $sql . $country_condition . ' group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id order by s.id';
+    $sql = $sql . $country_condition . ' group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id, cap_hasall.capability order by s.id';
 
     my $prep = $dbh->prepare($sql);
     if ($country) {

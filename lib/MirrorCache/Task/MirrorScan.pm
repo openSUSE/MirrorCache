@@ -88,9 +88,13 @@ sub _scan {
         my $url = $folder_on_mirror->{url} . '/';
         # it looks that  defining $ua outside the loop greatly increases overal memory usage footprint for the task
         my $ua = Mojo::UserAgent->new->max_redirects(10);
-        $job->note("hash$server_id" => undef);
-        my $promise = $ua->get_p($url)->then(sub {
+        my $hasall = $folder_on_mirror->{hasall};
+        $job->note("hash$server_id" => $hasall);
+
+        my $then = sub {
             $count++;
+            my %mirrorfiles = ();
+unless ($hasall) {
             my $tx = shift;
             my $sid = $folder_on_mirror->{server_id};
             if ($tx->result->code == 404) {
@@ -103,7 +107,6 @@ sub _scan {
             return $app->emit_event('mc_mirror_probe_error', {mirror => $sid, url => "u$url", err => $tx->result->code}, $folder_on_mirror->{server_id}) if $tx->result->code > 299;
             # we cannot mojo dom here because it takes too much RAM for huge html page
             # my $dom = $tx->result->dom;
-            my %mirrorfiles = ();
             my $href = '';
             my $href1 = '';
             my $start = sub {
@@ -164,11 +167,11 @@ sub _scan {
                 $p->parse($chunk);
             }
             $p->eof;
-
+}
             my $ctx = Digest::MD5->new;
             my @missing_files = ();
             foreach my $file (@dbfiles) {
-                next if $mirrorfiles{$file} || substr($file,length($file)-1) eq '/';
+                next if $mirrorfiles{$file} || substr($file,length($file)-1) eq '/' || $hasall;
                 $ctx->add($file);
                 push @missing_files, $dbfileids{$file};
             }
@@ -201,7 +204,14 @@ sub _scan {
                 # need new entry
                 $schema->resultset('FolderDiffServer')->create( {server_id => $folder_on_mirror->{server_id}, folder_diff_id => $folder_diff->id, dt => $max_dt } );
             }
-        })->catch(sub {
+        };
+
+        if ($hasall) {
+            $then->();
+            next;
+        }
+
+        my $promise = $ua->get_p($url)->then($then)->catch(sub {
             my $err = shift;
             return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $err}, $folder_on_mirror->{server_id});
         })->timeout(180)->wait;
