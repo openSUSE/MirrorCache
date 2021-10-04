@@ -221,3 +221,5 @@ create table demand_mirrorlist (
 create index if not exists file_folder_id_idx on file(folder_id);
 create index if not exists folder_diff_folder_id_idx on folder_diff(folder_id);
 create index if not exists folder_diff_server_folder_diff_id_idx on folder_diff_server(folder_diff_id);
+-- 12 up
+alter type server_capability_t add value 'hasall'; -- mirror always has all files - no scan is performed
