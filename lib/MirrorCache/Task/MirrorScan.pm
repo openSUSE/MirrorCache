@@ -196,10 +196,10 @@ sub _scan {
 
             if ($old_diff_id) {
                 # we need update existing entry
-                $schema->resultset('FolderDiffServer')->update_diff_id($folder_diff->id, $max_dt, $old_diff_id, $folder_on_mirror->{server_id});
+                $schema->resultset('FolderDiffServer')->update_diff_id($folder_diff->id, $max_dt? $max_dt : undef, $old_diff_id, $folder_on_mirror->{server_id});
             } else {
                 # need new entry
-                $schema->resultset('FolderDiffServer')->create( {server_id => $folder_on_mirror->{server_id}, folder_diff_id => $folder_diff->id, dt => $max_dt } );
+                $schema->resultset('FolderDiffServer')->create( {server_id => $folder_on_mirror->{server_id}, folder_diff_id => $folder_diff->id, dt => ($max_dt ? $max_dt : undef) } );
             }
         })->catch(sub {
             my $err = shift;
