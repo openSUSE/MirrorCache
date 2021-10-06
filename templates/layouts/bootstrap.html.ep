@@ -10,21 +10,22 @@
       <meta name="csrf-token" content="<%= csrf_token %>" />
       <meta name="csrf-param" content="csrf_token" />
 
+      % my $mc_branding = eval '$branding' // 'MirrorCache';
       % my $title_safe = stash('title') // '';
-      % if ($title_safe && index($title_safe, 'Index of') != -1) {
-      <title><%= $title_safe %></title>
-      % } elsif ($title_safe) {
-      <title><%= "MirrorCache" . ": " . $title_safe %></title>
+      % my $is_opensuse = $mc_branding eq 'openSUSE';
+
+      % $mc_branding .= (!rindex($title_safe, '/', 0) || $is_opensuse) && index(lc($mc_branding), 'download') == -1 ? ' Download' : '';
+      % if ($title_safe && $title_safe ne '/') {
+      <title><%= "$title_safe - $mc_branding" %></title>
       % } else {
-      <title>MirrorCache</title>
+      <title><%= $mc_branding %></title>
       % }
 
       <!-- Bootstrap core CSS -->
       %= asset 'bootstrap.css'
       %= asset 'bootstrap.js'
 
-      % my $mc_branding = eval '$branding' // '';
-      % if ($mc_branding eq 'openSUSE') {
+      % if ($is_opensuse) {
       <!-- Chameleon Style -->
       <!-- <link rel="stylesheet" href="https://static.opensuse.org/chameleon-3.0/dist/css/chameleon.css" /> -->
       %= asset 'chameleon.css'

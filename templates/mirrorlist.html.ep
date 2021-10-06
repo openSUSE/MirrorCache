@@ -31,26 +31,28 @@
     </ol>
   </div>
 
-  <h4>File information</h4>
-  <ul>
-    <li>Filename: <%= $file->{name} %></li>
-    <li>Path: <%= $cur_path %></li>
-    <li>Size: <%= $file->{hsize} %> (<%= $file->{size} %> bytes)</li>
-    <li>Last modified: <%= $file->{hmtime} %> (Unix timestamp: <%= $file->{mtime} %>)</li>
-    % if ($file->{sha256}) {
-    <li>SHA-256 Hash: <%= $file->{sha256} %></li>
-    % }
-    % if ($file->{sha1}) {
-    <li>SHA-1 Hash: <%= $file->{sha1} %></li>
-    % }
-    % if ($file->{md5}) {
-    <li>MD5 Hash: <%= $file->{md5} %></li>
-    % }
-    <li><a href="<%= $bc_url . $bc_last %>.metalink">Metalink (v3.0)</a></li>
-    % if ($file->{url}) {
-    <li>Origin: <a href="<%= $file->{url} %>"><%= $file->{url} %></a></li>
-    % }
-  </ul>
+  <div id="fileinfo">
+    <h4>File information</h4>
+    <ul>
+      <li>Filename: <%= $file->{name} %></li>
+      <li>Path: <%= $cur_path %></li>
+      <li>Size: <%= $file->{hsize} %> (<%= $file->{size} %> bytes)</li>
+      <li>Last modified: <%= $file->{hmtime} %> (Unix timestamp: <%= $file->{mtime} %>)</li>
+      % if ($file->{sha256}) {
+      <li>SHA-256 Hash: <%= $file->{sha256} %></li>
+      % }
+      % if ($file->{sha1}) {
+      <li>SHA-1 Hash: <%= $file->{sha1} %></li>
+      % }
+      % if ($file->{md5}) {
+      <li>MD5 Hash: <%= $file->{md5} %></li>
+      % }
+      <li><a href="<%= $bc_url . $bc_last %>.metalink">Metalink (v3.0)</a></li>
+      % if ($file->{url}) {
+      <li>Origin: <a href="<%= $file->{url} %>"><%= $file->{url} %></a></li>
+      % }
+    </ul>
+  </div>
 
   <h4>Mirrors</h4>
   % if ($ip && $lat && $lng) {
