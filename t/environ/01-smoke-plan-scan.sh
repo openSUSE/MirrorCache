@@ -33,7 +33,7 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '1
 
 $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=mx
 $mc/backstage/shoot
-test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%mx%'")
+test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan_demand' and args::varchar like '%/folder1%'")
 
 $mc/db/sql "select * from minion_locks"
 
@@ -42,7 +42,7 @@ $mc/curl -Is /download/folder1/file1.1.dat?COUNTRY=mx | grep -C10 302 | grep "$(
 $mc/backstage/shoot
 $mc/db/sql "select * from minion_locks"
 # MIRRORCACHE_MIRROR_RESCAN_TIMEOUT hasn't passed yet, so no scanning job should occur
-test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%mx%'")
+test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan_demand' and args::varchar like '%/folder1%'")
 
 sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
@@ -50,7 +50,7 @@ sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=mx | grep -C10 302 | grep "$($ap7/print_address)"
 $mc/backstage/shoot
 # now another job should start
-test 2 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%mx%'")
+test 2 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan_demand' and args::varchar like '%/folder1%'")
 
 #######################################
 # when asking for file - only one country is scanned

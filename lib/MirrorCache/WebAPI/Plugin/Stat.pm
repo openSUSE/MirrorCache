@@ -96,12 +96,27 @@ insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_i
 values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 END_SQL
 
+    my %demand;
+
     eval {
         $self->schema->txn_do(sub {
             my $dbh = $self->schema->storage->dbh;
             my $prep = $dbh->prepare($sql);
             for my $row (@rows) {
                 $prep->execute(@$row);
+                my $folder_id = $row->[6];
+                my $country   = $row->[3];
+                $demand{$folder_id}{$country} = 1 if $folder_id && $country;
+            }
+
+            my @k = keys %demand;
+            if (@k) {
+                my $rs = $self->schema->resultset('Folder');
+                foreach my $folder_id (sort @k) {
+                    foreach my $country (sort keys %{ $demand{$folder_id} }) {
+                        $rs->request_for_country($folder_id, $country);
+                    }
+                }
             }
             1;
         });

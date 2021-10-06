@@ -49,6 +49,7 @@ $mc/curl -I /download/folder1/file2.1.dat
 $mc/curl -I /download/folder1/file2.1.dat?COUNTRY=ca
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
+$mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/shoot
 
 $mc/db/sql "select * from file"
@@ -60,6 +61,8 @@ $mc/curl -I /download/folder1/file1.dat   | grep 302
 
 mv $ap7/dt/folder1/file2.1.dat $ap8/dt/folder1/
 mv $ap8/dt/folder1/file1.dat $ap7/dt/folder1/
+
+sleep 10
 
 $mc/curl -I /download/folder1/file2.1.dat?PEDANTIC=0 | grep 302
 $mc/curl -I /download/folder1/file2.1.dat?PEDANTIC=1 | grep 200

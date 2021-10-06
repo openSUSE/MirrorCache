@@ -83,6 +83,21 @@ END_SQL
     $prep->execute($folder_id, $country, $seconds, $seconds);
 }
 
+sub scan_complete {
+    my ($self, $folder_id, $country, $mirror_count) = @_;
+    return undef unless $country;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $seconds = int($ENV{'MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT'} // 120);
+
+    my $sql = 'update demand set last_scan = now(), mirror_count_country = ? where folder_id = ? and country = ?';
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($mirror_count, $folder_id, $country);
+}
+
 sub request_for_mirrorlist {
     my ($self, $folder_id) = @_;
 
@@ -104,6 +119,21 @@ where ( ? = 0 ) OR
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($folder_id, $seconds, $seconds);
+}
+
+sub scan_region_complete {
+    my ($self, $folder_id, $region, $mirror_count) = @_;
+    return undef unless $region;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $seconds = int($ENV{'MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT'} // 120);
+
+    my $sql = 'update demand_region set last_scan = now(), mirror_count = ? where folder_id = ? and region = ?';
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($mirror_count, $folder_id, $region);
 }
 
 sub find_folder_or_redirect {

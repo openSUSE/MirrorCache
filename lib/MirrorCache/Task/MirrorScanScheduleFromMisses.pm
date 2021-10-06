@@ -51,26 +51,7 @@ sub _run {
         print(STDERR "$pref read id from stat up to: $stat_id\n");
         for my $path (sort keys %$path_country_map) {
             $cnt = $cnt + 1;
-            my $folder = $rs->find({ path => $path });
-            next unless $folder && $folder->id;
-            my $folder_id = $folder->id;
-            my $mirrorlist_requested = $mirrorlist->{$path};
-            if ($mirrorlist_requested) {
-                $rs->request_for_mirrorlist($folder_id);
-                $minion->enqueue('mirror_scan' => [$path] => {priority => 7});
-            }
-            my $countries = $path_country_map->{$path};
-            next unless $countries && keys %$countries;
-            for my $country (sort keys %$countries) {
-                next unless $country && 2 == length($country);
-                $rs->request_for_country($folder_id, lc($country));
-                # do not schedule the same job more frequently than $TIMOUT
-                if ($TIMEOUT) {
-                    my $bool = $minion->lock("mirror_scan_schedule_$path" . "_$country", $TIMEOUT);
-                    next unless $bool;
-                }
-                $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7}) unless $mirrorlist_requested;
-            }
+            $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7});
         }
         for my $country (@$country_list) {
             next unless $minion->lock('mirror_probe_scheduled_' . $country, 60); # don't schedule if schedule happened in last 60 sec

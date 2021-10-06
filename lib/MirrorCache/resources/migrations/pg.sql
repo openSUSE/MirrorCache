@@ -223,3 +223,11 @@ create index if not exists folder_diff_folder_id_idx on folder_diff(folder_id);
 create index if not exists folder_diff_server_folder_diff_id_idx on folder_diff_server(folder_diff_id);
 -- 12 up
 alter type server_capability_t add value 'hasall'; -- mirror always has all files - no scan is performed
+create table demand_region (
+    folder_id int NOT NULL references folder on delete cascade,
+    last_request timestamp,
+    last_scan timestamp,
+    region varchar(64),
+    mirror_count int,
+    unique(folder_id)
+);

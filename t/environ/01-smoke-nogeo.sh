@@ -51,3 +51,4 @@ $mc/curl -s /download/folder1/ | grep file1.1.dat || :
 if  $mc/curl -s /download/folder1/ | grep file1.1.dat ; then
     fail file1.1.dat was deleted
 fi
+echo success

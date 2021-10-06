@@ -138,8 +138,11 @@ sub _misses {
 
     my $extra_condition   = $mode eq 'path'? ' and file_id is null' : ' and file_id is not null ';
 
-    my $sql = "select id, country, path, case when mirrorlist then 1 else 0 end as mirrorlist from stat where mirror_id in (-1, 0) $extra_condition";
+    my $sql = "select id, stat.country, path, case when mirrorlist then 1 else 0 end as mirrorlist";
+    $sql = "$sql from stat left join demand on stat.folder_id = demand.folder_id";
+    $sql = "$sql where mirror_id in (-1, 0) $extra_condition";
     $sql = "$sql and id > $prev_stat_id" if $prev_stat_id;
+    $sql = "$sql and (demand.folder_id is null or demand.last_scan is null or demand.last_request > demand.last_scan)";
     $sql = "$sql union all select max(id), '', '-max_id', null from stat"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";
     $sql = "$sql limit ($limit+1)" if $limit;

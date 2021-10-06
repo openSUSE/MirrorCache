@@ -29,7 +29,12 @@ use MirrorCache::Utils 'region_for_country';
 
 sub register {
     my ($self, $app) = @_;
+    # difference between mirror_scan and mirror_scan_demand:
+    # mirror_scan:  scans particular country, continent or all mirrors
+    # mirror_scan_demand: scans what customer was requesting recently according to demand table
+
     $app->minion->add_task(mirror_scan => sub { _scan($app, @_) });
+    $app->minion->add_task(mirror_scan_demand => sub { _scan_demand($app, @_) });
 }
 
 # many html pages truncate file names
@@ -52,6 +57,21 @@ sub _scan {
         unless my $guard = $minion->guard('mirror_scan' . $path . '_' .  $country, 360);
 
     $job->note($path => 1);
+    my ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = _dbfiles($app, $job, $path);
+    return undef unless $dbfiles;
+
+    my $count = _doscan($app, $job, $path, $country, $region, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+    return $job->finish if !$country || $region || $count;
+
+    $region = region_for_country($country);
+    if ($region) {
+        $count = _doscan($app, $job, $path, undef, $region, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+    }
+}
+
+
+sub _dbfiles {
+    my ($app, $job, $path) = @_;
     my $schema = $app->schema;
     my $folder = $schema->resultset('Folder')->find({path => $path});
     return undef unless $folder && $folder->id; # folder is not added to db yet
@@ -80,9 +100,79 @@ sub _scan {
         $max_dt = $file->dt if !$max_dt || ( 0 > DateTime->compare($max_dt, $file->dt) );
     }
     @dbfiles = sort @dbfiles;
+    return $folder->id, $folder_id, $realpath, $latestdt, $max_dt, \@dbfiles, \%dbfileids, \%dbfileprefixes;
+}
 
-    my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id, $country, $region);
+sub _scan_demand {
+    my ($app, $job, $path) = @_;
+    return $job->fail('Empty path is not allowed') unless $path;
+    return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
+
+    my $job_id = $job->id;
+    my $minion = $app->minion;
+    my $schema = $app->schema;
+    # prevent multiple scheduling tasks to run in parallel
+    return $job->finish('Previous job is still active')
+      unless my $guard = $minion->guard('mirror_scan_demand_' . $path, 300);
+
+    my ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = _dbfiles($app, $job, $path);
+    return undef unless $dbfiles;
+
+    my $done;
+    # this loop has single pass if any
+    for my $demand ($schema->resultset('DemandMirrorlist')->search({folder_id => $folder_id, last_request => { '>=', \'COALESCE(last_scan, last_request)' }})) {
+        my $count =       _doscan($app, $job, $path,        undef, undef, $folder_id,     $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+        $count = $count + _doscan($app, $job, $anotherpath, undef, undef, $realfolder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) if $anotherpath;
+        $job->note("mirrorlist" => 1);
+        $done = 1;
+    }
+
+    my %region_done;
+    my $rsFolder = $schema->resultset('Folder');
+    for my $demand ($schema->resultset('DemandRegion')->search({folder_id => $folder_id, last_request => { '>=', \'COALESCE(last_scan, last_request)' }})) {
+        next unless my $region = $demand->region;
+        if ($done) {
+            $rsFolder->scan_region_complete($folder_id, $region);
+            next;
+        }
+        my $count =       _doscan($app, $job, $path,        undef, $region, $folder_id,     $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+        $count = $count + _doscan($app, $job, $anotherpath, undef, $region, $realfolder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) if $anotherpath;
+        $region_done{$region} = 1;
+        $job->note($region => $count);
+    }
+
+    for my $demand ($schema->resultset('Demand')->search({folder_id => $folder_id, last_request => { '>=', \'COALESCE(last_scan, last_request)' }})) {
+        next unless my $country = $demand->country;
+        my $region = region_for_country($country);
+        if ($done || ($region && $region_done{$region})) {
+            $rsFolder->scan_region_complete($folder_id, $region);
+            next;
+        }        
+        my $count =       _doscan($app, $job, $path,        $country, undef, $folder_id,     $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+        $count = $count + _doscan($app, $job, $anotherpath, $country, undef, $realfolder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) if $anotherpath;
+        $job->note($country => $count);
+        if (!$count && !$done && $region) {
+            $count =      _doscan($app, $job, $path,        undef,  $region, $folder_id,     $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+            $count +=     _doscan($app, $job, $anotherpath, undef,  $region, $realfolder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) if $anotherpath;
+            $region_done{$region} = 1;
+            $job->note($region => $count);
+        }
+    }
+
+    return $job->finish;
+}
+
+sub _doscan {
+    my ($app, $job, $path, $country, $region, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = @_;
+    my @dbfiles = @$dbfiles;
+    my %dbfileids = %$dbfileids;
+    my %dbfileprefixes = %$dbfileprefixes;
+    my $schema = $app->schema;
+    my $folder_on_mirrors = $schema->resultset('Server')->folder($folder_id, $country, $region);
     my $count = 0;
+    my $perfect_count = 0;
+    $country = '' unless $country;
+    $region  = '' unless $region;
     for my $folder_on_mirror (@$folder_on_mirrors) {
         my $server_id = $folder_on_mirror->{server_id};
         my $url = $folder_on_mirror->{url} . '/';
@@ -100,7 +190,7 @@ unless ($hasall) {
             if ($tx->result->code == 404) {
                 my $sql = 'delete from folder_diff_server where server_id = ? and folder_diff_id in (select id from folder_diff where folder_id = ?)';
                 eval {
-                    $schema->storage->dbh->prepare($sql)->execute($sid, $folder->id);
+                    $schema->storage->dbh->prepare($sql)->execute($sid, $folder_id);
                     1;
                 } or $job->note(last_warning => $@, at => datetime_now());
             }
@@ -175,10 +265,11 @@ unless ($hasall) {
                 $ctx->add($file);
                 push @missing_files, $dbfileids{$file};
             }
+            $perfect_count++ unless scalar(@missing_files);
             my $digest = $ctx->hexdigest;
-            my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder->id, hash => $digest});
+            my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest});
             unless ($folder_diff) {
-                $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder->id, hash => $digest});
+                $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder_id, hash => $digest});
                 unless($folder_diff->in_storage) {
                     $folder_diff->dt($latestdt);
                     $folder_diff->insert;
@@ -216,15 +307,9 @@ unless ($hasall) {
             return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $err}, $folder_on_mirror->{server_id});
         })->timeout(180)->wait;
     }
-
-    $app->emit_event('mc_mirror_scan_complete', {path => $path, tag => $folder->id, country => $country, count => $count});
-    # scan continent if no mirror in the country has the folder
-    return undef if !$country || $region || $count;
-
-    $region = region_for_country($country);
-    if ($region) {
-        $minion->enqueue('mirror_scan' => [$path, '', $region] => {priority => 6} );
-    }
+    $job->note("count$country$region" => $count, "perfect$country$region" => $perfect_count);
+    $schema->resultset('Folder')->scan_complete($folder_id, $country, $perfect_count) if $country;
+    return $perfect_count;
 }
 
 1;

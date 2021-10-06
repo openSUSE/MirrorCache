@@ -48,21 +48,7 @@ sub _run {
         $prev_event_log_id = $event_log_id;
         print(STDERR "$pref read id from event log up to: $event_log_id\n");
         for my $path (sort keys %$path_country_map) {
-            my $countries = $path_country_map->{$path};
-            next unless $countries && keys %$countries;
-            my $folder = $schema->resultset('Folder')->find({ path => $path });
-            next unless $folder && $folder->id;
-            my $folder_id = $folder->id;
-            for my $country (sort keys %$countries) {
-                next unless $country && 2 == length($country);
-                $schema->resultset('Folder')->request_for_country($folder_id, lc($country));
-                # do not schedule the same job more frequently than $TIMOUT
-                if ($TIMEOUT) {
-                    my $bool = $minion->lock("mirror_scan_schedule_$path" . "_$country", $TIMEOUT);
-                    next unless $bool;
-                }
-                $minion->enqueue('mirror_scan' => [$path, $country] => {priority => 7});
-            }
+            $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7});
             $cnt = $cnt + 1;
         }
         for my $country (@$country_list) {
