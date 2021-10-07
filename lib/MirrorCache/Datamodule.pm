@@ -77,7 +77,9 @@ sub ip($self) {
 
 sub vpn($self) {
     unless (defined $self->_vpn) {
-        if ($self->vpn_prefix && (rindex($self->ip, $self->vpn_prefix, 0) == 0)) {
+        my $ip = $self->ip;
+        $ip =~ s/^::ffff://;
+        if ($self->vpn_prefix && (rindex($ip, $self->vpn_prefix, 0) == 0)) {
             $self->_vpn(1);
         } else {
             $self->_vpn(0);
