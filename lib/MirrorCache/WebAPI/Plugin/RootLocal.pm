@@ -124,6 +124,14 @@ sub rootpath {
 }
 
 
+my $TOP_FOLDERS=$ENV{MIRRORCACHE_TOP_FOLDERS};
+my %TOP_FOLDERS;
+if ($TOP_FOLDERS) {
+    for my $folder (split(' ', $TOP_FOLDERS)) {
+        $TOP_FOLDERS{$folder} = 1;
+    }
+}
+
 # we cannot use $subtree here, because we may actually render from realdir, which is outside subtree
 sub foreach_filename {
     my $self = shift;
@@ -135,6 +143,11 @@ sub foreach_filename {
             my $f = shift;
             my $stat = $f->stat;
             if ($stat) {
+                if (($dir eq '/' || $dir eq $root_subtree) && $TOP_FOLDERS) {
+                    if (-d $f) {
+                        return undef unless $TOP_FOLDERS{$f->basename};
+                    }
+                }
                 $sub->($f->basename, $stat->size, $stat->mode, $stat->mtime);
             } else {
                 $sub->($f->basename, undef, undef, undef);
@@ -154,6 +167,11 @@ sub list_files {
         next unless -d $root->[dir] . $dir;
         Mojo::File->new($root->[dir] . $dir)->list({dir => 1})->each(sub {
             my $f = shift;
+            if (($dir eq '/' || $dir eq $root_subtree) && $TOP_FOLDERS) {
+                if (-d $f) {
+                    return undef unless $TOP_FOLDERS{$f->basename};
+                }
+            }
             push @files, $f;
         });
     }

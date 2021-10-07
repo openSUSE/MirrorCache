@@ -13,6 +13,7 @@ mkdir -p $mc/dt/{folder1,folder2,folder3}
 echo $mc/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 
 mkdir -p $mc/dt/updates/tool
+mkdir -p $mc/dt/updates/tool1
 (
 cd $mc/dt/updates/tool/
 ln -s ../../folder1 v1
@@ -54,3 +55,7 @@ $mcsub/curl -I /tool/v1/file1.1.dat?COUNTRY=de | grep $($ap8/print_address)/upda
 $mcsub/curl /tool/v1/file1.1.dat.mirrorlist | grep -C 10 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
 $mcsub/curl /tool/v1/file1.1.dat.metalink   | grep -C 10 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
 
+rc=0
+$mcsub/curl / | grep tool1 || rc=$?
+test $rc -gt 0
+echo pass
