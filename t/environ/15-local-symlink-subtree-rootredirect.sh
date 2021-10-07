@@ -54,5 +54,8 @@ $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
-$mcsub/curl /tool/v1/file1.1.dat.metalink  | grep -C10 $($ap7/print_address)/folder1/file1.1.dat | grep -C10 $($ap8/print_address)/updates/tool/v1/file1.1.dat | grep testhost.com
-$mcsub/curl /tool/v2/file1.1.dat.metalink  | grep -C10 $($ap8/print_address)/updates/tool/v2/file1.1.dat | grep testhost.com
+$mcsub/curl /tool/v1/file1.1.dat.metalink   | grep -C10 $($ap7/print_address)/folder1/file1.1.dat | grep -C10 $($ap8/print_address)/updates/tool/v1/file1.1.dat | grep testhost.com/updates/tool/v1/file1.1.dat
+$mcsub/curl /tool/v2/file1.1.dat.metalink   | grep -C10 $($ap8/print_address)/updates/tool/v2/file1.1.dat | grep testhost.com/updates/tool/v2/file1.1.dat
+
+$mcsub/curl /tool/v1/file1.1.dat.mirrorlist | grep -C10 $($ap7/print_address)/folder1/file1.1.dat | grep -C20 $($ap8/print_address)/updates/tool/v1/file1.1.dat | grep testhost.com/updates/tool/v1/file1.1.dat
+$mcsub/curl /tool/v2/file1.1.dat.mirrorlist | grep -C20 $($ap8/print_address)/updates/tool/v2/file1.1.dat | grep testhost.com/updates/tool/v2/file1.1.dat
