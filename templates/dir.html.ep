@@ -1,5 +1,5 @@
 % layout 'bootstrap';
-% title 'Index of ' . $cur_path;
+% title $cur_path;
 % my @breadcrumbs = split '/', 'download' . $cur_path;
 % my $bc_last = pop @breadcrumbs;
 % my $bc_url = '/';
@@ -37,25 +37,23 @@
     <thead>
       <tr>
       % if ($files && @$files && $files->[-1]->{mtime}) {
-        <th>Name</th><th>Size</th><th>Last Modified</th><th>Metadata</th>
+        <th>Name</th><th>Last Modified</th><th>Size</th><th>Metadata</th>
       % } else {
         <th colspan="3">Name</th><th>Metadata</th>
       % }
       </tr>
-    <thead>
+    </thead>
     <tbody>
-      <tr>
       % if ($cur_path ne '/') {
-        <td colspan="4" class="breadcrumb-item"><a href="../">Parent Directory</a></td>
+      <tr><td colspan="4"><a href="../">Parent Directory</a></td></tr>
       % }
-      </tr>
       % for my $file (@$files) {
       <tr>
       %   if ($file->{mtime}) {
       %     my $colspan = $file->{dir} ? 'colspan=2 ' : '';
         <td class="name"><a href="<%= $file->{url} %>"><%== $file->{name} %></a></td>
-        <td class="size"><%= $file->{dir} ? '' : $file->{size} %></td>
         <td <%= $colspan %>class="mtime"><%= $file->{mtime} %></td>
+        <td class="size"><%= $file->{dir} ? '' : $file->{size} %></td>
       %   } else {
       %     my $colspan = $file->{dir} ? 4 : 3;
         <td colspan="<%= $colspan %>" class="name"><a href="<%= $file->{url} %>"><%== $file->{name} %></a></td>
@@ -68,7 +66,7 @@
       % if (!$files || @$files == 0) {
       <tr><td colspan="4">Directory is empty</td></tr>
       % }
-    <tbody>
+    </tbody>
   </table>
 
 </div>

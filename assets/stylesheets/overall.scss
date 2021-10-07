@@ -179,11 +179,26 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     min-width: 100%;
 }
 
+#fileinfo {
+  border-radius: .25rem;
+  background-color: rgba(0, 0, 0, .03);
+  padding: 10px;
+  word-wrap: break-word;
+  margin: 1rem 0 1rem 0;
+}
+
 .break-long-content, .name {
     overflow-wrap: break-word;
     word-wrap: break-word;
     word-break: break-all;
     white-space: unset !important;
+}
+
+.name {
+    width: 100%;
+}
+.mtime, .size {
+    text-align: right;
 }
 
 .breadcrumb {
