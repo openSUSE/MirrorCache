@@ -142,12 +142,14 @@ sub register {
             my $mtime = $file->{mtime};
             my $hmtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
             my $fileorigin;
+            my $fileoriginpath = $filepath;
             if ($root->is_remote) {
                 $fileorigin = $root->location($dm);
             } else {
                 my $redirect = $root->redirect($dm, $filepath);
                 if ($redirect) {
                     $fileorigin = $redirect;
+                    $fileoriginpath = $folder->path . '/' . $file->{name};
                 } else {
                     $fileorigin = $url->scheme . '://' . $url->host;
                     $fileorigin = $fileorigin . ":" . $url->port if $url->port && $url->port != "80";
@@ -156,7 +158,7 @@ sub register {
             }
 
             my $filedata = {
-                url    => $fileorigin . $filepath,
+                url    => $fileorigin . $fileoriginpath,
                 name   => $basename,
                 size   => $size,
                 hsize  => $hsize,
