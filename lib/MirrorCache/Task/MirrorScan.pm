@@ -25,8 +25,6 @@ use File::Basename;
 use Encode qw(decode);
 use HTML::Parser;
 
-use MirrorCache::Utils 'region_for_country';
-
 sub register {
     my ($self, $app) = @_;
 
@@ -40,17 +38,13 @@ sub _reliable_prefix {
 }
 
 sub _scan {
-    # region is considered only if country is empty
-    my ($app, $job, $path, $country, $region) = @_;
+    my ($app, $job, $path) = @_;
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
-    $country = "" unless $country;
-    $country =~ s/^\s+|\s+$//g;
-    $region  = "" unless $region;
 
     my $minion = $app->minion;
     return $job->finish('Previous mirror scan job is still active')
-        unless my $guard = $minion->guard('mirror_scan' . $path . '_' .  $country, 360);
+        unless my $guard = $minion->guard('mirror_scan' . $path,  20*60);
 
     $job->note($path => 1);
     my ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = _dbfiles($app, $job, $path);

@@ -32,9 +32,13 @@ sub show {
     my $info = {
         id             => $f->id,
         path           => $f->path,
+        wanted         => $f->wanted,
         sync_last      => $f->sync_last,
         sync_scheduled => $f->sync_scheduled,
         sync_requested => $f->sync_requested,
+        scan_last      => $f->scan_last,
+        scan_scheduled => $f->scan_scheduled,
+        scan_requested => $f->scan_requested,
     };
 
     my $parent_path = dirname($f->path);

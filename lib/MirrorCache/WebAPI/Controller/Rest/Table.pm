@@ -30,7 +30,7 @@ my %tables = (
     },
     Folder => {
         keys     => [['id'], ['path'],],
-        cols     => ['id', 'path', 'db sync last', 'db sync scheduled', 'db sync priority'],
+        cols     => ['id', 'path', 'wanted', 'sync requested', 'sync scheduled', 'sync last', 'scan requested', 'scan scheduled', 'scan last'],
     },
 );
 

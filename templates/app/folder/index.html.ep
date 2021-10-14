@@ -16,9 +16,13 @@
                 <tr>
                     <th class="col_value">Id</th>
                     <th class="col_value">Path</th>
-                    <th class="col_value">Db Sync Last</th>
-                    <th class="col_value">Db Sync Scheduled</th>
-                    <th class="col_value">Db Sync Priority</th>
+                    <th class="col_value">Wanted</th>
+                    <th class="col_value">Sync Requested</th>
+                    <th class="col_value">Sync Scheduled</th>
+                    <th class="col_value">Sync Last</th>
+                    <th class="col_value">Scan Requested</th>
+                    <th class="col_value">Scan Scheduled</th>
+                    <th class="col_value">Scan Last</th>
                 </tr>
             </thead>
             <tbody>
