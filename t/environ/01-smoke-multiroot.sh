@@ -2,7 +2,7 @@
 set -ex
 
 mc=$(environ mc $(pwd))
-MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3
+MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 $mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL \
     MIRRORCACHE_ROOT="'$mc/dt/root1:root1.com:root1.vpn|$mc/dt/root2:root2.com:root2.vpn|$mc/dt/root3:root3.com:root3.vpn'"
@@ -47,6 +47,8 @@ $mc/curl -H 'X-Forwarded-For: 10.0.0.1' -Is /download/folder1/file1.1.dat | grep
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/curl /download/folder1/ | grep file1.1.dat
 # check redirect is correct
@@ -60,8 +62,7 @@ $mc/curl -Is /download/folder1/file1.1.dat | grep -C10 302 | grep "$($ap7/print_
 rm $mc/dt/root1/folder1/file1.1.dat
 
 # resync the folder
-$mc/backstage/job folder_sync_schedule
-$mc/backstage/job -e mirror_probe -a '["/folder1"]'
+$mc/backstage/job -e folder_sync -a '["/folder1"]'
 $mc/backstage/shoot
 
 $mc/curl -s /download/folder1/ | grep file1.1.dat || :
@@ -82,9 +83,12 @@ $mc/curl -s '/download/folder1/file2.1.dat.metalink'   | grep "origin"   | grep 
 $mc/curl /download/folder3/file1.1.dat.metalink   | grep 'retry later'
 $mc/curl /download/folder3/file1.1.dat.mirrorlist | grep 'retry later'
 
-sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
-sleep 0.1
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
+
 rc=0
 $mc/curl /download/folder3/file1.1.dat.metalink   | grep 'retry later' || rc=$?
 test $rc -gt 0

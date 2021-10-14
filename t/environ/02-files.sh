@@ -3,7 +3,7 @@ set -exo pipefail
 
 mc=$(environ mc $(pwd))
 
-MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=1
+MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 $mc/gen_env MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
             MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 
@@ -51,6 +51,8 @@ $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/db/sql "select * from file"
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
@@ -62,8 +64,6 @@ $mc/curl -I /download/folder1/file1.dat   | grep 302
 mv $ap7/dt/folder1/file2.1.dat $ap8/dt/folder1/
 mv $ap8/dt/folder1/file1.dat $ap7/dt/folder1/
 
-sleep 10
-
 $mc/curl -I /download/folder1/file2.1.dat?PEDANTIC=0 | grep 302
 $mc/curl -I /download/folder1/file2.1.dat?PEDANTIC=1 | grep 200
 # file1 isn't considered versioned, so pedantic mode is automatic
@@ -72,7 +72,10 @@ $mc/curl -I /download/folder1/file1.dat | grep 200
 # make root the same size of folder1/file1.dat
 echo 1 > $mc/dt/folder1/file1.dat
 
-$mc/backstage/job mirror_scan_schedule_from_misses
+$mc/backstage/job mirror_scan_schedule_from_path_errors
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 $mc/curl -I /download/folder1/file2.1.dat | grep 302
@@ -87,9 +90,12 @@ done
 # first request will miss
 $mc/curl -I /download/folder1/file3.1.dat | grep 200
 
-# force rescan
-sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
+
 # now expect to hit
 $mc/curl -I /download/folder1/file3.1.dat | grep 302
 
@@ -98,7 +104,11 @@ touch $mc/dt/folder2/file4.dat
 
 $mc/curl -I /download/folder2/file4.dat | grep 200
 $mc/curl -I /download/folder2/file4.dat?COUNTRY=ca | grep 200
-sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 test 4 == $($mc/db/sql "select count(*) from folder_diff_server")
@@ -107,20 +117,20 @@ cnt="$($mc/db/sql "select max(id) from stat")"
 
 $mc/curl -I /download/folder1/file2.1.dat | grep 302
 
-# it shouldn't try to reach file on mirrors yet, because scanner didn't find files
-test 0 == $($mc/db/sql "select count(*) from stat where mirror_id = -1 and file_id is not NULL and id > $cnt")
+$mc/sql_test 0 == "select count(*) from stat where mirror_id = -1 and file_id is not NULL and id > $cnt"
+
+$mc/sql_test 0 == "select count(*) from folder where path = '/folder2' and scan_requested > scan_scheduled"
 
 $mc/curl -I /download/folder2/file4.dat | grep 200
 # now an error must be logged
-test 1 == $($mc/db/sql "select count(*) from stat where mirror_id = -1 and file_id is not NULL and id > $cnt")
+$mc/sql_test 1 == "select count(*) from folder where path = '/folder2' and scan_requested > scan_scheduled"
+
 
 ##################################
 # let's test path distortions
 # remember number of folders in DB
 cnt=$($mc/db/sql "select count(*) from folder")
 $mc/curl -I /download//folder1//file1.1.dat
-sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
-$mc/backstage/shoot
 test $cnt == $($mc/db/sql -t -c "select count(*) from folder" mc_test)
 
 $mc/curl -I /download//folder1//file1.1.dat              | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
@@ -149,9 +159,9 @@ $mc/curl -iL -H 'Accept: */*, application/metalink+xml' /download/folder1/media.
 
 
 #####################################
-# test PEDANTCI is on for unversioned files
+# test PEDANTIC is on for unversioned files
 $mc/backstage/job -e folder_sync -a '["/folder1.11test"]'
-$mc/backstage/job -e mirror_scan -a '["/folder1.11test","us"]'
+$mc/backstage/job -e mirror_scan -a '["/folder1.11test"]'
 $mc/backstage/shoot
 
 for f in $unversionedfiles; do
@@ -161,8 +171,11 @@ for f in $unversionedfiles; do
     cp $ap7/dt/folder1.11test/$f $mc/dt/folder1.11test/
 done
 
-sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 # it should schedule folder_sync because file on mirror was newer than on root
+$mc/backstage/job mirror_scan_schedule_from_path_errors
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 # now unversioned files are served from mirror because they are the same as on root

@@ -18,10 +18,8 @@ package MirrorCache::WebAPI::Plugin::Stat;
 use Mojo::Base 'Mojolicious::Plugin', -signatures;
 
 use Mojo::IOLoop;
-use MirrorCache::Utils 'datetime_now';
+use MirrorCache::Utils qw(datetime_now region_for_country);
 use Data::Dumper;
-
-# has ioloop => sub { Mojo::IOLoop->new };
 
 has schema => undef, weak => 1;
 has log    => undef, weak => 1;
@@ -102,20 +100,16 @@ END_SQL
         $self->schema->txn_do(sub {
             my $dbh = $self->schema->storage->dbh;
             my $prep = $dbh->prepare($sql);
+            my $rs = $self->schema->resultset('Folder');
             for my $row (@rows) {
-                $prep->execute(@$row);
-                my $folder_id = $row->[6];
-                my $country   = $row->[3];
-                $demand{$folder_id}{$country} = 1 if $folder_id && $country;
-            }
+                my $folder_id  = $row->[6];
+                next if $folder_id && $demand{$folder_id};
 
-            my @k = keys %demand;
-            if (@k) {
-                my $rs = $self->schema->resultset('Folder');
-                foreach my $folder_id (sort @k) {
-                    foreach my $country (sort keys %{ $demand{$folder_id} }) {
-                        $rs->request_for_country($folder_id, $country);
-                    }
+                if (!$folder_id) {
+                    $prep->execute(@$row);
+                } else {
+                    $rs->request_scan($folder_id);
+                    $demand{$folder_id} = 1;
                 }
             }
             1;

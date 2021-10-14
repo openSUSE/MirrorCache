@@ -3,7 +3,7 @@ set -ex
 
 mc=$(environ mc $(pwd))
 
-MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=1
+MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 $mc/gen_env MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
             MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 
@@ -29,8 +29,11 @@ rm $ap8/dt/folder1/file2.1.dat
 
 # force scan
 $mc/curl -I /download/folder1/file2.1.dat
+
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 # update dt column to make entries look older
@@ -43,8 +46,11 @@ touch {$mc,$ap8}/dt/folder1/file4.dat
 
 # force rescan
 $mc/curl -Is /download/folder1/file3.1.dat
-sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
-sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 test 4 == $($mc/db/sql "select count(*) from folder_diff")
@@ -64,3 +70,4 @@ test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 3 == $($mc/db/sql "select count(*) from folder_diff_file")
 test 4 == $($mc/db/sql "select count(*) from server_capability_check")
 test $audit_events -gt $($mc/db/sql "select count(*) from audit_event")
+echo success

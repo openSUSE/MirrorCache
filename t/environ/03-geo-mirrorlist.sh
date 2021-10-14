@@ -24,6 +24,8 @@ $mc/curl /download/folder1/file1.1.dat.mirrorlist
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/curl /download/folder1/file1.1.dat.mirrorlist?COUNTRY=mx | grep http
 $mc/curl /download/folder1/file1.1.dat.mirrorlist?COUNTRY=ca | grep http | grep '(MX)'

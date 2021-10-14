@@ -138,10 +138,10 @@ sub _render_dir {
     my $folder_id = $folder->id if $folder;
     return _render_dir_local($dm, $folder_id, $dir) unless $root->is_remote; # just render files if we have them locally
 
-    $c->stat->redirect_to_root($dm, 0) unless $folder_id && $folder->db_sync_last ;
-    return _render_dir_from_db($dm, $folder_id, $dir) if $folder && $folder->db_sync_last;
+    $c->stat->redirect_to_root($dm, 0) unless $folder_id && $folder->sync_last ;
+    return _render_dir_from_db($dm, $folder_id, $dir) if $folder && $folder->sync_last;
 
-    my $pos = $rsFolder->get_db_sync_queue_position($dir);
+    my $pos = $rsFolder->get_sync_queue_position($dir);
     return $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
 }
 
@@ -260,23 +260,26 @@ sub _render_from_db {
         return $dm->redirect($folder->{pathto}) if $folder->{pathto};
         # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
-        return _render_dir($dm, $path, $rsFolder) if ($folder->{db_sync_last});
+        return _render_dir($dm, $path, $rsFolder) if ($folder->{sync_last});
     } elsif (!$trailing_slash && $path ne '/') {
         my $f = Mojo::File->new($path);
         my $dirname = $root->realpath($f->dirname);
         $dirname = $dm->root_subtree . $f->dirname unless $dirname;
-        my $parent_folder = $rsFolder->find({path => $dirname});
-        my $file;
-        $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $parent_folder->id }) if $parent_folder && !$trailing_slash;
-        # folders are stored with trailing slash in file table, so they will not be selected here
-        if ($file) {
-            # regular file has trailing slash in db? That is probably incorrect, so let the root handle it
-            return $root->render_file($dm, $path . '/') if $trailing_slash;
-            # find a mirror for it
-            $c->mirrorcache->render_file($path, $dm);
-            return 1;
+        if (my $parent_folder = $rsFolder->find({path => $dirname})) {
+            $dm->folder_id($parent_folder->id);
+            my $file;
+            $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $parent_folder->id }) if $parent_folder && !$trailing_slash;
+            # folders are stored with trailing slash in file table, so they will not be selected here
+            if ($file) {
+                # regular file has trailing slash in db? That is probably incorrect, so let the root handle it
+                return $root->render_file($dm, $path . '/') if $trailing_slash;
+                # find a mirror for it
+                $c->mirrorcache->render_file($path, $dm);
+                return 1;
+            }
         }
     }
+    return undef;
 }
 
 sub _guess_what_to_render {

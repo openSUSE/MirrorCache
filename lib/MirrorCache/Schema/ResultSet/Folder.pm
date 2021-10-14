@@ -20,7 +20,7 @@ use warnings;
 
 use base 'DBIx::Class::ResultSet';
 
-sub get_db_sync_queue_position {
+sub get_sync_queue_position {
     my ($self, $path) = @_;
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
@@ -29,76 +29,35 @@ sub get_db_sync_queue_position {
     my $sql = <<'END_SQL';
 select 1+count(*) as cnt
 from folder f
-where f.db_sync_scheduled > (select db_sync_scheduled from folder f1 where path = ?)
-and f.db_sync_priority >= (select db_sync_priority from folder f1 where path = ?)
+where f.sync_requested < (select sync_requested from folder f1 where path = ?) and f.sync_requested > f.sync_scheduled
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($path, $path);
+    $prep->execute($path);
     return $dbh->selectrow_array($prep);
 }
 
-sub request_db_sync {
-    my ($self, $path, $priority) = @_;
-    $priority = 10 unless $priority;
+sub request_sync {
+    my ($self, $path) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-insert into folder(path, db_sync_scheduled, db_sync_priority)
-values (?, now(), ?)
+insert into folder(path, wanted, sync_requested)
+values (?, now(), now())
 on conflict(path) do update set
-db_sync_scheduled = CASE WHEN folder.db_sync_scheduled > folder.db_sync_last THEN folder.db_sync_scheduled ELSE now() END,
-db_sync_priority = ?
+sync_requested = CASE WHEN folder.sync_requested > folder.sync_scheduled THEN folder.sync_requested ELSE now() END,
+wanted = CASE WHEN folder.wanted < now() - interval '24 hour' THEN now() ELSE folder.wanted END
 returning id
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($path, $priority, $priority);
+    $prep->execute($path);
     my $res = $prep->fetchrow_arrayref;
     return $res->[0];
 }
 
-sub request_for_country {
-    my ($self, $folder_id, $country) = @_;
-    return undef unless $country;
-
-    my $rsource = $self->result_source;
-    my $schema  = $rsource->schema;
-    my $dbh     = $schema->storage->dbh;
-
-    my $seconds = int($ENV{'MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT'} // 120);
-
-    my $sql = <<'END_SQL';
-insert into demand as d(folder_id, country, last_request)
-values (?, ?, now())
-on conflict(folder_id, country) do update set
-last_request = now()
-where ( ? = 0 ) OR
-( 0 = date_part('day',    d.last_request - excluded.last_request) and
-0 = date_part('hour',   d.last_request - excluded.last_request) and
-? > date_part('second', d.last_request - excluded.last_request) )
-END_SQL
-    my $prep = $dbh->prepare($sql);
-    $prep->execute($folder_id, $country, $seconds, $seconds);
-}
-
-sub scan_complete {
-    my ($self, $folder_id, $country, $mirror_count) = @_;
-    return undef unless $country;
-
-    my $rsource = $self->result_source;
-    my $schema  = $rsource->schema;
-    my $dbh     = $schema->storage->dbh;
-
-    my $seconds = int($ENV{'MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT'} // 120);
-
-    my $sql = 'update demand set last_scan = now(), mirror_count_country = ? where folder_id = ? and country = ?';
-    my $prep = $dbh->prepare($sql);
-    $prep->execute($mirror_count, $folder_id, $country);
-}
-
-sub request_for_mirrorlist {
+sub request_scan {
     my ($self, $folder_id) = @_;
 
     my $rsource = $self->result_source;
@@ -107,33 +66,25 @@ sub request_for_mirrorlist {
 
     my $seconds = int($ENV{'MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT'} // 120);
 
-    my $sql = <<'END_SQL';
-insert into demand_mirrorlist as d(folder_id, last_request)
-values (?, now())
-on conflict(folder_id) do update set
-last_request = now()
-where ( ? = 0 ) OR
-( 0 = date_part('day',    d.last_request - excluded.last_request) and
-0 = date_part('hour',   d.last_request - excluded.last_request) and
-? > date_part('second', d.last_request - excluded.last_request) )
+    my $sql = << "END_SQL";
+update folder
+set scan_requested = now()
+where id = ? and (scan_requested IS NULL or scan_scheduled IS NULL or scan_requested < scan_scheduled)
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($folder_id, $seconds, $seconds);
+    $prep->execute($folder_id);
 }
 
-sub scan_region_complete {
-    my ($self, $folder_id, $region, $mirror_count) = @_;
-    return undef unless $region;
-
+sub scan_complete {
+    my ($self, $folder_id) = @_;
+    
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $seconds = int($ENV{'MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT'} // 120);
-
-    my $sql = 'update demand_region set last_scan = now(), mirror_count = ? where folder_id = ? and region = ?';
+    my $sql = 'update folder set scan_last = now() where id = ?';
     my $prep = $dbh->prepare($sql);
-    $prep->execute($mirror_count, $folder_id, $region);
+    $prep->execute($folder_id);
 }
 
 sub find_folder_or_redirect {
@@ -144,7 +95,7 @@ sub find_folder_or_redirect {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select id, db_sync_last, '' as pathto
+select id, sync_last, '' as pathto
 from folder
 where path = ?
 union
@@ -237,22 +188,22 @@ sub stats_all {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select f.id as id, db_sync_last as last_sync,
+select f.id as id, sync_last as last_sync,
 sum(case when (select max(dt) dt from file where folder_id = f.id and not (name like '%/')) <= fds.dt then 1 else 0 end ) as recent,
 sum(case when (select max(dt) dt from file where folder_id = f.id and not (name like '%/')) > fds.dt then 1 else 0 end ) as outdated,
 sum(case when fds.dt is null then 1 else 0 end ) as not_scanned,
-case when db_sync_scheduled > db_sync_last then (select 1+count(*)
+case when sync_scheduled > sync_last then (select 1+count(*)
       from folder f1
-      where f1.db_sync_scheduled > f1.db_sync_last
+      where f1.sync_scheduled > f1.sync_last
       and f1.id <> f.id
-      and ((f1.db_sync_scheduled < f.db_sync_scheduled and f1.db_sync_priority = f.db_sync_priority) or (f1.db_sync_priority > f.db_sync_priority))
+      and (f1.sync_scheduled < f.sync_scheduled)
 ) else NULL end as sync_job_position
 from server s
 left join folder_diff_server fds on fds.server_id = s.id
 left join folder_diff fd on fd.id = fds.folder_diff_id
 left join folder f on fd.folder_id = f.id
 where f.path = ?
-group by f.id, f.db_sync_last;
+group by f.id, f.sync_last;
 END_SQL
 
     my $prep = $dbh->prepare($sql);

@@ -74,6 +74,8 @@ $ap9/curl_https --cacert ca/ca.pem -I /download/folder1/file1.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 # make sure https redirects to https
 $ap9/curl_https -I /download/folder1/file1.1.dat | grep https:// | grep $($ap7/print_address)

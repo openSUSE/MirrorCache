@@ -30,18 +30,14 @@ sub show {
         or return $self->reply->not_found;
 
     my $info = {
-        id                  => $f->id,
-        path                => $f->path,
-        db_sync_last        => $f->db_sync_last,
-        db_sync_scheduled   => $f->db_sync_scheduled,
-        db_sync_priority    => $f->db_sync_priority,
+        id             => $f->id,
+        path           => $f->path,
+        sync_last      => $f->sync_last,
+        sync_scheduled => $f->sync_scheduled,
+        sync_requested => $f->sync_requested,
     };
 
     my $parent_path = dirname($f->path);
-
-    # for my $x ($f->files->all) {
-    #    $info->{files}->{$x->key} = $x->value;
-    # }
 
     return $self->render('app/folder/show', folder => $info, parent_path => $parent_path);
 }

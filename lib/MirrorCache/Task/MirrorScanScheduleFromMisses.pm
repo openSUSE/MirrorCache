@@ -42,16 +42,16 @@ sub _run {
     my $schema = $app->schema;
     my $limit = $prev_stat_id ? 1000 : 10;
 
-    my ($stat_id, $path_country_map, $country_list, $mirrorlist) = $schema->resultset('Stat')->mirror_misses($prev_stat_id, $limit);
+    my ($stat_id, $folder_ids, $country_list) = $schema->resultset('Stat')->mirror_misses($prev_stat_id, $limit);
     my $rs = $schema->resultset('Folder');
     my $last_run = 0;
-    while (scalar(%$path_country_map)) {
+    while (scalar(@$folder_ids)) {
         my $cnt = 0;
         $prev_stat_id = $stat_id;
         print(STDERR "$pref read id from stat up to: $stat_id\n");
-        for my $path (sort keys %$path_country_map) {
+        for my $folder_id (@$folder_ids) {
             $cnt = $cnt + 1;
-            $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7});
+            $rs->request_scan($folder_id);
         }
         for my $country (@$country_list) {
             next unless $minion->lock('mirror_probe_scheduled_' . $country, 60); # don't schedule if schedule happened in last 60 sec
@@ -62,7 +62,7 @@ sub _run {
         $last_run = $last_run + $cnt;
         last unless $cnt;
         $limit = 1000;
-        ($stat_id, $path_country_map, $country_list) = $schema->resultset('Stat')->mirror_misses($prev_stat_id, $limit);
+        ($stat_id, $folder_ids, $country_list) = $schema->resultset('Stat')->mirror_misses($prev_stat_id, $limit);
     }
 
     if ($minion->lock('mirror_force_done', 9000)) {
@@ -80,6 +80,8 @@ sub _run {
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
     $job->note(stat_id => $prev_stat_id, total => $total, last_run => $last_run);
+
+    return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});
 }
 

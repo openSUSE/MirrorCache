@@ -10,7 +10,8 @@ $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
     MIRRORCACHE_ROOT=rsync://$USER:$USER@$($rs/print_address)/dt \
     MIRRORCACHE_REDIRECT=some.address.fake.com \
     MIRRORCACHE_REDIRECT_VPN=some.address.fake.vpn.us \
-    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
+    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 ap8=$(environ ap8)
 ap7=$(environ ap7)
@@ -41,6 +42,8 @@ $mc/curl -H 'X-Forwarded-For: 10.0.1.1' -I /download/folder1/file2.1.dat | grep 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/db/sql "select * from file"
 test 0 == $($mc/db/sql "select size from file where name = 'file1.1.dat'")
@@ -59,12 +62,9 @@ echo -n 123456789 > $rs/dt/folder1/file2.1.dat
 $mc/curl -I /download/folder1/file2.1.dat | grep fake.com
 
 # call incorrect file to force new sync
-$mc/curl /download/folder1/incorrect
-$mc/backstage/job folder_sync_schedule_from_misses
-$mc/backstage/job folder_sync_schedule
-
-# ask mirror rescan
-$mc/backstage/job mirror_scan_schedule_from_misses
+$mc/backstage/job -e folder_sync -a '["/folder1"]'
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 # check correct file size in DB
@@ -91,8 +91,10 @@ done
 $mc/curl -I /download/folder1/file3.1.dat | grep fake.com
 
 # force rescan
-$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 # now expect to hit
 $mc/curl -I /download/folder1/file3.1.dat | grep -E "$(ap8/print_address)|$($ap7/print_address)"
@@ -103,6 +105,8 @@ touch $rs/dt/folder1/file4.dat
 $mc/curl -I /download/folder1/file4.dat | grep fake.com
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 test 2 == $($mc/db/sql "select count(*) from folder_diff_server")
@@ -124,6 +128,8 @@ $mc/curl -I /download/folder1/folder11/file1.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/curl -I /download/folder1/folder11/file1.1.dat | grep -E "$(ap8/print_address)|$($ap7/print_address)"
 
@@ -142,6 +148,8 @@ cnt=$($mc/db/sql "select count(*) from folder")
 $mc/curl -I /download//folder1//file1.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 test $cnt == $($mc/db/sql "select count(*) from folder")
 
@@ -164,7 +172,12 @@ $mc/curl -I /download/folder1/file:4.dat | grep fake.com
 
 # force rescan
 $mc/backstage/job folder_sync_schedule_from_misses
+# $mc/backstage/job mirror_scan_schedule_from_path_errors
+$mc/backstage/shoot
 $mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 # now expect to hit
 $mc/curl /download/folder1/ | grep file1.1.dat

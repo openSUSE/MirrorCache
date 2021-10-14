@@ -21,8 +21,8 @@ sub register {
     $app->minion->add_task(mirror_scan_schedule => sub { _run($app, @_) });
 }
 
-my $DELAY   = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
-my $TIMEOUT = int($ENV{MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT} // 120);
+my $DELAY  = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
+my $EXPIRE = int($ENV{MIRRORCACHE_SCHEDULE_EXPIRE_INTERVAL} // 14 * 24 * 60 * 60);
 
 sub _run {
     my ($app, $job) = @_;
@@ -30,42 +30,45 @@ sub _run {
     my $pref = "[rescan $job_id]";
 
     my $minion = $app->minion;
+
     # prevent multiple scheduling tasks to run in parallel
     return $job->finish('Previous job is still active')
-      unless my $guard = $minion->guard('mirror_scan_reschedule', 60);
+      unless my $guard = $minion->guard('mirror_scan_schedule', 60);
 
     my $schema = $app->schema;
+    my $limit = 1000;
 
-    my $sql = <<'END_SQL';
-update demand
-set last_scan = now()
-from (
-    select folder_id, country
-    from demand
-    where (folder_id, country) in (
-        select folder_id, country
-        from demand
-        where last_request > last_scan and last_scan < now() - interval '15 second'
-        order by last_request limit 100
-    )
-) sub
-join folder on folder.id = folder_id
-where (demand.folder_id, demand.country) = (sub.folder_id, sub.country)
-returning folder.path, demand.country
-END_SQL
+    # retry later if many jobs are scheduled according to estimation
+    my $cnt = $app->backstage->estimate_inactive_jobs('mirror_scan');
+    return $job->retry({delay => 30}) if $cnt > 100;
 
-    my $dbh = $schema->storage->dbh;
+    my @folders = $schema->resultset('Folder')->search({
+        scan_requested => { '>', \"COALESCE(scan_scheduled, scan_requested - interval '1 second')" }
+    }, {
+        order_by => { -asc => [qw/scan_requested/] },
+        rows => $limit
+    });
+    $cnt = 0;
+    
+    for my $folder (@folders) {
+        $folder->update({scan_scheduled => \'NOW()'});
+        $minion->enqueue('mirror_scan' => [$folder->path] => {notes => {$folder->path => 1}} );
+        $cnt = $cnt + 1;
+    }
 
-    my $prep = $dbh->prepare($sql);
-    my $xxx = $prep->execute;
-    my $arrayref =  $dbh->selectrow_hashref($prep);
-    # my $arrayref =  $dbh->selectall_arrayref($prep);
+    $job->note(count => $cnt);
+    $schema->storage->dbh->prepare(
+        "update folder set scan_requested = now() where id in 
+        ( 
+            select id from folder
+            where scan_requested < now() - interval '2 hour' and 
+                  scan_requested < scan_scheduled and 
+                  wanted > now() - interval '$EXPIRE second'
+            order by scan_requested limit 50
+        )"
+    )->execute();
 
-    print STDERR $app->dumper('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', $xxx, $arrayref);
-
-    # foreach my $row ( @$arrayref ) {
-    #    $minion->enqueue('mirror_scan' => [$row->{path}, $row->{country}] => {priority => 7});
-    # }
+    return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});
 }
 

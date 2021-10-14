@@ -105,7 +105,7 @@ sub latest_hit {
     $prev_stat_id = 0 unless $prev_stat_id;
     my $dbh     = $self->result_source->schema->storage->dbh;
 
-    my $sql = <<"END_SQL";
+    my $sql = << "END_SQL";
 select stat.id, mirror_id, stat.country,
        concat(case when secure then 'https://' else 'http://' end, CASE WHEN length(server.hostname_vpn)>0 THEN server.hostname_vpn ELSE server.hostname END, server.urldir, case when metalink then regexp_replace(path, '(.*)\.metalink', E'\\1') else path end) as url,
        substring(path,'(^(/.*)+)/') as folder
@@ -120,62 +120,85 @@ END_SQL
 };
 
 sub path_misses {
-    my $self = shift;
-    return $self->_misses('path', @_);
-}
-
-sub mirror_misses {
-    my $self = shift;
-    return $self->_misses('mirror', @_);
-}
-
-sub _misses {
-    my ($self, $mode, $prev_stat_id, $limit) = @_;
+    my ($self, $prev_stat_id, $limit) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $extra_condition   = $mode eq 'path'? ' and file_id is null' : ' and file_id is not null ';
-
-    my $sql = "select id, stat.country, path, case when mirrorlist then 1 else 0 end as mirrorlist";
-    $sql = "$sql from stat left join demand on stat.folder_id = demand.folder_id";
-    $sql = "$sql where mirror_id in (-1, 0) $extra_condition";
-    $sql = "$sql and id > $prev_stat_id" if $prev_stat_id;
-    $sql = "$sql and (demand.folder_id is null or demand.last_scan is null or demand.last_request > demand.last_scan)";
-    $sql = "$sql union all select max(id), '', '-max_id', null from stat"; # this is just to get max(id) in the same query
+    my $sql = << "END_SQL";
+select stat.id, stat.path, stat.folder_id, country
+from stat left join folder on folder.id = stat.folder_id
+where mirror_id in (-1, 0) and file_id is null
+and (
+    stat.folder_id is null or 
+    folder.sync_requested < folder.sync_scheduled
+    )
+END_SQL
+    $sql = "$sql and stat.id > $prev_stat_id" if $prev_stat_id;
+    $sql = "$sql union all select max(id), '-max_id', null, null from stat"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";
-    $sql = "$sql limit ($limit+1)" if $limit;
+    $sql = "$sql limit ($limit+1)";
 
     my $prep = $dbh->prepare($sql);
     $prep->execute();
     my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     my $id;
-    my %path_country = ();
+    my %folders = ();
     my %countries = ();
-    my %seen  = ();
-    my %mirrorlist  = ();
     foreach my $miss ( @$arrayref ) {
         $id = $miss->{id} unless $id;
         my $path = $miss->{path};
         next unless $path;
         next if $path eq '-max_id';
         $path = path($path)->dirname;
-        $seen{$path} = 1;
+        $folders{$path} = 1;
         my $country = $miss->{country};
-        my $rec = $path_country{$path};
-        $rec = {} unless $rec;
-        if ($miss->{mirrorlist}) {
-            $mirrorlist{$path} = 1;
-        }
-        if ($country) {
-            $rec->{$country} = 1;
-            $countries{$country} = 1 ;
-        }
-        $path_country{$path} = $rec;
+        $countries{$country} = 1 if $country;
     }
-    my @country_list = (keys %countries);
-    return ($id, \%path_country, \@country_list, \%mirrorlist);
+    my @country_list = (sort keys %countries);
+    my @folders = (sort keys %folders);
+    return ($id, \@folders, \@country_list);
+}
+
+sub mirror_misses {
+    my ($self, $prev_stat_id, $limit) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = << "END_SQL";
+select stat.id, stat.folder_id, country
+from stat join folder on folder.id = stat.folder_id
+where mirror_id in (-1, 0) and file_id is not null
+and (
+    folder.id is null or
+    folder.scan_last is null or folder.scan_last > folder.scan_scheduled
+    )
+END_SQL
+    $sql = "$sql and stat.id > $prev_stat_id" if $prev_stat_id;
+    $sql = "$sql union all select max(id), 0, null from stat"; # this is just to get max(id) in the same query
+    $sql = "$sql order by id desc";
+    $sql = "$sql limit ($limit+1)";
+
+    my $prep = $dbh->prepare($sql);
+    $prep->execute();
+    my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
+    my $id;
+    my %folder_ids = ();
+    my %countries = ();
+    foreach my $miss ( @$arrayref ) {
+        $id = $miss->{id} unless $id;
+        my $folder_id = $miss->{folder_id};
+        next unless $folder_id;
+        $folder_ids{$folder_id} = 1;
+        my $country = $miss->{country};
+        $countries{$country} = 1 if $country;
+    }
+    my @country_list = (sort keys %countries);
+    my @folder_ids = (sort keys %folder_ids);
+    return ($id, \@folder_ids, \@country_list);
 }
 
 1;

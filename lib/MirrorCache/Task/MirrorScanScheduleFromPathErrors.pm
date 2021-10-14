@@ -41,14 +41,15 @@ sub _run {
     my $schema = $app->schema;
     my $limit = $prev_event_log_id? 1000 : 10;
 
-    my ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
+    my ($event_log_id, $folder_ids, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
     my $last_run = 0;
-    while (scalar(%$path_country_map)) {
+    my $rs = $schema->resultset('Folder');
+    while (scalar(@$folder_ids)) {
         my $cnt = 0;
         $prev_event_log_id = $event_log_id;
         print(STDERR "$pref read id from event log up to: $event_log_id\n");
-        for my $path (sort keys %$path_country_map) {
-            $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7});
+        for my $folder_id (@$folder_ids) {
+            $rs->request_scan($folder_id);
             $cnt = $cnt + 1;
         }
         for my $country (@$country_list) {
@@ -60,7 +61,7 @@ sub _run {
         $last_run = $last_run + $cnt;
         last unless $cnt;
         $limit = 1000;
-        ($event_log_id, $path_country_map, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
+        ($event_log_id, $folder_ids, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
     }
 
     if ($minion->lock('mirror_force_done', 9000)) {
@@ -78,6 +79,8 @@ sub _run {
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
     $job->note(event_log_id => $prev_event_log_id, total => $total, last_run => $last_run);
+
+    return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});
 }
 

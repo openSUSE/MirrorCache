@@ -2,7 +2,7 @@
 set -ex
 
 mc=$(environ mc $(pwd))
-MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3
+MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 $mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 
@@ -35,6 +35,8 @@ $mc/sql_test 1 == "select count(*) from stat"
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/db/sql "select * from minion_jobs order by id"
 
@@ -50,8 +52,7 @@ $mc/curl -Is /download/folder1/file1.1.dat | grep -C10 302 | grep "$($ap7/print_
 rm $mc/dt/folder1/file1.1.dat
 
 # resync the folder
-$mc/backstage/job folder_sync_schedule
-$mc/backstage/job -e mirror_probe -a '["/folder1"]'
+$mc/backstage/job -e folder_sync -a '["/folder1"]'
 $mc/backstage/shoot
 
 $mc/curl -s /download/folder1/ | grep file1.1.dat || :
@@ -77,9 +78,12 @@ test "$($mc/curl -s /version)" != ""
 $mc/curl /download/folder3/file1.1.dat.metalink   | grep 'retry later'
 $mc/curl /download/folder3/file1.1.dat.mirrorlist | grep 'retry later'
 
-sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
-sleep 0.1
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
+
 rc=0
 $mc/curl /download/folder3/file1.1.dat.metalink   | grep 'retry later' || rc=$?
 test $rc -gt 0

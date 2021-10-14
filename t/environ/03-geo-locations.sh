@@ -2,7 +2,7 @@
 set -ex
 
 mc=$(environ mc $(pwd))
-MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=2
+MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
             MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
@@ -38,6 +38,8 @@ $mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep 200
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 # 127.0.0.3 is in Nuremberg, so Munich must be chosen as the closest host
 $mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat
@@ -58,6 +60,9 @@ $mc/curl --interface 127.0.0.15 /rest/myip
 $mc/curl --interface 127.0.0.15 /download/folder2/file1.1.dat.mirrorlist
 
 $mc/sql 'select * from stat order by id desc limit 1'
-sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 $mc/curl --interface 127.0.0.15 /download/folder2/file1.1.dat.mirrorlist | grep -C10 $munich_host | grep -C10 $berlin_host | grep -C10 $altona_host | grep http

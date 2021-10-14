@@ -53,6 +53,8 @@ $mc/curl -Is --interface 127.0.0.15 /download/updates/tool/v2/file1.1.dat.mirror
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mcsub/curl /tool/v1/file1.1.dat.metalink   | grep -C10 $($ap7/print_address)/folder1/file1.1.dat | grep -C10 $($ap8/print_address)/updates/tool/v1/file1.1.dat | grep testhost.com/updates/tool/v1/file1.1.dat
 $mcsub/curl /tool/v2/file1.1.dat.metalink   | grep -C10 $($ap8/print_address)/updates/tool/v2/file1.1.dat | grep testhost.com/updates/tool/v2/file1.1.dat

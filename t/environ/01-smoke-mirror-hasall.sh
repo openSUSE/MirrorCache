@@ -33,6 +33,8 @@ $mc/curl -Is /download/folder1/file1.1.dat.mirrorlist
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=it | grep -C10 302 | grep "notexists.com"
 $mc/curl /download/folder1/file1.1.dat.mirrorlist | grep "notexists.com"
@@ -40,3 +42,4 @@ $mc/curl /download/folder1/file1.1.dat.mirrorlist | grep "notexists.com"
 rc=0
 $mc/curl -I /download/folder1/file1.1.dat?"COUNTRY=it&PEDANTIC=1" | grep "notexists.com" || rc=$?
 test $rc -gt 0
+echo success

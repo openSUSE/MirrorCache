@@ -29,6 +29,8 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/start
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/start
 
 $mc/curl -I /download/folder1/file1.1.dat
 

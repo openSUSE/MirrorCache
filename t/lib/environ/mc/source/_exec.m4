@@ -6,3 +6,4 @@ __workdir/db/status >& /dev/null || __workdir/db/start
 __srcdir/script/mirrorcache daemon >> __workdir/.cout 2>> __workdir/.cerr &
 pid=$!
 echo $pid > __workdir/.pid
+sleep 0.2

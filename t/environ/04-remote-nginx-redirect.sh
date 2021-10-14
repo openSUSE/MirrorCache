@@ -10,7 +10,8 @@ $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
     MIRRORCACHE_ROOT=http://$($ng9/print_address) \
     MIRRORCACHE_REDIRECT=http://$($ap9/print_address) \
     MIRRORCACHE_REDIRECT_VPN=root.vpn.us \
-    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
+    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 ng8=$(environ ng8)
 ng7=$(environ ng7)
@@ -39,6 +40,8 @@ $mc/curl -H 'X-Forwarded-For: 10.0.1.1' -I /download/folder1/file2.1.dat | grep 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
@@ -51,6 +54,8 @@ mv $ng7/dt/folder1/file2.1.dat $ng8/dt/folder1/
 $mc/curl -I /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
 $mc/backstage/job mirror_scan_schedule_from_path_errors
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 $mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.1.dat | grep $($ap9/print_address)

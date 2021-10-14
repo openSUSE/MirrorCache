@@ -3,12 +3,15 @@ set -exo pipefail
 
 mc=$(environ mc $(pwd))
 
-MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=3
+MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=2
 MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=1
+MIRRORCACHE_RESCAN_INTERVAL=1
 
-$mc/gen_env MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses mirror_scan_schedule_from_path_errors'" \
+$mc/gen_env MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule mirror_scan_schedule_from_misses mirror_scan_schedule_from_path_errors'" \
         MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL \
-        MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=$MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
+        MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=$MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT \
+        MIRRORCACHE_RESCAN_INTERVAL=$MIRRORCACHE_RESCAN_INTERVAL \
+        MIRRORCACHE_SCHEDULE_RESCAN_RETRY_INTERVAL=$MIRRORCACHE_RESCAN_INTERVAL
 
 $mc/start
 $mc/status
@@ -33,39 +36,31 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '1
 
 $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=mx
 $mc/backstage/shoot
-test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan_demand' and args::varchar like '%/folder1%'")
-
-$mc/db/sql "select * from minion_locks"
-
-# request from mx goes to us
-$mc/curl -Is /download/folder1/file1.1.dat?COUNTRY=mx | grep -C10 302 | grep "$($ap7/print_address)"
+sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 $mc/backstage/shoot
-$mc/db/sql "select * from minion_locks"
-# MIRRORCACHE_MIRROR_RESCAN_TIMEOUT hasn't passed yet, so no scanning job should occur
-test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan_demand' and args::varchar like '%/folder1%'")
 
-sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
-sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
+test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%'")
+
+$mc/db/sql "select * from minion_locks"
 
 $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=mx | grep -C10 302 | grep "$($ap7/print_address)"
 $mc/backstage/shoot
+sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
+$mc/backstage/shoot
 # now another job should start
-test 2 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan_demand' and args::varchar like '%/folder1%'")
+test 2 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%'")
 
 #######################################
-# when asking for file - only one country is scanned
-# when asking for mirrorlist - all countries will be scanned
 $mc/curl --interface 127.0.0.3 -I /download/folder2/file1.1.dat
 $mc/curl --interface 127.0.0.3 -I /download/folder3/file1.1.dat.mirrorlist
-sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
+$mc/backstage/shoot
+sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 $mc/backstage/shoot
 
-# folder2 has ap8 but doesnt have ap7, because file was asked
 $mc/curl --interface 127.0.0.3 /download/folder2/file1.1.dat.mirrorlist | grep $($ap8/print_address)
-rc=0
-$mc/curl --interface 127.0.0.3 /download/folder2/file1.1.dat.mirrorlist | grep $($ap7/print_address) || rc=$?
-test $rc -gt 0
-# folder2 has all mirrors, because mirrorlist was asked
+$mc/curl --interface 127.0.0.3 /download/folder2/file1.1.dat.mirrorlist | grep $($ap7/print_address)
+
 $mc/curl --interface 127.0.0.3 /download/folder3/file1.1.dat.mirrorlist | grep $($ap8/print_address)
 $mc/curl --interface 127.0.0.3 /download/folder3/file1.1.dat.mirrorlist | grep $($ap7/print_address)
 #######################################
@@ -76,8 +71,10 @@ $mc/curl --interface 127.0.0.3 /download/folder3/file1.1.dat.mirrorlist | grep $
 rm -r $ap8/dt/folder2
 $mc/curl /download/folder2/file1.1.dat.mirrorlist | grep $($ap8/print_address)
 $mc/backstage/job -e mirror_scan -a '["/folder2"]'
+sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 $mc/backstage/shoot
 res=0
 $mc/curl /download/folder2/file1.1.dat.mirrorlist | grep $($ap8/print_address) || res=$?
 test $res -gt 0
 #######################################
+echo success

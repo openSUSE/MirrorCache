@@ -22,6 +22,8 @@ sub register {
     $app->minion->add_task(stat_agg_schedule => sub { _run($app, @_) });
 }
 
+my $DELAY   = int($ENV{MIRRORCACHE_SCHEDULE_STAT_RETRY_INTERVAL} // 15);
+
 sub _run {
     my ($app, $job) = @_;
 
@@ -44,7 +46,8 @@ sub _run {
         _agg($app, $job, 'day');
     }
 
-    $job->retry({delay => 15});
+    return $job->finish unless $DELAY;
+    $job->retry({delay => $DELAY});
 }
 
 sub _agg {
