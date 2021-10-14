@@ -18,10 +18,8 @@ package MirrorCache::WebAPI::Plugin::Stat;
 use Mojo::Base 'Mojolicious::Plugin', -signatures;
 
 use Mojo::IOLoop;
-use MirrorCache::Utils 'datetime_now';
+use MirrorCache::Utils qw(datetime_now region_for_country);
 use Data::Dumper;
-
-# has ioloop => sub { Mojo::IOLoop->new };
 
 has schema => undef, weak => 1;
 has log    => undef, weak => 1;
@@ -96,12 +94,23 @@ insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_i
 values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 END_SQL
 
+    my %demand;
+
     eval {
         $self->schema->txn_do(sub {
             my $dbh = $self->schema->storage->dbh;
             my $prep = $dbh->prepare($sql);
+            my $rs = $self->schema->resultset('Folder');
             for my $row (@rows) {
-                $prep->execute(@$row);
+                my $folder_id  = $row->[6];
+                next if $folder_id && $demand{$folder_id};
+
+                if (!$folder_id) {
+                    $prep->execute(@$row);
+                } else {
+                    $rs->request_scan($folder_id);
+                    $demand{$folder_id} = 1;
+                }
             }
             1;
         });

@@ -49,32 +49,8 @@ echo test scan is scheduled when metadata is missing
 $mc/curl -Is --interface 127.0.0.3 '/download/folder2/file1.1.dat.metalink?COUNTRY=de'
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
-# $mc/backstage/job mirror_scan_schedule_from_misses
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 $mc/curl -is --interface 127.0.0.3 '/download/folder2/file1.1.dat.metalink?COUNTRY=de' | grep -A2 $DE_ADDRESS | grep $CZ_ADDRESS
-$mc/sql 'select * from stat order by id desc limit 1'
-$mc/sql_test 0 -le 'select mirror_id from stat order by id desc limit 1'
-$mc/curl -is --interface 127.0.0.3 '/download/folder2/file1.1.dat.metalink?COUNTRY=cz' | grep -A2 $CZ_ADDRESS | grep $DE_ADDRESS
-$mc/sql 'select * from stat order by id desc limit 1'
-$mc/sql_test 0 -le 'select mirror_id from stat order by id desc limit 1'
-$mc/curl -is --interface 127.0.0.3 '/download/folder2/file1.1.dat.mirrorlist?COUNTRY=cz' | grep $CZ_ADDRESS
-$mc/sql 'select * from stat order by id desc limit 1'
-$mc/sql_test 0 -le 'select mirror_id from stat order by id desc limit 1'
-#########################################
-
-
-# folder2/file2.1.dat is missing from the mirror in CZ, so it shouldnt be neither in metalink nor in mirrorlist
-rc=0
-$mc/curl -is --interface 127.0.0.3 '/download/folder2/file2.1.dat.metalink?COUNTRY=cz' | grep $CZ_ADDRESS || rc=$?
-test $rc -gt 0
-$mc/sql 'select * from stat order by id desc limit 1'
-# but stat still should show hit
-$mc/sql_test 0 -le 'select mirror_id from stat order by id desc limit 1'
-
-# the same check for mirrorlist
-rc=0
-$mc/curl -is --interface 127.0.0.3 '/download/folder2/file2.1.dat.mirrorlist?COUNTRY=cz' | grep $CZ_ADDRESS || rc=$?
-test $rc -gt 0
-$mc/sql 'select * from stat order by id desc limit 1'
-$mc/sql_test 0 -le 'select mirror_id from stat order by id desc limit 1'
 #########################################

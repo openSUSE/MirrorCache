@@ -58,9 +58,9 @@ table { width:100%%; }
         <div class="card-body status-info">
             <div><span>Id: </span><%= $folder->{id} %></div>
             <div><span>Path: </span><%= $folder->{path} %></div>
-            <div><span>Last sync: </span><%= $folder->{db_sync_last} %></div>
-            <div><span>Sync Scheduled: </span><%= $folder->{db_sync_scheduled} %></div>
-            <div><span>Sync Priority: </span><%= $folder->{db_sync_priority} %></div>
+            <div><span>Last sync: </span><%= $folder->{sync_last} %></div>
+            <div><span>Sync Scheduled: </span><%= $folder->{sync_scheduled} %></div>
+            <div><span>Sync Requested: </span><%= $folder->{sync_requested} %></div>            
         </div>
     </div>
 </div>

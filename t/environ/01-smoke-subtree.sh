@@ -2,6 +2,9 @@
 set -ex
 
 mc=$(environ mc $(pwd))
+MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
+
+$mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 
 $mc/start
 $mc/status
@@ -39,6 +42,8 @@ $mc/sql_test 2 == "select count(*) from stat where path like '/updates/f1%'"
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 $mc/db/sql "select * from minion_jobs order by id"

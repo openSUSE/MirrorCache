@@ -42,22 +42,22 @@ sub _run {
     return $job->retry({delay => 30}) if $cnt > 100;
 
     my @folders = $schema->resultset('Folder')->search({
-        db_sync_scheduled => { '>', \"COALESCE(db_sync_last - 1*interval '1 second', db_sync_scheduled - 1*interval '1 second')" }
+        sync_requested => { '>', \"COALESCE(sync_scheduled - 1*interval '1 second', sync_requested - 1*interval '1 second')" }
     }, {
-        order_by => { -asc => [qw/db_sync_scheduled -db_sync_priority/] },
+        order_by => { -asc => [qw/sync_requested/] },
         rows => $limit
     });
 
     for my $folder (@folders) {
-        $minion->enqueue('folder_sync' => [$folder->path] => {priority => $folder->db_sync_priority} => {notes => {$folder->path => 1}} );
+        $folder->update({sync_scheduled => \'NOW()'});
+        $minion->enqueue('folder_sync' => [$folder->path] => {notes => {$folder->path => 1}} );
         $cnt = $cnt + 1;
     }
     $job->note(count => $cnt);
-    # set sync request for 10 oldest folders
     $schema->storage->dbh->prepare(
-        "update folder set db_sync_scheduled = now(), db_sync_priority = 10 where id in ( select id from folder where db_sync_last < now() - interval '2 hour' and db_sync_scheduled < db_sync_last order by db_sync_last limit 50)"
+        "update folder set sync_requested = now() where id in ( select id from folder where sync_requested < now() - interval '2 hour' and sync_requested < sync_scheduled order by sync_requested limit 50)"
     )->execute();
-
+    return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});
 }
 

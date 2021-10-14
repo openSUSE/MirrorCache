@@ -72,6 +72,7 @@ $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/start
 
 n=0
@@ -94,7 +95,7 @@ while : ; do
     test $rc != 0 || break
     sleep 1;
     n=$((n+1))
-    test $n -le 10 || break
+    test $n -le 15 || break
 done
 
 $ap9/curl_https -IL /folder1/file1.1.dat | grep -C30 "200 OK"

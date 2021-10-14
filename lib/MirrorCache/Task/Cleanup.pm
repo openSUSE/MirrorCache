@@ -22,6 +22,8 @@ sub register {
     $app->minion->add_task(cleanup => sub { _run($app, @_) });
 }
 
+my $DELAY        = int($ENV{MIRRORCACHE_SCHEDULE_CLEANUP_RETRY_INTERVAL} // 2 * 60);
+
 sub _run {
     my ($app, $job) = @_;
     my $minion = $app->minion;
@@ -92,7 +94,8 @@ END_SQL
         $fail_count ? 0 : 1;
     } or $job->note(last_warning => $last_warning, delete_fail_count => $fail_count, at => datetime_now());
 
-    return $job->retry({delay => 60});
+
+    return $job->retry({delay => $DELAY});
 }
 
 1;

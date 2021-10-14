@@ -25,10 +25,9 @@ use File::Basename;
 use Encode qw(decode);
 use HTML::Parser;
 
-use MirrorCache::Utils 'region_for_country';
-
 sub register {
     my ($self, $app) = @_;
+
     $app->minion->add_task(mirror_scan => sub { _scan($app, @_) });
 }
 
@@ -39,19 +38,26 @@ sub _reliable_prefix {
 }
 
 sub _scan {
-    # region is considered only if country is empty
-    my ($app, $job, $path, $country, $region) = @_;
+    my ($app, $job, $path) = @_;
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
-    $country = "" unless $country;
-    $country =~ s/^\s+|\s+$//g;
-    $region  = "" unless $region;
 
     my $minion = $app->minion;
     return $job->finish('Previous mirror scan job is still active')
-        unless my $guard = $minion->guard('mirror_scan' . $path . '_' .  $country, 360);
+        unless my $guard = $minion->guard('mirror_scan' . $path,  20*60);
 
     $job->note($path => 1);
+    my ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = _dbfiles($app, $job, $path);
+    return undef unless $dbfiles;
+
+    my $count = _doscan($app, $job, $path, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+    $job->note($count => 1);
+    return $job->finish;
+}
+
+
+sub _dbfiles {
+    my ($app, $job, $path) = @_;
     my $schema = $app->schema;
     my $folder = $schema->resultset('Folder')->find({path => $path});
     return undef unless $folder && $folder->id; # folder is not added to db yet
@@ -80,9 +86,20 @@ sub _scan {
         $max_dt = $file->dt if !$max_dt || ( 0 > DateTime->compare($max_dt, $file->dt) );
     }
     @dbfiles = sort @dbfiles;
+    return $folder->id, $folder_id, $realpath, $latestdt, $max_dt, \@dbfiles, \%dbfileids, \%dbfileprefixes;
+}
 
-    my $folder_on_mirrors = $schema->resultset('Server')->folder($folder->id, $country, $region);
+my $RESCAN  = int($ENV{MIRRORCACHE_RESCAN_INTERVAL} // 24 * 60 * 60);
+
+sub _doscan {
+    my ($app, $job, $path, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = @_;
+    my @dbfiles = @$dbfiles;
+    my %dbfileids = %$dbfileids;
+    my %dbfileprefixes = %$dbfileprefixes;
+    my $schema = $app->schema;
+    my $folder_on_mirrors = $schema->resultset('Server')->folder($folder_id);
     my $count = 0;
+    my $perfect_count = 0;
     for my $folder_on_mirror (@$folder_on_mirrors) {
         my $server_id = $folder_on_mirror->{server_id};
         my $url = $folder_on_mirror->{url} . '/';
@@ -100,7 +117,7 @@ unless ($hasall) {
             if ($tx->result->code == 404) {
                 my $sql = 'delete from folder_diff_server where server_id = ? and folder_diff_id in (select id from folder_diff where folder_id = ?)';
                 eval {
-                    $schema->storage->dbh->prepare($sql)->execute($sid, $folder->id);
+                    $schema->storage->dbh->prepare($sql)->execute($sid, $folder_id);
                     1;
                 } or $job->note(last_warning => $@, at => datetime_now());
             }
@@ -175,10 +192,11 @@ unless ($hasall) {
                 $ctx->add($file);
                 push @missing_files, $dbfileids{$file};
             }
+            $perfect_count++ unless scalar(@missing_files);
             my $digest = $ctx->hexdigest;
-            my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder->id, hash => $digest});
+            my $folder_diff = $schema->resultset('FolderDiff')->find({folder_id => $folder_id, hash => $digest});
             unless ($folder_diff) {
-                $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder->id, hash => $digest});
+                $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder_id, hash => $digest});
                 unless($folder_diff->in_storage) {
                     $folder_diff->dt($latestdt);
                     $folder_diff->insert;
@@ -216,15 +234,9 @@ unless ($hasall) {
             return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $err}, $folder_on_mirror->{server_id});
         })->timeout(180)->wait;
     }
-
-    $app->emit_event('mc_mirror_scan_complete', {path => $path, tag => $folder->id, country => $country, count => $count});
-    # scan continent if no mirror in the country has the folder
-    return undef if !$country || $region || $count;
-
-    $region = region_for_country($country);
-    if ($region) {
-        $minion->enqueue('mirror_scan' => [$path, '', $region] => {priority => 6} );
-    }
+    $job->note("count" => $count, "perfect" => $perfect_count);
+    $schema->resultset('Folder')->scan_complete($folder_id);
+    return $perfect_count;
 }
 
 1;

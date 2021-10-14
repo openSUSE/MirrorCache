@@ -7,7 +7,8 @@ ap9=$(environ ap9)
 
 $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
     MIRRORCACHE_ROOT=http://$($ap9/print_address) \
-    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
+    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 ap8=$(environ ap8)
 ap7=$(environ ap7)
@@ -33,6 +34,8 @@ $mc/curl -I /download/folder1/file2.1.dat | grep $($ap9/print_address)
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/db/sql "select * from file"
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
@@ -47,6 +50,8 @@ $mc/curl -I /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
 $mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
@@ -58,7 +63,8 @@ for x in $ap9 $ap7 $ap8; do
     touch $x/dt/folder1/file3.1.dat
 done
 
-$mc/backstage/job folder_sync_schedule # this will find new file and trigger mirror rescan
+$mc/backstage/job -e folder_sync -a '["/folder1"]'
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 # now expect to hit
 $mc/curl -I /download/folder1/file3.1.dat | grep -E "$($ap8/print_address)|$($ap7/print_address)"
@@ -67,7 +73,11 @@ $mc/curl -I /download/folder1/file3.1.dat | grep -E "$($ap8/print_address)|$($ap
 touch $ap9/dt/folder1/file4.dat
 
 $mc/curl -I /download/folder1/file4.dat | grep -E "$($ap9/print_address)"
+
+$mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 test 2 == $($mc/db/sql "select count(*) from folder_diff_server")
@@ -89,6 +99,8 @@ $mc/curl -I /download/folder1/folder11/file1.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/curl -I /download/folder1/folder11/file1.1.dat | grep -E "$($ap7/print_address)|$($ap8/print_address)"
 $mc/curl /download/folder1/folder11/ | grep file1.1.dat
@@ -107,6 +119,8 @@ $mc/curl -I /download//folder1//file1.1.dat
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 test $cnt == $($mc/db/sql "select count(*) from folder")
 
 $mc/curl -I /download//folder1//file1.1.dat              | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
@@ -114,7 +128,6 @@ $mc/curl -I /download//folder1///file1.1.dat             | grep -C 10 -P '[^/]/f
 $mc/curl -I /download/./folder1/././file1.1.dat          | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
 $mc/curl -I /download/./folder1/../folder1/./file1.1.dat | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
 ##################################
-
 
 
 ##################################
@@ -138,8 +151,9 @@ order by f.id, s.id, fl.name
 "
 
 # force rescan
-$mc/backstage/job folder_sync_schedule_from_misses
-$mc/backstage/job folder_sync_schedule
+$mc/backstage/job -e folder_sync -a '["/folder1"]'
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 $mc/db/sql "select s.id, s.hostname, fd.id, fd.hash, fl.name, fd.dt, fl.dt

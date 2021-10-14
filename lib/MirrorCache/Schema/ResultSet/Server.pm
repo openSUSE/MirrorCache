@@ -149,18 +149,10 @@ END_SQL
 }
 
 sub folder {
-    my ($self, $id, $country, $region) = @_;
+    my ($self, $id) = @_;
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
-    $country = "" unless $country;
-
-    my $country_condition = "";
-    if ($country) {
-        $country_condition = "and s.country = lower(?)";
-    } elsif ($region) {
-        $country_condition = "and s.region = lower(?)";
-    }
 
     my $sql = <<'END_SQL';
 select s.id as server_id,
@@ -185,18 +177,13 @@ left join server_capability_declaration cap_hasall on cap_hasall.server_id  = s.
 where
 (fds.folder_diff_id IS NOT DISTINCT FROM fd.id OR fds.server_id is null)
 AND (cap_fhttp.server_id IS NULL or cap_fhttps.server_id IS NULL)
+group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id, cap_hasall.capability
+order by s.id
 END_SQL
 
-    $sql = $sql . $country_condition . ' group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id, cap_hasall.capability order by s.id';
-
     my $prep = $dbh->prepare($sql);
-    if ($country) {
-        $prep->execute($id, $country);
-    } elsif ($region) {
-        $prep->execute($id, $region);
-    } else {
-        $prep->execute($id);
-    }
+    $prep->execute($id);
+
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
 }

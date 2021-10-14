@@ -72,16 +72,17 @@ sub _sync {
             $schema->resultset('Folder')->delete_cascade($folder->id, 0);
             return $job->finish("folder has been successfully deleted from DB");
         }
-        $folder->update({db_sync_last => datetime_now()}); # prevent further sync attempts
+        $folder->update({sync_last => \'NOW()'}); # prevent further sync attempts
         return $job->finish("$path is not a dir anymore");
     }
 
-    # Mark db_sync_last early to stop other jobs to try to reschedule the sync
+    # Mark sync_last early to stop other jobs to try to reschedule the sync
+    my $otherFolder;
     my $update_db_last = sub {
-        $folder->update({db_sync_last => datetime_now()});
+        $folder->update({sync_last => \'NOW()'});
         if ($realpath ne $path) {
-            my $otherFolder = $schema->resultset('Folder')->find({path => $path});
-            $otherFolder->update({db_sync_last => datetime_now()}) if $otherFolder;
+            $otherFolder = $schema->resultset('Folder')->find({path => $path});
+            $otherFolder->update({sync_last => \'NOW()'}) if $otherFolder;
         }
     };
 
@@ -116,10 +117,10 @@ sub _sync {
         $job->note(created => $realpath, count => $count);
 
         if ($count) {
-            $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7});
+            $schema->resultset('Folder')->request_scan($folder->id);
+            $schema->resultset('Folder')->request_scan($otherFolder->id) if $otherFolder;
             $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $app->backstage->estimate_inactive_jobs('folder_hashes_create', $HASHES_QUEUE) < 1000;
         }
-        $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
         return;
     };
     return $job->fail("Couldn't create folder $path in DB") unless $folder && $folder->id;
@@ -170,13 +171,14 @@ sub _sync {
     ) if @idstodelete;
     my $deleted = @idstodelete;
 
-    $folder->update({db_sync_last => datetime_now()});
     $job->note(updated => $realpath, count => $cnt, deleted => $deleted, updated => $updated);
     if ($cnt || $updated) {
-        $minion->enqueue('mirror_scan_demand' => [$path] => {priority => 7} );
+        $folder->update({sync_last => \"NOW()", scan_requested => \"NOW()"});
+        $schema->resultset('Folder')->request_scan($folder_id);
         $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $app->backstage->estimate_inactive_jobs('folder_hashes_create', $HASHES_QUEUE) < 1000;
+    } else {
+        $folder->update({sync_last => \"NOW()"});
     }
-    $app->emit_event('mc_path_scan_complete', {path => $path, tag => $folder->id});
 }
 
 1;

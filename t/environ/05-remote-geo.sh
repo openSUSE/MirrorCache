@@ -34,6 +34,8 @@ $mc/curl -I /download/folder2/file1.1.dat?COUNTRY=dk
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 $mc/curl --interface 127.0.0.4 -I /download/folder1/file1.1.dat | grep $($ap9/print_address)
 $mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep $($ap8/print_address)

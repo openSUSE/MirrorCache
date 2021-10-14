@@ -1,3 +1,5 @@
 set -e
-res=$(__workdir/db/sql "$3")
-test $1 $2 $res || ( echo FAILED: $1 $2 $res ; exit 1 )
+last=${@:$#} # last parameter
+other=${*%${!#}} # all parameters except the last
+res=$(__workdir/db/sql "$last")
+test $other $res || ( echo FAILED: $other $res ; exit 1 )

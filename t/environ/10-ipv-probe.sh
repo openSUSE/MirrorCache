@@ -49,6 +49,8 @@ $mc/curl -I /download/folder1/file1.1.dat # access file to schedule jobs
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
 
 # make sure it redirects to ipv4 and ipv6 as requested
 curl -Is $ipv4/download/folder1/file1.1.dat | grep $($ap7/print_address)

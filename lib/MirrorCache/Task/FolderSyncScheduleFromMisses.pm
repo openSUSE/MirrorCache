@@ -41,16 +41,15 @@ sub _run {
     my $schema = $app->schema;
     my $limit = $prev_stat_id? 1000 : 10;
 
-    my ($stat_id, $path_country_map, $country_list, $mirrorlist) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
+    my ($stat_id, $folders, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
 
     my $rs = $schema->resultset('Folder');
     my $last_run = 0;
-    while (scalar(%$path_country_map)) {
+    while (scalar(@$folders)) {
         my $cnt = 0;
         $prev_stat_id = $stat_id;
         print(STDERR "$pref read id from stat up to: $stat_id\n");
-        for my $path (sort keys %$path_country_map) {
-            my $countries = $path_country_map->{$path};
+        for my $path (@$folders) {
             my $folder = $rs->find({ path => $path });
             if (!$folder) {
                 if (!$app->mc->root->is_dir($path)) {
@@ -58,13 +57,12 @@ sub _run {
                     next unless $app->mc->root->is_dir($path);
                 }
             }
-            my $folder_id = $rs->request_db_sync( $path );
+            $folder = $rs->find({ path => $path }) unless $folder;
+
             $cnt = $cnt + 1;
-            $rs->request_for_mirrorlist($folder_id) if $mirrorlist->{$path};
-            next unless $countries;
-            for my $country (keys %$countries) {
-                next unless $country && 2 == length($country);
-                $rs->request_for_country($folder_id, lc($country));
+            $rs->request_sync($path);
+            if ($folder && $folder->id) {
+                $rs->request_scan($folder->id);
             }
         }
         for my $country (@$country_list) {
@@ -76,7 +74,7 @@ sub _run {
         $last_run = $last_run + $cnt;
         last unless $cnt;
         $limit = 1000;
-        ($stat_id, $path_country_map, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
+        ($stat_id, $folders, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
     }
 
     if ($minion->lock('mirror_force_done', 9000)) {
@@ -94,6 +92,8 @@ sub _run {
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
     $job->note(stat_id => $prev_stat_id, total => $total, last_run => $last_run);
+
+    return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});
 }
 

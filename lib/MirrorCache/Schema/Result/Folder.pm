@@ -60,16 +60,36 @@ __PACKAGE__->add_columns(
   },
   "path",
   { data_type => "varchar", is_nullable => 0, size => 512 },
-  db_sync_last => {
+  wanted => {
         data_type   => 'timestamp',
+        dynamic_default_on_create => 'DBIx::Class::Timestamps::now',        
         is_nullable => 1
   },
-  db_sync_scheduled => {
+  sync_requested => {
         data_type   => 'timestamp',
         dynamic_default_on_create => 'DBIx::Class::Timestamps::now',
         is_nullable => 1
   },
-  db_sync_priority => { data_type => "integer", is_nullable => 1 },
+  sync_scheduled => {
+        data_type   => 'timestamp',
+        is_nullable => 1
+  },
+  sync_last => {
+        data_type   => 'timestamp',
+        is_nullable => 1
+  },
+  scan_requested => {
+        data_type   => 'timestamp',
+        is_nullable => 1
+  },
+  scan_scheduled => {
+        data_type   => 'timestamp',
+        is_nullable => 1
+  },
+  scan_last => {
+        data_type   => 'timestamp',
+        is_nullable => 1
+  },
   "size",
   { data_type => "bigint", is_nullable => 1 },
 );

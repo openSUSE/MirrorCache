@@ -32,17 +32,17 @@ sub mirror_path_errors {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = "select id, event_data from audit_event where name in ('mirror_path_error', 'mirror_country_miss')";
+    my $sql = "select id, event_data from audit_event where name in ('mirror_path_error')";
     $sql = "$sql and id > $prev_event_log_id" if $prev_event_log_id;
     $sql = "$sql union all select max(id), '-max_id' from audit_event";
     $sql = "$sql order by id desc";
-    $sql = "$sql limit ($limit+1)" if $limit;
+    $sql = "$sql limit ($limit+1)";
 
     my $prep = $dbh->prepare($sql);
     $prep->execute();
     my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     my $id;
-    my %path_country = ();
+    my %folder_ids = ();
     my %countries = ();
     my %seen  = ();
     foreach my $miss ( @$arrayref ) {
@@ -52,19 +52,15 @@ sub mirror_path_errors {
         next if $event_data eq '-max_id';
         $seen{$event_data} = 1;
         my $data = decode_json($event_data);
-        my $path = $data->{path};
-        next unless $path;
+        my $folder_id = $data->{folder};
+        next unless $folder_id;
+        $folder_ids{$folder_id} = 1;
         my $country = $data->{country};
-        my $rec = $path_country{$path};
-        $rec = {} unless $rec;
-        if ($country) {
-            $rec->{$country} = 1;
-            $countries{$country} = 1 ;
-        }
-        $path_country{$path} = $rec;
+        $countries{$country} = 1 if $country;
     }
-    my @country_list = (keys %countries);
-    return ($id, \%path_country, \@country_list);
+    my @country_list = (sort keys %countries);
+    my @folder_ids = (sort keys %folder_ids);
+    return ($id, \@folder_ids, \@country_list);
 }
 
 sub cleanup_audit_events {

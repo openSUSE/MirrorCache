@@ -57,6 +57,7 @@ sub register {
         my $region  = $dm->region;
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
+            $folder->update({ sync_requested => \'NOW()' }) if $folder && !$file && (!$folder->sync_requested || !$folder->sync_scheduled || $folder->sync_requested < $folder->sync_scheduled);
             return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
             return $root->render_file($dm, $filepath)
               unless $dm->metalink # TODO we still can check file on mirrors even if it is missing in DB
@@ -81,7 +82,6 @@ sub register {
         if ($dm->metalink || $dm->mirrorlist) {
             if ($mirror) {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
-                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country, mirror3 => $mirror->{country}}) if $country && $country ne $mirror->{country} && $country ne $dm->root_country;
             } else {
                 $c->stat->redirect_to_root($dm);
             }
@@ -203,7 +203,6 @@ sub register {
             $c->redirect_to($url);
             eval {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
-                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country, mirror => $mirror->{country}}) if $country && $country ne $mirror->{country};
             };
             return 1;
         }
@@ -234,7 +233,6 @@ sub register {
             # only with remote root and when no mirrors should be used for the root's country
             if ($country ne $mirror->{country} && $dm->root_is_better($mirror->{region}, $mirror->{lng})) {
                 $root->render_file($dm, $filepath, 1);
-                $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country, mirror1 => $mirror->{country}}) if $country && $country ne $dm->root_country;
                 return 1;
             }
             my $url = $mirror->{url};
@@ -255,7 +253,6 @@ sub register {
                     }
                     $c->redirect_to($url);
                     $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
-                    $c->emit_event('mc_mirror_country_miss', {path => $dirname, country => $country, mirror2 => $mirror->{country}}) if $country && $country ne $mirror->{country};
                     return 1;
                 }
                 $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});

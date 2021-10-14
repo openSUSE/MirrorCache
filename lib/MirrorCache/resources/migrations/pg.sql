@@ -6,11 +6,15 @@
 create table if not exists folder (
     id serial NOT NULL PRIMARY KEY,
     path varchar(512) UNIQUE NOT NULL,
-    db_sync_last timestamp,
-    db_sync_scheduled timestamp,
-    db_sync_priority int NOT NULL DEFAULT 10,
-    files int,
-    size bigint
+    wanted            timestamp, -- last day when it was requested by client, refreshed once in 24 hours
+    sync_requested    timestamp, -- when it was determined that sync is needed
+    sync_scheduled    timestamp, -- when sync job was created (scheduled)
+    sync_last         timestamp, -- when sync job started
+    scan_requested    timestamp, -- when it was determined that scan is needed
+    scan_scheduled    timestamp, -- when scan job was created (scheduled)
+    scan_last         timestamp, -- when scan job started
+    files             int,
+    size              bigint
 );
 
 create table if not exists file (
@@ -165,15 +169,6 @@ create index if not exists stat_agg_dt_period on stat_agg(dt, period, mirror_id)
 alter table stat add column if not exists metalink boolean default 'f', add column if not exists head boolean default 'f';
 -- 3 up
 alter table folder drop column if exists db_sync_for_country;
-create table demand (
-    folder_id int NOT NULL references folder on delete cascade,
-    country char(2) NOT NULL,
-    last_request timestamp,
-    last_scan timestamp,
-    mirror_count_country int,
-    mirror_count_region int,
-    unique(folder_id, country)
-);
 -- 4 up
 create table hash (
     file_id bigint NOT NULL primary key references file on delete cascade,
@@ -209,17 +204,23 @@ alter table stat add column if not exists mirrorlist boolean default 'f';
 -- 9 up
 alter table server add column if not exists hostname_vpn varchar(128) UNIQUE;
 -- 10 up
-create table demand_mirrorlist (
-    folder_id int NOT NULL references folder on delete cascade,
-    last_request timestamp,
-    last_scan timestamp,
-    mirror_count_country int,
-    mirror_count_region int,
-    unique(folder_id)
-);
 -- 11 up
 create index if not exists file_folder_id_idx on file(folder_id);
 create index if not exists folder_diff_folder_id_idx on folder_diff(folder_id);
 create index if not exists folder_diff_server_folder_diff_id_idx on folder_diff_server(folder_diff_id);
 -- 12 up
 alter type server_capability_t add value 'hasall'; -- mirror always has all files - no scan is performed
+-- 13 up
+drop table if exists demand;
+drop table if exists demand_mirrorlist;
+alter table folder
+    drop column if exists db_sync_last,
+    drop column if exists db_sync_scheduled,
+    drop column if exists db_sync_priority,
+    add column if not exists wanted            timestamp,
+    add column if not exists sync_requested    timestamp,
+    add column if not exists sync_scheduled    timestamp,
+    add column if not exists sync_last         timestamp,
+    add column if not exists scan_requested    timestamp,
+    add column if not exists scan_scheduled    timestamp,
+    add column if not exists scan_last         timestamp;

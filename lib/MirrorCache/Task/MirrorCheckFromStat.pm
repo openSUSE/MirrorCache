@@ -63,6 +63,8 @@ sub _run {
         ($stat_id, $mirror_id, $country, $url, $folder) = $schema->resultset('Stat')->latest_hit($prev_stat_id);
     }
     $job->note(stat_id => $stat_id);
+
+    return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});
 }
 
