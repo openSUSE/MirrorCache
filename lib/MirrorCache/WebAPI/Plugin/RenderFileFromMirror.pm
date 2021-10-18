@@ -44,20 +44,27 @@ sub register {
         return $root->render_file($dm, $filepath, 1) if $dm->must_render_from_root; # && $root->is_reachable;
 
         my $folder = $c->schema->resultset('Folder')->find({path => $subtree . $dirname});
-        $dm->folder_id($folder->id) if $folder;
-        my $folder_id = $folder->id if $folder;
+        my $folder_id;
+        if ($folder) {
+            $folder_id = $folder->id;
+            $dm->folder_id($folder_id);
+            $dm->folder_scan_last($folder->scan_last);
+        }
         my $realfolder_id;
         if ($realdirname ne $dirname) {
             my $realfolder = $c->schema->resultset('Folder')->find({path => $realdirname});
             $realfolder_id = $realfolder->id if $realfolder;
         }
         my $file = $c->schema->resultset('File')->find_with_hash(($realfolder_id? $realfolder_id : $folder_id), $basename) if $folder;
-        $dm->file_id($file->{id}) if $file;
+        if($file) {
+            $dm->file_id($file->{id});
+            $dm->file_age($file->{age});
+        }
         my $country = $dm->country;
         my $region  = $dm->region;
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
-            $folder->update({ sync_requested => \'NOW()' }) if $folder && !$file && (!$folder->sync_requested || !$folder->sync_scheduled || $folder->sync_requested < $folder->sync_scheduled);
+            # $folder->update({ sync_requested => \'NOW()' }) if $folder && !$file && (!$folder->sync_requested || !$folder->sync_scheduled || $folder->sync_requested < $folder->sync_scheduled);
             return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
             return $root->render_file($dm, $filepath)
               unless $dm->metalink # TODO we still can check file on mirrors even if it is missing in DB

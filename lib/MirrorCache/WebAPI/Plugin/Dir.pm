@@ -95,8 +95,6 @@ sub indx {
 sub render_dir_remote {
     my $dm       = shift;
     my $dir      = shift;
-    my $rsFolder = shift;
-    my $country  = shift || $dm->country;
     my $c = $dm->c;
     my $tx = $c->render_later->tx;
 
@@ -104,13 +102,13 @@ sub render_dir_remote {
     $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $dir);
     # if scheduling didn't happen - let's try to render anyway
     if ($job_id < 1) {
-        return _render_dir($dm, $dir, $rsFolder);
+        return _render_dir($dm, $dir);
     }
 
     my $handle_error = sub {
         my $reason = $_;
         if ($reason eq 'Promise timeout') {
-            return _render_dir($dm, $dir, $rsFolder);
+            return _render_dir($dm, $dir);
         }
         $c->render(status => 500, text => Dumper($reason));
         my $reftx = $tx;
@@ -118,7 +116,7 @@ sub render_dir_remote {
 
     $c->minion->result_p($job_id)->catch($handle_error)->then(sub {
         $c->emit_event('mc_debug', "promiseok: $job_id");
-        _render_dir($dm, $dir, $rsFolder);
+        _render_dir($dm, $dir);
         my $reftx = $tx;
     })->catch($handle_error)->timeout(15)->wait;
 }
@@ -127,18 +125,22 @@ sub _render_dir {
     my $dm     = shift;
     my $dir    = shift;
     my $rsFolder = shift;
-    my $folder = shift;
+    my $folder;
     my $c = $dm->c;
 
     $rsFolder  = $c->app->schema->resultset('Folder') unless $rsFolder;
 
-    $folder    = $rsFolder->find({path => $dm->root_subtree . $dir}) unless $folder;
-    $dm->folder_id($folder->id) if $folder;
+    $folder    = $rsFolder->find({path => $dm->root_subtree . $dir});
+    my $folder_id;
+    if ($folder) {
+        $folder_id = $folder->id;
+        $dm->folder_id($folder_id);
+        $dm->file_id(-1);
+    }
 
-    my $folder_id = $folder->id if $folder;
     return _render_dir_local($dm, $folder_id, $dir) unless $root->is_remote; # just render files if we have them locally
 
-    $c->stat->redirect_to_root($dm, 0) unless $folder_id && $folder->sync_last ;
+    $c->stat->redirect_to_root($dm, 0) unless $folder_id && $folder->sync_last;
     return _render_dir_from_db($dm, $folder_id, $dir) if $folder && $folder->sync_last;
 
     my $pos = $rsFolder->get_sync_queue_position($dir);
@@ -260,6 +262,8 @@ sub _render_from_db {
         return $dm->redirect($folder->{pathto}) if $folder->{pathto};
         # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
+        $dm->folder_id($folder->{id});
+        $dm->file_id(-1);
         return _render_dir($dm, $path, $rsFolder) if ($folder->{sync_last});
     } elsif (!$trailing_slash && $path ne '/') {
         my $f = Mojo::File->new($path);
@@ -271,6 +275,7 @@ sub _render_from_db {
             $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $parent_folder->id }) if $parent_folder && !$trailing_slash;
             # folders are stored with trailing slash in file table, so they will not be selected here
             if ($file) {
+                $dm->file_id($file->id);
                 # regular file has trailing slash in db? That is probably incorrect, so let the root handle it
                 return $root->render_file($dm, $path . '/') if $trailing_slash;
                 # find a mirror for it

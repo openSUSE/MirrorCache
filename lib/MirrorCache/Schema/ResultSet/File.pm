@@ -28,7 +28,11 @@ sub find_with_hash {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select file.*, hash.md5, hash.sha1, hash.sha256, hash.piece_size, hash.pieces
+select file.*, hash.md5, hash.sha1, hash.sha256, hash.piece_size, hash.pieces,
+(DATE_PART('day',    now() - file.dt) * 24 * 3600 +
+ DATE_PART('hour',   now() - file.dt) * 3600 +
+ DATE_PART('minute', now() - file.dt) * 60 +
+ DATE_PART('second', now() - file.dt)) as age
 from file
 left join hash on file_id = id and file.size = hash.size and file.mtime = hash.mtime
 where file.folder_id = ? and name = ?

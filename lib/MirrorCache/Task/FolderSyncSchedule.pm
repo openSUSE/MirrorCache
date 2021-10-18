@@ -35,27 +35,27 @@ sub _run {
       unless my $guard = $minion->guard('folder_sync_schedule', 60);
 
     my $schema = $app->schema;
-    my $limit = 1000;
+    my $limit = 100;
 
     # retry later if many folder_sync jobs are scheduled according to estimation
     my $cnt = $app->backstage->estimate_inactive_jobs('sync_folder');
     return $job->retry({delay => 30}) if $cnt > 100;
 
     my @folders = $schema->resultset('Folder')->search({
-        sync_requested => { '>', \"COALESCE(sync_scheduled - 1*interval '1 second', sync_requested - 1*interval '1 second')" }
+        sync_requested => { '>', \"COALESCE(sync_scheduled, sync_requested - 1*interval '1 second')" }
     }, {
-        order_by => { -asc => [qw/sync_requested/] },
+        order_by => { -asc => [qw/sync_scheduled sync_requested/] },
         rows => $limit
     });
 
     for my $folder (@folders) {
         $folder->update({sync_scheduled => \'NOW()'});
-        $minion->enqueue('folder_sync' => [$folder->path] => {notes => {$folder->path => 1}} );
+        $minion->enqueue('folder_sync' => [$folder->path] => {notes => {$folder->path => 1, reason => 'schedule'}} );
         $cnt = $cnt + 1;
     }
     $job->note(count => $cnt);
     $schema->storage->dbh->prepare(
-        "update folder set sync_requested = now() where id in ( select id from folder where sync_requested < now() - interval '2 hour' and sync_requested < sync_scheduled order by sync_requested limit 50)"
+        "update folder set sync_requested = now() where id in ( select id from folder where sync_requested < now() - interval '24 hour' and sync_requested < sync_scheduled order by sync_requested limit 20)"
     )->execute();
     return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});

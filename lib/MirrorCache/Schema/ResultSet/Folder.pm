@@ -57,14 +57,30 @@ END_SQL
     return $res->[0];
 }
 
+sub request_sync_array {
+    my $self = shift;
+    my @ids = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+update folder set sync_requested = now()
+where ( sync_requested < COALESCE(sync_scheduled, sync_last, now()) or sync_requested is null )
+END_SQL
+    $sql = $sql . " AND id in (" . join( ',', map { '?' } @ids ) . ')';
+    my $prep = $dbh->prepare($sql);
+    $prep->execute(@ids);
+}
+
+
 sub request_scan {
     my ($self, $folder_id) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
-
-    my $seconds = int($ENV{'MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT'} // 120);
 
     my $sql = << "END_SQL";
 update folder
@@ -75,14 +91,31 @@ END_SQL
     $prep->execute($folder_id);
 }
 
-sub scan_complete {
-    my ($self, $folder_id) = @_;
-    
+sub request_scan_array {
+    my $self = shift;
+    my @ids = @_;
+
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = 'update folder set scan_last = now() where id = ?';
+    my $sql = <<'END_SQL';
+update folder set scan_requested = now()
+where ( scan_requested < COALESCE(scan_scheduled, scan_last, now()) or scan_requested is null )
+END_SQL
+    $sql = $sql . " AND id in (" . join( ',', map { '?' } @ids ) . ')';
+    my $prep = $dbh->prepare($sql);
+    $prep->execute(@ids);
+}
+
+sub scan_complete {
+    my ($self, $folder_id) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = 'update folder set scan_last = now(), scan_scheduled = coalesce(scan_scheduled, now()) where id = ?';
     my $prep = $dbh->prepare($sql);
     $prep->execute($folder_id);
 }

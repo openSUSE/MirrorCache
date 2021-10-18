@@ -36,7 +36,7 @@ has '_agent';
 has [ '_is_secure', '_is_ipv4', '_ipvstrict', '_is_head' ];
 has 'mirrorlist';
 has 'json';
-has [ 'folder_id', 'file_id' ]; # shortcut to requested folder and file, if known
+has [ 'folder_id', 'file_id', 'file_age', 'folder_scan_last' ]; # shortcut to requested folder and file, if known
 
 has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
 has '_root_region';

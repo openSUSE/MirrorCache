@@ -53,14 +53,14 @@ mv $ng7/dt/folder1/file2.1.dat $ng8/dt/folder1/
 # gets redirected to MIRRORCACHE_REDIRECT again, because MIRRORCACHE_PEDANTIC is set to 1
 $mc/curl -I /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
-$mc/backstage/job mirror_scan_schedule_from_path_errors
-$mc/backstage/shoot
-$mc/backstage/job mirror_scan_schedule
+# TODO $mc/backstage/job mirror_scan_schedule_from_path_errors
+# $mc/backstage/shoot
+# $mc/backstage/job mirror_scan_schedule
+$mc/backstage/job -e mirror_scan -a '["/folder1"]'
 $mc/backstage/shoot
 
 $mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
-# now redirects to ng8
 $mc/curl -I /download/folder1/file2.1.dat?PEDANTIC=0 | grep non-vpn.us
 # 10.* redirected to mirror.vpn.us
 $mc/curl  -H 'X-Forwarded-For: 10.0.1.1' -I '/download/folder1/file2.1.dat?COUNTRY=us' | grep $($ng8/print_address)

@@ -48,9 +48,11 @@ mv $ap7/dt/folder1/file2.1.dat $ap8/dt/folder1/
 # gets redirected to root again
 $mc/curl -I /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
-$mc/backstage/job mirror_scan_schedule_from_path_errors
-$mc/backstage/shoot
-$mc/backstage/job mirror_scan_schedule
+# $mc/backstage/job mirror_scan_schedule_from_path_errors
+# $mc/backstage/shoot
+# $mc/backstage/job mirror_scan_schedule
+
+$mc/backstage/job -e mirror_scan -a '["/folder1"]'
 $mc/backstage/shoot
 
 $mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.1.dat | grep $($ap9/print_address)

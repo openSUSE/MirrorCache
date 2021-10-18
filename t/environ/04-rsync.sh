@@ -91,7 +91,7 @@ done
 $mc/curl -I /download/folder1/file3.1.dat | grep fake.com
 
 # force rescan
-$mc/backstage/job mirror_scan_schedule_from_path_errors
+# $mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule

@@ -22,11 +22,11 @@ sub register {
 }
 
 my $DELAY   = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
-my $TIMEOUT = int($ENV{MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT} // 120);
 
 sub _run {
     my ($app, $job, $prev_event_log_id) = @_;
     my $job_id = $job->id;
+    return $job->fail("Disabled. TBD");
     my $pref = "[scan_from_path_errors $job_id]";
     my $id_in_notes = $job->info->{notes}{event_log_id};
     $prev_event_log_id = $id_in_notes if $id_in_notes;
@@ -39,7 +39,7 @@ sub _run {
       unless my $guard = $minion->guard('mirror_scan_schedule_from_path_errors', 86400);
 
     my $schema = $app->schema;
-    my $limit = $prev_event_log_id? 1000 : 10;
+    my $limit = $prev_event_log_id? 20 : 10;
 
     my ($event_log_id, $folder_ids, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
     my $last_run = 0;
@@ -60,7 +60,7 @@ sub _run {
         }
         $last_run = $last_run + $cnt;
         last unless $cnt;
-        $limit = 1000;
+        $limit = 20;
         ($event_log_id, $folder_ids, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
     }
 

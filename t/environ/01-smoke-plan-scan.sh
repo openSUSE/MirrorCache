@@ -3,15 +3,11 @@ set -exo pipefail
 
 mc=$(environ mc $(pwd))
 
-MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=2
-MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=1
-MIRRORCACHE_RESCAN_INTERVAL=1
+MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
+MIRRORCACHE_RESCAN_INTERVAL=0
 
-$mc/gen_env MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule mirror_scan_schedule_from_misses mirror_scan_schedule_from_path_errors'" \
-        MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL \
-        MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=$MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT \
-        MIRRORCACHE_RESCAN_INTERVAL=$MIRRORCACHE_RESCAN_INTERVAL \
-        MIRRORCACHE_SCHEDULE_RESCAN_RETRY_INTERVAL=$MIRRORCACHE_RESCAN_INTERVAL
+$mc/gen_env MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=$MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT \
+        MIRRORCACHE_RESCAN_INTERVAL=$MIRRORCACHE_RESCAN_INTERVAL
 
 $mc/start
 $mc/status
@@ -35,8 +31,10 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '1
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','de','eu'"
 
 $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=mx
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
-sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%'")
@@ -44,8 +42,7 @@ test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_sc
 $mc/db/sql "select * from minion_locks"
 
 $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=mx | grep -C10 302 | grep "$($ap7/print_address)"
-$mc/backstage/shoot
-sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 # now another job should start
 test 2 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%'")
@@ -53,9 +50,10 @@ test 2 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_sc
 #######################################
 $mc/curl --interface 127.0.0.3 -I /download/folder2/file1.1.dat
 $mc/curl --interface 127.0.0.3 -I /download/folder3/file1.1.dat.mirrorlist
-sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
-sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 $mc/curl --interface 127.0.0.3 /download/folder2/file1.1.dat.mirrorlist | grep $($ap8/print_address)
@@ -71,7 +69,6 @@ $mc/curl --interface 127.0.0.3 /download/folder3/file1.1.dat.mirrorlist | grep $
 rm -r $ap8/dt/folder2
 $mc/curl /download/folder2/file1.1.dat.mirrorlist | grep $($ap8/print_address)
 $mc/backstage/job -e mirror_scan -a '["/folder2"]'
-sleep $MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT
 $mc/backstage/shoot
 res=0
 $mc/curl /download/folder2/file1.1.dat.mirrorlist | grep $($ap8/print_address) || res=$?
