@@ -48,6 +48,7 @@ sub register {
         if ($folder) {
             $folder_id = $folder->id;
             $dm->folder_id($folder_id);
+            $dm->folder_sync_last($folder->sync_last);
             $dm->folder_scan_last($folder->scan_last);
         }
         my $realfolder_id;
@@ -250,10 +251,18 @@ sub register {
                 if ($code == 200 || $code == 302 || $code == 301) {
                     my $size = $result->headers->content_length if $result->headers;
                     if ((defined $size && defined $expected_size) && ($size || $expected_size) && $size ne $expected_size) {
-                        if ($expected_mtime && $expected_mtime < Mojo::Date->new($result->headers->last_modified)->epoch) {
-                            return $root->render_file($dm, $filepath, 0);
+                        my $scan_last = $dm->folder_scan_last;
+                        if ($scan_last && $expected_mtime && $expected_mtime < Mojo::Date->new($result->headers->last_modified)->epoch) {
+                            if ($dm->scan_last_ago() > 15*60) {
+                                $c->emit_event('mc_mirror_path_error', {e1 => $expected_mtime, e2 => Mojo::Date->new($result->headers->last_modified)->epoch, ago1 => $dm->scan_last_ago(), path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                            }
+                            return $root->render_file($dm, $filepath, 0); # file on mirror is newer than we have
+                        } elsif ($scan_last) {
+                            if ($dm->scan_last_ago() > 24*60*60) {
+                                $c->emit_event('mc_mirror_path_error', {ago2 => $dm->scan_last_ago(), path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                            }
                         } else {
-                            $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                                $c->emit_event('mc_debug', {message => 'path error', path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
                         }
                         $code = 409;
                         return undef;
@@ -262,7 +271,12 @@ sub register {
                     $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
                     return 1;
                 }
-                $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                if ($dm->sync_last_ago() > 4*60*60) {
+                    $c->emit_event('mc_mirror_path_error', {path => $dirname, code => 200, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                }
+                if ($dm->scan_last_ago() > 4*60*60) {
+                    $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                }
             })->catch(sub {
                 $c->emit_event('mc_mirror_error', {path => $dirname, error => shift, url => $url, folder => $folder->id, id => $mirror->{mirror_id}});
             })->finally(sub {

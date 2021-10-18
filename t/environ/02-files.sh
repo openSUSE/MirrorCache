@@ -71,8 +71,8 @@ $mc/curl -I /download/folder1/file1.dat | grep 200
 # make root the same size of folder1/file1.dat
 echo 1 > $mc/dt/folder1/file1.dat
 
-# TODO - can we do it automatically? $mc/backstage/job mirror_scan_schedule_from_path_errors
-$mc/backstage/job -e folder_sync -a '["/folder1"]'
+$mc/backstage/job mirror_scan_schedule_from_path_errors
+$mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
@@ -172,10 +172,8 @@ for f in $unversionedfiles; do
     cp $ap7/dt/folder1.11test/$f $mc/dt/folder1.11test/
 done
 
-# TODO it should schedule folder_sync because file on mirror was newer than on root
-# TODO $mc/backstage/job mirror_scan_schedule_from_path_errors
-# $mc/backstage/job folder_sync_schedule
-$mc/backstage/job -e folder_sync -a '["/folder1.11test"]'
+$mc/backstage/job mirror_scan_schedule_from_path_errors
+$mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot

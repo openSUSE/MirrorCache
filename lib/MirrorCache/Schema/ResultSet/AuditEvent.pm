@@ -42,7 +42,8 @@ sub mirror_path_errors {
     $prep->execute();
     my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     my $id;
-    my %folder_ids = ();
+    my %rescan_ids = ();
+    my %resync_ids = ();
     my %countries = ();
     my %seen  = ();
     foreach my $miss ( @$arrayref ) {
@@ -54,13 +55,22 @@ sub mirror_path_errors {
         my $data = decode_json($event_data);
         my $folder_id = $data->{folder};
         next unless $folder_id;
-        $folder_ids{$folder_id} = 1;
+        my $code = $data->{code};
+        next unless $code;
+        if ($code == 200) {
+            $resync_ids{$folder_id} = 1;
+        } elsif ($code > 399) {
+            $rescan_ids{$folder_id} = 1;
+        }
         my $country = $data->{country};
         $countries{$country} = 1 if $country;
     }
     my @country_list = (sort keys %countries);
-    my @folder_ids = (sort keys %folder_ids);
-    return ($id, \@folder_ids, \@country_list);
+    my $rescan_ids;
+    $rescan_ids = [sort keys %rescan_ids] if %rescan_ids;
+    my $resync_ids;
+    $resync_ids = [sort keys %resync_ids] if %resync_ids;
+    return ($id, $resync_ids, $rescan_ids, \@country_list);
 }
 
 sub cleanup_audit_events {

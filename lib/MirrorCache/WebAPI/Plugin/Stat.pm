@@ -17,7 +17,6 @@
 package MirrorCache::WebAPI::Plugin::Stat;
 use Mojo::Base 'Mojolicious::Plugin', -signatures;
 
-use DateTime;
 use Mojo::IOLoop;
 use MirrorCache::Utils qw(datetime_now region_for_country);
 

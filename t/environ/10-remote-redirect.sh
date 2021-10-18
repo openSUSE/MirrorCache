@@ -82,7 +82,6 @@ until curl -s -k http://$($ap9/print_address)/  | grep folder1 ; do
     curl -s -k http://$($ap9/print_address)/  | grep folder1 || :
     test $n -le 10 || ( exit 1 )
     sleep 1
-    $mc/sql 'select * from folder'
     n=$((n+1))
 done
 
