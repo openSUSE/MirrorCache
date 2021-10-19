@@ -83,6 +83,8 @@ sub redirect_to_mirror($self, $mirror_id, $dm) {
     $self->timer($id);
 }
 
+my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS}) // 0;
+
 sub flush($self, $rows) {
     $self->timer(undef);
     return unless $rows;
@@ -114,9 +116,11 @@ END_SQL
                     my $agent      = $row->[1];
                     next unless -1 == index($agent, 'bot');
                     my $file_id    = $row->[7];
-                    next if $file_id == -1;
+                    next if $file_id && $file_id == -1;
                     if (!$file_id) {
                         $demand_sync{$folder_id} = 1;
+                    } elsif ($RECKLESS) {
+                        $demand_scan{$folder_id} = 1;
                     } else {
                         my $file_age  = $row->[13];
                         my $scan_last = $row->[14];

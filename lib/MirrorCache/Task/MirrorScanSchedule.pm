@@ -24,6 +24,9 @@ sub register {
 my $RESCAN = int($ENV{MIRRORCACHE_RESCAN_INTERVAL} // 24 * 60 * 60);
 my $DELAY  = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
 my $EXPIRE = int($ENV{MIRRORCACHE_SCHEDULE_EXPIRE_INTERVAL} // 14 * 24 * 60 * 60);
+my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS}) // 0;
+
+$RESCAN=0 if $RECKLESS;
 
 sub _run {
     my ($app, $job) = @_;
@@ -41,7 +44,17 @@ sub _run {
 
     # retry later if many jobs are scheduled according to estimation
     my $cnt = $app->backstage->estimate_inactive_jobs('mirror_scan');
-    return $job->retry({delay => 30}) if $cnt > 100;
+
+    $schema->storage->dbh->prepare(
+        "update folder set scan_requested = now() where id in
+        (
+            select id from folder
+            where scan_requested < now() - interval '$RESCAN second' and
+                  scan_requested < scan_scheduled and
+                  wanted > now() - interval '$EXPIRE second'
+            order by scan_requested limit 20
+        )"
+    )->execute();    return $job->retry({delay => 30}) if $cnt > 100;
 
     my @folders = $schema->resultset('Folder')->search({
         scan_requested => { '>', \"COALESCE(scan_scheduled, scan_requested - interval '1 second')" }
@@ -57,17 +70,8 @@ sub _run {
         $cnt = $cnt + 1;
     }
 
-    $job->note(count => $cnt, rescan => $RESCAN);
-    $schema->storage->dbh->prepare(
-        "update folder set scan_requested = now() where id in
-        (
-            select id from folder
-            where scan_requested < now() - interval '$RESCAN second' and
-                  scan_requested < scan_scheduled and
-                  wanted > now() - interval '$EXPIRE second'
-            order by scan_requested limit 20
-        )"
-    )->execute();
+    $job->note(count => $cnt);
+
 
     return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});

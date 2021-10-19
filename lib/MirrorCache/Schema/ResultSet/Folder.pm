@@ -36,6 +36,22 @@ END_SQL
     return $dbh->selectrow_array($prep);
 }
 
+sub set_wanted {
+    my ($self, $folder_id) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = << "END_SQL";
+update folder
+set wanted = now()
+where id = ? and (wanted < now() - interval '2 week' or wanted is null)
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($folder_id);
+}
+
 sub request_sync {
     my ($self, $path) = @_;
 

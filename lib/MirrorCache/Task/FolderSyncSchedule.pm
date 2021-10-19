@@ -23,7 +23,12 @@ sub register {
     $app->minion->add_task(folder_sync_schedule => sub { _run($app, @_) });
 }
 
-my $DELAY = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
+my $RESYNC = int($ENV{MIRRORCACHE_RESYNC_INTERVAL} // 24 * 60 * 60);
+my $DELAY  = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
+my $EXPIRE = int($ENV{MIRRORCACHE_SCHEDULE_EXPIRE_INTERVAL} // 14 * 24 * 60 * 60);
+my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS}) // 0;
+
+$RESYNC=0 if $RECKLESS;
 
 sub _run {
     my ($app, $job) = @_;
@@ -38,8 +43,18 @@ sub _run {
     my $limit = 100;
 
     # retry later if many folder_sync jobs are scheduled according to estimation
-    my $cnt = $app->backstage->estimate_inactive_jobs('sync_folder');
+    my $cnt = $app->backstage->estimate_inactive_jobs('folder_sync');
     return $job->retry({delay => 30}) if $cnt > 100;
+    $schema->storage->dbh->prepare(
+        "update folder set sync_requested = now() where id in
+        (
+            select id from folder
+            where sync_requested < now() - interval '$RESYNC second' and
+            sync_requested < sync_scheduled and
+            wanted > now() - interval '$EXPIRE second'
+            order by sync_requested limit 20
+        )"
+    )->execute();
 
     my @folders = $schema->resultset('Folder')->search({
         sync_requested => { '>', \"COALESCE(sync_scheduled, sync_requested - 1*interval '1 second')" }
@@ -47,16 +62,15 @@ sub _run {
         order_by => { -asc => [qw/sync_scheduled sync_requested/] },
         rows => $limit
     });
+    $cnt = 0;
 
     for my $folder (@folders) {
         $folder->update({sync_scheduled => \'NOW()'});
-        $minion->enqueue('folder_sync' => [$folder->path] => {notes => {$folder->path => 1, reason => 'schedule'}} );
+        $minion->enqueue('folder_sync' => [$folder->path] => {notes => {$folder->path => 1}} );
         $cnt = $cnt + 1;
     }
     $job->note(count => $cnt);
-    $schema->storage->dbh->prepare(
-        "update folder set sync_requested = now() where id in ( select id from folder where sync_requested < now() - interval '24 hour' and sync_requested < sync_scheduled order by sync_requested limit 20)"
-    )->execute();
+
     return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});
 }

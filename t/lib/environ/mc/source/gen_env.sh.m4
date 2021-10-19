@@ -9,7 +9,7 @@ export MOJO_LISTEN=http://*:__port
 export MIRRORCACHE_AUTH_URL=''
 export MIRRORCACHE_PERMANENT_JOBS=''
 export MIRRORCACHE_STAT_FLUSH_COUNT=1
-export MIRRORCACHE_TROTTLE=0
+export MIRRORCACHE_RECKLESS=1
 "
 
     for i in "$@"; do
