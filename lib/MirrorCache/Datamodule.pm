@@ -386,10 +386,10 @@ sub root_is_better($self, $region, $lng) {
     return 0;
 }
 
-my $TROTTLE=int($ENV{MIRRORCACHE_TROTTLE}) // 1;
+my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS}) // 0;
 
 sub sync_last_ago($self) {
-    return 30*24*60*60 unless $TROTTLE;
+    return 30*24*60*60 if $RECKLESS;
     my $sync_last = $self->folder_sync_last;
     return 0 unless $sync_last;
     $sync_last->set_time_zone('local');
@@ -397,7 +397,7 @@ sub sync_last_ago($self) {
 }
 
 sub scan_last_ago($self) {
-    return 30*24*60*60 unless $TROTTLE;
+    return 30*24*60*60 if $RECKLESS;
     my $scan_last = $self->folder_scan_last;
     return 0 unless $scan_last;
     $scan_last->set_time_zone('local');
