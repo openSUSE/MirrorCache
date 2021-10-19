@@ -36,7 +36,7 @@ has '_agent';
 has [ '_is_secure', '_is_ipv4', '_ipvstrict', '_is_head' ];
 has 'mirrorlist';
 has 'json';
-has [ 'folder_id', 'file_id' ]; # shortcut to requested folder and file, if known
+has [ 'folder_id', 'file_id', 'file_age', 'folder_sync_last', 'folder_scan_last' ]; # shortcut to requested folder and file, if known
 
 has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
 has '_root_region';
@@ -384,6 +384,24 @@ sub root_is_better($self, $region, $lng) {
         return 1 if abs( $self->_root_longitude - $self->lng ) < abs( $lng - $self->lng );
     }
     return 0;
+}
+
+my $TROTTLE=int($ENV{MIRRORCACHE_TROTTLE}) // 1;
+
+sub sync_last_ago($self) {
+    return 30*24*60*60 unless $TROTTLE;
+    my $sync_last = $self->folder_sync_last;
+    return 0 unless $sync_last;
+    $sync_last->set_time_zone('local');
+    return time() - $sync_last->epoch;
+}
+
+sub scan_last_ago($self) {
+    return 30*24*60*60 unless $TROTTLE;
+    my $scan_last = $self->folder_scan_last;
+    return 0 unless $scan_last;
+    $scan_last->set_time_zone('local');
+    return time() - $scan_last->epoch;
 }
 
 1;

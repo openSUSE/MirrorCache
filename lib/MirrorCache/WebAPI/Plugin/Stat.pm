@@ -19,7 +19,6 @@ use Mojo::Base 'Mojolicious::Plugin', -signatures;
 
 use Mojo::IOLoop;
 use MirrorCache::Utils qw(datetime_now region_for_country);
-use Data::Dumper;
 
 has schema => undef, weak => 1;
 has log    => undef, weak => 1;
@@ -67,7 +66,7 @@ sub redirect_to_mirror($self, $mirror_id, $dm) {
     $path = $dm->root_subtree . $path;
     my $rows = $self->rows;
     my @rows = defined $rows? @$rows : ();
-    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head ];
+    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head, $dm->file_age, $dm->folder_scan_last ];
     my $cnt = @rows;
     if ($cnt >= $FLUSH_COUNT) {
         $self->rows(undef);
@@ -94,27 +93,69 @@ insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_i
 values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 END_SQL
 
-    my %demand;
+    my %demand_sync;
+    my %demand_scan;
 
+    my ($dbh, $rs);
     eval {
         $self->schema->txn_do(sub {
-            my $dbh = $self->schema->storage->dbh;
+            $dbh = $self->schema->storage->dbh;
             my $prep = $dbh->prepare($sql);
-            my $rs = $self->schema->resultset('Folder');
             for my $row (@rows) {
                 my $folder_id  = $row->[6];
-                next if $folder_id && $demand{$folder_id};
-
                 if (!$folder_id) {
+                    pop @$row;
+                    pop @$row;
                     $prep->execute(@$row);
                 } else {
-                    $rs->request_scan($folder_id);
-                    $demand{$folder_id} = 1;
+                    my $mirror_id = $row->[5];
+                    next if $mirror_id > 0;
+                    next if $mirror_id < -1;
+                    my $agent      = $row->[1];
+                    next unless -1 == index($agent, 'bot');
+                    my $file_id    = $row->[7];
+                    next if $file_id == -1;
+                    if (!$file_id) {
+                        $demand_sync{$folder_id} = 1;
+                    } else {
+                        my $file_age  = $row->[13];
+                        my $scan_last = $row->[14];
+                        next unless $file_age && $scan_last;
+                        $scan_last->set_time_zone('local');
+                        my $scan_last_ago = time() - $scan_last->epoch;
+                        if ($file_age < 3600) {
+                            $demand_scan{$folder_id} = 1 unless $scan_last_ago < 30*60;
+                        } elsif ($file_age < 4*3600) {
+                            $demand_scan{$folder_id} = 1 unless $scan_last_ago < 60*60;
+                        } elsif ($file_age < 24*3600) {
+                            $demand_scan{$folder_id} = 1 unless $scan_last_ago < 4*60*60;
+                        } elsif ($file_age < 72*3600) {
+                            $demand_scan{$folder_id} = 1 unless $scan_last_ago < 8*60*60;
+                        } else {
+                            $demand_scan{$folder_id} = 1 unless $scan_last_ago < 24*60*60;
+                        }
+                    }
                 }
             }
             1;
         });
     } or $self->log->error("[STAT] Error logging " . scalar(@rows) . " rows: " . $@);
+
+    if (%demand_sync) {
+        eval {
+            $rs = $self->schema->resultset('Folder');
+            $rs->request_sync_array(sort keys %demand_sync);
+            1;
+        } or $self->log->error("[STAT] Error requesting  sync for " . scalar(keys %demand_sync) . " rows: " . $@);
+    }
+
+    if (%demand_scan) {
+        eval {
+            $rs = $self->schema->resultset('Folder') unless $rs;
+            $rs->request_scan_array(sort keys %demand_scan);
+            1;
+        } or $self->log->error("[STAT] Error requesting  scan for " . scalar(keys %demand_scan) . " rows: " . $@);
+    }
 }
 
 1;

@@ -49,7 +49,6 @@ $mc/curl -I /download/folder1/file2.1.dat
 $mc/curl -I /download/folder1/file2.1.dat?COUNTRY=ca
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
-$mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
@@ -121,6 +120,8 @@ $mc/sql_test 0 == "select count(*) from stat where mirror_id = -1 and file_id is
 
 $mc/sql_test 0 == "select count(*) from folder where path = '/folder2' and scan_requested > scan_scheduled"
 
+$mc/sql "update folder set scan_last = now()-interval '5 hour' where path = '/folder2'"
+$mc/sql "update folder set scan_scheduled = scan_last - interval '1 second', scan_requested =scan_last - interval '2 second' where path = '/folder2'"
 $mc/curl -I /download/folder2/file4.dat | grep 200
 # now an error must be logged
 $mc/sql_test 1 == "select count(*) from folder where path = '/folder2' and scan_requested > scan_scheduled"
@@ -171,7 +172,6 @@ for f in $unversionedfiles; do
     cp $ap7/dt/folder1.11test/$f $mc/dt/folder1.11test/
 done
 
-# it should schedule folder_sync because file on mirror was newer than on root
 $mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot

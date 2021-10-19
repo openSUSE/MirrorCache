@@ -2,7 +2,6 @@
 set -ex
 
 mc=$(environ mc $(pwd))
-$mc/gen_env MIRRORCACHE_STAT_FLUSH_COUNT=1
 $mc/start
 $mc/status
 
@@ -33,10 +32,10 @@ $mc/curl -I /download/folder1/file1.1.dat | grep -C20 302 | grep $($ap7/print_ad
 rm $ap7/dt/folder1/file1.1.dat
 
 id=$($mc/backstage/job mirror_check_from_stat)
-$mc/backstage/job mirror_scan_schedule
+$mc/backstage/job -e mirror_scan -a '["/folder1"]'
 $mc/backstage/shoot
 # check a new mirror_scan job was scheduled
-test 1 == $($mc/db/sql "select count(*) from minion_jobs where id>$id and task = 'mirror_scan'")
+$mc/sql_test 1 == "select count(*) from minion_jobs where id>$id and task = 'mirror_scan'"
 
 # no redirect anymore
 $mc/curl -I /download/folder1/file1.1.dat | grep -C20 '200 OK'

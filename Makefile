@@ -6,7 +6,7 @@ MIRRORCACHE_DNS ?= 'DBI:Pg:database=mirrorcache'
 mkfile_path := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 test_local:
-	( for f in t/environ/*.sh; do bash -x $$f && continue; echo FAIL $$f; exit 1 ; done )
+	( for f in $$(ls -t t/environ/*.sh); do bash -x $$f && continue; echo FAIL $$f; exit 1 ; done )
 
 test_docker:
 	( cd t/environ; for f in *.sh; do ./$$f && continue; echo FAIL $$f; exit 1 ; done )

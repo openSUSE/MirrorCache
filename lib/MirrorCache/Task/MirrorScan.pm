@@ -89,8 +89,6 @@ sub _dbfiles {
     return $folder->id, $folder_id, $realpath, $latestdt, $max_dt, \@dbfiles, \%dbfileids, \%dbfileprefixes;
 }
 
-my $RESCAN  = int($ENV{MIRRORCACHE_RESCAN_INTERVAL} // 24 * 60 * 60);
-
 sub _doscan {
     my ($app, $job, $path, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = @_;
     my @dbfiles = @$dbfiles;

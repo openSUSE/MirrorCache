@@ -60,7 +60,6 @@ $mc/backstage/shoot
 
 $mc/curl -H "Accept: */*, application/metalink+xml" /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
-# now redirects to ng8
 $mc/curl -I /download/folder1/file2.1.dat?PEDANTIC=0 | grep non-vpn.us
 # 10.* redirected to mirror.vpn.us
 $mc/curl  -H 'X-Forwarded-For: 10.0.1.1' -I '/download/folder1/file2.1.dat?COUNTRY=us' | grep $($ng8/print_address)

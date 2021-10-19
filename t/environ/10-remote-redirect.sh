@@ -68,6 +68,8 @@ done
 $ap7/start
 $ap8/start
 
+$mc/curl -IL /download/folder1/file1.1.dat
+
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
@@ -78,7 +80,7 @@ $mc/backstage/start
 n=0
 until curl -s -k http://$($ap9/print_address)/  | grep folder1 ; do
     curl -s -k http://$($ap9/print_address)/  | grep folder1 || :
-    test $n -le 15 || ( exit 1 )
+    test $n -le 10 || ( exit 1 )
     sleep 1
     n=$((n+1))
 done
@@ -91,14 +93,13 @@ $ap9/curl_https / | grep folder1
 n=0
 while : ; do
     rc=0
-    $ap9/curl_https -IL /folder1/file1.1.dat | grep "200 OK" || rc=$?
+    $ap9/curl_https -IL /folder1/file1.1.dat | grep $($ap7/print_address) || rc=$?
     test $rc != 0 || break
     sleep 1;
     n=$((n+1))
-    test $n -le 15 || break
+    test $n -le 5 || break
 done
 
-$ap9/curl_https -IL /folder1/file1.1.dat | grep -C30 "200 OK"
 $ap9/curl_https -IL /folder1/file1.1.dat | grep -C30 "200 OK" | grep https:// | grep $($ap7/print_address)
 
 
@@ -130,7 +131,6 @@ rc=0
 # metalink for http shouldn't have ap6
 $ap9/curl /folder1/file1.1.dat.metalink | grep $($ap6/print_address) || rc=$?
 test $rc -gt 0
-
 
 
 # check ap8 is listed lower in the mirrorlist and has http

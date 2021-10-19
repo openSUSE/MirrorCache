@@ -72,17 +72,17 @@ sub _sync {
             $schema->resultset('Folder')->delete_cascade($folder->id, 0);
             return $job->finish("folder has been successfully deleted from DB");
         }
-        $folder->update({sync_last => \'NOW()'}); # prevent further sync attempts
+        $folder->update({sync_last => \'NOW()', sync_scheduled => \'coalesce(sync_scheduled, NOW())'}); # prevent further sync attempts
         return $job->finish("$path is not a dir anymore");
     }
 
     # Mark sync_last early to stop other jobs to try to reschedule the sync
     my $otherFolder;
     my $update_db_last = sub {
-        $folder->update({sync_last => \'NOW()'});
+        $folder->update({sync_last => \'NOW()', sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
         if ($realpath ne $path) {
             $otherFolder = $schema->resultset('Folder')->find({path => $path});
-            $otherFolder->update({sync_last => \'NOW()'}) if $otherFolder;
+            $otherFolder->update({sync_last => \'NOW()', sync_scheduled => \'coalesce(sync_scheduled, NOW())'}) if $otherFolder;
         }
     };
 
@@ -173,11 +173,11 @@ sub _sync {
 
     $job->note(updated => $realpath, count => $cnt, deleted => $deleted, updated => $updated);
     if ($cnt || $updated) {
-        $folder->update({sync_last => \"NOW()", scan_requested => \"NOW()"});
+        $folder->update({sync_last => \"NOW()", scan_requested => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
         $schema->resultset('Folder')->request_scan($folder_id);
         $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && $app->backstage->estimate_inactive_jobs('folder_hashes_create', $HASHES_QUEUE) < 1000;
     } else {
-        $folder->update({sync_last => \"NOW()"});
+        $folder->update({sync_last => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
     }
 }
 

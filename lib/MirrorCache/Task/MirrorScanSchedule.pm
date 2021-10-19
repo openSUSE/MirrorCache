@@ -21,6 +21,7 @@ sub register {
     $app->minion->add_task(mirror_scan_schedule => sub { _run($app, @_) });
 }
 
+my $RESCAN = int($ENV{MIRRORCACHE_RESCAN_INTERVAL} // 24 * 60 * 60);
 my $DELAY  = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
 my $EXPIRE = int($ENV{MIRRORCACHE_SCHEDULE_EXPIRE_INTERVAL} // 14 * 24 * 60 * 60);
 
@@ -36,7 +37,7 @@ sub _run {
       unless my $guard = $minion->guard('mirror_scan_schedule', 60);
 
     my $schema = $app->schema;
-    my $limit = 1000;
+    my $limit = 100;
 
     # retry later if many jobs are scheduled according to estimation
     my $cnt = $app->backstage->estimate_inactive_jobs('mirror_scan');
@@ -45,26 +46,26 @@ sub _run {
     my @folders = $schema->resultset('Folder')->search({
         scan_requested => { '>', \"COALESCE(scan_scheduled, scan_requested - interval '1 second')" }
     }, {
-        order_by => { -asc => [qw/scan_requested/] },
+        order_by => { -asc => [qw/scan_scheduled scan_requested/] },
         rows => $limit
     });
     $cnt = 0;
-    
+
     for my $folder (@folders) {
         $folder->update({scan_scheduled => \'NOW()'});
         $minion->enqueue('mirror_scan' => [$folder->path] => {notes => {$folder->path => 1}} );
         $cnt = $cnt + 1;
     }
 
-    $job->note(count => $cnt);
+    $job->note(count => $cnt, rescan => $RESCAN);
     $schema->storage->dbh->prepare(
-        "update folder set scan_requested = now() where id in 
-        ( 
+        "update folder set scan_requested = now() where id in
+        (
             select id from folder
-            where scan_requested < now() - interval '2 hour' and 
-                  scan_requested < scan_scheduled and 
+            where scan_requested < now() - interval '$RESCAN second' and
+                  scan_requested < scan_scheduled and
                   wanted > now() - interval '$EXPIRE second'
-            order by scan_requested limit 50
+            order by scan_requested limit 20
         )"
     )->execute();
 

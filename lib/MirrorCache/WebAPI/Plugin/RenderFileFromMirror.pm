@@ -44,20 +44,28 @@ sub register {
         return $root->render_file($dm, $filepath, 1) if $dm->must_render_from_root; # && $root->is_reachable;
 
         my $folder = $c->schema->resultset('Folder')->find({path => $subtree . $dirname});
-        $dm->folder_id($folder->id) if $folder;
-        my $folder_id = $folder->id if $folder;
+        my $folder_id;
+        if ($folder) {
+            $folder_id = $folder->id;
+            $dm->folder_id($folder_id);
+            $dm->folder_sync_last($folder->sync_last);
+            $dm->folder_scan_last($folder->scan_last);
+        }
         my $realfolder_id;
         if ($realdirname ne $dirname) {
             my $realfolder = $c->schema->resultset('Folder')->find({path => $realdirname});
             $realfolder_id = $realfolder->id if $realfolder;
         }
         my $file = $c->schema->resultset('File')->find_with_hash(($realfolder_id? $realfolder_id : $folder_id), $basename) if $folder;
-        $dm->file_id($file->{id}) if $file;
+        if($file) {
+            $dm->file_id($file->{id});
+            $dm->file_age($file->{age});
+        }
         my $country = $dm->country;
         my $region  = $dm->region;
         # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
-            $folder->update({ sync_requested => \'NOW()' }) if $folder && !$file && (!$folder->sync_requested || !$folder->sync_scheduled || $folder->sync_requested < $folder->sync_scheduled);
+            # $folder->update({ sync_requested => \'NOW()' }) if $folder && !$file && (!$folder->sync_requested || !$folder->sync_scheduled || $folder->sync_requested < $folder->sync_scheduled);
             return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
             return $root->render_file($dm, $filepath)
               unless $dm->metalink # TODO we still can check file on mirrors even if it is missing in DB
@@ -243,10 +251,18 @@ sub register {
                 if ($code == 200 || $code == 302 || $code == 301) {
                     my $size = $result->headers->content_length if $result->headers;
                     if ((defined $size && defined $expected_size) && ($size || $expected_size) && $size ne $expected_size) {
-                        if ($expected_mtime && $expected_mtime < Mojo::Date->new($result->headers->last_modified)->epoch) {
-                            return $root->render_file($dm, $filepath, 0);
+                        my $scan_last = $dm->folder_scan_last;
+                        if ($scan_last && $expected_mtime && $expected_mtime < Mojo::Date->new($result->headers->last_modified)->epoch) {
+                            if ($dm->scan_last_ago() > 15*60) {
+                                $c->emit_event('mc_mirror_path_error', {e1 => $expected_mtime, e2 => Mojo::Date->new($result->headers->last_modified)->epoch, ago1 => $dm->scan_last_ago(), path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                            }
+                            return $root->render_file($dm, $filepath, 0); # file on mirror is newer than we have
+                        } elsif ($scan_last) {
+                            if ($dm->scan_last_ago() > 24*60*60) {
+                                $c->emit_event('mc_mirror_path_error', {ago2 => $dm->scan_last_ago(), path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                            }
                         } else {
-                            $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                                $c->emit_event('mc_debug', {message => 'path error', path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
                         }
                         $code = 409;
                         return undef;
@@ -255,7 +271,12 @@ sub register {
                     $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
                     return 1;
                 }
-                $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                if ($dm->sync_last_ago() > 4*60*60) {
+                    $c->emit_event('mc_mirror_path_error', {path => $dirname, code => 200, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                }
+                if ($dm->scan_last_ago() > 4*60*60) {
+                    $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                }
             })->catch(sub {
                 $c->emit_event('mc_mirror_error', {path => $dirname, error => shift, url => $url, folder => $folder->id, id => $mirror->{mirror_id}});
             })->finally(sub {

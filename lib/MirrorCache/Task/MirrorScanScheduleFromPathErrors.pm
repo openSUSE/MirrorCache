@@ -22,7 +22,6 @@ sub register {
 }
 
 my $DELAY   = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
-my $TIMEOUT = int($ENV{MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT} // 120);
 
 sub _run {
     my ($app, $job, $prev_event_log_id) = @_;
@@ -39,18 +38,21 @@ sub _run {
       unless my $guard = $minion->guard('mirror_scan_schedule_from_path_errors', 86400);
 
     my $schema = $app->schema;
-    my $limit = $prev_event_log_id? 1000 : 10;
-
-    my ($event_log_id, $folder_ids, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
+    my $limit = $prev_event_log_id? 20 : 10;
+    my ($event_log_id, $resync_ids, $rescan_ids, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
     my $last_run = 0;
     my $rs = $schema->resultset('Folder');
-    while (scalar(@$folder_ids)) {
+    while ($resync_ids || $rescan_ids) {
         my $cnt = 0;
         $prev_event_log_id = $event_log_id;
         print(STDERR "$pref read id from event log up to: $event_log_id\n");
-        for my $folder_id (@$folder_ids) {
-            $rs->request_scan($folder_id);
-            $cnt = $cnt + 1;
+        if ($resync_ids) {
+            $rs->request_sync_array(@$resync_ids);
+            $cnt += @$resync_ids;
+        }
+        if ($rescan_ids) {
+            $rs->request_scan_array(@$rescan_ids);
+            $cnt += @$rescan_ids;
         }
         for my $country (@$country_list) {
             next unless $minion->lock('mirror_probe_scheduled_' . $country, 60); # don't schedule if schedule hapened in last 60 sec
@@ -60,8 +62,8 @@ sub _run {
         }
         $last_run = $last_run + $cnt;
         last unless $cnt;
-        $limit = 1000;
-        ($event_log_id, $folder_ids, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
+        $limit = 20;
+        ($event_log_id, $resync_ids, $rescan_ids, $country_list) = $schema->resultset('AuditEvent')->mirror_path_errors($prev_event_log_id, $limit);
     }
 
     if ($minion->lock('mirror_force_done', 9000)) {
