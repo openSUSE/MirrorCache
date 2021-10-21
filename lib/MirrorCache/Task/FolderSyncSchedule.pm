@@ -43,8 +43,8 @@ sub _run {
     my $limit = 100;
 
     # retry later if many folder_sync jobs are scheduled according to estimation
-    my $cnt = $app->backstage->estimate_inactive_jobs('folder_sync');
-    return $job->retry({delay => 30}) if $cnt > 100;
+    return $job->retry({delay => 30}) if $app->backstage->inactive_jobs_exceed_limit(100, 'folder_sync');
+
     $schema->storage->dbh->prepare(
         "update folder set sync_requested = now() where id in
         (
@@ -62,7 +62,7 @@ sub _run {
         order_by => { -asc => [qw/sync_scheduled sync_requested/] },
         rows => $limit
     });
-    $cnt = 0;
+    my $cnt = 0;
 
     for my $folder (@folders) {
         $folder->update({sync_scheduled => \'NOW()'});
