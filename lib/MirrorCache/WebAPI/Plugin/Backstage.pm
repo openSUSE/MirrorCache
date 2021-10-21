@@ -21,7 +21,6 @@ use Minion;
 use DBIx::Class::Timestamps 'now';
 use MirrorCache::Schema;
 use Mojo::Pg;
-use MirrorCache::Utils 'rows_in_explain_array';
 
 has app => undef, weak => 1;
 
@@ -127,44 +126,34 @@ sub check_permanent_jobs {
     }
 }
 
-# estimantes the number of inactive jobs for a certain task or global
-sub estimate_inactive_jobs {
-    my ( $self, $task, $queue ) = @_;
+sub inactive_jobs_exceed_limit {
+    my ( $self, $limit, $task, $queue ) = @_;
+    $limit = 200 unless $limit;
     $queue = 'default' unless $queue;
     my $db = $self->app->minion->backend->pg->db;
+    my $limit1 = $limit + 1;
 
     my $sql = <<'END_SQL';
-explain select count(*) as cnt
+select case when count(*) > ? then 1 else 0 end as exceed from (
+select id
 from minion_jobs
 where state = 'inactive' and queue = ?
 END_SQL
     my $res;
-    if ($task) {
-        $sql = "$sql and task = ?";
-        $res = $db->query($sql, $queue, $task)->expand->hashes->to_array;
-    } else {
-        $res = $db->query($sql, $queue)->expand->hashes->to_array;
-    }
-    my $rows = rows_in_explain_array(@$res);
-    return $rows;
+    $sql = "$sql and task = ?" if $task;
+    $sql = "$sql limit ?) x";
+    return $db->query($sql, $limit, $queue, $limit1)->expand->hash->{exceed} unless $task;
+    return $db->query($sql, $limit, $queue, $task, $limit1)->expand->hash->{exceed};
 }
 
 # raсe condition here souldn't be big issue
 sub enqueue_unless_scheduled_with_parameter_or_limit {
     my ( $self, $task, $arg1, $arg2 ) = @_;
-    my $db = $self->app->minion->backend->pg->db;
 
-    my $sql = <<'END_SQL';
-explain select count(*) as cnt
-from minion_jobs
-where state = 'inactive' and queue = 'default'
-END_SQL
-    my $res = $db->query($sql)->expand->hashes->to_array;
-    my $rows = rows_in_explain_array(@$res);
-    return 0 if $rows > 100;
+    return 0 if $self->inactive_jobs_exceed_limit(100);
 
     my $minion = $self->app->minion;
-    $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive','active'], notes => [$arg1] });
+    my $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive','active'], notes => [$arg1] });
     return -1 unless ( $res || !exists $res->{total} || $res->{total} > 0 );
     return $minion->enqueue($task => [($arg1, $arg2)] => {priority => 10} => {notes => { $arg1 => 1 }} );
 }
