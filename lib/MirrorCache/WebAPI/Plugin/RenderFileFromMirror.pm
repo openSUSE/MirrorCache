@@ -106,9 +106,17 @@ sub register {
 
         if ($dm->metalink && !($dm->metalink_accept && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
             my $url = $c->req->url->to_abs;
-            my $origin = $url->scheme . '://' . $url->host;
-            $origin = $origin . ":" . $url->port if $url->port && $url->port != "80";
-            $origin = $origin . $dm->route . $filepath;
+
+            my $origin;
+            if (my $publisher_url = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL}) {
+                $publisher_url =~ s/^https?:\/\///;
+                $origin = $url->scheme . '://' . $publisher_url;
+            } else {
+                $origin = $url->scheme . '://' . $url->host;
+                $origin = $origin . ":" . $url->port if $url->port && $url->port != "80";
+                $origin = $origin . $dm->route . $filepath;
+            }
+            $origin = $origin . $filepath;
             my $xml    = _build_metalink(
                 $dm, $folder->path, $file, $country, $region, \@mirrors_country, \@mirrors_region,
                 \@mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : $root->redirect($dm, $folder->path) );
@@ -157,6 +165,7 @@ sub register {
             my $size = $file->{size};
             my $hsize = MirrorCache::Utils::human_readable_size($size) if defined $size;
             my $mtime = $file->{mtime};
+            $mtime = $file->{hash_mtime} if $file->{hash_mtime};
             my $hmtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
             my $fileorigin;
             my $fileoriginpath = $filepath;
@@ -455,7 +464,8 @@ sub _collect_mirrors {
     my $limit = $mirrorlist ? 100 : (( $metalink || $dm->pedantic )? 10 : 1);
     my $rs = $dm->c->schema->resultset('Server');
 
-    my $m = $rs->mirrors_query(
+    my $m;
+    $m = $rs->mirrors_query(
             $country, $region,  $folder_id, $file_id,        $scheme,
             $ipv,     $lat, $lng,    $avoid_countries, $limit,      0,
             !$mirrorlist, $ipvstrict, $vpn

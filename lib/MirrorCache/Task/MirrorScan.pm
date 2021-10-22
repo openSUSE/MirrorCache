@@ -127,6 +127,7 @@ unless ($hasall) {
             my $start = sub {
                 return undef unless $_[0] eq 'a';
                 $href = $_[1]->{href};
+                return undef unless $href;
                 $href1 = '';
                 eval {
                     if ('/' eq substr($href, -1)) {
@@ -209,7 +210,7 @@ unless ($hasall) {
             my $old_diff_dt_epoch = $folder_on_mirror->{dt_epoch} || 0;
             if ($folder_diff->id == $old_diff_id) {
                 # need update dt if diff_id is the same
-                $schema->resultset('FolderDiffServer')->update_dt($max_dt, $folder_diff->id, $folder_on_mirror->{server_id}) if $old_diff_dt_epoch < $max_dt->epoch;
+                $schema->resultset('FolderDiffServer')->update_dt($max_dt, $folder_diff->id, $folder_on_mirror->{server_id}) if $max_dt && $old_diff_dt_epoch < $max_dt->epoch;
                 return;
             }
 
