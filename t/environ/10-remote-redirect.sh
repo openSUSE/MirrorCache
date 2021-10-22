@@ -26,7 +26,8 @@ $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
     MOJO_CA_FILE=$(pwd)/ca/ca.pem \
     MOJO_REVERSE_PROXY=1 \
     MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=2 \
-    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
+    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
+    MIRRORCACHE_METALINK_PUBLISHER_URL=http://metalink_publisher.net
 
 $mc/start
 $mc/status
@@ -145,3 +146,7 @@ test $rc -gt 0
 # shutdown ap7, then https must redirect to ap4
 $ap7/stop
 $ap9/curl_https -I /folder1/file1.1.dat?PEDANTIC=1 | grep https:// | grep $($ap4/print_address)
+
+
+$ap9/curl_https /folder1/file1.1.dat.metalink | grep 'origin="https://metalink_publisher.net/folder1/file1.1.dat.metalink"'
+$ap9/curl       /folder1/file1.1.dat.metalink | grep 'origin="http://metalink_publisher.net/folder1/file1.1.dat.metalink"'

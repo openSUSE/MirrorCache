@@ -129,9 +129,13 @@ sub path_misses {
     my $sql = << "END_SQL";
 select stat.id, stat.path, stat.folder_id, country
 from stat left join folder on folder.id = stat.folder_id
-where mirror_id in (-1, 0) and file_id is null
+where mirror_id in (-1, 0)
+and file_id is null
+and (stat.path not like '%repomd.xml')
+and (stat.path not like '%/media')
+and (stat.path not like '%.sha256')
 and (
-    stat.folder_id is null or 
+    stat.folder_id is null or
     folder.sync_requested < folder.sync_scheduled
     )
 END_SQL
