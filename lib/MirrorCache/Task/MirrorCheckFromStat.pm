@@ -45,7 +45,7 @@ sub _run {
 
     my $schema = $app->schema;
 
-    my ($stat_id, $mirror_id, $country, $url, $folder) = $schema->resultset('Stat')->latest_hit($prev_stat_id);
+    my ($stat_id, $mirror_id, $country, $url, $folder, $folder_id) = $schema->resultset('Stat')->latest_hit($prev_stat_id);
     my $last_run = 0;
     while ($stat_id && $stat_id > $prev_stat_id) {
         my $cnt = 0;
@@ -57,10 +57,10 @@ sub _run {
         if ($res->is_error) {
             $app->log->warn("Need rescan $url: " . $res->code);
             return $job->retry({delay => 10*$DELAY}) if $app->backstage->inactive_jobs_exceed_limit;
-            $minion->enqueue('mirror_scan' => [$folder, $country] => {priority => 6});
+            $schema->resultset('Folder')->request_scan($folder_id);
         }
 
-        ($stat_id, $mirror_id, $country, $url, $folder) = $schema->resultset('Stat')->latest_hit($prev_stat_id);
+        ($stat_id, $mirror_id, $country, $url, $folder, $folder_id) = $schema->resultset('Stat')->latest_hit($prev_stat_id);
     }
     $job->note(stat_id => $stat_id);
 

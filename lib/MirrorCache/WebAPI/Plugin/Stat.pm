@@ -105,12 +105,13 @@ END_SQL
             my $prep = $dbh->prepare($sql);
             for my $row (@rows) {
                 my $folder_id  = $row->[6];
-                if (!$folder_id) {
-                    pop @$row;
-                    pop @$row;
-                    $prep->execute(@$row);
-                } else {
-                    my $mirror_id = $row->[5];
+                my $mirror_id = $row->[5];
+                my $file_age  = $row->[13];
+                my $scan_last = $row->[14];
+                pop @$row;
+                pop @$row;
+                $prep->execute(@$row);
+                if ($folder_id) {
                     next if $mirror_id > 0;
                     next if $mirror_id < -1;
                     my $agent      = $row->[1];
@@ -122,8 +123,6 @@ END_SQL
                     } elsif ($RECKLESS) {
                         $demand_scan{$folder_id} = 1;
                     } else {
-                        my $file_age  = $row->[13];
-                        my $scan_last = $row->[14];
                         next unless $file_age && $scan_last;
                         $scan_last->set_time_zone('local');
                         my $scan_last_ago = time() - $scan_last->epoch;
