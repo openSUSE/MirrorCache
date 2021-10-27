@@ -1,0 +1,72 @@
+** SIEGE 4.0.9
+** Preparing 1 concurrent users for battle.
+The server is now under siege...
+
+Lifting the server siege...
+Transactions:		         716 hits
+Availability:		      100.00 %
+Elapsed time:		        9.17 secs
+Data transferred:	        0.00 MB
+Response time:		        0.01 secs
+Transaction rate:	       78.08 trans/sec
+Throughput:		        0.00 MB/sec
+Concurrency:		        0.99
+Successful transactions:         716
+Failed transactions:	           0
+Longest transaction:	        0.02
+Shortest transaction:	        0.01
+ 
+** SIEGE 4.0.9
+** Preparing 2 concurrent users for battle.
+The server is now under siege...
+
+Lifting the server siege...
+Transactions:		        1437 hits
+Availability:		      100.00 %
+Elapsed time:		        9.99 secs
+Data transferred:	        0.00 MB
+Response time:		        0.01 secs
+Transaction rate:	      143.84 trans/sec
+Throughput:		        0.00 MB/sec
+Concurrency:		        1.99
+Successful transactions:        1437
+Failed transactions:	           0
+Longest transaction:	        0.03
+Shortest transaction:	        0.01
+ 
+** SIEGE 4.0.9
+** Preparing 16 concurrent users for battle.
+The server is now under siege...
+
+Lifting the server siege...
+Transactions:		        5313 hits
+Availability:		      100.00 %
+Elapsed time:		        9.99 secs
+Data transferred:	        0.00 MB
+Response time:		        0.03 secs
+Transaction rate:	      531.83 trans/sec
+Throughput:		        0.00 MB/sec
+Concurrency:		       15.91
+Successful transactions:        5313
+Failed transactions:	           0
+Longest transaction:	        0.14
+Shortest transaction:	        0.01
+ 
+** SIEGE 4.0.9
+** Preparing 255 concurrent users for battle.
+The server is now under siege...
+
+Lifting the server siege...
+Transactions:		        5430 hits
+Availability:		      100.00 %
+Elapsed time:		        9.98 secs
+Data transferred:	        0.00 MB
+Response time:		        0.45 secs
+Transaction rate:	      544.09 trans/sec
+Throughput:		        0.00 MB/sec
+Concurrency:		      242.57
+Successful transactions:        5430
+Failed transactions:	           0
+Longest transaction:	        1.90
+Shortest transaction:	        0.02
+ 
