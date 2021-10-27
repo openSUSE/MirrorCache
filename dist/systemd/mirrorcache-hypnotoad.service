@@ -1,0 +1,17 @@
+[Unit]
+Description=MirrorCache webApp
+Before=apache2.service
+After=postgresql.service nss-lookup.target
+
+[Service]
+User=mirrorcache
+Group=mirrorcache
+Type=forking
+PIDFile=/run/mirrorcache/hypnotoad.pid
+ExecStart=/usr/share/mirrorcache/script/mirrorcache-hypnotoad
+ExecReload=/usr/share/mirrorcache/script/mirrorcache-hypnotoad
+EnvironmentFile=/etc/mirrorcache/conf.env
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

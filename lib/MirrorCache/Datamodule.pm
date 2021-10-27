@@ -386,7 +386,7 @@ sub root_is_better($self, $region, $lng) {
     return 0;
 }
 
-my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS}) // 0;
+my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS} // 0);
 
 sub sync_last_ago($self) {
     return 30*24*60*60 if $RECKLESS;

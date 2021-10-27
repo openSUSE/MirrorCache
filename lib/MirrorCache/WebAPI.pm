@@ -21,12 +21,19 @@ use Mojolicious::Commands;
 use MirrorCache::Schema;
 use MirrorCache::Utils 'random_string';
 
+sub new {
+    my $self = shift->SUPER::new;
+    # setting pid_file in startup will not help, need to set it earlier
+    $self->config->{hypnotoad}{pid_file} = $ENV{MIRRORCACHE_HYPNOTOAD_PID} // '/run/mirrorcache/hypnotoad.pid';
+    $self;
+}
+
 # This method will run once at server start
 sub startup {
     my $self = shift;
     my $root = $ENV{MIRRORCACHE_ROOT} || "";
     my $geodb_file = $ENV{MIRRORCACHE_CITY_MMDB} || $ENV{MIRRORCACHE_IP2LOCATION};
-    
+
     die("Geo IP location database is not a file ($geodb_file)\nPlease check MIRRORCACHE_CITY_MMDB or MIRRORCACHE_IP2LOCATION") if $geodb_file && ! -f $geodb_file;
     my $geodb;
 
@@ -40,6 +47,10 @@ sub startup {
         1;
     } or die("Automatic migration failed: $@\nFix table structure and insert into mojo_migrations select 'mirrorcache',version");
     my $secret = random_string(16);
+    $self->config->{hypnotoad}{listen}   = [$ENV{MOJO_LISTEN} // 'http://*:8080'];
+    $self->config->{hypnotoad}{proxy}    = $ENV{MOJO_REVERSE_PROXY} // 0,
+    $self->config->{hypnotoad}{workers}  = $ENV{MIRRORCACHE_WORKERS},
+    # $self->config->{hypnotoad}{pid_file} = $ENV{MIRRORCACHE_HYPNOTOAD_PID}, - already set in constructor
     $self->config->{_openid_secret} = $secret;
     $self->secrets([$secret]);
 
@@ -50,7 +61,7 @@ sub startup {
     my $current_version = $self->detect_current_version() || "unknown";
     $self->defaults(current_version => $current_version);
     $self->log->info("initializing $current_version");
-    
+
     $self->defaults(branding => $ENV{MIRRORCACHE_BRANDING});
 
     $self->app->hook(before_server_start => sub {

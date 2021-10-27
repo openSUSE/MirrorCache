@@ -8,6 +8,7 @@ mc=$(environ mc $(pwd))
 
 $mc/gen_env MIRRORCACHE_ROOT=http://$($ng1/print_address) \
     MIRRORCACHE_STAT_FLUSH_COUNT=100 \
+    MIRRORCACHE_WORKERS=16 \
     MIRRORCACHE_DAEMON=1
 
 $mc/start
