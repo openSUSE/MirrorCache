@@ -32,7 +32,7 @@ $mc/curl -I /download/folder1/file1.1.dat | grep -C20 302 | grep $($ap7/print_ad
 rm $ap7/dt/folder1/file1.1.dat
 
 id=$($mc/backstage/job mirror_check_from_stat)
-$mc/backstage/job -e mirror_scan -a '["/folder1"]'
+$mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 # check a new mirror_scan job was scheduled
 $mc/sql_test 1 == "select count(*) from minion_jobs where id>$id and task = 'mirror_scan'"

@@ -3,15 +3,15 @@
 The server is now under siege...
 
 Lifting the server siege...
-Transactions:		         716 hits
+Transactions:		         733 hits
 Availability:		      100.00 %
-Elapsed time:		        9.17 secs
+Elapsed time:		        9.41 secs
 Data transferred:	        0.00 MB
 Response time:		        0.01 secs
-Transaction rate:	       78.08 trans/sec
+Transaction rate:	       77.90 trans/sec
 Throughput:		        0.00 MB/sec
 Concurrency:		        0.99
-Successful transactions:         716
+Successful transactions:         733
 Failed transactions:	           0
 Longest transaction:	        0.02
 Shortest transaction:	        0.01
@@ -39,17 +39,17 @@ Shortest transaction:	        0.01
 The server is now under siege...
 
 Lifting the server siege...
-Transactions:		        5313 hits
+Transactions:		        5276 hits
 Availability:		      100.00 %
 Elapsed time:		        9.99 secs
 Data transferred:	        0.00 MB
 Response time:		        0.03 secs
-Transaction rate:	      531.83 trans/sec
+Transaction rate:	      528.13 trans/sec
 Throughput:		        0.00 MB/sec
-Concurrency:		       15.91
-Successful transactions:        5313
+Concurrency:		       15.92
+Successful transactions:        5276
 Failed transactions:	           0
-Longest transaction:	        0.14
+Longest transaction:	        0.12
 Shortest transaction:	        0.01
  
 ** SIEGE 4.0.9
@@ -57,16 +57,16 @@ Shortest transaction:	        0.01
 The server is now under siege...
 
 Lifting the server siege...
-Transactions:		        5430 hits
+Transactions:		        5371 hits
 Availability:		      100.00 %
 Elapsed time:		        9.98 secs
 Data transferred:	        0.00 MB
 Response time:		        0.45 secs
-Transaction rate:	      544.09 trans/sec
+Transaction rate:	      538.18 trans/sec
 Throughput:		        0.00 MB/sec
-Concurrency:		      242.57
-Successful transactions:        5430
+Concurrency:		      242.88
+Successful transactions:        5371
 Failed transactions:	           0
-Longest transaction:	        1.90
+Longest transaction:	        2.16
 Shortest transaction:	        0.02
  
