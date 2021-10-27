@@ -224,3 +224,6 @@ alter table folder
     add column if not exists scan_requested    timestamp,
     add column if not exists scan_scheduled    timestamp,
     add column if not exists scan_last         timestamp;
+-- 14 up
+create index if not exists folder_sync_requested_idx on folder(sync_requested, wanted, sync_scheduled);
+create index if not exists folder_scan_requested_idx on folder(scan_requested, wanted, scan_scheduled);
