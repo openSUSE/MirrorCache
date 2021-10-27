@@ -14,6 +14,8 @@ test_docker:
 test_systemd:
 	( cd t/systemd; for f in *.sh; do ./$$f && continue; echo FAIL $$f; exit 1 ; done )
 
+test_stress:
+	( for f in $$(ls -t t/stress/*.sh); do bash $$f |& tee log/stress/$$(basename $$f).log && continue; echo FAIL $$f; exit 1 ; done )
 
 tar.xz:
 	git archive --format=tar HEAD | xz > mirrorcache-0.1.tar.xz
