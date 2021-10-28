@@ -1,6 +1,7 @@
 SBIN_DIR ?= /usr/sbin
 USR_DIR ?= /usr
 MC_SRV_USER ?= mirrorcache
+MC_SRV_GROUP ?= mirrorcache
 MIRRORCACHE_DNS ?= 'DBI:Pg:database=mirrorcache'
 
 mkfile_path := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -33,12 +34,13 @@ install:
 	install -D -m 755 -d "${DESTDIR}"/etc/mirrorcache
 
 setup_system_user:
-	getent group nogroup > /dev/null || groupadd nogroup
-	getent passwd ${MC_SRV_USER} > /dev/null || ${SBIN_DIR}/useradd -r -g nogroup -c "MirrorCache user" \
+	getent group ${MC_SRV_GROUP} > /dev/null || groupadd ${MC_SRV_GROUP}
+	getent passwd ${MC_SRV_USER} > /dev/null || ${SBIN_DIR}/useradd -r -g ${MC_SRV_GROUP} -c "MirrorCache user" \
 	       -d ${USR_DIR}/lib/ ${MC_SRV_USER} 2>/dev/null || :
 	mkdir -p "${DESTDIR}"/usr/share/mirrorcache/assets/cache
 	chown ${MC_SRV_USER} "${DESTDIR}"/usr/share/mirrorcache/assets/cache
-
+	mkdir -p "${DESTDIR}"/run/mirrorcache
+	chown ${MC_SRV_USER} "${DESTDIR}"/run/mirrorcache
 
 setup_system_db:
 	sudo -u postgres createuser mirrorcache

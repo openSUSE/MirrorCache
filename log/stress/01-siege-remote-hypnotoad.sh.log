@@ -3,17 +3,17 @@
 The server is now under siege...
 
 Lifting the server siege...
-Transactions:		         610 hits
+Transactions:		         563 hits
 Availability:		      100.00 %
-Elapsed time:		        9.83 secs
+Elapsed time:		        9.05 secs
 Data transferred:	        0.00 MB
 Response time:		        0.02 secs
-Transaction rate:	       62.05 trans/sec
+Transaction rate:	       62.21 trans/sec
 Throughput:		        0.00 MB/sec
 Concurrency:		        1.00
-Successful transactions:         610
+Successful transactions:         563
 Failed transactions:	           0
-Longest transaction:	        0.42
+Longest transaction:	        0.03
 Shortest transaction:	        0.01
  
 ** SIEGE 4.0.9
@@ -21,15 +21,15 @@ Shortest transaction:	        0.01
 The server is now under siege...
 
 Lifting the server siege...
-Transactions:		        1205 hits
+Transactions:		        1204 hits
 Availability:		      100.00 %
 Elapsed time:		        9.98 secs
 Data transferred:	        0.00 MB
 Response time:		        0.02 secs
-Transaction rate:	      120.74 trans/sec
+Transaction rate:	      120.64 trans/sec
 Throughput:		        0.00 MB/sec
 Concurrency:		        1.99
-Successful transactions:        1205
+Successful transactions:        1204
 Failed transactions:	           0
 Longest transaction:	        0.04
 Shortest transaction:	        0.01
@@ -39,17 +39,17 @@ Shortest transaction:	        0.01
 The server is now under siege...
 
 Lifting the server siege...
-Transactions:		        3997 hits
+Transactions:		        4145 hits
 Availability:		      100.00 %
 Elapsed time:		        9.98 secs
 Data transferred:	        0.00 MB
 Response time:		        0.04 secs
-Transaction rate:	      400.50 trans/sec
+Transaction rate:	      415.33 trans/sec
 Throughput:		        0.00 MB/sec
-Concurrency:		       15.91
-Successful transactions:        3997
+Concurrency:		       15.95
+Successful transactions:        4145
 Failed transactions:	           0
-Longest transaction:	        0.36
+Longest transaction:	        0.21
 Shortest transaction:	        0.02
  
 ** SIEGE 4.0.9
@@ -57,16 +57,16 @@ Shortest transaction:	        0.02
 The server is now under siege...
 
 Lifting the server siege...
-Transactions:		        4223 hits
+Transactions:		        4250 hits
 Availability:		      100.00 %
 Elapsed time:		        9.99 secs
 Data transferred:	        0.00 MB
 Response time:		        0.57 secs
-Transaction rate:	      422.72 trans/sec
+Transaction rate:	      425.43 trans/sec
 Throughput:		        0.00 MB/sec
-Concurrency:		      239.62
-Successful transactions:        4223
+Concurrency:		      240.83
+Successful transactions:        4250
 Failed transactions:	           0
-Longest transaction:	        2.67
+Longest transaction:	        3.20
 Shortest transaction:	        0.02
  

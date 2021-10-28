@@ -1,25 +1,28 @@
 #!lib/test-in-container-environ.sh
 set -eo pipefail
 
+ng1=$(environ ng)
+$ng1/start
+
 mc=$(environ mc $(pwd))
 
-$mc/gen_env \
+$mc/gen_env MIRRORCACHE_ROOT=http://$($ng1/print_address) \
     MIRRORCACHE_STAT_FLUSH_COUNT=100 \
     MIRRORCACHE_WORKERS=16 \
-    MIRRORCACHE_DAEMON=1
+    MIRRORCACHE_HYPNOTOAD=1
 
 $mc/start
 $mc/status
 
-mkdir $mc/dt/folder{1,2,3,4,5,6,7,8,9}
-echo $mc/dt/folder{1,2,3,4,5,6,7,8,9}/file1.1.dat | xargs -n 1 touch
+mkdir $ng1/dt/folder{1,2,3,4,5,6,7,8,9}
+echo $ng1/dt/folder{1,2,3,4,5,6,7,8,9}/file1.1.dat | xargs -n 1 touch
 
 ap=($mc)
 for ((i=1; i<=9; i++)); do
     x=$(environ ap$i)
     ap+=($x)
     $x/start
-    cp -r $mc/dt/* $x/dt/
+    cp -r $ng1/dt/* $x/dt/
 
     case $i in
       [1-3])
@@ -40,7 +43,7 @@ for ((i=1; i<=9; i++)); do
 done
 
 for ((i=1; i<=9; i++)); do
-    $mc/curl -I /download/folder$i/file1.1.dat | grep "200 OK"
+    $mc/curl -IL /download/folder$i/file1.1.dat | grep $($ng1/print_address)
     $mc/backstage/job -e folder_sync -a '["/folder'$i'"]'
 done
 

@@ -83,7 +83,7 @@ sub redirect_to_mirror($self, $mirror_id, $dm) {
     $self->timer($id);
 }
 
-my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS}) // 0;
+my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS} // 0);
 
 sub flush($self, $rows) {
     $self->timer(undef);
