@@ -96,11 +96,7 @@ sub startup {
         $rest_r->get('/project/:name/mirror_list')->to('project#mirror_list');
 
         my $rest_operator_auth;
-        if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH}) {
-            $rest_operator_auth = $rest->under('/');
-        } else {
-            $rest_operator_auth = $rest->under('/')->to('session#ensure_operator');
-        }
+        $rest_operator_auth = $rest->under('/')->to('session#ensure_operator');
         my $rest_operator_r = $rest_operator_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
         $rest_operator_r->post('/server')->to('table#create', table => 'Server');
         $rest_operator_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
@@ -122,13 +118,7 @@ sub startup {
         $app_r->get('/folder/<id:num>')->name('folder_show')->to('folder#show');
 
         my $admin = $r->any('/admin');
-        my $admin_auth;
-        if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH}) {
-            $admin_auth = $admin->under('/')->name('ensure_admin');
-        } else {
-            $admin_auth = $admin->under('/')->to('session#ensure_admin')->name('ensure_admin');
-        }
-
+        my $admin_auth = $admin->under('/')->to('session#ensure_admin')->name('ensure_admin');
         my $admin_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Admin');
 
         $admin_r->delete('/folder/<id:num>')->to('folder#delete_cascade');

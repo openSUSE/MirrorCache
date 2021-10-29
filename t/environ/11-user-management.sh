@@ -5,8 +5,8 @@ set -ex
 
 mc=$(environ mc $(pwd))
 
-# Start MirrorCache with fake logged in admin user
-MIRRORCACHE_TEST_TRUST_AUTH=1 $mc/start
+# Start MirrorCache with trusted addr
+MIRRORCACHE_TRUST_ADDR=127.0.0.1 $mc/start
 
 $mc/db/sql "insert into acc(username,email,fullname,nickname,is_operator,is_admin,t_created,t_updated) select 'eli','eli@test','Eli Test','eli',0,0,'2021-01-14 11:19:25','2021-01-14 11:19:25'"
 $mc/db/sql "select * from acc"
@@ -41,9 +41,18 @@ $mc/curl '/admin/auditlog/ajax?search\[value\]=id:2' | grep '"recordsFiltered":1
 $mc/db/sql "insert into acc(username,email,fullname,nickname,is_operator,is_admin,t_created,t_updated) select 'eli2','eli2@test','Eli2 Test','eli2',0,0,'2021-01-14 11:19:25','2021-01-14 11:19:25'"
 $mc/db/sql "select * from acc"
 
-$mc/curl -X POST /logout
+$mc/stop
+$mc/start
 
-# Expect error when attempting to update/delete a user and no user is logged in (current_user is undef)
-# (and /admin route is accesible due to starting MirrorCache with MIRRORCACHE_TEST_TRUST_AUTH environment variable set)
-$mc/curl /admin/user/2 -X POST -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' --data-raw 'role=operator' | grep 'error'
-$mc/curl /admin/user/2 -X DELETE | grep 'error'
+# Expect redirect when attempting to update/delete a user and no user is logged in (current_user is undef)
+$mc/curl /admin/user/2 -i -X POST -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' --data-raw 'role=operator' | grep -C10 /login | grep '302 Found'
+
+# check that operator role hasnt changed in db
+$mc/sql_test 0 == 'select is_operator from acc where id = 2'
+
+$mc/curl /admin/user/2 -i -X DELETE | grep -C10 /login | grep '302 Found'
+
+# check that user was not deleted
+$mc/sql_test 1 == 'select count(*) from acc where id = 2'
+
+echo success

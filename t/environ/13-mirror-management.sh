@@ -6,7 +6,7 @@ set -ex
 mc=$(environ mc $(pwd))
 
 # Start MirrorCache with fake logged in admin user
-MIRRORCACHE_TEST_TRUST_AUTH=1 $mc/start
+MIRRORCACHE_TRUST_ADDR=127.0.0.1 $mc/start
 
 $mc/curl /app/server -I | grep '200'
 

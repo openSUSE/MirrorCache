@@ -3,7 +3,7 @@ set -ex
 
 mc=$(environ mc $(pwd))
 
-MIRRORCACHE_TEST_TRUST_AUTH=1 $mc/start
+MIRRORCACHE_TRUST_ADDR=127.0.0.1 $mc/start
 
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','/','t','us','na'"
 
@@ -13,7 +13,7 @@ $mc/backstage/shoot
 res=$($mc/db/sql 'select round(lat,2), round(lng,2) from server where id = 1')
 test ' 37.75 | -97.82' == "$res"
 
-# let's restart server without MIRRORCACHE_TEST_TRUST_AUTH
+# let's restart server without MIRRORCACHE_TRUST_ADDR
 $mc/stop
 if $mc/status >/dev/null 2>&1; then
     echo MirrorCache must have been stopped here

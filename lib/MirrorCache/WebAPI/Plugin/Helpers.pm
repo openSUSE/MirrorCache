@@ -126,12 +126,27 @@ sub register {
             }
             return $c->render_to_string("branding/default/$name");
         });
+
+    my $trust_addr = $ENV{MIRRORCACHE_TRUST_ADDR};
+
+    if (!$trust_addr) {
+        $app->helper( trusted_addr => sub {0} );
+    } else {
+        my %trust_addr;
+        my @addr = split / /, $trust_addr;
+        for my $addr (@addr) {
+            $trust_addr{$addr} = 1;
+            $app->log->warn("Trusting address: $addr");
+        }
+        $app->helper( trusted_addr => sub { %trust_addr{ shift->tx->original_remote_address } });
+    }
 }
 
 sub _current_user {
     my $c = shift;
-
-    if ($ENV{MIRRORCACHE_TEST_TRUST_AUTH} and $ENV{MIRRORCACHE_TEST_TRUST_AUTH} == 1) {
+    # If the value is not in the stash
+    my $current_user = $c->stash('current_user');
+    if (($current_user || !$current_user->{user}) && $c->trusted_addr) {
         my $user_data = {
             id => -2,
             is_admin => 1,
@@ -142,14 +157,13 @@ sub _current_user {
         my $user = $c->schema->resultset("Acc")->new_result($user_data);
         $c->stash(current_user => {user => $user});
     }
-    # If the value is not in the stash
-    my $current_user = $c->stash('current_user');
-    unless ($current_user && ($current_user->{no_user} || defined $current_user->{user})) {
+    elsif (!$current_user || !$current_user->{no_user} || !defined $current_user->{user}) {
         my $id   = $c->session->{user};
         my $user = $id ? $c->schema->resultset("Acc")->find({username => $id}) : undef;
-        $c->stash(current_user => $current_user = $user ? {user => $user} : {no_user => 1});
+        $c->stash(current_user => $user ? {user => $user} : {no_user => 1});
     }
 
+    $current_user = $c->stash('current_user');
     return $current_user && defined $current_user->{user} ? $current_user->{user} : undef;
 }
 
