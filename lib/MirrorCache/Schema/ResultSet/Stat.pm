@@ -126,23 +126,24 @@ sub path_misses {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = << "END_SQL";
+    my $sql = << 'END_SQL';
+select * from (
 select stat.id, stat.path, stat.folder_id, country
 from stat left join folder on folder.id = stat.folder_id
 where mirror_id in (-1, 0)
 and file_id is null
-and (stat.path not like '%repomd.xml')
-and (stat.path not like '%/media')
-and (stat.path not like '%.sha256')
+and stat.path !~ '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)$'
+and stat.agent NOT ILIKE '%bot%'
 and (
     stat.folder_id is null or
     folder.sync_requested < folder.sync_scheduled
     )
 END_SQL
     $sql = "$sql and stat.id > $prev_stat_id" if $prev_stat_id;
+    $sql = "$sql limit ($limit+1)";
+    $sql = "$sql ) x";
     $sql = "$sql union all select max(id), '-max_id', null, null from stat"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";
-    $sql = "$sql limit ($limit+1)";
 
     my $prep = $dbh->prepare($sql);
     $prep->execute();
@@ -176,6 +177,7 @@ sub mirror_misses {
 select stat.id, stat.folder_id, country
 from stat join folder on folder.id = stat.folder_id
 where mirror_id in (-1, 0) and file_id is not null
+and stat.agent NOT ILIKE '%bot%'
 and (
     folder.id is null or
     folder.scan_last is null or folder.scan_last > folder.scan_scheduled

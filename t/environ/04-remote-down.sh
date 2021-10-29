@@ -13,10 +13,10 @@ ap8=$(environ ap8)
 ap7=$(environ ap7)
 
 for x in $ap7 $ap8 $ap9; do
-    mkdir -p $x/dt/{folder1,folder2,folder3}
-    mkdir -p $x/dt/folder1/repodata
+    mkdir -p $x/dt/{folder1,folder2,folder3}/repodata
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
-    touch $x/dt/folder1/repodata/repomd.xml
+    echo $x/dt/{folder1,folder2,folder3}/repodata/repomd.xml   | xargs -n 1 touch
+    touch $x/dt/folder3/Packages.gz
     $x/start
 done
 
@@ -57,4 +57,18 @@ $mc/curl -I /download/folder1/file2.1.dat | grep $($ap7/print_address)
 $ap9/start
 $ap9/status
 # since root is up again, redirect to root
-$mc/curl -I /download/folder1/repodata/repomd.xml | grep $($ap9/print_address)
+$mc/curl -I /download/folder3/repodata/repomd.xml | grep $($ap9/print_address)
+
+###########################
+# check that repomd.xml in folder3 doesn't trigger folder sync
+$mc/curl -I /download/folder3/repodata/repomd.xml | grep $($ap9/print_address)
+$mc/curl -I /download/folder3/Packages.gz | grep $($ap9/print_address)
+$mc/sql_test 0 == "select count(*) from folder where path ='/folder3'"
+
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/sql_test 0 == "select count(*) from folder where path ='/folder3'"
+###########################
+
+echo success
