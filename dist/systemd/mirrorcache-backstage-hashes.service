@@ -8,6 +8,7 @@ ExecStart=/usr/share/mirrorcache/script/mirrorcache-backstage-hashes
 Nice=19
 Restart=on-failure
 EnvironmentFile=/etc/mirrorcache/conf.env
+EnvironmentFile=-/etc/mirrorcache/conf-hashes.env
 
 [Install]
 WantedBy=multi-user.target

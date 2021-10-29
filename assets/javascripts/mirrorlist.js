@@ -77,7 +77,7 @@ function loadMirrorlist(url, element1, element2, element3) {
                 li.appendChild(span);
                 ul.appendChild(li);
             }
-            ulh = document.getElementById(element2.concat('tohide'));
+            ulh = document.getElementById(element3.concat('tohide'));
             if (ulh) {
                 ulh.style.display = "none";
             }

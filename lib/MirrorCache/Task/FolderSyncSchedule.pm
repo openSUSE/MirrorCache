@@ -59,14 +59,14 @@ sub _run {
     my @folders = $schema->resultset('Folder')->search({
         sync_requested => { '>', \"COALESCE(sync_scheduled, sync_requested - 1*interval '1 second')" }
     }, {
-        order_by => { -asc => [qw/sync_scheduled sync_requested/] },
+        order_by => { -asc => [qw/sync_requested/] },
         rows => $limit
     });
     my $cnt = 0;
 
     for my $folder (@folders) {
         $folder->update({sync_scheduled => \'NOW()'});
-        $minion->enqueue('folder_sync' => [$folder->path] => {notes => {$folder->path => 1}} );
+        $minion->enqueue('folder_sync' => [$folder->path] => {priority => 2} => {notes => {$folder->path => 1}} );
         $cnt = $cnt + 1;
     }
     $job->note(count => $cnt);

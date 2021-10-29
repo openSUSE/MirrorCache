@@ -30,8 +30,6 @@ $RESCAN=0 if $RECKLESS;
 
 sub _run {
     my ($app, $job) = @_;
-    my $job_id = $job->id;
-    my $pref = "[rescan $job_id]";
 
     my $minion = $app->minion;
 
@@ -59,7 +57,7 @@ sub _run {
     my @folders = $schema->resultset('Folder')->search({
         scan_requested => { '>', \"COALESCE(scan_scheduled, scan_requested - interval '1 second')" }
     }, {
-        order_by => { -asc => [qw/scan_scheduled scan_requested/] },
+        order_by => { -asc => [qw/scan_requested/] },
         rows => $limit
     });
     my $cnt = 0;
@@ -69,9 +67,7 @@ sub _run {
         $minion->enqueue('mirror_scan' => [$folder->path] => {notes => {$folder->path => 1}} );
         $cnt = $cnt + 1;
     }
-
     $job->note(count => $cnt);
-
 
     return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});

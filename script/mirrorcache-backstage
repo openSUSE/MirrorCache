@@ -1,2 +1,2 @@
 #!/bin/sh -e
-exec "$(dirname "$0")"/mirrorcache backstage run -j 12 -q default
+exec "$(dirname "$0")"/mirrorcache backstage run -j ${MIRRORCACHE_BACKSTAGE_WORKERS:-12} -q default
