@@ -46,7 +46,7 @@ sub set_wanted {
     my $sql = << "END_SQL";
 update folder
 set wanted = now()
-where id = ? and (wanted < now() - interval '2 week' or wanted is null)
+where id = ? and (wanted < now() -  2*7*24*60* interval '60 second' or wanted is null)
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($folder_id);
