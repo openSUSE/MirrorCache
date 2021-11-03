@@ -3,7 +3,7 @@ set -ex
 
 mc=$(environ mc $(pwd))
 
-MIRRORCACHE_TEST_TRUST_AUTH=1 $mc/start
+MIRRORCACHE_TRUST_ADDR=127.0.0.1 $mc/start
 $mc/status
 
 ap8=$(environ ap8)

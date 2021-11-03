@@ -27,6 +27,8 @@ sub ensure_user {
 
 sub ensure_operator {
     my ($self) = @_;
+    return 1 if $self->trusted_addr;
+
     $self->redirect_to('login')                       and return undef unless $self->current_user;
     $self->render(text => "Forbidden", status => 403) and return undef unless $self->is_operator;
     return 1;
@@ -34,6 +36,8 @@ sub ensure_operator {
 
 sub ensure_admin {
     my ($self) = @_;
+    return 1 if $self->trusted_addr;
+
     $self->redirect_to('login')                       and return undef unless $self->current_user;
     $self->render(text => "Forbidden", status => 403) and return undef unless $self->is_admin;
     return 1;
@@ -46,8 +50,6 @@ sub destroy {
     my $auth_module = "MirrorCache::Auth::$auth_method";
     if (my $sub = $auth_module->can('auth_logout')) { $self->$sub }
     delete $self->session->{user};
-    # MIRRORCACHE_TEST_TRUST_AUTH Relevant only for tests
-    delete $ENV{MIRRORCACHE_TEST_TRUST_AUTH} if $ENV{MIRRORCACHE_TEST_TRUST_AUTH};
     $self->redirect_to('index');
 }
 
