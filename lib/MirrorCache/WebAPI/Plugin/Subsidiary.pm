@@ -57,7 +57,7 @@ sub register {
             $app->routes->get("/rest/$region" => sub {
                 my $c = shift;
                 my $file = $c->param('file');
-                return $c->render(code => 400) unless $file;
+                return $c->render(status => 400) unless $file;
                 my $req = $obj->clone;
                 $req->scheme($c->req->url->to_abs->scheme);
                 $req->path($req->path . $file);

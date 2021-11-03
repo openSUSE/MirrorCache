@@ -102,6 +102,7 @@ sub startup {
         $rest_operator_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
         $rest_operator_r->delete('/server/:id')->to('table#destroy', table => 'Server');
         $rest_operator_r->put('/server/location/:id')->name('rest_put_server_location')->to('server_location#update_location');
+        $rest_operator_r->post('/sync_tree')->name('rest_post_sync_tree')->to('folder_jobs#sync_tree');
 
         $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
 
