@@ -36,7 +36,7 @@ $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 $mc/sql_test 3 == "select count(*) from minion_jobs where task='mirror_scan'"
 
-$mc/sql "update file set dt = now() - interval '1 month'"  # set old date, otherwise it will interfere with rescan login in Stat.pm
+$mc/sql "update file set dt = now() - interval '1 month'"  # set old date, otherwise it will interfere with rescan logic in Stat.pm
 
 
 # handling of mirror errors:

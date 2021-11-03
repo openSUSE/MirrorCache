@@ -82,7 +82,7 @@
     % }
     </ul>
   % } else {
-  <h5>Mirrors in other countries, but same continent</h5>
+  <h5>Mirrors in other countries, but same continent:</h5>
   %   if ($regions && @$regions && $regions->[0]) {
     <ul id="ul1001"><p id="ul1001tohide">Loading...</p></ul>
   %   } else {
