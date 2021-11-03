@@ -151,7 +151,7 @@ END_SQL
 sub enqueue_unless_scheduled_with_parameter_or_limit {
     my ( $self, $task, $arg1, $arg2 ) = @_;
 
-    return 0 if $self->inactive_jobs_exceed_limit(100);
+    return 0 if $self->inactive_jobs_exceed_limit(300);
 
     my $minion = $self->app->minion;
     my $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive','active'], notes => [$arg1] });
