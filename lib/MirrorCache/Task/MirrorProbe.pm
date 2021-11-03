@@ -38,7 +38,7 @@ sub _probe {
     my $schema = $app->schema;
     my $rs = $schema->resultset('ServerCapabilityDeclaration');
     my $href = $rs->search_by_country($country);
-    
+
     for my $id (sort keys %$href) {
         my $data = $href->{$id};
         for my $capability (SERVER_CAPABILITIES) {
@@ -62,9 +62,9 @@ sub _force_downs {
     my $schema = $app->schema;
     my $rs = $schema->resultset('ServerCapabilityDeclaration');
     my $href = $rs->search_all_downs();
-    
-    for my $id (sort keys %$href) {
-        my $data = $href->{$id};
+
+    for my $key (sort keys %$href) {
+        my $data = $href->{$key};
         my $capability = $data->{capability};
         next unless $capability;
         my $error = _probe_capability($data->{'uri'}, $capability);
@@ -83,9 +83,9 @@ sub _force_ups {
     my $schema = $app->schema;
     my $rs = $schema->resultset('ServerCapabilityDeclaration');
     my $href = $rs->search_all_forced();
-    
-    for my $id (sort keys %$href) {
-        my $data = $href->{$id};
+
+    for my $key (sort keys %$href) {
+        my $data = $href->{$key};
         my $capability = $data->{capability};
         next unless $capability;
         my $error = _probe_capability($data->{'uri'}, $capability);
@@ -96,7 +96,7 @@ sub _force_ups {
 
 sub _probe_capability {
     my ($uri, $capability) = @_;
-    
+
     return ProbeHttp($uri)  if 'http'  eq $capability;
     return ProbeHttps($uri) if 'https' eq $capability;
     return ProbeIpv4($uri)  if 'ipv4'  eq $capability;
