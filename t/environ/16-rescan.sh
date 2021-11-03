@@ -53,7 +53,7 @@ $mc/sql "update folder set scan_last = now() - interval '30 minute' + interval '
 $mc/sql "update folder set scan_last = now() - interval '1 hour'    + interval '$S second' where path = '/folder3'"
 $mc/sql "update folder set scan_last = now() - interval '4 hour'    + interval '$S second' where path = '/folder4'"
 $mc/sql "update folder set scan_last = now() - interval '8 hour'    + interval '$S second' where path = '/folder5'"
-$mc/sql "update folder set scan_last = now() - interval '24 hour'   + interval '$S second' where path = '/folder6'"
+$mc/sql "update folder set scan_last = now() - interval '24 hour'                          where path = '/folder6'"
 
 $mc/sql "update folder set scan_requested = scan_last - interval '2 second', scan_scheduled = scan_last - interval '1 second'"
 $mc/sql 'select * from folder'

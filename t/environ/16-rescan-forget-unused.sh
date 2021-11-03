@@ -39,13 +39,13 @@ $mc/sql_test 3 == "select count(*) from minion_jobs where task='mirror_scan'"
 # Step1
 # folder1, folder2 and folder3 are almost two weeks old since last access, so regular resync and rescan are still performed for them
 # Step2
-# the folders become 2 weeks old, but folder3 was requested recently, so only one regular resync and rescan is scheduled
+# the folders become 2*7*24*60*60 seconds old, but folder3 was requested recently, so only one regular resync and rescan is scheduled
 # Step3
 # folder2 gets accessed as well, so another resync and rescan are scheduled
 
 S=5
 echo Step1
-$mc/sql "update folder set wanted = now() - interval '2 week' + interval '$S second'"
+$mc/sql "update folder set wanted = now() - 2*7*24*60* interval '60 second' + interval '$S second'"
 
 $mc/sql_test 0 == "select count(*) from folder where sync_requested > sync_scheduled"
 $mc/sql_test 0 == "select count(*) from folder where scan_requested > scan_scheduled"
@@ -60,11 +60,11 @@ $mc/sql_test 6 == "select count(*) from minion_jobs where task='mirror_scan'"
 
 echo Step2
 sleep $S
-$mc/sql_test 0 == "select count(*) from folder where wanted > now() - interval '2 week'"
+$mc/sql_test 0 == "select count(*) from folder where wanted > now() - 2*7*24*60* interval '60 second'"
 $mc/curl -I /download/folder3/file1.1.dat | grep 302
 
-$mc/sql "select path, wanted,  now() - interval '2 week', now() - interval '2 week' + interval '$S second' from folder"
-$mc/sql_test 1 == "select count(*) from folder where wanted > now() - interval '2 week'"
+$mc/sql "select path, wanted,  now() - 2*7*24*60* interval '60 second', now() - 2*7*24*60* interval '60 second' + interval '$S second' from folder"
+$mc/sql_test 1 == "select count(*) from folder where wanted > now() - 2*7*24*60* interval '60 second'"
 
 
 $mc/backstage/job folder_sync_schedule
