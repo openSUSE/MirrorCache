@@ -5,6 +5,7 @@ mc=$(environ mc $(pwd))
 
 MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=1
 $mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL \
+            MIRRORCACHE_BACKSTAGE_WORKERS=15 \
             MIRRORCACHE_RECKLESS=0
 $mc/start
 $mc/status
@@ -33,7 +34,7 @@ $mc/backstage/job folder_sync_schedule
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/start
 
-sleep 25
+sleep 1
 
 $mc/curl -I /download/folder1/file1.1.dat | grep 302 \
    || ( sleep 1 && $mc/curl -I /download/folder1/file1.1.dat | grep 302 ) || ( sleep 10 && $mc/curl -I /download/folder1/file1.1.dat | grep 302 )
