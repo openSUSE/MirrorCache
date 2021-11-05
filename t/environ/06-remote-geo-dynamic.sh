@@ -11,7 +11,8 @@ ap6=$(environ ap6)
 $mc/gen_env MIRRORCACHE_ROOT=http://$($ap6/print_address) \
     MIRRORCACHE_STAT_FLUSH_COUNT=1 \
     MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=1 \
-    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0
+    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
+    MIRRORCACHE_BACKSTAGE_WORKERS=5
 
 for x in $ap6 $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
