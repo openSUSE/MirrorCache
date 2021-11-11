@@ -17,7 +17,6 @@
 package MirrorCache::WebAPI::Plugin::Subsidiary;
 use Mojo::Base 'Mojolicious::Plugin';
 
-my $headquarter_url;
 my $subsidiary_region;
 
 my $subsidiaries_initialized = 0;
@@ -27,19 +26,11 @@ my @regions;
 sub register {
     my ($self, $app) = @_;
     my @subsidiaries;
-    # having both MIRRORCACHE_HEADQUARTER and MIRRORCACHE_REGION means that we are Subsidiary
-    if ($ENV{MIRRORCACHE_HEADQUARTER} && $ENV{MIRRORCACHE_REGION}) {
+    # having MIRRORCACHE_REGION means that we are Subsidiary
+    if ($ENV{MIRRORCACHE_REGION}) {
         $subsidiary_region = lc($ENV{MIRRORCACHE_REGION});
-        $headquarter_url   = $ENV{MIRRORCACHE_HEADQUARTER};
-
         $app->helper('subsidiary.has'     => sub { return undef; });
         $app->helper('subsidiary.regions' => sub { return undef; });
-        $app->helper('subsidiary.redirect_headquarter' => sub {
-            my ($self, $region) = @_;
-            # redirect to the headquarter if country is not our region
-            return $headquarter_url if $region && $subsidiary_region ne lc($region);
-            return undef;
-        });
     } else {
         eval { #the table may be missing - no big deal
             @subsidiaries = $app->schema->resultset('Subsidiary')->all;
@@ -68,9 +59,7 @@ sub register {
 
          $app->helper('subsidiary.has'     => \&_has_subsidiary);
          $app->helper('subsidiary.regions' => \&_regions);
-         $app->helper('subsidiary.redirect_headquarter' => sub { return undef; });
     }
-    $app->helper('subsidiary.headquarter_url' => sub { return $headquarter_url; });
     return $self;
 }
 

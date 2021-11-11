@@ -156,15 +156,8 @@ sub _redirect_geo {
 
     my $c = $dm->c;
     my $subsidiary = $c->subsidiary;
-
-    if ($subsidiary->headquarter_url) {
-        if (my $redirect = $subsidiary->redirect_headquarter($dm->region)) {
-            my $path_query = $dm->path_query;
-            $c->redirect_to($dm->scheme . "://" . $redirect . $route . $path_query);
-            $c->stat->redirect_to_headquarter($dm);
-            return 1;
-        }
-    } elsif (my $url = $subsidiary->has($dm->region, $c->req->url)) {
+    my $url = $subsidiary->has($dm->region, $c->req->url);
+    if ($url) {
         $c->redirect_to($url);
         $c->stat->redirect_to_region($dm);
         return 1;
