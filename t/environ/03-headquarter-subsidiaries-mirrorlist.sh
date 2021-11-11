@@ -54,12 +54,12 @@ $mc9/start
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap1/print_address)','','t','jp','as'"
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap2/print_address)','','t','jp','as'"
 
-$mc6/gen_env MIRRORCACHE_REGION=na MIRRORCACHE_HEADQUARTER=$hq_address "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
+$mc6/gen_env MIRRORCACHE_REGION=na "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
 $mc6/start
 $mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','t','us','na'"
 $mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','ca','na'"
 
-$mc7/gen_env MIRRORCACHE_REGION=eu MIRRORCACHE_HEADQUARTER=$hq_address "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
+$mc7/gen_env MIRRORCACHE_REGION=eu "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
 $mc7/start
 $mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','de','eu'"
 $mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','dk','eu'"
@@ -116,3 +116,9 @@ mc9/backstage/job -e mirror_scan_schedule
 mc9/backstage/shoot
 
 curl -sL --interface 127.0.0.4 http://$hq_address/folder3/file1.1.dat.mirrorlist | grep -C10 $($ap1/print_address) | grep $($ap2/print_address)
+
+###########################################
+curl -Is --interface $eu_interface http://$eu_address/folder1/file1.1.dat | grep -C10 302 | grep $($ap5/print_address)
+curl -Is --interface $na_interface http://$eu_address/folder1/file1.1.dat | grep -C10 302 | grep -E "$($ap5/print_address)|$($ap6/print_address)"
+
+

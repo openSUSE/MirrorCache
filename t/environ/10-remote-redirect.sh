@@ -96,7 +96,7 @@ while : ; do
     rc=0
     $ap9/curl_https -IL /folder1/file1.1.dat | grep $($ap7/print_address) || rc=$?
     test $rc != 0 || break
-    sleep 1;
+    sleep 1
     n=$((n+1))
     test $n -le 5 || break
 done
