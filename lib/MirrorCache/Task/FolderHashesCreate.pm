@@ -72,7 +72,7 @@ sub _sync {
 
 sub calcBlockSize {
     my $fileSize = shift;
-    return 0 if $fileSize <= $HASHES_PIECES_MIN_SIZE; # don't create piece hashes
+    return 0 if !$fileSize || $fileSize <= $HASHES_PIECES_MIN_SIZE; # don't create piece hashes
     return 256*1024 if $fileSize < 8*1024*1024;
     return 1024*1024 if $fileSize < 256*1024*1024;
     return 4*1024*1024;

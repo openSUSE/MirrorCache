@@ -8,7 +8,7 @@ __workdir/../db/status >& /dev/null || __workdir/../db/start
 
 (
 cd __workdir
-__srcdir/script/mirrorcache backstage run -C 1 -j ${MIRRORCACHE_BACKSTAGE_WORKERS:-1} >> __workdir/.cout 2>> __workdir/.cerr &
+__srcdir/script/mirrorcache backstage run -C 1 -j ${MIRRORCACHE_BACKSTAGE_WORKERS:-2} >> __workdir/.cout 2>> __workdir/.cerr &
 
 pid=$!
 echo $pid > __workdir/.pid
