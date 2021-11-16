@@ -53,6 +53,7 @@ sub _run {
             $cnt = $cnt + 1;
             $rs->request_scan($folder_id);
         }
+        @$country_list = ('') if $cnt && !@$country_list;
         for my $country (@$country_list) {
             next unless $minion->lock('mirror_probe_scheduled_' . $country, 60); # don't schedule if schedule happened in last 60 sec
             next unless $minion->lock('mirror_probe_incomplete_for_' . $country, 6000); # don't schedule until probe job completed

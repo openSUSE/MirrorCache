@@ -29,7 +29,7 @@ use constant SERVER_CAPABILITIES => (qw(http https ipv4 ipv6));
 
 sub _probe {
     my ($app, $job, $country) = @_;
-    return $job->fail('Empty country is not allowed') unless $country;
+    $country = '' unless $country;
 
     my $minion = $app->minion;
     return $job->finish("Previous mirror probe for {$country} job is still active")

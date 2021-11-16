@@ -47,9 +47,11 @@ select concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.host
     where 't'
     AND (fhttp.server_id IS NULL or fhttps.server_id IS NULL) -- do not show servers which have both http and https force disabled
     AND (fipv4.server_id IS NULL or fipv6.server_id IS NULL)  -- do not show servers which have both ipv4 and ipv6 force disabled
-    AND s.country = lower(?)
     AND s.enabled
 END_SQL
+    return $dbh->selectall_hashref($sql, 'id', {}) unless $country;
+
+    $sql = $sql . ' AND s.country = lower(?)';
     return $dbh->selectall_hashref($sql, 'id', {}, $country);
 }
 

@@ -106,7 +106,7 @@ sub latest_hit {
     my $dbh     = $self->result_source->schema->storage->dbh;
 
     my $sql = << "END_SQL";
-select stat.id, mirror_id, stat.country,
+select stat.id, mirror_id, trim(stat.country),
        concat(case when secure then 'https://' else 'http://' end, CASE WHEN length(server.hostname_vpn)>0 THEN server.hostname_vpn ELSE server.hostname END, server.urldir, case when metalink then regexp_replace(path, '(.*)\.metalink', E'\\1') else path end) as url,
        substring(path,'(^(/.*)+)/') as folder, folder_id
        from stat join server on mirror_id = server.id
@@ -128,7 +128,7 @@ sub path_misses {
 
     my $sql = << 'END_SQL';
 select * from (
-select stat.id, stat.path, stat.folder_id, country
+select stat.id, stat.path, stat.folder_id, trim(country)
 from stat left join folder on folder.id = stat.folder_id
 where mirror_id in (-1, 0)
 and file_id is null
@@ -174,7 +174,7 @@ sub mirror_misses {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = << "END_SQL";
-select stat.id, stat.folder_id, country
+select stat.id, stat.folder_id, trim(country)
 from stat join folder on folder.id = stat.folder_id
 where mirror_id in (-1, 0) and file_id is not null
 and stat.agent NOT ILIKE '%bot%'

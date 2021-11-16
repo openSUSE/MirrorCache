@@ -366,7 +366,7 @@ sub _init_path($self) {
     $self->must_render_from_root(1)
         if !$self->mirrorlist
         && ( !$self->metalink || $self->metalink_accept )
-        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)$/;
+        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?)?))$/;
 
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);

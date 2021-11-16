@@ -65,6 +65,7 @@ sub _run {
                 $rs->request_scan($folder->id);
             }
         }
+        @$country_list = ('') if $cnt && !@$country_list;
         for my $country (@$country_list) {
             next unless $minion->lock('mirror_probe_scheduled_' . $country, 60); # don't schedule if schedule happened in last 60 sec
             next unless $minion->lock('mirror_probe_incomplete_for_' . $country, 600); # don't schedule until probe job completed
@@ -73,7 +74,7 @@ sub _run {
         }
         $last_run = $last_run + $cnt;
         last unless $cnt;
-        $limit = 50;
+        $limit = 1000;
         ($stat_id, $folders, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
     }
 
