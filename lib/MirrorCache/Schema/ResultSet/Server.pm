@@ -37,7 +37,7 @@ sub mirrors_query {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $avoid_country;
+    my $avoid_country = $avoid_region;
     my $country_condition;
     my @country_params = ($country);
     $avoid_region = ($region && $avoid_region) ? '!' : '';
@@ -57,7 +57,7 @@ sub mirrors_query {
         }
     }
     elsif ($country) {
-        $avoid_country = $avoid_region ? '!' : '';
+        $avoid_country = $avoid_country ? '!' : '';
         my $region_condition = '';
         if ($region) {
             $region_condition = " and s.region $avoid_region= ?";
