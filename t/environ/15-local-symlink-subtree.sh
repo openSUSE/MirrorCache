@@ -26,6 +26,10 @@ cp -r $mc/dt/folder1/ $ap7/dt/
 mkdir -p $ap8/dt/updates/tool/v1
 cp $mc/dt/folder1/* $ap8/dt/updates/tool/v1/
 
+cp -r $mc/dt/folder2/ $ap7/dt/
+mkdir -p $ap8/dt/updates/tool/v2
+cp $mc/dt/folder2/* $ap8/dt/updates/tool/v2/
+
 
 $ap7/start
 $ap7/curl /folder1/ | grep file1.1.dat
@@ -44,6 +48,7 @@ $mcsub/gen_env MIRRORCACHE_SUBTREE=/updates \
 $mcsub/start
 
 $mc/curl -Is /download/updates/tool/v1/file1.1.dat.mirrorlist
+$mc/curl -Is /download/folder2/file1.1.dat.mirrorlist
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
@@ -56,6 +61,16 @@ $mcsub/curl -I /tool/v1/file1.1.dat?COUNTRY=de | grep $($ap8/print_address)/upda
 
 $mcsub/curl /tool/v1/file1.1.dat.mirrorlist | grep -C 10 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
 $mcsub/curl /tool/v1/file1.1.dat.metalink   | grep -C 10 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
+
+$mcsub/curl -I /tool/v2/file1.1.dat.metalink   | grep 425
+
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
+
+$mcsub/curl /tool/v2/file1.1.dat.metalink   | grep -C 10 $($ap7/print_address)/folder2/file1.1.dat | grep $($ap8/print_address)/updates/tool/v2/file1.1.dat
 
 rc=0
 $mcsub/curl / | grep tool1 || rc=$?

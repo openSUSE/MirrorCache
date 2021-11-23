@@ -118,9 +118,9 @@ sub _sync {
 
         if ($count) {
             $schema->resultset('Folder')->request_scan($folder->id);
-            $schema->resultset('Folder')->request_scan($otherFolder->id) if $otherFolder;
             $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
         }
+        $schema->resultset('Folder')->request_scan($otherFolder->id) if $otherFolder && ($count || !$otherFolder->scan_requested);
         return;
     };
     return $job->fail("Couldn't create folder $path in DB") unless $folder && $folder->id;
@@ -173,11 +173,16 @@ sub _sync {
 
     $job->note(updated => $realpath, count => $cnt, deleted => $deleted, updated => $updated);
     if ($cnt || $updated) {
-        $folder->update({sync_last => \"NOW()", scan_requested => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
-        $schema->resultset('Folder')->request_scan($folder_id);
+        $folder->update(     {sync_last => \"NOW()", scan_requested => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
         $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
     } else {
-        $folder->update({sync_last => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
+        $folder->update(     {sync_last => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
+    }
+
+    if ($otherFolder && ($cnt || $updated || !$otherFolder->scan_requested)) {
+        $otherFolder->update({sync_last => \"NOW()", scan_requested => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
+    } else {
+        $otherFolder->update({sync_last => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'}) if $otherFolder;
     }
 }
 

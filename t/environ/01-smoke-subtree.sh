@@ -4,7 +4,7 @@ set -ex
 mc=$(environ mc $(pwd))
 MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
-$mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+$mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL MIRRORCACHE_TOP_FOLDERS="'f1 f2 f3'"
 
 $mc/start
 $mc/status
@@ -36,6 +36,7 @@ $mcsub/start
 
 $mc/curl -Is /download/updates/f1/f1.1.dat
 $mcsub/curl -Is /download/f1/f1.1.dat
+$mc/curl -Is /download/updates/f3/f1.1.dat
 
 $mc/sql_test 0 == "select count(*) from stat where path like '/f1%'"
 $mc/sql_test 2 == "select count(*) from stat where path like '/updates/f1%'"
@@ -65,7 +66,6 @@ rm $mc/dt/updates/f1/f1.1.dat
 
 # resync the folder
 $mc/backstage/job folder_sync_schedule
-$mc/backstage/job -e mirror_probe -a '["/updates/f1"]'
 $mc/backstage/shoot
 
 if $mc/curl -s /download/updates/f1/ | grep f1.1.dat ; then
@@ -82,4 +82,18 @@ $mc/curl -s /download/updates/f1/f2.1.dat.metalink | grep '<url type="http" loca
 $mcsub/curl -s /download/f1/f2.1.dat.metalink | grep '<url type="http" location="US" preference="100">http://127.0.0.1:1304/updates/f1/f2.1.dat</url>'
 
 # test unknown file is rendered with render_local()
-$mcsub/curl -IL /download/f2/f2.1.dat | grep -i '200 OK'
+$mcsub/curl -I /download/f2/f2.1.dat | grep -i '200 OK'
+# test mirrorlist for unknown file
+$mcsub/curl /f3/f1.1.dat.mirrorlist | grep http://127.0.0.1:1314/updates/f3/f1.1.dat
+
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
+$mc/backstage/shoot
+$mc/backstage/job mirror_scan_schedule
+$mc/backstage/shoot
+
+# test file which was unknown is now redirected
+$mcsub/curl -I /download/f2/f2.1.dat | grep -i '302 Found'
+# test mirrorlist for file which was unknown
+$mcsub/curl /download/f3/f1.1.dat.mirrorlist | grep 'href="http://127.0.0.1:1314/updates/f3/f1.1.dat"'
+
