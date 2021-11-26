@@ -111,7 +111,8 @@ create table if not exists server_capability_force (
 create table if not exists subsidiary (
     region  varchar(2) PRIMARY KEY,
     hostname  varchar(128) NOT NULL,
-    uri varchar(128) default ''
+    uri varchar(128) default '',
+    local boolean default 'f'
 );
 
 create table if not exists audit_event (
@@ -227,3 +228,5 @@ alter table folder
 -- 14 up
 create index if not exists folder_sync_requested_idx on folder(sync_requested, wanted, sync_scheduled);
 create index if not exists folder_scan_requested_idx on folder(scan_requested, wanted, scan_scheduled);
+-- 15 up
+alter table subsidiary add column if not exists local boolean default 'f';

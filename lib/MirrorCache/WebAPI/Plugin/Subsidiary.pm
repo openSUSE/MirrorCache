@@ -21,6 +21,7 @@ my $subsidiary_region;
 
 my $subsidiaries_initialized = 0;
 my %subsidiary_urls;
+my %subsidiary_local;
 my @regions;
 
 sub register {
@@ -44,6 +45,7 @@ sub register {
             push @regions, $region;
             my $obj = Mojo::URL->new($url)->to_abs;
             $subsidiary_urls{$region} = $obj;
+            $subsidiary_local{$region} = 1 if $s->local;
 
             $app->routes->get("/rest/$region" => sub {
                 my $c = shift;
@@ -84,6 +86,7 @@ sub _regions {
 
     for my $s (@regions) {
         next if $region eq $s;
+        next if $subsidiary_local{$s};
         push @res, $s;
     }
 

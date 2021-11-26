@@ -40,6 +40,7 @@ na_address=$($mc6/print_address)
 na_interface=127.0.0.2
 eu_address=$($mc7/print_address)
 eu_interface=127.0.0.3
+as_interface=127.0.0.4
 
 $mc9/gen_env "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'" \
     MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
@@ -97,17 +98,17 @@ curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xm
 mc9/backstage/job -e folder_sync -a '["/folder2"]'
 mc9/backstage/shoot
 
-curl -sL --interface 127.0.0.4 http://$hq_address/folder2/file1.1.dat.mirrorlist | grep 'file1.1.dat'
+curl -sL --interface $as_interface http://$hq_address/folder2/file1.1.dat.mirrorlist | grep 'file1.1.dat'
 mc9/backstage/job -e mirror_scan_schedule_from_misses
 mc9/backstage/job -e mirror_scan_schedule
 mc9/backstage/shoot
 
-curl -sL --interface 127.0.0.4 http://$hq_address/folder2/file1.1.dat.mirrorlist | grep -C10 $($ap1/print_address) | grep $($ap2/print_address)
+curl -sL --interface $as_interface http://$hq_address/folder2/file1.1.dat.mirrorlist | grep -C10 $($ap1/print_address) | grep $($ap2/print_address)
 
 ###########################################
 # test table demand_mirrorlist:
 # if mirrorlist was requested for unknown file - all countries will be scanned
-curl -sL --interface 127.0.0.4 http://$hq_address/folder3/file1.1.dat.mirrorlist | grep 'unknown'
+curl -sL --interface $as_interface http://$hq_address/folder3/file1.1.dat.mirrorlist | grep 'unknown'
 
 mc9/backstage/job -e folder_sync_schedule_from_misses
 mc9/backstage/job -e folder_sync_schedule
@@ -115,10 +116,11 @@ mc9/backstage/shoot
 mc9/backstage/job -e mirror_scan_schedule
 mc9/backstage/shoot
 
-curl -sL --interface 127.0.0.4 http://$hq_address/folder3/file1.1.dat.mirrorlist | grep -C10 $($ap1/print_address) | grep $($ap2/print_address)
+curl -sL --interface $as_interface http://$hq_address/folder3/file1.1.dat.mirrorlist | grep -C10 $($ap1/print_address) | grep $($ap2/print_address)
 
 ###########################################
 curl -Is --interface $eu_interface http://$eu_address/folder1/file1.1.dat | grep -C10 302 | grep $($ap5/print_address)
 curl -Is --interface $na_interface http://$eu_address/folder1/file1.1.dat | grep -C10 302 | grep -E "$($ap5/print_address)|$($ap6/print_address)"
 
 
+curl -siL --interface $eu_interface http://$hq_address/folder1/file1.1.dat?COUNTRY=jp | grep -E 'Mirrors|http'
