@@ -51,10 +51,17 @@ sub register {
                 my $c = shift;
                 my $file = $c->param('file');
                 return $c->render(status => 400) unless $file;
+                my $dm = MirrorCache::Datamodule->new->app($c->app);
+                $dm->reset($c);
+
                 my $req = $obj->clone;
                 $req->scheme($c->req->url->to_abs->scheme);
                 $req->path($req->path . $file);
+                my $country = $dm->country;
+                my $region  = $dm->region;
                 $req->query('mirrorlist&json');
+                $req->query->merge(COUNTRY => $country) if $country;
+                $req->query->merge(REGION  => $region)  if $region;
                 $c->proxy->get_p($req);
             });
          }

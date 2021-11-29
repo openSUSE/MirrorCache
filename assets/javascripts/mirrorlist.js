@@ -11,10 +11,11 @@ function handleMirrorlistAjaxError(request, code, error, element) {
     element.innerText = 'Error: ' + error;
 }
 
-function loadMirrorlist(url, element1, element2, element3) {
+function loadMirrorlist(url, country, region, element1, element2, element3) {
     $.ajax({
         url: url,
         method: 'GET',
+        data:{ COUNTRY: country, REGION: region },
         success: function(response) {
             var l1 = response.l1;
             for(var i = 0; i < l1.length; i++) {

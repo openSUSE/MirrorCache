@@ -72,8 +72,9 @@ for i in 9 6 7; do
 done
 
 
-curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json"
-curl -s "http://$eu_address/folder1/file1.1.dat?mirrorlist&json"
+curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json"            | grep -F '{"l1":[{"location":"US","url":"http:\/\/127.0.0.1:1264\/folder1\/file1.1.dat"}],"l2":[{"location":"CA","url":"http:\/\/127.0.0.1:1274\/folder1\/file1.1.dat"}],"l3":[]}'
+curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json&COUNTRY=ca" | grep -F '{"l1":[{"location":"CA","url":"http:\/\/127.0.0.1:1274\/folder1\/file1.1.dat"}],"l2":[{"location":"US","url":"http:\/\/127.0.0.1:1264\/folder1\/file1.1.dat"}],"l3":[]}'
+curl -s "http://$eu_address/folder1/file1.1.dat?mirrorlist&json" | grep -F '{"l1":[],"l2":[],"l3":[{"location":"DE"'
 
 curl -s "http://$hq_address/rest/eu?file=/folder1/file1.1.dat" | grep -C50 $($ap5/print_address) | grep $($ap6/print_address)
 curl -s "http://$hq_address/rest/na?file=/folder1/file1.1.dat" | grep -C50 $($ap3/print_address) | grep $($ap4/print_address)
