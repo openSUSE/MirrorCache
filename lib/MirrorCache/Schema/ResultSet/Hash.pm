@@ -69,19 +69,4 @@ END_SQL
     return $dbh->selectall_arrayref($prep, {Slice => {}});
 }
 
-sub hashes_max_dt {
-    my ($self, $folder_id) = @_;
-
-    my $rsource = $self->result_source;
-    my $schema  = $rsource->schema;
-    my $dbh     = $schema->storage->dbh;
-
-    my $sql = <<'END_SQL';
-select max(hash.dt) from hash where file_id in ( select id from file where folder_id = ? )
-END_SQL
-    my $prep = $dbh->prepare($sql);
-    $prep->execute($folder_id);
-    return $dbh->selectrow_array($prep);
-}
-
 1;

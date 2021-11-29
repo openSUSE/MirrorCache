@@ -18,6 +18,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use MirrorCache::Utils 'datetime_now';
 
 my $HASHES_COLLECT = $ENV{MIRRORCACHE_HASHES_COLLECT} // 0;
+my $HASHES_IMPORT  = $ENV{MIRRORCACHE_HASHES_IMPORT} // 0;
 my $HASHES_QUEUE   = $ENV{MIRRORCACHE_HASHES_QUEUE} // 'hashes';
 
 sub register {
@@ -119,6 +120,7 @@ sub _sync {
         if ($count) {
             $schema->resultset('Folder')->request_scan($folder->id);
             $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
+            $minion->enqueue('folder_hashes_import' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_IMPORT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_import', $HASHES_QUEUE);
         }
         $schema->resultset('Folder')->request_scan($otherFolder->id) if $otherFolder && ($count || !$otherFolder->scan_requested);
         return;
@@ -148,7 +150,7 @@ sub _sync {
             my $id = delete $dbfileidstodelete{$file};
             if ((defined $size && defined $mtime) && ($size != $dbfilesizes{$file} || $mtime != $dbfilemtimes{$file})) {
                 $schema->storage->dbh->prepare(
-                    "UPDATE file set size = ?, mtime = ? where id = ?"
+                    "UPDATE file set size = ?, mtime = ?, dt = now()::timestamp(0) where id = ?"
                 )->execute($size, $mtime, $id);
                 $updated = $updated + 1;
             }
@@ -175,6 +177,7 @@ sub _sync {
     if ($cnt || $updated) {
         $folder->update(     {sync_last => \"NOW()", scan_requested => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
         $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
+        $minion->enqueue('folder_hashes_import' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_IMPORT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_import', $HASHES_QUEUE);
     } else {
         $folder->update(     {sync_last => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
     }
