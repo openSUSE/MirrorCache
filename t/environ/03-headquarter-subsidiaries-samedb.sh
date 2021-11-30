@@ -85,8 +85,8 @@ for i in 9 6 7 8; do
     mc$i/backstage/shoot
 done
 
-# curl -s "http://$hq_address/rest/eu?file=/folder1/file1.1.dat" | grep -C50 $($ap5/print_address) | grep $($ap6/print_address)
-# curl -s "http://$hq_address/rest/na?file=/folder1/file1.1.dat" | grep -C50 $($ap3/print_address) | grep $($ap4/print_address)
+curl -s "http://$hq_address/rest/eu?file=/folder1/file1.1.dat" | grep -C50 $($ap5/print_address) | grep $($ap6/print_address)
+curl -s "http://$hq_address/rest/na?file=/folder1/file1.1.dat" | grep -C50 $($ap3/print_address) | grep $($ap4/print_address)
 
 curl -sL http://$hq_address/folder1/file1.1.dat.metalink | grep file1.1.dat
 curl -sL --interface 127.0.0.4 http://$hq_address/folder1/file1.1.dat.metalink | grep file1.1.dat
@@ -105,10 +105,12 @@ curl -Is --interface $eu_interface http://$hq_address/folder1/media.1/media | gr
 mc9/backstage/job -e folder_sync -a '["/folder2"]'
 mc9/backstage/shoot
 
-curl -sL --interface 127.0.0.4 http://$hq_address/folder2/file1.1.dat.mirrorlist | grep 'file1.1.dat'
+curl -sL --interface $as_interface http://$hq_address/folder2/file1.1.dat.mirrorlist | grep 'file1.1.dat'
 mc9/backstage/job -e mirror_scan_schedule_from_misses
 mc9/backstage/job -e mirror_scan_schedule
 mc9/backstage/shoot
 
-curl -sL --interface 127.0.0.4 http://$hq_address/folder2/file1.1.dat.mirrorlist | grep -C10 $($ap1/print_address) | grep $($ap2/print_address)
+curl -sL --interface $as_interface http://$hq_address/folder2/file1.1.dat.mirrorlist | grep -C10 $($ap1/print_address) | grep $($ap2/print_address)
+
+test 2 == $(curl -sL --interface $as_interface http://$hq_address/folder2/file1.1.dat.mirrorlist?COUNTRY=br | grep -A5 'Mirrors which handle this country' | grep '(BR)' | wc -l)
 

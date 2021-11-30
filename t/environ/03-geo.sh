@@ -30,6 +30,7 @@ $mc/backstage/shoot
 # check unknown country
 $mc/curl --interface 127.0.0.4 -I /download/folder1/file1.1.dat?COUNTRY=xx
 $mc/curl --interface 127.0.0.4 -I /download/folder1/file1.1.dat?COUNTRY=xx | grep -C10 302 | grep -E '1304|1314|1324'
+$mc/curl --interface 127.0.0.4 -i /download/folder1/file1.1.dat.mirrorlist?COUNTRY=xx | grep -C10 1304 | grep -C10 1314| grep 1324
 
 # check country routing
 $mc/curl --interface 127.0.0.4 -I /download/folder1/file1.1.dat | grep 1324

@@ -44,6 +44,9 @@ $mc/curl --interface 127.0.0.4 -I '/download/folder1/file1.1.dat?REGION=eu' | gr
 $mc/curl --interface 127.0.0.2 '/download/folder1/file1.1.dat.metalink?REGION=eu' | grep -A1 $DE_ADDRESS | grep $CZ_ADDRESS
 $mc/curl --interface 127.0.0.4 '/download/folder1/file1.1.dat.metalink?REGION=eu' | grep -A1 $CZ_ADDRESS | grep $DE_ADDRESS
 
+# check requests from na are served from DE_ADDRESS
+$mc/curl /download/folder1/file1.1.dat.metalink?REGION=na | grep -A1 $DE_ADDRESS | grep $CZ_ADDRESS
+
 #########################################
 echo test scan is scheduled when metadata is missing
 $mc/curl -Is --interface 127.0.0.3 '/download/folder2/file1.1.dat.metalink?COUNTRY=de'

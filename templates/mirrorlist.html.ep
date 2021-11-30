@@ -8,10 +8,10 @@
 % if ($regions && @$regions) {
 % content_for 'ready_function' => begin
 %   my $i = 0;
-%   for my $region (@$regions) {
-%     if ($region) {
-%       my $url = "/rest/$region?file=$cur_path";
-        loadMirrorlist("<%= $url %>", "ul1000", "ul1001", "ul1002");
+%   for my $reg (@$regions) {
+%     if ($reg) {
+%       my $url = "/rest/$reg?file=$cur_path";
+        loadMirrorlist("<%= $url %>", "<%= $country %>", "<%= $region %>", "ul1000", "ul1001", "ul1002");
 %     }
 %     $i = $i+1;
 %   }

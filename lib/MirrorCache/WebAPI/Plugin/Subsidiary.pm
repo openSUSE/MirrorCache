@@ -21,6 +21,7 @@ my $subsidiary_region;
 
 my $subsidiaries_initialized = 0;
 my %subsidiary_urls;
+my %subsidiary_local;
 my @regions;
 
 sub register {
@@ -44,15 +45,23 @@ sub register {
             push @regions, $region;
             my $obj = Mojo::URL->new($url)->to_abs;
             $subsidiary_urls{$region} = $obj;
+            $subsidiary_local{$region} = 1 if $s->local;
 
             $app->routes->get("/rest/$region" => sub {
                 my $c = shift;
                 my $file = $c->param('file');
                 return $c->render(status => 400) unless $file;
+                my $dm = MirrorCache::Datamodule->new->app($c->app);
+                $dm->reset($c);
+
                 my $req = $obj->clone;
                 $req->scheme($c->req->url->to_abs->scheme);
                 $req->path($req->path . $file);
+                my $country = $dm->country;
+                my $region  = $dm->region;
                 $req->query('mirrorlist&json');
+                $req->query->merge(COUNTRY => $country) if $country;
+                $req->query->merge(REGION  => $region)  if $region;
                 $c->proxy->get_p($req);
             });
          }
@@ -84,6 +93,7 @@ sub _regions {
 
     for my $s (@regions) {
         next if $region eq $s;
+        next if $subsidiary_local{$s};
         push @res, $s;
     }
 

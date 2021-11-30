@@ -195,7 +195,7 @@ sub register {
                 sha256 => $file->{sha256},
             };
 
-            my @regions = $c->subsidiary->regions($region) if $region;
+            my @regions = $c->subsidiary->regions($region);
             $c->stash('nonavbar' => 1) if ($ENV{MIRRORCACHE_BRANDING});
             $c->stash('mirrorlist' => 1);
             my ($lat, $lng) = $dm->coord;
@@ -207,6 +207,7 @@ sub register {
                 mirrordata_region => \@mirrordata_region,
                 mirrordata_rest   => \@mirrordata_rest,
                 country           => uc($country),
+                region            => $region,
                 ip                => $dm->ip,
                 lat               => $lat,
                 lng               => $lng,
@@ -490,7 +491,7 @@ sub _collect_mirrors {
         }
     }
 
-    if ($found_count < $limit || $mirrorlist) {
+    if (!$found_count || ($found_count < $limit && !$dm->root_country) || $mirrorlist) {
         $m = $rs->mirrors_query(
             $country, $region,  $folder_id, $file_id,          $scheme,
             $ipv,  $lat, $lng,    $avoid_countries, $limit,  1,
