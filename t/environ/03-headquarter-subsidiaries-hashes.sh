@@ -60,3 +60,16 @@ for i in 6 7 8 9; do
     mc$i/backstage/shoot -q hashes
     test b2c5860a03d2c4f1f049a3b2409b39a8 == $(mc$i/db/sql 'select md5 from hash where file_id=1')
 done
+
+echo Step 2. Add more files to folder1 and make sure only new hashes are transfered
+
+for i in 9 6 7 8; do
+    echo 1111111112 > mc$i/dt/folder1/file1.1.dat
+    echo 1111111112 > mc$i/dt/folder1/file4.1.dat
+    mc$i/backstage/job -e folder_sync -a '["/folder1"]'
+    mc$i/backstage/shoot
+    mc$i/backstage/shoot -q hashes
+    test  $(mc$i/db/sql "select md5 from hash where file_id=3") == $(mc$i/db/sql 'select md5 from hash where file_id=1')
+done
+
+

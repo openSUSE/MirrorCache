@@ -51,7 +51,31 @@ END_SQL
     return $dbh->selectrow_hashref($prep);
 }
 
+# returns list of file_id for which we need hash to (re)calculate
 sub hash_needed {
+    my ($self, $folder_id, $dt) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    unless ($dt) {
+        my $res = $self->need_hashes($folder_id);
+        $dt = $res->{max_dt} if $res;
+    }
+
+    my $sql = <<'END_SQL';
+select file.id, file.name, file.size
+from file
+left join hash on file_id = id
+where file.folder_id = ?
+and (hash.file_id is null or coalesce(file.dt > ?, 't'))
+END_SQL
+    return $dbh->selectall_hashref($sql, 'id', {}, $folder_id, $dt);
+}
+
+# returns pair (bool, max_dt)
+sub need_hashes {
     my ($self, $folder_id) = @_;
 
     my $rsource = $self->result_source;
@@ -59,13 +83,17 @@ sub hash_needed {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select file.id, file.name, file.size
+select file.id,
+(select max(hash.dt) from hash join file on file_id = id where folder_id = ?) as max_dt
 from file
-left join hash on file_id = id and file.size = hash.size
+left join hash on file_id = id
 where file.folder_id = ?
-and hash.file_id is null
+and (hash.file_id is null or coalesce(file.dt > hash.dt, 't'))
+limit 1;
 END_SQL
-    return $dbh->selectall_hashref($sql, 'id', {}, $folder_id);
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($folder_id, $folder_id);
+    return $dbh->selectrow_hashref($prep);
 }
 
 1;

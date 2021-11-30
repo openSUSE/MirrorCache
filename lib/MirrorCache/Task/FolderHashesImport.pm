@@ -45,6 +45,7 @@ sub _run {
 
     my $max_dt = $folder->hash_last_import;
     $max_dt = $max_dt ? "&since=$max_dt" : '';
+    $job->note(max_dt => $max_dt);
 
     my $hq_url = $ENV{MIRRORCACHE_HEADQUARTER} . $path . '?hashes' . $max_dt;
     $hq_url = "http://" . $hq_url unless 'http' eq substr($hq_url, 0, 4);

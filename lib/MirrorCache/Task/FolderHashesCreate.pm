@@ -29,7 +29,7 @@ sub register {
 }
 
 sub _sync {
-    my ($app, $job, $path) = @_;
+    my ($app, $job, $path, $dt) = @_;
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is not allowed') if '/' eq substr($path,-1) && $path ne '/';
 
@@ -48,7 +48,7 @@ sub _sync {
     my $folder_id = $folder->id;
     my $count = 0;
     my $errcount = 0;
-    my $rows = $schema->resultset('File')->hash_needed($folder_id);
+    my $rows = $schema->resultset('File')->hash_needed($folder_id, $dt);
     for my $id (sort keys %$rows) {
         my $file = $rows->{$id};
         my $basename = $file->{name};
