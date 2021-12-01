@@ -130,7 +130,8 @@ sub path_misses {
 select * from (
 select stat.id, stat.path, stat.folder_id, trim(country)
 from stat left join folder on folder.id = stat.folder_id
-where mirror_id in (-1, 0)
+where mirror_id < 1
+and ( mirror_id in (0,-1) or mirrorlist )
 and file_id is null
 and stat.path !~ '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)$'
 and stat.agent NOT ILIKE '%bot%'

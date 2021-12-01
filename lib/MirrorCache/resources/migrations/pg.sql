@@ -13,6 +13,7 @@ create table if not exists folder (
     scan_requested    timestamp, -- when it was determined that scan is needed
     scan_scheduled    timestamp, -- when scan job was created (scheduled)
     scan_last         timestamp, -- when scan job started
+    hash_last_import  timestamp,
     files             int,
     size              bigint
 );
@@ -230,3 +231,4 @@ create index if not exists folder_sync_requested_idx on folder(sync_requested, w
 create index if not exists folder_scan_requested_idx on folder(scan_requested, wanted, scan_scheduled);
 -- 15 up
 alter table subsidiary add column if not exists local boolean default 'f';
+alter table folder add column if not exists hash_last_import timestamp;

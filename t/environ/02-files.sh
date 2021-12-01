@@ -41,7 +41,7 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$
 
 # remove a file from one mirror
 rm $ap8/dt/folder1/file2.1.dat
-# this file is different size on one mirrors
+# this file is different size on one mirror
 echo 1 > $ap8/dt/folder1/file1.dat
 
 # force scan
@@ -69,7 +69,7 @@ $mc/curl -I /download/folder1/file2.1.dat?PEDANTIC=1 | grep 200
 $mc/curl -I /download/folder1/file1.dat | grep 200
 
 # make root the same size of folder1/file1.dat
-echo 1 > $mc/dt/folder1/file1.dat
+cp $ap7/dt/folder1/file1.dat $mc/dt/folder1/file1.dat
 
 $mc/backstage/job mirror_scan_schedule_from_path_errors
 $mc/backstage/job folder_sync_schedule

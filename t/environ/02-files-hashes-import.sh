@@ -71,4 +71,9 @@ rc=0
 echo /download shouldnt be shown when MIRRORCACHE_TOP_FOLDERS is set and MIRRORCACHE_BRANDING==SUSE
 mc9/curl -s /folder1/file1.1.dat.mirrorlist | grep /download || rc=$?
 test $rc -gt 0
+
+echo Erase size in file and make sure it is taken from hash
+mc9/sql 'update file set size=0, mtime=null'
+mc9/curl -sL /folder1/file1.1.dat.metalink | grep -F -C10 '<size>11</size>'
+
 echo success

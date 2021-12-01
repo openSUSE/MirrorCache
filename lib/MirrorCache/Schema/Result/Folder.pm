@@ -62,7 +62,7 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 0, size => 512 },
   wanted => {
         data_type   => 'timestamp',
-        dynamic_default_on_create => 'DBIx::Class::Timestamps::now',        
+        dynamic_default_on_create => 'DBIx::Class::Timestamps::now',
         is_nullable => 1
   },
   sync_requested => {
@@ -87,6 +87,10 @@ __PACKAGE__->add_columns(
         is_nullable => 1
   },
   scan_last => {
+        data_type   => 'timestamp',
+        is_nullable => 1
+  },
+  hash_last_import => {
         data_type   => 'timestamp',
         is_nullable => 1
   },

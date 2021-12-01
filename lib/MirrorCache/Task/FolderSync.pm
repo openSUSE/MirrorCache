@@ -18,6 +18,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use MirrorCache::Utils 'datetime_now';
 
 my $HASHES_COLLECT = $ENV{MIRRORCACHE_HASHES_COLLECT} // 0;
+my $HASHES_IMPORT  = $ENV{MIRRORCACHE_HASHES_IMPORT} // 0;
 my $HASHES_QUEUE   = $ENV{MIRRORCACHE_HASHES_QUEUE} // 'hashes';
 
 sub register {
@@ -119,6 +120,7 @@ sub _sync {
         if ($count) {
             $schema->resultset('Folder')->request_scan($folder->id);
             $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
+            $minion->enqueue('folder_hashes_import' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_IMPORT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_import', $HASHES_QUEUE);
         }
         $schema->resultset('Folder')->request_scan($otherFolder->id) if $otherFolder && ($count || !$otherFolder->scan_requested);
         return;
@@ -148,7 +150,7 @@ sub _sync {
             my $id = delete $dbfileidstodelete{$file};
             if ((defined $size && defined $mtime) && ($size != $dbfilesizes{$file} || $mtime != $dbfilemtimes{$file})) {
                 $schema->storage->dbh->prepare(
-                    "UPDATE file set size = ?, mtime = ? where id = ?"
+                    "UPDATE file set size = ?, mtime = ?, dt = NOW()::timestamp(0) where id = ?"
                 )->execute($size, $mtime, $id);
                 $updated = $updated + 1;
             }
@@ -174,9 +176,20 @@ sub _sync {
     $job->note(updated => $realpath, count => $cnt, deleted => $deleted, updated => $updated);
     if ($cnt || $updated) {
         $folder->update(     {sync_last => \"NOW()", scan_requested => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
-        $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
     } else {
         $folder->update(     {sync_last => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
+    }
+    my $need_hashes = $cnt || $updated ? 1 : 0;
+    my $max_dt;
+    if ( ($HASHES_COLLECT || $HASHES_IMPORT) ) {
+        if(my $res = $schema->resultset('File')->need_hashes($folder_id)) {
+            $need_hashes = $res->{file_id} unless $need_hashes;
+            $max_dt      = $res->{max_dt};
+        }
+    }
+    if ($need_hashes) {
+        $minion->enqueue('folder_hashes_create' => [$realpath, $max_dt] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
+        $minion->enqueue('folder_hashes_import' => [$realpath, $max_dt] => {queue => $HASHES_QUEUE}) if $HASHES_IMPORT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_import', $HASHES_QUEUE);
     }
 
     if ($otherFolder && ($cnt || $updated || !$otherFolder->scan_requested)) {

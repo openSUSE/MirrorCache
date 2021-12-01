@@ -43,8 +43,9 @@ sub _run {
     my $count     = 0;
     my $errcount  = 0;
 
-    my $max_dt = $schema->resultset('Hash')->hashes_max_dt($folder_id);
+    my $max_dt = $folder->hash_last_import;
     $max_dt = $max_dt ? "&since=$max_dt" : '';
+    $job->note(max_dt => $max_dt);
 
     my $hq_url = $ENV{MIRRORCACHE_HEADQUARTER} . $path . '?hashes' . $max_dt;
     $hq_url = "http://" . $hq_url unless 'http' eq substr($hq_url, 0, 4);
@@ -55,7 +56,7 @@ sub _run {
       if $res->code != 200;
 
     my $res_json = $res->json;
-
+    my $last_import;
     for my $hash (@$res_json) {
         my $basename = $hash->{name};
         next unless $basename;
@@ -64,6 +65,7 @@ sub _run {
         eval {
             $schema->resultset('Hash')->store($file->id, $hash->{mtime}, $hash->{size}, $hash->{md5},
                 $hash->{sha1}, $hash->{sha256}, $hash->{piece_size}, $hash->{pieces});
+            $last_import = Mojo::Date($hash->{dt}) if ($last_import && $hash->{dt} && $last_import->epoch < Mojo::Date->new($hash->{dt})->epoch);
             $count++;
         };
         if ($@) {
@@ -74,6 +76,7 @@ sub _run {
         }
     }
 
+    $folder->hash_last_import($last_import) if $last_import && $count;
     $job->note(count => $count, errors => $errcount);
 }
 
