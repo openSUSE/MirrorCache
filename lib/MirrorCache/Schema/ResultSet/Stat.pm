@@ -175,6 +175,7 @@ sub mirror_misses {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = << "END_SQL";
+select * from (
 select stat.id, stat.folder_id, trim(country)
 from stat join folder on folder.id = stat.folder_id
 where mirror_id in (-1, 0) and file_id is not null
@@ -185,9 +186,9 @@ and (
     )
 END_SQL
     $sql = "$sql and stat.id > $prev_stat_id" if $prev_stat_id;
+    $sql = "$sql order by stat.id desc limit ($limit+1) ) x";
     $sql = "$sql union all select max(id), 0, null from stat"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";
-    $sql = "$sql limit ($limit+1)";
 
     my $prep = $dbh->prepare($sql);
     $prep->execute();
