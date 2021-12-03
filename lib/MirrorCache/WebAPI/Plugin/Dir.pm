@@ -464,7 +464,6 @@ sub _render_hashes {
     my $c = $dm->c;
     return undef unless defined($c->param('hashes'));
     my ($path, undef) = $dm->path;
-    return undef unless $root->is_dir($path);
 
     my $time_constraint;
     if (defined $c->param("since") && $c->param("since")) {
@@ -475,13 +474,20 @@ sub _render_hashes {
     }
 
     my $schema   = $c->app->schema;
-    my $rsFolder = $schema->resultset('Folder');
-    my $folder   = $rsFolder->find({path => $path});
-    return $c->render(status => 404, text => "path $path not found") unless $folder;
+    my $folder   = $schema->resultset('Folder')->find({path => $path});
 
-    my $rsHash    = $schema->resultset('Hash');
-    my $folder_id = $folder->id;
-    return $c->render(json => $rsHash->hashes_since($folder_id, $time_constraint));
+    if ($folder) {
+        my $rsHash    = $schema->resultset('Hash');
+        my $folder_id = $folder->id;
+        return $c->render(json => $rsHash->hashes_since($folder_id, $time_constraint));
+    };
+
+    return $c->render(status => 404, text => "path $path not found") unless $root->is_dir($path);
+
+    my $job_id = $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $path);
+    # if scheduling didn't happen - return 404 so far
+    return $c->render(status => 404, text => "path $path not found") if $job_id < 1;
+    return $c->render(status => 201, text => '[]');
 }
 
 1;
