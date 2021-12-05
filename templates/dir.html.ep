@@ -49,7 +49,7 @@
       % }
       % for my $file (@$files) {
       <tr>
-      %   if ($file->{mtime}) {
+      %   if (defined $file->{size}) {
       %     my $colspan = $file->{dir} ? 'colspan=2 ' : '';
         <td class="name"><a href="<%= $file->{url} %>"><%== $file->{name} %></a></td>
         <td <%= $colspan %>class="mtime"><%= $file->{mtime} %></td>

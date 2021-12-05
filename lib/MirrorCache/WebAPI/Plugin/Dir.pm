@@ -375,13 +375,14 @@ sub _render_dir_from_db {
     my $dir = shift;
     my $c   = $dm->c;
     my @files;
-    my @childrenfiles = $c->schema->resultset('File')->search({folder_id => $id});
+    my $childrenfiles = $c->schema->resultset('File')->find_with_hash($id);
     my $json = $dm->json;
 
-    for my $child ( @childrenfiles ) {
-        my $basename = $child->name;
-        my $size     = $child->size;
-        my $mtime    = $child->mtime;
+    for my $file_id ( keys %$childrenfiles ) {
+        my $child = $childrenfiles->{$file_id};
+        my $basename = $child->{name};
+        my $size     = $child->{size};
+        my $mtime    = $child->{mtime};
         if ($json) {
             push @files, {
                 name  => $basename,
