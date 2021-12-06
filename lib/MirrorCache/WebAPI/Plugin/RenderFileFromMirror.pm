@@ -165,7 +165,6 @@ sub register {
             my $size = $file->{size};
             my $hsize = MirrorCache::Utils::human_readable_size($size) if defined $size;
             my $mtime = $file->{mtime};
-            $mtime = $file->{hash_mtime} if $file->{hash_mtime};
             my $hmtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
             my $fileorigin;
             my $fileoriginpath = $filepath;

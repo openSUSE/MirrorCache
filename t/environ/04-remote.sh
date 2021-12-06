@@ -16,6 +16,7 @@ ap7=$(environ ap7)
 for x in $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    echo 11111 > $x/dt/folder1/file1.1.dat
     $x/start
 done
 
@@ -25,7 +26,6 @@ $mc/status
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
-# remove folder1/file1.1.dt from ap8
 rm $ap8/dt/folder1/file2.1.dat
 
 # first request redirected to root
@@ -37,9 +37,12 @@ $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
-$mc/db/sql "select * from file"
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
+
+# let's pretend hashes were imported somehow and make sure they are shown in UI
+$mc/sql 'insert into hash(file_id, size, mtime, dt) select 1, 5, extract(epoch from now()), now()'
+$mc/curl /download/folder1/ | grep -A2 file1.1.dat | grep '5 Byte'
 
 $mc/curl -I /download/folder1/file2.1.dat | grep $($ap7/print_address)
 

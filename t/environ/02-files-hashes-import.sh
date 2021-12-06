@@ -13,6 +13,7 @@ for i in 9 6; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     echo 1111111111 > $x/dt/folder1/file1.1.dat
+    echo 1111111112 > $x/dt/folder2/file1.1.dat
     eval mc$i=$x
 done
 
@@ -21,6 +22,7 @@ for i in 1 2 3 4; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     echo 1111111111 > $x/dt/folder1/file1.1.dat
+    echo 1111111112 > $x/dt/folder2/file1.1.dat
     eval ap$i=$x
     $x/start
 done
@@ -33,7 +35,7 @@ na_address=$($mc6/print_address)
 na_interface=127.0.0.2
 
 # deploy db
-$mc9/gen_env MIRRORCACHE_HASHES_COLLECT=1 MIRRORCACHE_HASHES_PIECES_MIN_SIZE=5 "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'" MIRRORCACHE_BRANDING=SUSE
+$mc9/gen_env MIRRORCACHE_HASHES_COLLECT=1 MIRRORCACHE_HASHES_PIECES_MIN_SIZE=5 "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'" MIRRORCACHE_BRANDING=SUSE MIRRORCACHE_WORKERS=4 MIRRORCACHE_DAEMON=1
 $mc9/backstage/shoot
 
 $mc9/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
@@ -41,14 +43,13 @@ $mc9/start
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap1/print_address)','','t','jp','as'"
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap2/print_address)','','t','jp','as'"
 
-$mc6/gen_env MIRRORCACHE_REGION=na MIRRORCACHE_HEADQUARTER=$hq_address "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
+$mc6/gen_env MIRRORCACHE_REGION=na MIRRORCACHE_HEADQUARTER=$hq_address "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'" MIRRORCACHE_HASHES_IMPORT=1
 $mc6/start
 $mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','t','us','na'"
 $mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','ca','na'"
 
 for i in 9 6; do
     mc$i/backstage/job -e folder_sync -a '["/folder1"]'
-    [[ $i == 6 ]] && mc$i/backstage/job -e folder_hashes_import -a '["/folder1"]' || :
     mc$i/backstage/shoot
     mc$i/backstage/shoot -q hashes
 done
@@ -75,5 +76,17 @@ test $rc -gt 0
 echo Erase size in file and make sure it is taken from hash
 mc9/sql 'update file set size=0, mtime=null'
 mc9/curl -sL /folder1/file1.1.dat.metalink | grep -F -C10 '<size>11</size>'
+
+echo Import folder unknown on master
+curl -si "http://$hq_address/folder2?hashes"
+mc9/backstage/shoot
+mc9/backstage/shoot -q hashes
+test d8f5889697e9ec5ba9a8ab4aede6e7d1d7858884e81db19b3e9780d6a64671a3 == $(mc9/db/sql 'select sha256 from hash where file_id=3')
+
+mc6/backstage/job -e folder_sync -a '["/folder2"]'
+mc6/backstage/shoot
+mc6/backstage/shoot -q hashes
+
+test d8f5889697e9ec5ba9a8ab4aede6e7d1d7858884e81db19b3e9780d6a64671a3 == $(mc6/db/sql 'select sha256 from hash where file_id=3')
 
 echo success

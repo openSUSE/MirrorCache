@@ -36,8 +36,12 @@
     <ul>
       <li>Filename: <%= $file->{name} %></li>
       <li>Path: <%= $cur_path %></li>
+      % if ($file->{hsize}) {
       <li>Size: <%= $file->{hsize} %> (<%= $file->{size} %> bytes)</li>
+      % }
+      % if ($file->{mtime}) {
       <li>Last modified: <%= $file->{hmtime} %> (Unix timestamp: <%= $file->{mtime} %>)</li>
+      % }
       % if ($file->{sha256}) {
       <li>SHA-256 Hash: <%= $file->{sha256} %></li>
       % }
