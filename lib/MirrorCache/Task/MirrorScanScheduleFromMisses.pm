@@ -23,7 +23,6 @@ sub register {
 }
 
 my $DELAY   = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
-my $TIMEOUT = int($ENV{MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT} // 120);
 
 sub _run {
     my ($app, $job, $prev_stat_id) = @_;

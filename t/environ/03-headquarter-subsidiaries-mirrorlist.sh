@@ -43,7 +43,6 @@ eu_interface=127.0.0.3
 as_interface=127.0.0.4
 
 $mc9/gen_env "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'" \
-    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
     MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 # deploy db

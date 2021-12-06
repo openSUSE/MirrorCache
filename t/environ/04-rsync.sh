@@ -10,7 +10,6 @@ $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
     MIRRORCACHE_ROOT=rsync://$USER:$USER@$($rs/print_address)/dt \
     MIRRORCACHE_REDIRECT=some.address.fake.com \
     MIRRORCACHE_REDIRECT_VPN=some.address.fake.vpn.us \
-    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
     MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 ap8=$(environ ap8)

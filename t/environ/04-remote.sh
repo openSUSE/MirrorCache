@@ -7,7 +7,6 @@ ap9=$(environ ap9)
 
 $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
     MIRRORCACHE_ROOT=http://$($ap9/print_address) \
-    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
     MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 ap8=$(environ ap8)
