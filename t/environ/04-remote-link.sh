@@ -6,6 +6,7 @@ mc=$(environ mc $(pwd))
 ap9=$(environ ap9)
 
 $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0 \
     MIRRORCACHE_ROOT=http://$($ap9/print_address)
 
 ap8=$(environ ap8)
@@ -49,11 +50,15 @@ $mc/curl -I /download/link | grep -A4 -E '301|302' | grep ': /download/folder1'
 ################################################
 
 # make sure symlinks still work after further folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
-# mc1/sql_test 2 == "select retries from minion_jobs where id = 1"
+$mc/sql_test 2 == "select count(*) from minion_jobs where task = 'folder_sync_schedule_from_misses' and state = 'finished'"
 $mc/curl -I /download/link
 $mc/curl -I /download/link | grep -A4 -E '301|302' | grep ': /download/folder1'
+$mc/backstage/job folder_sync_schedule_from_misses
+$mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
-# mc1/sql_test 3 == "select retries from minion_jobs where id = 1"
+$mc/sql_test 3 == "select count(*) from minion_jobs where task = 'folder_sync_schedule_from_misses' and state = 'finished'"
 $mc/curl -I /download/link
 $mc/curl -I /download/link | grep -A4 -E '301|302' | grep ': /download/folder1'
