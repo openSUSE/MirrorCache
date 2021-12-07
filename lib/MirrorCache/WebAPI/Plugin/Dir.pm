@@ -151,8 +151,6 @@ sub _redirect_geo {
     my $dm = shift;
     my $route = $dm->route;
     my ($path, $trailing_slash) = $dm->path;
-    return undef if $trailing_slash || $path eq '/' || $dm->mirrorlist;
-    return undef if $dm->must_render_from_root;
 
     my $c = $dm->c;
     my $ln;
@@ -162,6 +160,8 @@ sub _redirect_geo {
         $dm->redirect($dm->route . $ln);
         return 1;
     }
+    return undef if $trailing_slash || $path eq '/' || $dm->mirrorlist;
+    return undef if $dm->must_render_from_root;
     my $subsidiary = $c->subsidiary;
     my $url = $subsidiary->has($dm->region, $c->req->url);
     if ($url) {

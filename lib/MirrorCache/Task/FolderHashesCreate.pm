@@ -81,6 +81,17 @@ sub calcBlockSize {
 sub calcMetalink {
     my ($indir, $path, $file, $block_size, $schema, $file_id) = @_;
     my $f = "$indir$path/$file";
+
+    my $target;
+    eval {
+        my $dest = readlink($f);
+        if ($dest) {
+            $dest = Mojo::File->new($dest);
+            $target = $dest->basename if $dest->dirname eq '.' || $dest->dirname eq "$indir$path";
+        }
+    };
+    return $schema->resultset('Hash')->store($file_id, undef, 0, undef, undef, undef, undef, undef, $target) if $target;
+
     open my $fh, "<", $f or die "Unable to open $f!";
     my $mtime = (stat($fh))[9];
     my $d1   = Digest::SHA->new(1);
@@ -101,15 +112,7 @@ sub calcMetalink {
     }
     close $fh;
     my $pieceshex = join '', @pieces;
-    my $target;
-    eval {
-        my $dest = readlink($f);
-        if ($dest) {
-            $dest = Mojo::File->new($dest);
-            $target = $dest->basename if $dest->dirname eq '.' || $dest->dirname eq "$indir$path";
-        }
-    };
-    $schema->resultset('Hash')->store($file_id, $mtime, $size, $dmd5->hexdigest, $d1->hexdigest, $d256->hexdigest, $block_size, $pieceshex, $target);
+    $schema->resultset('Hash')->store($file_id, $mtime, $size, $dmd5->hexdigest, $d1->hexdigest, $d256->hexdigest, $block_size, $pieceshex);
 }
 
 1;

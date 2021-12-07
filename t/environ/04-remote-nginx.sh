@@ -188,3 +188,11 @@ $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 $mc/curl /download/folder1/ | grep -B1 $f | grep '10 Byte'
+
+##########################
+# add a symlink and make sure size is correct for it as well
+( cd $ng9/dt/folder1 && ln -s $f ln-Media.iso )
+$mc/backstage/job -e folder_sync -a '["/folder1"]'
+$mc/backstage/shoot
+
+$mc/curl /download/folder1/ | grep -B1 ln-Media.iso | grep '10 Byte'

@@ -27,9 +27,9 @@ as_interface=127.0.0.4
 $mc9/gen_env MIRRORCACHE_TOP_FOLDERS="'folder1 folder2 folder3'" MIRRORCACHE_HASHES_COLLECT=1
 $mc9/backstage/shoot
 
-$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$na_address','na','/download'"
-$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$eu_address','eu','/download'"
-$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$as_address','as','/download'"
+$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$na_address','na',''"
+$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$eu_address','eu',''"
+$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$as_address','as',''"
 
 $mc9/start
 
@@ -84,5 +84,7 @@ for i in 9 6 7 8; do
         mc$i/curl -I /folder1/file-Media.iso$x | grep -C 10 302 | grep /folder1/file4.1.dat$x | grep -v /download/folder1/file4.1.dat$x
     done
 done
+
+mc9/curl -IL /download/folder1/file-Media.iso | grep '200 OK'
 
 echo success
