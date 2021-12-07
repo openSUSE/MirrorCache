@@ -30,6 +30,8 @@ __PACKAGE__->add_columns(
   { data_type => "int" },
   "pieces",
   { data_type => "text" },
+  "target",
+  { data_type => "varchar", size => 512 },
   "dt",
   {
     data_type   => 'timestamp',

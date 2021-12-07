@@ -146,4 +146,9 @@ sub foreach_filename {
     return 1;
 }
 
+sub detect_ln {
+    return undef;
+}
+
+
 1;

@@ -155,6 +155,13 @@ sub _redirect_geo {
     return undef if $dm->must_render_from_root;
 
     my $c = $dm->c;
+    my $ln;
+    $ln = $root->detect_ln($path);
+    if ($ln) {
+        # redirect to the symlink
+        $dm->redirect($dm->route . $ln);
+        return 1;
+    }
     my $subsidiary = $c->subsidiary;
     my $url = $subsidiary->has($dm->region, $c->req->url);
     if ($url) {
@@ -269,14 +276,14 @@ sub _render_from_db {
                 $dm->folder_id($another_folder->id);
             }
             my $file;
-            $file = $schema->resultset('File')->find({ name => $f->basename, folder_id => $parent_folder->id }) if $parent_folder && !$trailing_slash;
+            $file = $schema->resultset('File')->find_with_hash($parent_folder->id, $f->basename) if $parent_folder && !$trailing_slash;
             # folders are stored with trailing slash in file table, so they will not be selected here
             if ($file) {
-                $dm->file_id($file->id);
-                if ($file->target) {
+                if ($file->{target}) {
                     # redirect to the symlink
-                    $dm->redirect($dm->route . $f->dirname . '/' . $file->target);
+                    $dm->redirect($dm->route . $f->dirname . '/' . $file->{target});
                 } else {
+                    $dm->file_id($file->{id});
                     # find a mirror for it
                     $c->mirrorcache->render_file($path, $dm);
                 }

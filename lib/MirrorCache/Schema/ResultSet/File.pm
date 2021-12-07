@@ -32,6 +32,7 @@ sub find_with_hash {
 select file.id, file.folder_id, file.name,
 case when coalesce(file.size, 0::bigint)  = 0::bigint and coalesce(hash.size, 0::bigint)  != 0::bigint then hash.size else file.size end size,
 case when coalesce(file.mtime, 0::bigint) = 0::bigint and coalesce(hash.mtime, 0::bigint) != 0::bigint then hash.mtime else file.mtime end mtime,
+coalesce(hash.target, file.target) target,
 file.dt, hash.md5, hash.sha1, hash.sha256, hash.piece_size, hash.pieces,
 (DATE_PART('day',    now() - file.dt) * 24 * 3600 +
  DATE_PART('hour',   now() - file.dt) * 3600 +

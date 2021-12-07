@@ -64,7 +64,7 @@ sub _run {
         next unless $file;
         eval {
             $schema->resultset('Hash')->store($file->id, $hash->{mtime}, $hash->{size}, $hash->{md5},
-                $hash->{sha1}, $hash->{sha256}, $hash->{piece_size}, $hash->{pieces});
+                $hash->{sha1}, $hash->{sha256}, $hash->{piece_size}, $hash->{pieces}, $hash->{target});
             $last_import = Mojo::Date($hash->{dt}) if ($last_import && $hash->{dt} && $last_import->epoch < Mojo::Date->new($hash->{dt})->epoch);
             $count++;
         };

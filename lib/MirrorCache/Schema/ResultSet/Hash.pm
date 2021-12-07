@@ -21,15 +21,15 @@ use warnings;
 use base 'DBIx::Class::ResultSet';
 
 sub store {
-    my ($self, $file_id, $mtime, $size, $md5hex, $sha1hex, $sha256hex, $block_size, $pieceshex) = @_;
+    my ($self, $file_id, $mtime, $size, $md5hex, $sha1hex, $sha256hex, $block_size, $pieceshex, $target) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-insert into hash(file_id, mtime, size, md5, sha1, sha256, piece_size, pieces, dt)
-values (?, ?, ?, ?, ?, ?, ?, ?, now())
+insert into hash(file_id, mtime, size, md5, sha1, sha256, piece_size, pieces, target, dt)
+values (?, ?, ?, ?, ?, ?, ?, ?, ?, now())
 ON CONFLICT (file_id) DO UPDATE
   SET size   = excluded.size,
       mtime  = excluded.mtime,
@@ -38,10 +38,11 @@ ON CONFLICT (file_id) DO UPDATE
       sha256 = excluded.sha256,
       piece_size  = excluded.piece_size,
       pieces      = excluded.pieces,
+      target      = excluded.target,
       dt = now()
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($file_id, $mtime, $size, $md5hex, $sha1hex, $sha256hex, $block_size, $pieceshex);
+    $prep->execute($file_id, $mtime, $size, $md5hex, $sha1hex, $sha256hex, $block_size, $pieceshex, $target);
 }
 
 sub hashes_since {
@@ -59,7 +60,7 @@ sub hashes_since {
     }
 
     my $sql = <<"END_SQL";
-select file.name, hash.mtime, hash.size, md5, sha1, sha256, piece_size, pieces, hash.dt
+select file.name, hash.mtime, hash.size, md5, sha1, sha256, piece_size, pieces, hash.target, hash.dt
 from hash left join file on file_id = id
 where file_id in ( select id from file where folder_id = ? )
 $time_constraint_condition limit 100000

@@ -182,6 +182,7 @@ create table hash (
     sha256 char(64),
     piece_size int,
     pieces text,
+    target varchar(512),
     dt timestamp NOT NULL
 );
 create index hash_file_id_size on hash(file_id, size);
@@ -235,4 +236,5 @@ alter table subsidiary add column if not exists local boolean default 'f';
 alter table folder add column if not exists hash_last_import timestamp;
 -- 16 up
 alter table file add column if not exists target varchar(512);
+alter table hash add column if not exists target varchar(512);
 

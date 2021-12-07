@@ -132,6 +132,32 @@ if ($TOP_FOLDERS) {
     }
 }
 
+sub _detect_ln {
+    my ($dir, $file) = @_;
+    return undef unless $file && $file =~ m/.*(Media|Current)\.iso(\.sha256)?/;
+
+    my $dest;
+    for my $root (@roots) {
+        eval {
+            $dest = readlink($root->[dir] . $dir . '/' . $file);
+        };
+        next unless $dest;
+        $dest = Mojo::File->new($dest);
+
+        return undef unless $dest->dirname eq '.' || $dest->dirname eq $dir;
+        return $dest->basename;
+    };
+    return undef;
+}
+
+sub detect_ln {
+    my ($self, $path) = @_;
+    my $f = Mojo::File->new($path);
+    my $res = _detect_ln($f->dirname, $f->basename);
+    return undef unless $res;
+    return $f->dirname . '/' . $res;
+}
+
 # we cannot use $subtree here, because we may actually render from realdir, which is outside subtree
 sub foreach_filename {
     my $self = shift;

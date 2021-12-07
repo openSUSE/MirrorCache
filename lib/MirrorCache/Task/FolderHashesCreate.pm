@@ -101,7 +101,15 @@ sub calcMetalink {
     }
     close $fh;
     my $pieceshex = join '', @pieces;
-    $schema->resultset('Hash')->store($file_id, $mtime, $size, $dmd5->hexdigest, $d1->hexdigest, $d256->hexdigest, $block_size, $pieceshex);
+    my $target;
+    eval {
+        my $dest = readlink($f);
+        if ($dest) {
+            $dest = Mojo::File->new($dest);
+            $target = $dest->basename if $dest->dirname eq '.' || $dest->dirname eq "$indir$path";
+        }
+    };
+    $schema->resultset('Hash')->store($file_id, $mtime, $size, $dmd5->hexdigest, $d1->hexdigest, $d256->hexdigest, $block_size, $pieceshex, $target);
 }
 
 1;
