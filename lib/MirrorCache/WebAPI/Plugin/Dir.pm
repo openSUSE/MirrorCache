@@ -273,8 +273,13 @@ sub _render_from_db {
             # folders are stored with trailing slash in file table, so they will not be selected here
             if ($file) {
                 $dm->file_id($file->id);
-                # find a mirror for it
-                $c->mirrorcache->render_file($path, $dm);
+                if ($file->target) {
+                    # redirect to the symlink
+                    $dm->redirect($dm->route . $f->dirname . '/' . $file->target);
+                } else {
+                    # find a mirror for it
+                    $c->mirrorcache->render_file($path, $dm);
+                }
                 return 1;
             }
         }

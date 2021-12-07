@@ -25,6 +25,7 @@ create table if not exists file (
     size bigint,
     mtime bigint,
     dt timestamp,
+    target varchar(512),
     unique(folder_id, name)
 );
 
@@ -232,3 +233,6 @@ create index if not exists folder_scan_requested_idx on folder(scan_requested, w
 -- 15 up
 alter table subsidiary add column if not exists local boolean default 'f';
 alter table folder add column if not exists hash_last_import timestamp;
+-- 16 up
+alter table file add column if not exists target varchar(512);
+

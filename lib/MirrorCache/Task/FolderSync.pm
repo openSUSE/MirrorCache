@@ -92,12 +92,12 @@ sub _sync {
     } else {
         my $count = 0;
         my $sub = sub {
-            my ($file, $size, $mmode, $mtime) = @_;
+            my ($file, $size, $mmode, $mtime, $target) = @_;
             $file = $file . '/' if !$root->is_remote && $path ne '/' && $root->is_dir("$path/$file");
             $file = $file . '/' if !$root->is_remote && $path eq '/' && $root->is_dir("$path$file");
             $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
             $count = $count+1;
-            $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime});
+            $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime, target => $target});
             return undef;
         };
         eval {
@@ -110,7 +110,7 @@ sub _sync {
         $update_db_last->();
         eval {
             $schema->txn_do(sub {
-                $app->mc->root->foreach_filename($realpath, $sub);
+                $root->foreach_filename($realpath, $sub);
             });
             1;
         } or return $job->fail('Error while reading files from root :' . $@);
@@ -131,36 +131,42 @@ sub _sync {
     my %dbfileids = ();
     my %dbfilesizes = ();
     my %dbfilemtimes = ();
+    my %dbfiletargets = ();
     for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
         my $basename = $file->name;
         next unless $basename;
         $dbfileids{$basename} = $file->id;
         $dbfilesizes{$basename} = $file->size if defined $file->size;
         $dbfilemtimes{$basename} = $file->mtime if defined $file->mtime;
+        $dbfiletargets{$basename} = $file->target if defined $file->target;
     }
     my %dbfileidstodelete = %dbfileids;
 
     my $cnt = 0, my $updated = 0;
     my $sub = sub {
-        my ($file, $size, $mmode, $mtime) = @_;
+        my ($file, $size, $mmode, $mtime, $target) = @_;
         $file = $file . '/' if !$root->is_remote && $path ne '/' && $root->is_dir("$path/$file");
         $file = $file . '/' if !$root->is_remote && $path eq '/' && $root->is_dir("$path$file");
         $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
         if ($dbfileids{$file}) {
             my $id = delete $dbfileidstodelete{$file};
-            if ((defined $size && defined $mtime) && ($size != $dbfilesizes{$file} || $mtime != $dbfilemtimes{$file})) {
+            if (
+                (defined $size && defined $mtime) && ($size != $dbfilesizes{$file} || $mtime != $dbfilemtimes{$file})
+                ||
+                (defined $target && $target ne ($dbfiletargets{$file} // ''))
+            ) {
                 $schema->storage->dbh->prepare(
-                    "UPDATE file set size = ?, mtime = ?, dt = NOW()::timestamp(0) where id = ?"
-                )->execute($size, $mtime, $id);
+                    "UPDATE file set size = ?, mtime = ?, target = ?, dt = NOW()::timestamp(0) where id = ?"
+                )->execute($size, $mtime, $target, $id);
                 $updated = $updated + 1;
             }
             return;
         }
         $cnt = $cnt + 1;
-        $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime});
+        $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime, target => $target});
         return undef;
     };
-    $app->mc->root->foreach_filename($realpath, $sub)  or
+    $root->foreach_filename($realpath, $sub)  or
             return $job->fail('Error while reading files from root');
     my @idstodelete = values %dbfileidstodelete;
     $schema->storage->dbh->do(
