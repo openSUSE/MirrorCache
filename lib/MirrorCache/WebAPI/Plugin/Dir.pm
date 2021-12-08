@@ -170,7 +170,7 @@ sub _redirect_geo {
         return 1;
     }
     # MIRRORCACHE_ROOT_COUNTRY must be set only with remote root and when no mirrors should be used for the country
-    return $root->render_file($dm, $dm->path_query, 1) if $dm->root_country && !$dm->trailing_slash && $dm->root_country eq $dm->country && $root->is_file($dm->_path) && !$dm->metalink && !$dm->mirrorlist;
+    return $root->render_file($dm, $path, 1) if $dm->root_country && !$dm->trailing_slash && $dm->root_country eq $dm->country && $root->is_file($dm->_path) && !$dm->metalink && !$dm->mirrorlist;
 
     return undef;
 }

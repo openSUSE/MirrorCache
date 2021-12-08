@@ -490,7 +490,11 @@ sub _collect_mirrors {
         }
     }
 
-    if (!$found_count || ($found_count < $limit && !$dm->root_country) || $mirrorlist) {
+    if (
+        ($found_count < $limit && !$dm->root_country) ||
+        ($metalink && $found_count < 3) ||
+        $mirrorlist
+    ) {
         $m = $rs->mirrors_query(
             $country, $region,  $folder_id, $file_id,          $scheme,
             $ipv,  $lat, $lng,    $avoid_countries, $limit,  1,

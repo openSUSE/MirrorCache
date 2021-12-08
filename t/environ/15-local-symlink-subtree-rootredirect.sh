@@ -2,7 +2,7 @@
 set -ex
 
 mc=$(environ mc $(pwd))
-
+$mc/gen_env MIRRORCACHE_ROOT_COUNTRY=us
 $mc/start
 $mc/status
 
@@ -61,3 +61,6 @@ $mcsub/curl /tool/v2/file1.1.dat.metalink   | grep -C10 $($ap8/print_address)/up
 
 $mcsub/curl /tool/v1/file1.1.dat.mirrorlist | grep -C10 $($ap7/print_address)/folder1/file1.1.dat | grep -C20 $($ap8/print_address)/updates/tool/v1/file1.1.dat | grep testhost.com/updates/tool/v1/file1.1.dat
 $mcsub/curl /tool/v2/file1.1.dat.mirrorlist | grep -C20 $($ap8/print_address)/updates/tool/v2/file1.1.dat | grep testhost.com/updates/tool/v2/file1.1.dat
+
+# test request from ROOT_COUNTRY is just served
+$mc/curl -i /download/folder1/file1.1.dat?COUNTRY=us | grep '200 OK'
