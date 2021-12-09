@@ -10,7 +10,6 @@ $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
     MIRRORCACHE_ROOT=http://$($ng9/print_address) \
     MIRRORCACHE_REDIRECT=http://$($ap9/print_address) \
     MIRRORCACHE_REDIRECT_VPN=root.vpn.us \
-    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
     MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 ng8=$(environ ng8)

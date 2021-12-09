@@ -27,17 +27,17 @@ as_interface=127.0.0.4
 $mc9/gen_env MIRRORCACHE_TOP_FOLDERS="'folder1 folder2 folder3'" MIRRORCACHE_HASHES_COLLECT=1
 $mc9/backstage/shoot
 
-$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$na_address','na','/download'"
-$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$eu_address','eu','/download'"
-$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$as_address','as','/download'"
+$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$na_address','na',''"
+$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$eu_address','eu',''"
+$mc9/db/sql "insert into subsidiary(hostname,region,uri) select '$as_address','as',''"
 
 $mc9/start
 
-$mc6/gen_env MIRRORCACHE_REGION=na MIRRORCACHE_HASHES_IMPORT=1 MIRRORCACHE_HEADQUARTER=$($mc9/print_address)
+$mc6/gen_env MIRRORCACHE_REGION=na MIRRORCACHE_HASHES_IMPORT=1 MIRRORCACHE_HEADQUARTER=$($mc9/print_address) MIRRORCACHE_TOP_FOLDERS="'folder1 folder2 folder3'"
 $mc6/start
-$mc7/gen_env MIRRORCACHE_REGION=eu MIRRORCACHE_HASHES_IMPORT=1 MIRRORCACHE_HEADQUARTER=$($mc9/print_address)
+$mc7/gen_env MIRRORCACHE_REGION=eu MIRRORCACHE_HASHES_IMPORT=1 MIRRORCACHE_HEADQUARTER=$($mc9/print_address) MIRRORCACHE_TOP_FOLDERS="'folder1 folder2 folder3'"
 $mc7/start
-$mc8/gen_env MIRRORCACHE_REGION=as MIRRORCACHE_HASHES_IMPORT=1 MIRRORCACHE_HEADQUARTER=$($mc9/print_address)
+$mc8/gen_env MIRRORCACHE_REGION=as MIRRORCACHE_HASHES_IMPORT=1 MIRRORCACHE_HEADQUARTER=$($mc9/print_address) MIRRORCACHE_TOP_FOLDERS="'folder1 folder2 folder3'"
 $mc8/start
 
 
@@ -73,3 +73,18 @@ for i in 9 6 7 8; do
 done
 
 
+echo Step 3. Add media symlinks and make sure they are imported properly
+for i in 9 6 7 8; do
+    ( cd mc$i/dt/folder1/ && ln -s file4.1.dat file-Media.iso )
+    mc$i/backstage/job -e folder_sync -a '["/folder1"]'
+    mc$i/backstage/shoot
+    mc$i/backstage/shoot -q hashes
+    mc$i/sql_test file4.1.dat == "select hash.target from hash join file on id = file_id where name='file-Media.iso'"
+    for x in '' .metalink .mirrorlist; do
+        mc$i/curl -I /folder1/file-Media.iso$x | grep -C 10 302 | grep /folder1/file4.1.dat$x | grep -v /download/folder1/file4.1.dat$x
+    done
+done
+
+mc9/curl -IL /download/folder1/file-Media.iso | grep '200 OK'
+
+echo success

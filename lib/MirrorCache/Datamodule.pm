@@ -230,7 +230,14 @@ sub is_head($self) {
 }
 
 sub redirect($self, $url) {
-    return $self->c->redirect_to($url . $self->query1);
+    my $xtra = '';
+    if ($self->_original_path =~ m/.*\.metalink$/) {
+        $xtra = ".metalink";
+    } elsif ($self->_original_path =~ m/.*\.mirrorlist$/) {
+        $xtra = ".mirrorlist";
+    }
+
+    return $self->c->redirect_to($url . $xtra . $self->query1);
 }
 
 sub _init_headers($self) {

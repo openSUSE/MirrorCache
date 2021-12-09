@@ -77,6 +77,8 @@ __PACKAGE__->add_columns(
   { data_type => "bigint", is_nullable => 1 },
   "mtime",
   { data_type => "bigint", is_nullable => 1 },
+  "target",
+  { data_type => "varchar", is_nullable => 1, size => 512 },
   "dt",
   {
     data_type   => 'timestamp',

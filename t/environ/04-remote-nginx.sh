@@ -9,7 +9,6 @@ MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
     MIRRORCACHE_ROOT=http://$($ng9/print_address) \
-    MIRRORCACHE_COUNTRY_RESCAN_TIMEOUT=0 \
     MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 
 ng8=$(environ ng8)
@@ -189,3 +188,11 @@ $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 $mc/curl /download/folder1/ | grep -B1 $f | grep '10 Byte'
+
+##########################
+# add a symlink and make sure size is correct for it as well
+( cd $ng9/dt/folder1 && ln -s $f ln-Media.iso )
+$mc/backstage/job -e folder_sync -a '["/folder1"]'
+$mc/backstage/shoot
+
+$mc/curl /download/folder1/ | grep -B1 ln-Media.iso | grep '10 Byte'

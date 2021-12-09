@@ -115,6 +115,35 @@ sub looks_like_file {
     return 1;
 };
 
+sub _detect_ln {
+    return undef unless $ENV{MIRRORCACHE_ROOT_NFS};
+    my ($dir, $file) = @_;
+    return undef unless $file && $file =~ m/.*(Media|Current)\.iso(\.sha256)?/;
+
+    my $dest;
+    eval {
+        $dest = readlink($ENV{MIRRORCACHE_ROOT_NFS} . $dir . '/' . $file);
+    };
+    return undef unless $dest;
+    my $res;
+    eval {
+        $dest = Mojo::File->new($dest);
+
+        return undef unless $dest->dirname eq '.' || $dest->dirname eq $dir;
+        $res = $dest->basename;
+    };
+    return $res;
+}
+
+sub detect_ln {
+    return undef unless $ENV{MIRRORCACHE_ROOT_NFS};
+    my ($self, $path) = @_;
+    my $f = Mojo::File->new($path);
+    my $res = _detect_ln($f->dirname, $f->basename);
+    return undef unless $res;
+    return $f->dirname . '/' . $res;
+}
+
 # this is complicated to avoid storing big html in memory
 # we parse and execute callback $sub on the fly
 sub foreach_filename {
@@ -159,7 +188,8 @@ sub foreach_filename {
 
         if ($t && ($href20 eq substr($t,0,20))) {
             if ($desc{name}) {
-                $sub->($desc{name}, $desc{size}, undef, $desc{mtime});
+                my $target = _detect_ln($dir, $desc{name});
+                $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
                 %desc = ();
             }
             $desc{name} = $href;
@@ -199,7 +229,8 @@ sub foreach_filename {
         $p->parse($chunk);
     }
     if ($desc{name}) {
-        $sub->($desc{name}, $desc{size}, undef, $desc{mtime});
+        my $target = detect_ln($dir, $desc{name});
+        $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
         %desc = ();
     }
     $p->eof;
