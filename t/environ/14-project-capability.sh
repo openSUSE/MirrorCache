@@ -29,7 +29,7 @@ $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($a
 
 $mc/sql "insert into project(name,path,etalon) select 'proj1','/project1', 1"
 
-$mc/sql "insert into server_project(server_id,project_id,state) select 3,1,0"
+$mc/sql "insert into server_project(server_id,project_id,state) select 3,1,-1"
 
 
 $mc/backstage/job -e folder_sync -a '["/project1/folder1"]'
@@ -38,6 +38,23 @@ $mc/backstage/shoot
 
 $mc/sql "select notes from minion_jobs where task = 'mirror_scan'" | grep -C100 hash1 | grep hash2
 
-$mc/sql "select notes from minion_jobs where task = 'mirror_scan'" | grep -q hash3 && fail 'hash3 should not be in notes' || :
+rc=0
+$mc/sql "select notes from minion_jobs where task = 'mirror_scan'" | grep -q hash3 || rc=$?
+test $rc -gt 0 || fail 'hash3 should not be in notes'
+
+
+rm -r $ap7/dt/project1
+$mc/backstage/job -e mirror_probe_projects
+$mc/backstage/shoot
+$mc/sql_test 0 == "select state from server_project where server_id = 2 and project_id = 1"
+$mc/sql_test -1 == "select state from server_project where server_id = 3 and project_id = 1"
+
+
+$mc/sql "update server_project set state = 0 where server_id = 3 and project_id = 1"
+$mc/backstage/job -e mirror_probe_projects
+$mc/backstage/shoot
+$mc/sql_test 0 == "select state from server_project where server_id = 2 and project_id = 1"
+$mc/sql_test 1 == "select state from server_project where server_id = 3 and project_id = 1"
+
 
 echo success

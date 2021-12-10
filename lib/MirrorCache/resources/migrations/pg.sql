@@ -241,7 +241,8 @@ alter table hash add column if not exists target varchar(512);
 create table server_project (
     server_id  bigint NOT NULL references server on delete cascade,
     project_id bigint NOT NULL references project on delete cascade,
-    scan_last timestamp,
-    state int, -- 0 - missing ; 1 - present ; 2 - full
+    state int, -- -1 - disabled, 0 - missing, 1 - present
+    extra varchar(1024),
+    dt timestamp,
     unique(server_id, project_id)
 );
