@@ -237,4 +237,11 @@ alter table folder add column if not exists hash_last_import timestamp;
 -- 16 up
 alter table file add column if not exists target varchar(512);
 alter table hash add column if not exists target varchar(512);
-
+-- 17 up
+create table server_project (
+    server_id  bigint NOT NULL references server on delete cascade,
+    project_id bigint NOT NULL references project on delete cascade,
+    scan_last timestamp,
+    state int, -- 0 - missing ; 1 - present ; 2 - full
+    unique(server_id, project_id)
+);

@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -174,9 +174,12 @@ left join server_capability_force cap_fhttps on cap_fhttps.server_id = s.id and 
 left join folder_diff fd on fd.folder_id = f.id
 left join folder_diff_server fds on fd.id = fds.folder_diff_id and fds.server_id=s.id
 left join server_capability_declaration cap_hasall on cap_hasall.server_id  = s.id and cap_hasall.capability  = 'hasall' and cap_hasall.enabled
+left join project p on f.path like concat(p.path, '%')
+left join server_project sp on (sp.server_id, sp.project_id) = (s.id, p.id) and sp.state = 0
 where
 (fds.folder_diff_id IS NOT DISTINCT FROM fd.id OR fds.server_id is null)
 AND (cap_fhttp.server_id IS NULL or cap_fhttps.server_id IS NULL)
+AND (sp.server_id IS NULL)
 group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id, cap_hasall.capability
 order by s.id
 END_SQL
