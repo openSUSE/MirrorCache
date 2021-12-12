@@ -203,10 +203,10 @@ select concat(s.id, '::', p.id) as key,
         p.id as project_id, 
         concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir, p.path) as uri,
         sp.server_id as mirror_id,
-        sp.state
+        coalesce(sp.state, -2) oldstate
 from project p
     join server s on s.enabled 
-    left join server_project sp on sp.server_id = s.id
+    left join server_project sp on sp.server_id = s.id and sp.project_id = p.id
 where 't'
     AND coalesce(sp.state,0) > -1
 END_SQL
