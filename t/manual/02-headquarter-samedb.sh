@@ -27,10 +27,10 @@ $x/gen_env MIRRORCACHE_RECKLESS=0 \
     MIRRORCACHE_REDIRECT=downloadcontent.opensuse.org \
     MIRRORCACHE_HYPNOTOAD=1 \
     MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses mirror_scan_schedule_from_path_errors mirror_scan_schedule cleanup stat_agg_schedule mirror_check_from_stat'" \
-    MIRRORCACHE_TOP_FOLDERS="'debug distribution tumbleweed factory repositories'" \
+    MIRRORCACHE_TOP_FOLDERS="'debug distribution tumbleweed factory repositories source'" \
     MIRRORCACHE_TRUST_AUTH=127.0.0.16 \
     MIRRORCACHE_PROXY_URL=http://$($x/print_address) \
-    MIRRORCACHE_BACKSTAGE_WORKERS=4 \
+    MIRRORCACHE_BACKSTAGE_WORKERS=8 \
     MIRRORCACHE_HEADQUARTER=$hq_address \
     ${xtra[$x]}
 
@@ -39,7 +39,10 @@ $x/gen_env MIRRORCACHE_RECKLESS=0 \
         ln -s $hq/db $x/db
     }
 
-    $x/backstage/start # start backstage here to deploy db
+    $x/backstage/shoot # spawn backstage first here to deploy db
+    $x/backstage/start
+    test $x == $eu || $x/sql -f dist/salt/profile/mirrorcache/files/usr/share/mirrorcache/sql/projects.sql mc_test
+
 done
 
 

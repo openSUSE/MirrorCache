@@ -112,18 +112,30 @@ sub _probe_projects {
 
     my $minion = $app->minion;
     return $job->finish("Previous projects probe job is still active")
-        unless my $guard = $minion->guard('mirror_probe_projects', 600);
+        unless my $guard = $minion->guard('mirror_probe_projects', 6000);
 
     my $schema = $app->schema;
     my $rs = $schema->resultset('Server');
     my $href = $rs->server_projects();
 
-    for my $id (sort keys %$href) {
+    my %count;
+    my @keys = sort keys %$href;
+    $job->note(total => scalar(@keys));
+    
+    for my $id (@keys) {
         my $data = $href->{$id};
-        my $oldstate = $data->{state};
+        my $oldstate = $data->{oldstate};
         my $success = 1;
-        my $code = Mojo::UserAgent->new->head($data->{uri})->result->code;
+        my $code = -1;
+        eval {
+            $code = Mojo::UserAgent->new->max_redirects(5)->head($data->{uri})->result->code;
+        };
         $success = 0 if $code ne 200;
+
+        $count{$code} = 0 unless $count{$code};
+        $count{$code}++;
+        $job->note("count$code" => $count{$code});
+
         $rs->log_project_probe_outcome($data->{server_id}, $data->{project_id}, $data->{mirror_id}, $success, $code) unless defined $oldstate && $success eq $oldstate;
     }
 }
