@@ -31,6 +31,7 @@ sub _run {
       unless my $guard = $minion->guard('cleanup', 120);
 
     my $schema = $app->schema;
+    $minion->enqueue('mirror_probe_projects');
 
     # purge unreferenced folder_diff
     my $sql = <<'END_SQL';

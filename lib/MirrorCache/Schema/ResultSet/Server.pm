@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -174,9 +174,12 @@ left join server_capability_force cap_fhttps on cap_fhttps.server_id = s.id and 
 left join folder_diff fd on fd.folder_id = f.id
 left join folder_diff_server fds on fd.id = fds.folder_diff_id and fds.server_id=s.id
 left join server_capability_declaration cap_hasall on cap_hasall.server_id  = s.id and cap_hasall.capability  = 'hasall' and cap_hasall.enabled
+left join project p on f.path like concat(p.path, '%')
+left join server_project sp on (sp.server_id, sp.project_id) = (s.id, p.id) and sp.state < 1
 where
 (fds.folder_diff_id IS NOT DISTINCT FROM fd.id OR fds.server_id is null)
 AND (cap_fhttp.server_id IS NULL or cap_fhttps.server_id IS NULL)
+AND (sp.server_id IS NULL)
 group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id, cap_hasall.capability
 order by s.id
 END_SQL
@@ -186,6 +189,51 @@ END_SQL
 
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
+}
+
+sub server_projects {
+    my ($self) = @_;
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+select concat(s.id, '::', p.id) as key,
+        s.id as server_id, 
+        p.id as project_id, 
+        concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir, p.path) as uri,
+        sp.server_id as mirror_id,
+        sp.state
+from project p
+    join server s on s.enabled 
+    left join server_project sp on sp.server_id = s.id
+where 't'
+    AND coalesce(sp.state,0) > -1
+END_SQL
+    return $dbh->selectall_hashref($sql, 'key', {});
+}
+
+sub log_project_probe_outcome {
+    my ($self, $server_id, $project_id, $mirror_id, $state, $extra) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+insert into server_project(state, extra, dt, server_id, project_id)
+values (?, ?, now(), ?, ?);
+END_SQL
+    
+    if ($mirror_id) {
+        $sql = <<'END_SQL';
+update server_project set state = ?, extra = ?, dt = now()
+where server_id = ? and project_id = ?;
+END_SQL
+    }
+
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($state, $extra, $server_id, $project_id);
 }
 
 1;
