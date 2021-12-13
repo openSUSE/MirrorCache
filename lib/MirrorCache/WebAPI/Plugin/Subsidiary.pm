@@ -81,7 +81,9 @@ sub _has_subsidiary {
     $url->host($region_url->host);
     $url->port($region_url->port);
     $url->path_query($region_url->path . $url->path_query) if ($region_url->path);
-    return $url;
+    my $reg = $region_url->to_abs->clone;
+    $reg->scheme($url->scheme);
+    return ($url, $reg);
 }
 
 # return url for all subsidiaries

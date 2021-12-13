@@ -29,6 +29,8 @@ has [ 'rooturl', 'rooturlredirect', 'rooturlredirects', 'rooturlredirectvpn', 'r
 
 my $uaroot = Mojo::UserAgent->new->max_redirects(10)->request_timeout(1);
 
+my $nfs = $ENV{MIRRORCACHE_ROOT_NFS};
+
 sub register {
     my ($self, $app) = @_;
     my $rooturl = $app->mc->rootlocation;
@@ -50,6 +52,7 @@ sub register {
         my $redirectvpns = $redirectvpn =~ s/http:/https:/r;
         $self->rooturlredirectvpns($redirectvpns);
     }
+    push @{$app->static->paths}, $nfs if $nfs;
     $app->helper( 'mc.root' => sub { $self; });
 }
 
@@ -90,6 +93,15 @@ sub is_dir {
 sub render_file {
     my ($self, $dm, $filepath, $not_miss) = @_;
     my $c = $dm->c;
+
+    if ($nfs && $dm->must_render_from_root && -f $nfs . $filepath) {
+        my $geoip_redir = $dm->geoip_redir;
+        $c->res->headers->add('X-Geoip-Redir' => $geoip_redir) if $geoip_redir;
+        $c->reply->static($filepath);
+        $c->stat->redirect_to_root($dm, $not_miss);
+        return 1;
+    }
+
     $c->redirect_to($self->location($dm, $filepath));
     $c->stat->redirect_to_root($dm, $not_miss);
     return 1;
@@ -116,13 +128,13 @@ sub looks_like_file {
 };
 
 sub _detect_ln {
-    return undef unless $ENV{MIRRORCACHE_ROOT_NFS};
+    return undef unless $nfs;
     my ($dir, $file) = @_;
     return undef unless $file && $file =~ m/.*(Media|Current)\.iso(\.sha256)?/;
 
     my $dest;
     eval {
-        $dest = readlink($ENV{MIRRORCACHE_ROOT_NFS} . $dir . '/' . $file);
+        $dest = readlink($nfs . $dir . '/' . $file);
     };
     return undef unless $dest;
     my $res;
@@ -136,7 +148,7 @@ sub _detect_ln {
 }
 
 sub detect_ln {
-    return undef unless $ENV{MIRRORCACHE_ROOT_NFS};
+    return undef unless $nfs;
     my ($self, $path) = @_;
     my $f = Mojo::File->new($path);
     my $res = _detect_ln($f->dirname, $f->basename);

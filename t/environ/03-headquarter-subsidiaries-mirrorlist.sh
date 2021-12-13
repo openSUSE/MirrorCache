@@ -89,8 +89,8 @@ curl -s --interface $eu_interface http://$eu_address/download/folder1/file2.1.da
 # media.1/media is served from root even when asked from EU
 curl -Is --interface $eu_interface http://$hq_address/folder1/media.1/media | grep 200
 # repodata/repomd.xml is served from root even when asked from EU
-curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml | grep 200
-curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml.asc | grep 200
+curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml     | grep -C 30 '200 OK' | grep "X-Geoip-Redir: http://$eu_address"
+curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml.asc | grep -C 30 '200 OK' | grep "X-Geoip-Redir: http://$eu_address"
 
 ###########################################
 # test table demand_mirrorlist:
