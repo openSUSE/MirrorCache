@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -75,6 +75,8 @@ sub render_file {
     my $c = $dm->c;
     my $redirect = $self->redirect($dm, $filepath);
     my $res;
+    my $geoip_redir = $dm->geoip_redir;
+    $c->res->headers->add('X-Geoip-Redir' => $geoip_redir) if $geoip_redir;
     if ($redirect) {
         $res = !!$c->redirect_to($redirect . $root_subtree . $filepath);
     } else {

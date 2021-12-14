@@ -114,7 +114,7 @@ sub register {
             } else {
                 $origin = $url->scheme . '://' . $url->host;
                 $origin = $origin . ":" . $url->port if $url->port && $url->port != "80";
-                $origin = $origin . $dm->route . $filepath;
+                $origin = $origin . $dm->route;
             }
             $origin = $origin . $filepath;
             my $xml    = _build_metalink(
