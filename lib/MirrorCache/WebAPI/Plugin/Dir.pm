@@ -331,7 +331,7 @@ sub _guess_what_to_render {
     # - redirected to another route => we must redirect it as well
     my $path1 = $path . '/';
     my $url1  = $url  . '/'; # let's check if it is a folder
-    $ua->head_p($url1)->then(sub {
+    $ua->head_p($url1, {'User-Agent' => 'MirrorCache/guess_what_to_render'})->then(sub {
         my $res = shift->res;
 
         if (!$res->is_error || $res->code eq 403) {

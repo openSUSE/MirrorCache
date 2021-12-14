@@ -128,7 +128,7 @@ sub _probe_projects {
         my $success = 1;
         my $code = -1;
         eval {
-            $code = Mojo::UserAgent->new->max_redirects(5)->head($data->{uri})->result->code;
+            $code = Mojo::UserAgent->new->max_redirects(5)->head($data->{uri}, {'User-Agent' => 'MirrorCache/probe_projects'})->result->code;
         };
         $success = 0 if $code ne 200;
 

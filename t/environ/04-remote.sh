@@ -175,4 +175,4 @@ $mc/curl /download/folder1/ | grep file:4.dat
 $mc/curl -I /download/folder1/file:4.dat | grep -E "$($ap8/print_address)|$(ap7*/print_address)"
 ##################################
 
-
+grep MirrorCache/mirror_scan $ap7/dt/access_log
