@@ -51,7 +51,7 @@ sub _run {
         my $cnt = 0;
         $prev_stat_id = $stat_id;
         my $ua = Mojo::UserAgent->new;
-        my $tx = $ua->head($url);
+        my $tx = $ua->head($url, {'User-Agent' => 'MirrorCache/check_from_stat'});
         my $res = $tx->res;
 
         if ($res->is_error) {

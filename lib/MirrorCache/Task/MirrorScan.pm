@@ -228,7 +228,7 @@ unless ($hasall) {
             next;
         }
 
-        my $promise = $ua->get_p($url)->then($then)->catch(sub {
+        my $promise = $ua->get_p($url, {'User-Agent' => 'MirrorCache/mirror_scan'})->then($then)->catch(sub {
             my $err = shift;
             return $app->emit_event('mc_mirror_probe_error', {mirror => $folder_on_mirror->{server_id}, url => "u$url", err => $err}, $folder_on_mirror->{server_id});
         })->timeout(180)->wait;

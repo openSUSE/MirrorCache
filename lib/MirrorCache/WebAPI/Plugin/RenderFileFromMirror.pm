@@ -263,7 +263,7 @@ sub register {
             }
             my $url = $mirror->{url};
             my $code;
-            $ua->head_p($url)->then(sub {
+            $ua->head_p($url, {'User-Agent' => 'MirrorCache/pedantic'})->then(sub {
                 my $result = shift->result;
                 $code = $result->code;
                 if ($code == 200 || $code == 302 || $code == 301) {
