@@ -95,8 +95,6 @@ sub render_file {
     my $c = $dm->c;
 
     if ($nfs && $dm->must_render_from_root && -f $nfs . $filepath) {
-        my $geoip_redir = $dm->geoip_redir;
-        $c->res->headers->add('X-Geoip-Redir' => $geoip_redir) if $geoip_redir;
         $c->reply->static($filepath);
         $c->stat->redirect_to_root($dm, $not_miss);
         return 1;

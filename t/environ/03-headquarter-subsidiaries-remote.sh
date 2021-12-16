@@ -40,7 +40,9 @@ hq_address=$(mc9/print_address)
 eu_interface=127.0.0.3
 
 # repodata/repomd.xml is served from root even when asked from EU
-curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml     | grep -C 30 '200 OK' | grep "X-Geoip-Redir: http://euaddress.net"
-curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml.asc | grep -C 30 '200 OK' | grep "X-Geoip-Redir: http://euaddress.net"
+curl -si --interface $eu_interface http://$hq_address/geoip     | grep -A 50 '200 OK' | grep "<host>euaddress.net</host>"
+curl -si                           http://$hq_address/geoip     | grep -A 50 '200 OK' | grep "<host>naaddress.com</host>"
+
+curl -sI --interface 127.0.0.24    http://$hq_address/geoip     | grep '204 No Content'
 
 mc9/curl --interface 127.0.0.5 /folder1/repodata/file1.dat.metalink | grep 'origin="http://127.0.0.1:3190/folder1/repodata/file1.dat.metalink"'

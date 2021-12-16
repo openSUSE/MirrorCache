@@ -161,13 +161,10 @@ sub _redirect_geo {
         return 1;
     }
     return undef if $trailing_slash || $path eq '/' || $dm->mirrorlist;
+    return undef if $dm->must_render_from_root;
     my $subsidiary = $c->subsidiary;
-    my ($url, $baseurl) = $subsidiary->has($dm->region, $c->req->url);
+    my $url = $subsidiary->has($dm->region, $c->req->url);
     if ($url) {
-        if ($dm->must_render_from_root) {
-            $dm->geoip_redir($baseurl);
-            return undef;
-        }
         $c->redirect_to($url);
         $c->stat->redirect_to_region($dm);
         return 1;
