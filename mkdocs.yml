@@ -1,0 +1,82 @@
+site_name: MirrorCache documentation
+site_url: https://www.mirrorcache.org
+site_description: Mirror redirector web service
+site_author: openSUSE contributors
+copyright: "&copy; 2020-2021 openSUSE contributors"
+
+repo_name: openSUSE/MirrorCache
+repo_url: https://github.com/openSUSE/MirrorCache
+edit_uri: edit/master/docs/
+
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: green
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: green
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+  logo: assets/logo.svg
+  favicon: assets/logo-16.png
+  features:
+    - navigation.instant
+    - navigation.expand
+    - navigation.top
+    #v8.0.0 - navigation.tracking
+    #- toc.integrate
+
+plugins:
+  - search
+  - markdownextradata
+  - git-revision-date-localized
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - admonition
+  - abbr
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  # - pymdownx.magiclink:
+      # repo_url_shorthand: true
+      # user: openSUSE
+      # repo: MirrorCache
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid-experimental
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
