@@ -8,6 +8,7 @@ Group=mirrorcache
 ExecStart=/usr/share/mirrorcache/script/mirrorcache-backstage
 Nice=19
 Restart=on-failure
+RestartSec=10
 EnvironmentFile=/etc/mirrorcache/conf.env
 
 [Install]
