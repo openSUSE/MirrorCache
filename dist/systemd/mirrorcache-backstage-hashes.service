@@ -7,6 +7,7 @@ Group=mirrorcache
 ExecStart=/usr/share/mirrorcache/script/mirrorcache-backstage-hashes
 Nice=19
 Restart=on-failure
+RestartSec=10
 EnvironmentFile=/etc/mirrorcache/conf.env
 EnvironmentFile=-/etc/mirrorcache/conf-hashes.env
 
