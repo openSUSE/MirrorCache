@@ -65,6 +65,21 @@ sub register {
                 $c->proxy->get_p($req);
             });
          }
+         my $basename = $ENV{MIRRORCACHE_GEOIP_BASENAME} // 'geoip';
+         $app->routes->get("/geoip" => sub {
+            my $c = shift;
+            my $dm = MirrorCache::Datamodule->new->app($c->app);
+            $dm->reset($c);
+
+            my $country = $dm->country;
+            my $region  = $dm->region;
+            my $url = _has_subsidiary($c, $dm->region);
+            return $c->render(status => 204, text => '') unless $url;
+            $url = $url->to_abs;
+            $url =~ s/http(s)?:\/\///;
+            $c->res->headers->content_disposition("attachment; filename=\"$basename\"");
+            $c->render(data => "<geoip><region>$region</region><country>$country</country><host>$url</host></geoip>", format => 'xml');
+         });
 
          $app->helper('subsidiary.has'     => \&_has_subsidiary);
          $app->helper('subsidiary.regions' => \&_regions);
@@ -74,22 +89,20 @@ sub register {
 
 sub _has_subsidiary {
     return undef unless keys %subsidiary_urls;
-    my ($self, $region, $origin_url) = @_;
+    my ($c, $region, $origin_url) = @_;
     my $region_url = $subsidiary_urls{$region};
     return $region_url unless $region_url && $origin_url;
     my $url = $origin_url->to_abs->clone;
     $url->host($region_url->host);
     $url->port($region_url->port);
     $url->path_query($region_url->path . $url->path_query) if ($region_url->path);
-    my $reg = $region_url->to_abs->clone;
-    $reg->scheme($url->scheme);
-    return ($url, $reg);
+    return $url;
 }
 
 # return url for all subsidiaries
 sub _regions {
     return undef unless keys %subsidiary_urls;
-    my ($self, $region) = @_;
+    my ($c, $region) = @_;
     my $url = $subsidiary_urls{$region};
     my @res = ($url? $region : '');
 

@@ -26,7 +26,6 @@ has [ '_route', '_route_len' ]; # this is '/download'
 has [ 'route', 'route_len' ]; # this may be '/download' or empty if one of TOP_FOLDERS present
 has [ 'metalink', 'metalink_accept' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng', '_vpn' ];
-has 'geoip_redir';
 has [ '_avoid_countries' ];
 has [ '_pedantic' ];
 has [ '_scheme', '_path', '_trailing_slash' ];
