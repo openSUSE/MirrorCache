@@ -52,7 +52,6 @@ sub register {
         my $redirectvpns = $redirectvpn =~ s/http:/https:/r;
         $self->rooturlredirectvpns($redirectvpns);
     }
-    push @{$app->static->paths}, $nfs if $nfs;
     $app->helper( 'mc.root' => sub { $self; });
 }
 
@@ -95,7 +94,7 @@ sub render_file {
     my $c = $dm->c;
 
     if ($nfs && $dm->must_render_from_root && -f $nfs . $filepath) {
-        $c->reply->static($filepath);
+        $c->render_file($nfs . $filepath);
         $c->stat->redirect_to_root($dm, $not_miss);
         return 1;
     }
