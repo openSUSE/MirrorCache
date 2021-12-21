@@ -25,7 +25,6 @@ use XML::Writer;
 use DateTime;
 use Mojo::File;
 use Mojo::Date;
-use Mojolicious::Static;
 use Mojo::IOLoop::Subprocess;
 
 sub register {
