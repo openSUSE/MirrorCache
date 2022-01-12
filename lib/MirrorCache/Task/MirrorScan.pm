@@ -112,7 +112,7 @@ sub _doscan {
 unless ($hasall) {
             my $tx = shift;
             my $sid = $folder_on_mirror->{server_id};
-            if ($tx->result->code == 404) {
+            if ($tx->result->code > 399 ) {
                 my $sql = 'delete from folder_diff_server where server_id = ? and folder_diff_id in (select id from folder_diff where folder_id = ?)';
                 eval {
                     $schema->storage->dbh->prepare($sql)->execute($sid, $folder_id);

@@ -246,3 +246,8 @@ create table server_project (
     dt timestamp,
     unique(server_id, project_id)
 );
+-- 18 up
+alter table hash
+    add column if not exists zlengths varchar(32),
+    add column if not exists zblock_size int,
+    add column if not exists zhashes bytea;
