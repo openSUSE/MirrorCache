@@ -35,6 +35,7 @@ has 'must_render_from_root';
 has '_agent';
 has [ '_is_secure', '_is_ipv4', '_ipvstrict', '_is_head' ];
 has 'mirrorlist';
+has 'zsync';
 has 'json';
 has [ 'folder_id', 'file_id', 'file_age', 'folder_sync_last', 'folder_scan_last' ]; # shortcut to requested folder and file, if known
 
@@ -86,6 +87,10 @@ sub vpn($self) {
         }
     }
     return $self->_vpn;
+}
+
+sub extra($self) {
+    return ($self->metalink || $self->mirrorlist || $self->zsync);
 }
 
 sub region($self) {
@@ -319,6 +324,7 @@ sub _init_path($self) {
         $self->_query($query);
         $self->_query1('?' . $query_string);
         $self->mirrorlist(1) if defined $query->param('mirrorlist');
+        $self->zsync(1)      if defined $query->param('zsync');
         $self->json(1)       if defined $query->param('json') || defined $query->param('JSON');
         $pedantic = $query->param('PEDANTIC');
     } else {
@@ -358,6 +364,12 @@ sub _init_path($self) {
             $path = substr($path, 0, $pos);
         }
     }
+    if (!$trailing_slash && ((my $pos = length($path) - length('.zsync')) > 1)) {
+        if ('.zsync' eq substr($path, $pos)) {
+            $self->zsync(1);
+            $path = substr($path, 0, $pos);
+        }
+    }
     $pedantic = $ENV{'MIRRORCACHE_PEDANTIC'} unless defined $pedantic;
     if (!defined $pedantic) {
         if ( $path =~ m/.*\/([^\/]*-Current[^\/]*)$/ ) {
@@ -373,6 +385,7 @@ sub _init_path($self) {
     $self->must_render_from_root(1)
         if !$self->mirrorlist
         && ( !$self->metalink || $self->metalink_accept )
+        && !$self->zsync
         && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?)?))$/;
 
     $self->_path($path);

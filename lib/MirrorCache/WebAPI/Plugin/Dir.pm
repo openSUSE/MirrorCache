@@ -170,7 +170,7 @@ sub _redirect_geo {
         return 1;
     }
     # MIRRORCACHE_ROOT_COUNTRY must be set only with remote root and when no mirrors should be used for the country
-    return $root->render_file($dm, $path, 1) if $dm->root_country && !$dm->trailing_slash && $dm->root_country eq $dm->country && $root->is_file($dm->_path) && !$dm->metalink && !$dm->mirrorlist;
+    return $root->render_file($dm, $path, 1) if $dm->root_country && !$dm->trailing_slash && $dm->root_country eq $dm->country && $root->is_file($dm->_path) && !$dm->extra;
 
     return undef;
 }
@@ -180,7 +180,7 @@ sub _redirect_normalized {
     my ($path, $trailing_slash, $original_path) = $dm->path;
     return undef if $path eq '/';
     $path = $path . '.metalink' if $dm->metalink && !$dm->metalink_accept;
-    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path or $dm->mirrorlist;
+    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path || $dm->mirrorlist || $dm->zsync;
     return undef;
 }
 
@@ -241,7 +241,7 @@ sub _render_stats_not_scanned {
 sub _local_render {
     return undef if $root->is_remote;
     my $dm = shift;
-    return undef if $dm->metalink || $dm->mirrorlist;
+    return undef if $dm->extra;
     my ($path, $trailing_slash) = $dm->path;
     if ($root->is_dir($path)) {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
@@ -285,7 +285,7 @@ sub _render_from_db {
                 } else {
                     $dm->file_id($file->{id});
                     # find a mirror for it
-                    $c->mirrorcache->render_file($path, $dm);
+                    $c->mirrorcache->render_file($path, $dm, $file);
                 }
                 return 1;
             }
@@ -307,7 +307,7 @@ sub _guess_what_to_render {
     my $tx   = $c->render_later->tx;
     my ($path, $trailing_slash) = $dm->path;
 
-    if ($dm->metalink or $dm->mirrorlist) {
+    if ($dm->extra) {
         return $root->render_file($dm, $path) if $dm->metalink_accept;
         # the file is unknown, we cannot show generate meither mirrorlist or metalink
         my $res = $c->render(status => 425, text => "The file is unknown, retry later");

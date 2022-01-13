@@ -32,7 +32,7 @@ sub register {
     $app->types->type(metalink => 'application/metalink+xml; charset=UTF-8');
 
     $app->helper( 'mirrorcache.render_file' => sub {
-        my ($c, $filepath, $dm)= @_;
+        my ($c, $filepath, $dm, $file)= @_;
         my $root = $c->mc->root;
         my $f = Mojo::File->new($filepath);
         my $dirname = $f->dirname;
@@ -66,7 +66,14 @@ sub register {
             my $realfolder = $schema->resultset('Folder')->find({path => $realdirname});
             $realfolder_id = $realfolder->id if $realfolder;
         }
-        my $file = $schema->resultset('File')->find_with_hash(($realfolder_id? $realfolder_id : $folder_id), $basename) if $folder;
+        if ($folder) {
+            my $fldid = ($realfolder_id? $realfolder_id : $folder_id);
+            if (!$dm->zsync) {
+                $file = $schema->resultset('File')->find_with_hash($fldid, $basename) unless $file;
+            } else {
+                $file = $schema->resultset('File')->find_with_zhash($fldid, $basename);
+            }
+        }
         if($file) {
             $dm->file_id($file->{id});
             $dm->file_age($file->{age});
@@ -77,12 +84,22 @@ sub register {
         if ((!$country && $ENV{MIRRORCACHE_CITY_MMDB}) || !$folder || !$file) {
             return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
             return $root->render_file($dm, $filepath)
-              unless $dm->metalink # TODO we still can check file on mirrors even if it is missing in DB
-              or $dm->mirrorlist;
+              unless $dm->extra; # TODO we still can check file on mirrors even if it is missing in DB
         }
 
         if (!$folder || !$file) {
             return $c->render(status => 404, text => "File not found");
+        }
+        if ($dm->zsync) {
+            my $url = $root->is_remote ? $root->location($dm, $folder->path) : $root->redirect($dm, $folder->path);
+            if ($url) {
+                $url = $url . "/" . $basename;
+            } else {
+                ($url = $c->req->url->to_abs->to_string) =~ s/\.zsync$//;
+            }
+            _render_zsync($c, $url, $basename, $file->{mtime}, $file->{size}, $file->{sha1}, $file->{zblock_size}, $file->{zlengths}, $file->{zhashes});
+            $c->stat->redirect_to_root($dm, 1);
+            return 1;
         }
 
         my (@mirrors_country, @mirrors_region, @mirrors_rest);
@@ -93,8 +110,8 @@ sub register {
         _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $realfolder_id) if $realfolder_id;
         my $mirror;
         $mirror = $mirrors_country[0] if @mirrors_country;
-        $mirror = $mirrors_region[0]     if !$mirror && @mirrors_region;
-        $mirror = $mirrors_rest[0]       if !$mirror && @mirrors_rest;
+        $mirror = $mirrors_region[0]  if !$mirror && @mirrors_region;
+        $mirror = $mirrors_rest[0]    if !$mirror && @mirrors_rest;
 
         if ($dm->metalink || $dm->mirrorlist) {
             if ($mirror) {
@@ -213,6 +230,7 @@ sub register {
             );
             return 1;
         }
+
         unless ($mirror) {
             $root->render_file($dm, $filepath);
             return 1;
@@ -506,6 +524,33 @@ sub _collect_mirrors {
         }
     }
     return $found_count;
+}
+
+sub _render_zsync() {
+    my ($c, $url, $filename, $mtime, $size, $sha1, $zblock_size, $zlengths, $zhash) = @_;
+
+    unless($zhash) {
+        $c->render(status => 404, text => "File not found");
+        return 1;
+    }
+
+    my $header = <<"EOT";
+Filename: $filename
+MTime: $mtime
+Blocksize: $zblock_size
+Length: $size
+Hash-Lengths: $zlengths
+URL: $url
+SHA-1: $sha1
+
+EOT
+
+    $c->res->headers->content_length(length($header) + length ($zhash));
+    $c->write($header => sub () {
+            $c->write($zhash => sub () {$c->finish});
+        });
+
+    return 1;
 }
 
 1;

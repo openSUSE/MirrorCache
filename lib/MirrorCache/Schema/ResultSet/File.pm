@@ -56,6 +56,38 @@ END_SQL
     return $dbh->selectrow_hashref($prep);
 }
 
+sub find_with_zhash {
+    my ($self, $folder_id, $name) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    # html parser may loose seconds from file.mtime, so we allow hash.mtime differ for up to 1 min for now
+    my $sql = <<'END_SQL';
+select file.id, file.folder_id, file.name,
+case when coalesce(file.size, 0::bigint)  = 0::bigint and coalesce(hash.size, 0::bigint)  != 0::bigint then hash.size else file.size end size,
+case when coalesce(file.mtime, 0::bigint) = 0::bigint and coalesce(hash.mtime, 0::bigint) != 0::bigint then hash.mtime else file.mtime end mtime,
+coalesce(hash.target, file.target) target,
+file.dt, hash.sha1, hash.zlengths, hash.zblock_size, hash.zhashes
+from file
+left join hash on file_id = id and
+(
+  (file.size = hash.size and abs(file.mtime - hash.mtime) < 61)
+  or
+  (coalesce(file.size, 0::bigint) = 0::bigint and coalesce(hash.size, 0::bigint) != 0::bigint and file.dt <= hash.dt)
+)
+where file.folder_id = ?
+END_SQL
+
+    return $dbh->selectall_hashref($sql, 'id', {}, $folder_id) unless $name;
+
+    $sql = $sql . " and file.name = ?";
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($folder_id, $name);
+    return $dbh->selectrow_hashref($prep);
+}
+
 # returns list of file_id for which we need hash to (re)calculate
 sub hash_needed {
     my ($self, $folder_id, $dt) = @_;

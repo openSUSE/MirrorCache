@@ -109,7 +109,7 @@ sub calcMetalink {
     eval {
         require Digest::Zsync;
         $zsync = Digest::Zsync->new->init($size);
-    } if $file =~ m/\.$ENV{MIRRORCACHE_ZSYNC_COLLECT}$/;
+    } if $ENV{MIRRORCACHE_ZSYNC_COLLECT} && $file =~ m/\.$ENV{MIRRORCACHE_ZSYNC_COLLECT}$/;
 
     while (read $fh, $data, $buffer_length) {
         push @pieces, Digest::SHA::sha1_hex($data) if $block_size;
