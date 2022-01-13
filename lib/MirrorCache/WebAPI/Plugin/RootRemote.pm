@@ -94,13 +94,25 @@ sub render_file {
     my $c = $dm->c;
 
     if ($nfs && $dm->must_render_from_root && -f $nfs . $filepath) {
-        $c->render_file($nfs . $filepath);
+        $c->render_file(filepath => $nfs . $filepath);
         $c->stat->redirect_to_root($dm, $not_miss);
         return 1;
     }
 
     $c->redirect_to($self->location($dm, $filepath));
     $c->stat->redirect_to_root($dm, $not_miss);
+    return 1;
+}
+
+sub render_file_if_nfs {
+    return undef unless $nfs;
+    my ($self, $dm, $filepath) = @_;
+
+    my $c = $dm->c;
+
+    return undef unless($dm->must_render_from_root && -f $nfs . $filepath);
+    $c->render_file(filepath => $nfs . $filepath);
+    $c->stat->redirect_to_root($dm, 1);
     return 1;
 }
 

@@ -114,6 +114,10 @@ sub render_file {
     return 1;
 }
 
+sub render_file_if_nfs {
+    return undef;
+}
+
 sub location {
     my ($self, $dm, $filepath) = @_;
     $filepath = "" unless $filepath;

@@ -239,10 +239,12 @@ sub _render_stats_not_scanned {
 }
 
 sub _local_render {
-    return undef if $root->is_remote;
     my $dm = shift;
     return undef if $dm->metalink || $dm->mirrorlist;
     my ($path, $trailing_slash) = $dm->path;
+
+    return $root->render_file_if_nfs($dm, $path) if $root->is_remote;
+
     if ($root->is_dir($path)) {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
         return _render_dir($dm, $path);
