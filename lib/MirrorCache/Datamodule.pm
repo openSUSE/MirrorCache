@@ -1,4 +1,4 @@
-# Copyright (C) 2021 SUSE LLC
+# Copyright (C) 2021,2022 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 package MirrorCache::Datamodule;
 use Mojo::Base -base, -signatures;
 use Mojo::URL;
+use Time::HiRes qw(time);
 use Digest::SHA qw(sha1_hex);
 use MirrorCache::Utils 'region_for_country';
 
@@ -47,6 +48,12 @@ has root_subtree => ($ENV{MIRRORCACHE_SUBTREE} // "");
 
 has vpn_prefix => ($ENV{MIRRORCACHE_VPN_PREFIX} ? lc($ENV{MIRRORCACHE_VPN_PREFIX}) : "10.");
 
+has 'at';
+
+sub elapsed($self) {
+    return abs(time - $self->at);
+}
+
 sub app($self, $app) {
     $self->_route($app->mc->route);
     $self->_route_len(length($self->_route));
@@ -54,6 +61,7 @@ sub app($self, $app) {
 }
 
 sub reset($self, $c, $top_folder = undef) {
+    $self->at(time);
     if ($top_folder) {
         $self->route('');
         $self->route_len(0);

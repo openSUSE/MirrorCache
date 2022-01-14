@@ -62,11 +62,10 @@ sub redirect_to_region($self, $dm) {
 
 sub redirect_to_mirror($self, $mirror_id, $dm) {
     my ($path, $trailing_slash) = $dm->path;
-    return undef if $mirror_id == -1 && 'media' eq substr($path, -length('media'));
     $path = $dm->root_subtree . $path;
     my $rows = $self->rows;
     my @rows = defined $rows? @$rows : ();
-    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head, $dm->file_age, $dm->folder_scan_last ];
+    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head, $$, int($dm->elapsed*1000), $dm->file_age, $dm->folder_scan_last ];
     my $cnt = @rows;
     if ($cnt >= $FLUSH_COUNT) {
         $self->rows(undef);
@@ -75,7 +74,6 @@ sub redirect_to_mirror($self, $mirror_id, $dm) {
     $self->rows(\@rows);
     return if $self->timer;
 
-    # my $loop = $self->ioloop;
     my $id = Mojo::IOLoop->singleton->timer($FLUSH_INTERVAL_SECONDS => sub ($loop) {
             $self->flush($self->rows);
         });
@@ -90,9 +88,9 @@ sub flush($self, $rows) {
     return unless $rows;
     $self->rows(undef);
     my @rows = @$rows;
-    my $sql = <<'END_SQL';
-insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, mirrorlist, head)
-values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    my $sql = <<"END_SQL";
+insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, mirrorlist, head, pid, execution_time)
+values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 END_SQL
 
     my %demand_sync;
@@ -106,10 +104,8 @@ END_SQL
             for my $row (@rows) {
                 my $folder_id  = $row->[6];
                 my $mirror_id = $row->[5];
-                my $file_age  = $row->[13];
-                my $scan_last = $row->[14];
-                pop @$row;
-                pop @$row;
+                my $scan_last = pop @$row;
+                my $file_age  = pop @$row;
                 $prep->execute(@$row);
                 if ($folder_id) {
                     next if $mirror_id > 0;
