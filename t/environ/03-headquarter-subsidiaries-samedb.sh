@@ -20,6 +20,8 @@ for i in 6 7 8 9; do
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     mkdir $x/dt/folder1/media.1/
     touch $x/dt/folder1/media.1/media
+    mkdir $x/dt/folder1/repodata/
+    touch $x/dt/folder1/repodata/repomd.xml
     eval mc$i=$x
 done
 
@@ -29,9 +31,6 @@ for i in 1 2 3 4 5 6 7 8; do
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     mkdir $x/dt/folder1/media.1/
     touch $x/dt/folder1/media.1/media
-    mkdir $x/dt/folder1/repodata/
-    touch $x/dt/folder1/repodata/repomd.xml
-    touch $x/dt/folder1/repodata/repomd.xml.asc
     eval ap$i=$x
     $x/start
 done
@@ -48,9 +47,9 @@ as_interface=127.0.0.4
 $mc9/gen_env MIRRORCACHE_TOP_FOLDERS="'folder1 folder2 folder3'"
 $mc9/backstage/shoot
 
-$mc9/db/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
-$mc9/db/sql "insert into subsidiary(hostname,region) select '$eu_address','eu'"
-$mc9/db/sql "insert into subsidiary(hostname,region) select '$as_address','as'"
+$mc9/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
+$mc9/sql "insert into subsidiary(hostname,region) select '$eu_address','eu'"
+$mc9/sql "insert into subsidiary(hostname,region) select '$as_address','as'"
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap1/print_address)','','t','br','sa'"
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap2/print_address)','','t','br','sa'"
 $mc9/start
@@ -96,8 +95,9 @@ curl -s --interface $eu_interface http://$eu_address/folder1/file1.1.dat.mirrorl
 curl -s http://$hq_address/download/folder1/file2.1.dat.mirrorlist | grep file2.1.dat
 curl -s --interface $eu_interface http://$eu_address/download/folder1/file2.1.dat.mirrorlist | grep file2.1.dat
 
-# media.1/media is served from root even when asked from EU
+# media.1/media and repomd is served from root even when asked from EU
 curl -Is --interface $eu_interface http://$hq_address/folder1/media.1/media | grep 200
+curl -Is --interface $eu_interface http://$hq_address/folder1/repodata/repomd.xml | grep 200
 
 ###########################################
 # test table demand_mirrorlist:
