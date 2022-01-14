@@ -20,6 +20,7 @@ use IO::File;
 use Digest::SHA;
 use Digest::MD5;
 use File::Path 'make_path';
+use File::stat;
 
 my $HASHES_PIECES_MIN_SIZE = $ENV{MIRRORCACHE_HASHES_PIECES_MIN_SIZE}// 2*256*1024;
 
@@ -90,21 +91,29 @@ sub calcMetalink {
             $target = $dest->basename if $dest->dirname eq '.' || $dest->dirname eq "$indir$path";
         }
     };
-    return $schema->resultset('Hash')->store($file_id, undef, 0, undef, undef, undef, undef, undef, $target) if $target;
+    return $schema->resultset('Hash')->store($file_id, undef, 0, undef, undef, undef, undef, undef, undef, undef, undef, $target) if $target;
 
     open my $fh, "<", $f or die "Unable to open $f!";
-    my $mtime = (stat($fh))[9];
+    my $stat = stat($fh);
+    my $mtime = $stat->mtime;
     my $d1   = Digest::SHA->new(1);
     my $d256 = Digest::SHA->new(256);
     my $dmd5 = Digest::MD5->new;
     my @pieces;
     my $data;
-    my $size = 0;
+    my $size = $stat->size;
     my $buffer_length = $block_size; # $block_size may be 0, means no pieces are needed
     $buffer_length = 1024*1024 unless $buffer_length;
+
+    my $zsync;
+    eval {
+        require Digest::Zsync;
+        $zsync = Digest::Zsync->new->init($size);
+    } if $ENV{MIRRORCACHE_ZSYNC_COLLECT} && $file =~ m/\.$ENV{MIRRORCACHE_ZSYNC_COLLECT}$/;
+
     while (read $fh, $data, $buffer_length) {
-        $size = $size + length($data);
-        push @pieces, Digest::SHA::sha1_hex($data);
+        push @pieces, Digest::SHA::sha1_hex($data) if $block_size;
+        $zsync->add($data) if $zsync;
 
         $d1->add($data);
         $d256->add($data);
@@ -112,7 +121,13 @@ sub calcMetalink {
     }
     close $fh;
     my $pieceshex = join '', @pieces;
-    $schema->resultset('Hash')->store($file_id, $mtime, $size, $dmd5->hexdigest, $d1->hexdigest, $d256->hexdigest, $block_size, $pieceshex);
+    my ($zsync_lengths, $zsync_block_size, $zsync_hashes);
+    if ($zsync) {
+        $zsync_lengths    = $zsync->lengths;
+        $zsync_block_size = $zsync->block_size;
+        $zsync_hashes     = $zsync->digest;
+    }
+    $schema->resultset('Hash')->store($file_id, $mtime, $size, $dmd5->hexdigest, $d1->hexdigest, $d256->hexdigest, $block_size, $pieceshex, $zsync_lengths, $zsync_block_size, $zsync_hashes);
 }
 
 1;

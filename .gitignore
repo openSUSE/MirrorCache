@@ -6,3 +6,4 @@ t/lib/src/
 /ca
 templates/branding/SUSE*
 .vscode
+_Inline/
