@@ -5,6 +5,7 @@
 ### Environment variables
 
 MirrorCache can be configured with following environment variables:
+
   * MIRRORCACHE_ROOT (required): defines location of files, which needs redirection. It may be url, local folder or rsync address, e.g. `MIRRORCACHE_ROOT=http://download.opensuse.org` or `MIRRORCACHE_ROOT=/srv/mirrorcache` or `MIRRORCACHE_ROOT=rsync://user:password@myhost.com/module`. (Note that you must install additionally `perl-Digest-MD4` if rsync url needs password verification).
   * MIRRORCACHE_AUTH_URL (optional) may contain remote openid server url (default https://www.opensuse.org/openid/user/). if explicitly set to empty value - all login attempt will be allowed and user set to 'Demo'.
   * MIRRORCACHE_TOP_FOLDERS (space separated values) may be set to automatically redirect /folder to /download/folder.
@@ -18,6 +19,7 @@ MirrorCache can be configured with following environment variables:
 
 Without any database configuration MirrorCache will attempt to connect to database 'mirrorcache' on default PostgreSQL port 5432.
 Following variables can be used to configure database access:
+
   * MIRRORCACHE_DBUSER (default empty)
   * MIRRORCACHE_DBPASS (default empty)
   * TEST_PG or MIRRORCACHE_DSN , e.g. MIRRORCACHE_DSN='DBI:Pg:dbname=mc_dev;host=/path/to/pg'`
@@ -27,6 +29,7 @@ If neither TEST_PG nor MIRRORCACHE_DSN is defined, following variables are used:
   * MIRRORCACHE_DBPORT (default empty)
 
 ### GeoIP location
+
   * If environment variable MIRRORCACHE_CITY_MMDB or MIRRORCACHE_IP2LOCATION is defined, the app will attempt to detect country of the request and find a mirror in the same country, e.g. `MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb` or `MIRRORCACHE_IP2LOCATION=/var/lib/GeoIP/IP2LOCATION-LITE-DB5.IPV6.BIN`.
   * See Maxmind or IP2Location website to obtain such file.
   * Additional dependencies must be installed as well for GeoIP location to work: perl modules Mojolicious::Plugin::ClientIP and MaxMind::DB::Reader :
@@ -42,10 +45,10 @@ zypper in perl-Geo-IP2Location
 
 ### Install package
 
-An example for openSUSE 15.2
+An example for openSUSE
 ```bash
-zypper ar https://mirrorcache.opensuse.org/repositories/home:andriinikitin:/MirrorCache/openSUSE_Leap_15.2 mc
-zypper --gpg-auto-import-keys --no-gpg-checks refresh
+zypper ar -f obs://openSUSE:infrastructure:MirrorCache MirrorCache
+zypper refresh -s
 zypper install MirrorCache
 
 zypper install postgresql postgresql-server
@@ -193,27 +196,29 @@ $mc/status
 
 ### Run tests from [t/environ](/t/environ) with docker, manually for debugging
 
-- Requires docker configured for non-root users
-- Available configuration:
-  - `MIRRORCACHE_CITY_MMDB` adds this environment variable inside the container and mounts it as a volume if the file exists on the host
-  - `EXPOSE_PORT` maps whatever port you need from the container to host port 80
-    ```bash
-    cd t/environ
+__Note:__ Requires docker configured for non-root users
 
-    # Just run the test:
-    ./01-smoke.sh
+`MIRRORCACHE_CITY_MMDB` adds this environment variable inside the container and mounts it as a volume if the file exists on the host
 
-    # Run the test with your own MIRRORCACHE_CITY_MMDB
-    MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb ./01-smoke.sh
+`EXPOSE_PORT` maps whatever port you need from the container to host port 80
 
-    # Run the test and keep the container, while mapping port 3110 to host port 80
-    EXPOSE_PORT=3110 ./01-smoke.sh
-    ```
+```
+cd t/environ
 
-    To log in with a fake test-user, change `$mc/start` to `MIRRORCACHE_TEST_TRUST_AUTH=1 $mc/start` in your test
+# Just run the test:
+./01-smoke.sh
 
-    Setting `MIRRORCACHE_TEST_TRUST_AUTH` to any number > 1 will result in `current_user` being `undef`, so no fake test-user login.
-    You will only have access to some routes defined in [lib/MirrorCache/WebAPI.pm](/lib/MirrorCache/WebAPI.pm).
+# Run the test with your own MIRRORCACHE_CITY_MMDB
+MIRRORCACHE_CITY_MMDB=/var/lib/GeoIP/GeoLite2-City.mmdb ./01-smoke.sh
+
+# Run the test and keep the container, while mapping port 3110 to host port 80
+EXPOSE_PORT=3110 ./01-smoke.sh
+```
+
+To log in with a fake test-user, change `$mc/start` to `MIRRORCACHE_TEST_TRUST_AUTH=1 $mc/start` in your test
+
+Setting `MIRRORCACHE_TEST_TRUST_AUTH` to any number > 1 will result in `current_user` being `undef`, so no fake test-user login.
+You will only have access to some routes defined in [lib/MirrorCache/WebAPI.pm](/lib/MirrorCache/WebAPI.pm).
 
 **WARNING** - Be careful when working inside container:
 1. The source tree is mapped to the host, so any changes of source code inside container will be reflected on host and vice versa.
