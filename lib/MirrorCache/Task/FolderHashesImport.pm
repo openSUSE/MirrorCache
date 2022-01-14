@@ -53,7 +53,7 @@ sub _run {
     my $mojo_url = Mojo::URL->new($hq_url);
     my $res      = Mojo::UserAgent->new->get($mojo_url, {'User-Agent' => 'MirrorCache/hashes_import'})->result;
     return $job->fail('Request to HEADQUARTER ' . $hq_url . ' failed, response code ' . $res->code)
-      if $res->code != 200;
+      if $res->code > 299;
 
     my $res_json = $res->json;
     my $last_import;

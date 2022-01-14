@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020-2022 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ sub register {
     # log restart
     my $schema = $app->schema;
     $schema->resultset('AuditEvent')
-      ->create({user_id => -1, name => 'startup', event_data => 'AuditLog registered'});
+      ->create({user_id => -1, name => 'startup', event_data => "AuditLog registered $$"});
 }
 
 sub on_event {

@@ -153,7 +153,10 @@ create table if not exists stat (
     secure boolean NOT NULL,
     ipv4 boolean NOT NULL,
     metalink boolean default 'f',
-    head boolean default 'f'
+    head boolean default 'f',
+    mirrorlist boolean default 'f',
+    pid int,
+    execution_time int
 );
 
 create index if not exists stat_dt_mirror on stat(dt, mirror_id, secure, ipv4);
@@ -251,3 +254,6 @@ alter table hash
     add column if not exists zlengths varchar(32),
     add column if not exists zblock_size int,
     add column if not exists zhashes bytea;
+alter table stat
+    add column if not exists pid int,
+    add column if not exists execution_time int;
