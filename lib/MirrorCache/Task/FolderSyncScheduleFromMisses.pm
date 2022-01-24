@@ -36,13 +36,17 @@ sub _run {
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
     return $job->finish('Previous schedule_from_misses job is still active')
-      unless my $guard = $minion->guard('folder_sync_schedule_from_misses', 60);
+      unless my $guard = $minion->guard('folder_sync_schedule_from_misses', 180);
+
+    # Cannot lock schedule_from_misses lock
+    return $job->retry({delay => 10})
+      unless my $common_guard = $minion->guard('schedule_from_misses', 60);
 
     my $schema = $app->schema;
     my $limit = $prev_stat_id? 50 : 10;
 
     my ($stat_id, $folders, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
-
+    $common_guard = undef;
     my $rs = $schema->resultset('Folder');
     my $last_run = 0;
     while (scalar(@$folders)) {
