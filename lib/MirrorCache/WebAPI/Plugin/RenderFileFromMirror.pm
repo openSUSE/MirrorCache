@@ -251,7 +251,7 @@ sub register {
         }
 
         my $tx = $c->render_later->tx;
-        my $ua  = Mojo::UserAgent->new->max_redirects(8);
+        my $ua  = Mojo::UserAgent->new->connect_timeout(1)->request_timeout(2)->max_redirects(8);
         my $recurs1;
         my $expected_size  = $file->{size};
         my $expected_mtime = $file->{mtime};
