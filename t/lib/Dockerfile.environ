@@ -13,7 +13,7 @@ RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-P
     apache2 perl-Digest-MD4 tidy nginx bbe
 
 # optional dependencies used in testing
-RUN zypper -vvv -n install perl-Geo-IP2Location perl-Inline-C
+RUN zypper -vvv -n install perl-Geo-IP2Location perl-Inline-C gcc
 
 RUN zypper -vvv -n install make rsync
 
