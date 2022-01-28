@@ -1,4 +1,4 @@
-# Copyright (C) 2021 SUSE LLC
+# Copyright (C) 2021,2022 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,8 +43,19 @@ sub register {
             my $region = lc($s->region);
             next unless $region;
             push @regions, $region;
+            my $weight = int($s->weight) // 1;
             my $obj = Mojo::URL->new($url)->to_abs;
-            $subsidiary_urls{$region} = $obj;
+            my $arr = $subsidiary_urls{$region};
+
+            if (!$arr) {
+                my @arr;
+                push @arr, $obj;
+                $subsidiary_urls{$region} = \@arr;
+            } else {
+                for (my $i = 0; $i < $weight; $i++) {
+                    push @$arr, $obj;
+                }
+            }
             $subsidiary_local{$region} = 1 if $s->local;
 
             $app->routes->get("/rest/$region" => sub {
@@ -90,7 +101,10 @@ sub register {
 sub _has_subsidiary {
     return undef unless keys %subsidiary_urls;
     my ($c, $region, $origin_url) = @_;
-    my $region_url = $subsidiary_urls{$region};
+    my $arr = $subsidiary_urls{$region};
+    return undef if !$arr || 'ARRAY' ne ref $arr;
+    my $region_url = $arr->[rand @$arr]; # this how we respect weight of each node
+
     return $region_url unless $region_url && $origin_url;
     my $url = $origin_url->to_abs->clone;
     $url->host($region_url->host);
