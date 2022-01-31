@@ -257,3 +257,7 @@ alter table hash
 alter table stat
     add column if not exists pid int,
     add column if not exists execution_time int;
+-- 19 up
+alter table subsidiary
+    drop constraint subsidiary_pkey,
+    add column weight int default '1';
