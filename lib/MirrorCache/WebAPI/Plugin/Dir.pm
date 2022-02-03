@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -92,6 +92,9 @@ sub indx {
 }
 
 # render_dir_remote tries to render dir when RootRemote cannot find it in DB
+
+my $RENDER_DIR_REMOTE_PROMISE_TIMEOUT = 15;
+
 sub render_dir_remote {
     my $dm       = shift;
     my $dir      = shift;
@@ -114,11 +117,11 @@ sub render_dir_remote {
         my $reftx = $tx;
     };
 
-    $c->minion->result_p($job_id)->catch($handle_error)->then(sub {
+    $c->minion->result_p($job_id)->timeout->($RENDER_DIR_REMOTE_PROMISE_TIMEOUT)->catch($handle_error)->then(sub {
         $c->emit_event('mc_debug', "promiseok: $job_id");
         _render_dir($dm, $dir);
         my $reftx = $tx;
-    })->catch($handle_error)->timeout(15)->wait;
+    })->timeout($RENDER_DIR_REMOTE_PROMISE_TIMEOUT)->catch($handle_error)->timeout($RENDER_DIR_REMOTE_PROMISE_TIMEOUT)->wait;
 }
 
 sub _render_dir {
