@@ -117,7 +117,7 @@ sub render_dir_remote {
         my $reftx = $tx;
     };
 
-    $c->minion->result_p($job_id)->timeout->($RENDER_DIR_REMOTE_PROMISE_TIMEOUT)->catch($handle_error)->then(sub {
+    $c->minion->result_p($job_id)->timeout($RENDER_DIR_REMOTE_PROMISE_TIMEOUT)->catch($handle_error)->then(sub {
         $c->emit_event('mc_debug', "promiseok: $job_id");
         _render_dir($dm, $dir);
         my $reftx = $tx;
