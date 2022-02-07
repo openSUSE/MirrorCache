@@ -68,6 +68,7 @@ sub indx {
 
     return $c
       if _render_hashes($dm)
+      || _render_small($dm)
       || _redirect_geo($dm)
       || _redirect_normalized($dm)
       || _render_stats($dm)
@@ -475,6 +476,22 @@ sub _render_dir_local {
     my @items = sort _by_filename @files;
     return $c->render( json => \@items) if $json;
     return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => $id );
+}
+
+my $SMALL_FILE_SIZE = int($ENV{MIRRORCACHE_SMALL_FILE_SIZE} // 0);
+my $ROOT_NFS = $ENV{MIRRORCACHE_ROOT_NFS};
+
+sub _render_small {
+    return undef unless $SMALL_FILE_SIZE && $ROOT_NFS;
+    my $dm = shift;
+    my ($path, undef) = $dm->path;
+    my $full = $ROOT_NFS . $path;
+    my $size;
+    eval { $size = -s $full if -f $full; };
+    return undef unless $size && $size le $SMALL_FILE_SIZE;
+    my $c = $dm->c;
+    $c->render_file(filepath => $full);
+    return 1;
 }
 
 sub _render_hashes {
