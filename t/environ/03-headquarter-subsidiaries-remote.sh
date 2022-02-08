@@ -14,6 +14,9 @@ mkdir -p $root/dt/{folder1,folder2,folder3}
 echo $root/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 mkdir $root/dt/folder1/repodata/
 touch $root/dt/folder1/repodata/file1.dat
+SMALL_FILE_SIZE=3
+echo -n 1234 > $root/dt/folder1/repodata/filebig1.1.dat
+echo -n 123  > $root/dt/folder1/repodata/filesmall1.1.dat
 echo repomdcontent > $root/dt/folder1/repodata/repomd.xml
 touch $root/dt/folder1/repodata/repomd.xml.asc
 
@@ -23,6 +26,7 @@ mc9=$(environ mc9 $(pwd))
 $mc9/gen_env "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'" \
     MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0 \
     MIRRORCACHE_ROOT=http://$($root/print_address) \
+    MIRRORCACHE_SMALL_FILE_SIZE=$SMALL_FILE_SIZE \
     MIRRORCACHE_ROOT_NFS=$root/dt
 
 # deploy db
@@ -53,3 +57,8 @@ curl -sI --interface 127.0.0.24    http://$hq_address/geoip     | grep '204 No C
 
 $mc9/db/start
 $mc9/curl --interface 127.0.0.5 /folder1/repodata/file1.dat.metalink | grep 'origin="http://127.0.0.1:3190/folder1/repodata/file1.dat.metalink"'
+
+# filebig is redirected to EU
+$mc9/curl -I --interface $eu_interface /folder1/repodata/filebig1.1.dat | grep '302'
+# filesmall is served right away
+$mc9/curl -I --interface $eu_interface /folder1/repodata/filesmall1.1.dat | grep '200 OK'
