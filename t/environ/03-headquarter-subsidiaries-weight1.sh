@@ -30,6 +30,7 @@ $mc9/backstage/shoot
 
 $mc9/sql "insert into subsidiary(hostname,region,weight) select '$na_address1','na',1"
 $mc9/sql "insert into subsidiary(hostname,region,weight) select '$na_address2','na',3"
+$mc9/sql "insert into subsidiary(hostname,region,weight) select '','na',2"
 $mc9/sql "insert into subsidiary(hostname,region) select '$eu_address','eu'"
 $mc9/sql "insert into subsidiary(hostname,region) select '$as_address','as'"
 
@@ -52,7 +53,7 @@ curl --interface $na_interface -Is http://$hq_address/download/folder1/file1.1.d
 
 # do requests and check that both na instances are being used and instance 2 is used more frequently
 out=$(
-counter=30
+counter=90
 
 while test $counter -gt 0
 do
@@ -63,10 +64,12 @@ done
 
 out1=$(echo "$out" | grep "Location: http://$na_address1/download/folder1/file1.1.dat" | wc -l)
 out2=$(echo "$out" | grep "Location: http://$na_address2/download/folder1/file1.1.dat" | wc -l)
+out3=$(echo "$out" | grep "200 OK" | wc -l)
 
 test $out1 -gt 0
 test $out2 -gt 0
+test $out3 -gt 0
 test $out2 -gt $out1
-
-
+test $out2 -gt $out3
+test $out3 -gt $out1
 
