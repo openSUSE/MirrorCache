@@ -69,7 +69,10 @@ sub redirect_to_mirror($self, $mirror_id, $dm) {
     my $cnt = @rows;
     if ($cnt >= $FLUSH_COUNT) {
         $self->rows(undef);
-        return $self->flush(\@rows);
+        $dm->c->tx->on(finish => sub ($tx) {
+                $self->flush(\@rows);
+        });
+        return 1;
     }
     $self->rows(\@rows);
     return if $self->timer;
