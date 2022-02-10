@@ -60,7 +60,10 @@ sub redirect_to_region($self, $dm) {
     return $self->redirect_to_mirror(-3, $dm);
 }
 
+my $ONLY_MISS = $ENV{MIRRORCACHE_STAT_LOG_ONLY_MISSES};
+
 sub redirect_to_mirror($self, $mirror_id, $dm) {
+    return undef if $ONLY_MISS && $mirror_id != -1;
     my ($path, $trailing_slash) = $dm->path;
     $path = $dm->root_subtree . $path;
     my $rows = $self->rows;
