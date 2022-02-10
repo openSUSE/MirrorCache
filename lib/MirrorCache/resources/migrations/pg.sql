@@ -261,3 +261,5 @@ alter table stat
 alter table subsidiary
     drop constraint subsidiary_pkey,
     add column weight int default '1';
+-- 20 up
+CREATE INDEX if not exists folder_diff_id_index ON folder_diff_file(folder_diff_id);
