@@ -106,6 +106,7 @@ sub _has_subsidiary {
     my $region_url = $arr->[rand @$arr]; # this how we respect weight of each node
 
     return $region_url unless $region_url && $origin_url;
+    return undef unless $region_url->host;
     my $url = $origin_url->to_abs->clone;
     $url->host($region_url->host);
     $url->port($region_url->port);
