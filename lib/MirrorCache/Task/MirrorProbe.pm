@@ -14,6 +14,9 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package MirrorCache::Task::MirrorProbe;
+
+use POSIX;
+
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::UserAgent;
 
@@ -42,14 +45,26 @@ sub _probe {
     my $rs = $schema->resultset('ServerCapabilityDeclaration');
     my $href = $rs->search_by_country($country);
 
-    for my $id (sort keys %$href) {
+    my @server_ids = sort keys %$href;
+    for my $id (@server_ids) {
         my $data = $href->{$id};
         for my $capability (SERVER_CAPABILITIES) {
             next unless ($data->{$capability});
-            my $success = 1;
+            $rs->insert_stability_row($id, $capability) unless (defined $data->{"rating_$capability"});
+
             my $error = _probe_capability($data->{'uri'}, $capability);
-            $success = 0 if $error;
-            $rs->log_probe_outcome($data->{'id'}, $capability, $success, $error);
+            if($error) {
+                $rs->reset_stability($data->{'id'}, $capability, $error);
+                next;
+            }
+            my $new_rating = 1000;
+            my $min = $data->{"min_$capability"};
+            # $job->note("$id$capability" => $min);
+            if (ceil($min // 0) > 0) {
+                $new_rating = 100 if $min < 24*60;
+                $new_rating = 10  if $min < 60;
+            }
+            $rs->update_stability($id, $capability, $new_rating) if $new_rating != ($data->{"rating_$capability"} // 0);
         }
     }
     $minion->unlock('mirror_probe_incomplete_for_' . $country);
@@ -121,7 +136,7 @@ sub _probe_projects {
     my %count;
     my @keys = sort keys %$href;
     $job->note(total => scalar(@keys));
-    
+
     for my $id (@keys) {
         my $data = $href->{$id};
         my $oldstate = $data->{oldstate};

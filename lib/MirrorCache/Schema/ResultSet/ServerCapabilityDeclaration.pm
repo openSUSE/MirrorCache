@@ -34,16 +34,40 @@ select concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.host
     COALESCE(fhttp.server_id  = 0, COALESCE(http.enabled,'t'))  as http,
     COALESCE(fhttps.server_id = 0, COALESCE(https.enabled,'t')) as https,
     COALESCE(fipv4.server_id  = 0, COALESCE(ipv4.enabled,'t'))  as ipv4,
-    COALESCE(fipv6.server_id  = 0, COALESCE(ipv6.enabled,'t'))  as ipv6
+    COALESCE(fipv6.server_id  = 0, COALESCE(ipv6.enabled,'t'))  as ipv6,
+    stability_http.rating  as rating_http,
+    stability_https.rating as rating_https,
+    stability_ipv4.rating  as rating_ipv4,
+    stability_ipv6.rating  as rating_ipv6,
+    extract(epoch from (now() - check_http.dt))/60  :: int  as min_http,
+    extract(epoch from (now() - check_https.dt))/60 :: int  as min_https,
+    extract(epoch from (now() - check_ipv4.dt))/60  :: int  as min_ipv4,
+    extract(epoch from (now() - check_ipv6.dt))/60  :: int  as min_ipv6
     from server s
     left join server_capability_declaration http  on http.server_id  = s.id and http.capability  = 'http'
     left join server_capability_declaration https on https.server_id = s.id and https.capability = 'https'
     left join server_capability_declaration ipv4  on ipv4.server_id  = s.id and ipv4.capability  = 'ipv4'
-    left join server_capability_declaration ipv6  on ipv6.server_id  = s.id and ipv4.capability  = 'ipv6'
+    left join server_capability_declaration ipv6  on ipv6.server_id  = s.id and ipv6.capability  = 'ipv6'
     left join server_capability_force fhttp  on fhttp.server_id  = s.id and fhttp.capability  = 'http'
     left join server_capability_force fhttps on fhttps.server_id = s.id and fhttps.capability = 'https'
     left join server_capability_force fipv4  on fipv4.server_id  = s.id and fipv4.capability  = 'ipv4'
     left join server_capability_force fipv6  on fipv6.server_id  = s.id and fipv6.capability  = 'ipv6'
+    left join server_stability stability_http  on stability_http.server_id  = s.id and stability_http.capability  = 'http'
+    left join server_stability stability_https on stability_https.server_id = s.id and stability_https.capability = 'https'
+    left join server_stability stability_ipv4  on stability_ipv4.server_id  = s.id and stability_ipv4.capability  = 'ipv4'
+    left join server_stability stability_ipv6  on stability_ipv6.server_id  = s.id and stability_ipv6.capability  = 'ipv6'
+    left join (
+        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'http'  and dt > now() - interval '24 hours' group by server_id
+    ) check_http  on check_http.server_id = s.id
+    left join (
+        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'https' and dt > now() - interval '24 hours' group by server_id
+    ) check_https on check_https.server_id = s.id
+    left join (
+        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'ipv4'  and dt > now() - interval '24 hours' group by server_id
+    ) check_ipv4  on check_ipv4.server_id = s.id
+    left join (
+        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'ipv6'  and dt > now() - interval '24 hours' group by server_id
+    ) check_ipv6  on check_ipv6.server_id = s.id
     where 't'
     AND (fhttp.server_id IS NULL or fhttps.server_id IS NULL) -- do not show servers which have both http and https force disabled
     AND (fipv4.server_id IS NULL or fipv6.server_id IS NULL)  -- do not show servers which have both ipv4 and ipv6 force disabled
@@ -55,19 +79,57 @@ END_SQL
     return $dbh->selectall_hashref($sql, 'id', {}, $country);
 }
 
-sub log_probe_outcome {
-    my ($self, $server_id, $capability, $success, $error) = @_;
+sub insert_stability_row {
+    my ($self, $server_id, $capability) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-insert into server_capability_check(server_id, capability, dt, success, extra)
-values (?, ?, now(), ?, ?);
+insert into server_stability(server_id, capability, rating, dt)
+values (?, ?, 1, now())
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->execute($server_id, $capability, $success, $error);
+    $prep->execute($server_id, $capability);
+}
+
+sub reset_stability {
+    my ($self, $server_id, $capability, $error) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+update server_stability
+set dt = now(), rating = 0
+where server_id = ? and capability = ?
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($server_id, $capability);
+
+    $sql = <<'END_SQL';
+insert into server_capability_check(server_id, capability, dt, success, extra)
+values (?, ?, now(), 'f', ?);
+END_SQL
+    $prep = $dbh->prepare($sql);
+    $prep->execute($server_id, $capability, $error);
+}
+
+sub update_stability {
+    my ($self, $server_id, $capability, $rating) = @_;
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+update server_stability
+set dt = now(), rating = ?
+where server_id = ? and capability = ?
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($rating, $server_id, $capability);
 }
 
 sub search_all_downs {

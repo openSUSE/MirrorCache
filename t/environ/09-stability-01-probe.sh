@@ -41,13 +41,13 @@ $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
 
 # log current audit_event count
-cnt="$($mc/db/sql "select count(*) from audit_event")"
+cnt="$($mc/sql "select count(*) from audit_event")"
 
 # make sure now it redirects to ap8
 $mc/curl -I /download/folder1/file2.1.dat | grep $($ap8/print_address)
 
 # audit event shouldn't contain recent mirror_probe event, becuase we know that ap7 is not preferable because of recent probe error
-test 0 == $($mc/db/sql "select count(*) from audit_event where name = 'mirror_probe' and id > $cnt")
+$mc/sql_test 0 == "select count(*) from audit_event where name = 'mirror_probe' and id > $cnt"
 
 # now shut down ap8 and start ap7, then probe mirrors explicitly
 $ap8/stop
@@ -59,4 +59,20 @@ cnt="$($mc/db/sql 'select count(*) from audit_event')"
 # make sure now it redirects to ap7
 $mc/curl -I /download/folder1/file2.1.dat | grep $($ap7/print_address)
 # audit event shouldn't contain recent mirror_probe event, becuase we know that ap7 is not preferable because of recent probe error
-test 0 == $($mc/db/sql "select count(*) from audit_event where name = 'mirror_probe' and id > $cnt")
+$mc/sql_test 0 == "select count(*) from audit_event where name = 'mirror_probe' and id > $cnt"
+
+
+$mc/sql_test 0 == "select rating from server_stability where (server_id, capability) = (2, 'http')"
+$mc/sql_test 10 == "select rating from server_stability where (server_id, capability) = (1, 'http')"
+
+$mc/sql "update server_capability_check set dt = dt - interval '1 hour' where (server_id, capability) = (1, 'http')"
+$mc/backstage/job -e mirror_probe -a '["us"]'
+$mc/backstage/shoot
+$mc/sql_test 100 == "select rating from server_stability where (server_id, capability) = (1, 'http')"
+
+$mc/sql "update server_capability_check set dt = dt - interval '24 hour' where (server_id, capability) = (1, 'http')"
+$mc/backstage/job -e mirror_probe -a '["us"]'
+$mc/backstage/shoot
+$mc/sql_test 1000 == "select rating from server_stability where (server_id, capability) = (1, 'http')"
+
+
