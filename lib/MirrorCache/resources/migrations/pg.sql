@@ -262,4 +262,11 @@ alter table subsidiary
     drop constraint subsidiary_pkey,
     add column weight int default '1';
 -- 20 up
-CREATE INDEX if not exists folder_diff_id_index ON folder_diff_file(folder_diff_id);
+create index if not exists folder_diff_id_index on folder_diff_file(folder_diff_id);
+-- 21 up
+create table if not exists server_stability (
+    server_id int references server on delete cascade,
+    capability server_capability_t,
+    dt timestamp,
+    rating int -- 0 - bad, 1 - unknown, 10 - some issues last hour, 100 - some issues last 24 hours, 1000 - no issues recorder last 24 hours.
+);

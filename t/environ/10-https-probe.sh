@@ -61,8 +61,6 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
 test f == $($mc/db/sql "select success from server_capability_check where server_id=1 and capability='http'")
-test t == $($mc/db/sql "select success from server_capability_check where server_id=1 and capability='https'")
-test t == $($mc/db/sql "select success from server_capability_check where server_id=2 and capability='http'")
 test f == $($mc/db/sql "select success from server_capability_check where server_id=2 and capability='https'")
 
 # now explicitly force disable corresponding capabilities

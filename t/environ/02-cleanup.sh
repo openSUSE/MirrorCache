@@ -54,7 +54,12 @@ $mc/backstage/shoot
 
 test 4 == $($mc/db/sql "select count(*) from folder_diff")
 test 4 == $($mc/db/sql "select count(*) from folder_diff_file")
-test 8 == $($mc/db/sql "select count(*) from server_capability_check")
+test 4 == $($mc/db/sql "select count(*) from server_capability_check")
+test 8 == $($mc/db/sql "select count(*) from server_stability")
+test 2 == $($mc/db/sql "select count(*) from server_stability where capability = 'http'  and rating > 0")
+test 2 == $($mc/db/sql "select count(*) from server_stability where capability = 'https' and rating = 0")
+test 2 == $($mc/db/sql "select count(*) from server_stability where capability = 'ipv4'  and rating > 0")
+test 2 == $($mc/db/sql "select count(*) from server_stability where capability = 'ipv6'  and rating = 0")
 
 # update dt to look older and save number of audit events
 $mc/db/sql "update audit_event set dt = dt - interval '50 day'"
@@ -67,6 +72,6 @@ $mc/backstage/shoot
 # test for reduced number of rows
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 3 == $($mc/db/sql "select count(*) from folder_diff_file")
-test 4 == $($mc/db/sql "select count(*) from server_capability_check")
+test 2 == $($mc/db/sql "select count(*) from server_capability_check")
 test $audit_events -gt $($mc/db/sql "select count(*) from audit_event")
 echo success

@@ -35,10 +35,8 @@ $mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '[
 
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
-test t == $($mc/db/sql "select success from server_capability_check where server_id=1 and capability='ipv4'")
 test f == $($mc/db/sql "select success from server_capability_check where server_id=1 and capability='ipv6'")
 test f == $($mc/db/sql "select success from server_capability_check where server_id=2 and capability='ipv4'")
-test t == $($mc/db/sql "select success from server_capability_check where server_id=2 and capability='ipv6'")
 
 # now explicitly force disable corresponding capabilities
 $mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 1,'ipv6',now()"

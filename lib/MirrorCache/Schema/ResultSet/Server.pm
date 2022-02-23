@@ -78,45 +78,38 @@ sub mirrors_query {
     my $capabilityx = $capability eq 'http'? 'https' : 'http';
     my $extra = '';
     if ($schemastrict && $ipvstrict) {
-        $extra = "WHERE no4 = 0 and no5 = 0";
+       $extra = "WHERE support_scheme > 0 and support_ipv > 0";
     } elsif ($schemastrict) {
-        $extra = "WHERE no4 = 0";
+       $extra = "WHERE support_scheme > 0";
     } elsif ($ipvstrict) {
-        $extra = "WHERE no5 = 0";
+       $extra = "WHERE support_ipv > 0";
     }
     my $hostname = $vpn? "CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END" : "s.hostname";
 
     my $sql = <<"END_SQL";
 select * from (
-select x.id as mirror_id, concat(case when no4 = 0 then '$capability' else '$capabilityx' end, '://', uri) as url,
-case when $lat=0 and $lng=0 then 0  -- prefer servers which were checked recently when geoip is unavailable
-else
-( 6371 * acos( cos( radians($lat) ) * cos( radians( lat ) ) * cos( radians( lng ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( lat ) ) ) )
-end as dist,
-(2*(yes1 * yes1) - 2*(case when no1 > 10 then no1 * no1 else 10 * no1 end) + (case when yes2 < 5 then yes2 else 5 * yes2 end) - (case when no2 > 10 then no2 * no2 else 10 * no2 end)) weight1,
-case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end weight_country,
-(yes3 * yes3) - (case when no3 > 5 then no3 * no3 else 5 * no3 end) weight2,
-last1, last2, last3, lastdt1, lastdt2, lastdt3, score, country, region, lng, no4, no5
+select x.id as mirror_id, concat(case when support_scheme > 0 then '$capability' else '$capabilityx' end, '://', uri) as url,
+dist,
+case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end rating_country,
+score, country, region, lng,
+support_scheme,
+rating_scheme,
+support_ipv,
+rating_ipv
 from (
 select s.id,
     concat($hostname,s.urldir,f.path,'/',s.name) as uri,
 s.lat as lat,
 s.lng as lng,
+case when $lat=0 and $lng=0 then 0
+else
+( 6371 * acos( cos( radians($lat) ) * cos( radians( lat ) ) * cos( radians( lng ) - radians($lng) ) + sin( radians($lat) ) * sin( radians( lat ) ) ) )
+end as dist,
 s.country, s.region, s.score,
-sum(case when chk.capability = '$capability' and chk.success then 1 else 0 end)/10 yes1,
-sum(case when chk.capability = '$capability' and not chk.success then 1 else 0 end) no1,
-sum(case when chk.capability = '$ipv' and chk.success then 1 else 0 end)/10 yes2,
-sum(case when chk.capability = '$ipv' and not chk.success then 1 else 0 end) no2,
-sum(case when chk.capability = '$ipvx' and chk.success then 1 else 0 end)/10 yes3,
-sum(case when chk.capability = '$ipvx' and not chk.success then 1 else 0 end) no3,
-sum(case when scd.server_id is not null or scf.server_id is not null then 1 else 0 end) no4,
-sum(case when scd2.server_id is not null or scf2.server_id is not null then 1 else 0 end) no5,
-(select success from server_capability_check where server_id = s.id and capability = '$capability' order by dt desc limit 1) as last1,
-(select success from server_capability_check where server_id = s.id and capability = '$ipv' order by dt desc limit 1) as last2,
-(select success from server_capability_check where server_id = s.id and capability = '$ipvx' order by dt desc limit 1) as last3,
-(select date_trunc('minute',dt) from server_capability_check where server_id = s.id and capability = '$capability' order by dt desc limit 1) as lastdt1,
-(select date_trunc('minute',dt) from server_capability_check where server_id = s.id and capability = '$ipv' order by dt desc limit 1) as lastdt2,
-(select date_trunc('minute',dt) from server_capability_check where server_id = s.id and capability = '$ipvx' order by dt desc limit 1) as lastdt3
+CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 OR COALESCE(stability_schemex.rating, 0) = 0 THEN 1 ELSE 0 END AS support_scheme, -- we show here 0 only when opposite scheme is supported
+CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 THEN stability_scheme.rating WHEN COALESCE(stability_schemex.rating, 0) > 0 THEN stability_schemex.rating ELSE 0 END AS rating_scheme,
+CASE WHEN COALESCE(stability_ipv.rating, 0)    > 0 THEN 1 ELSE 0 END AS support_ipv,
+CASE WHEN COALESCE(stability_ipv.rating, 0)    > 0 THEN stability_ipv.rating    WHEN COALESCE(stability_ipvx.rating, 0)    > 0 THEN stability_ipvx.rating    ELSE 0 END AS rating_ipv
 from (
     select s.*, fl.name
     from folder_diff fd
@@ -127,18 +120,20 @@ from (
     where fd.folder_id = ? and fdf.file_id is NULL
 ) s
 join folder f on f.id = ?
-left join server_capability_check chk on s.id = chk.server_id
-left join server_capability_declaration scd on s.id = scd.server_id and scd.capability = '$capability' and NOT scd.enabled
-left join server_capability_force scf on s.id = scf.server_id and scf.capability = '$capability'
+left join server_capability_declaration scd  on s.id = scd.server_id and scd.capability = '$capability' and NOT scd.enabled
+left join server_capability_force scf        on s.id = scf.server_id and scf.capability = '$capability'
 left join server_capability_declaration scd2 on s.id = scd2.server_id and scd.capability = '$ipv' and NOT scd.enabled
-left join server_capability_force scf2 on s.id = scf2.server_id and scf2.capability = '$ipv'
-group by s.id, s.country, s.region, s.score, $hostname, s.urldir, s.name, s.lat, s.lng, f.path
+left join server_capability_force scf2       on s.id = scf2.server_id and scf2.capability = '$ipv'
+left join server_stability stability_scheme  on s.id = stability_scheme.server_id  and stability_scheme.capability = '$capability'
+left join server_stability stability_schemex on s.id = stability_schemex.server_id and stability_schemex.capability = '$capabilityx'
+left join server_stability stability_ipv     on s.id = stability_ipv.server_id     and stability_ipv.capability = '$ipv'
+left join server_stability stability_ipvx    on s.id = stability_ipvx.server_id    and stability_ipvx.capability = '$ipvx'
 ) x
 $extra
-order by no4, no5, last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, weight2 desc, score, lastdt1 desc nulls last, lastdt2 desc nulls last, last3 desc, lastdt3 desc, random()
-limit $limit
+order by rating_country desc, (dist/100)::int, support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, score, random()
+limit (case when $limit > 10 then $limit+$limit else 10 end)
 ) xx
-order by no4, no5, last1 desc nulls last, last2 desc nulls last, weight_country desc, weight1 desc, (dist/100)::int, weight2 desc, score, last3 desc nulls last, dist, random()
+order by support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, rating_country desc, (dist/100)::int, score, random()
 limit $limit;
 END_SQL
     my $prep = $dbh->prepare($sql);
@@ -199,8 +194,8 @@ sub server_projects {
 
     my $sql = <<'END_SQL';
 select concat(s.id, '::', p.id) as key,
-        s.id as server_id, 
-        p.id as project_id, 
+        s.id as server_id,
+        p.id as project_id,
         concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir, p.path) as uri,
         sp.server_id as mirror_id,
         coalesce(sp.state, -2) oldstate
