@@ -94,12 +94,12 @@ sub indx {
 
 # render_dir_remote tries to render dir when RootRemote cannot find it in DB
 
-my $RENDER_DIR_REMOTE_PROMISE_TIMEOUT = 15;
+my $RENDER_DIR_REMOTE_PROMISE_TIMEOUT = int($ENV{MIRRORCACHE_RENDER_DIR_REMOTE_PROMISE_TIMEOUT}  // 15) // 15;
 
 sub render_dir_remote {
     my $dm       = shift;
     my $dir      = shift;
-    my $c = $dm->c;
+    my $c  = $dm->c;
     my $tx = $c->render_later->tx;
 
     my $job_id = 0;
@@ -110,7 +110,7 @@ sub render_dir_remote {
     }
 
     my $handle_error = sub {
-        my $reason = $_;
+        my $reason = shift;
         if ($reason eq 'Promise timeout') {
             return _render_dir($dm, $dir);
         }
