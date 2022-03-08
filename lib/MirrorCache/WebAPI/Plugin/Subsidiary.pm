@@ -21,6 +21,7 @@ my $subsidiary_region;
 
 my $subsidiaries_initialized = 0;
 my %subsidiary_urls;
+my %subsidiary_country; # countries that have dedicated instance
 my %subsidiary_local;
 my @regions;
 
@@ -42,6 +43,7 @@ sub register {
             $url = $url . $s->uri if $s->uri;
             my $region = lc($s->region);
             next unless $region;
+            $subsidiary_country{$region} = 1 unless ( $region =~ m/af|as|eu|na|oc|sa/ );
             push @regions, $region;
             my $weight = int($s->weight) // 1;
             my $obj = Mojo::URL->new($url)->to_abs;
@@ -84,7 +86,7 @@ sub register {
 
             my $country = $dm->country;
             my $region  = $dm->region;
-            my $url = _has_subsidiary($c, $dm->region);
+            my $url = _has_subsidiary($c, $dm);
             return $c->render(status => 204, text => '') unless $url;
             $url = $url->to_abs;
             $url =~ s/http(s)?:\/\///;
@@ -100,7 +102,10 @@ sub register {
 
 sub _has_subsidiary {
     return undef unless keys %subsidiary_urls;
-    my ($c, $region, $origin_url) = @_;
+    my ($c, $dm, $origin_url) = @_;
+    my $region = $dm->country;
+    $region = $dm->region unless $subsidiary_country{$region};
+
     my $arr = $subsidiary_urls{$region};
     return undef if !$arr || 'ARRAY' ne ref $arr;
     my $region_url = $arr->[rand @$arr]; # this how we respect weight of each node
@@ -117,7 +122,8 @@ sub _has_subsidiary {
 # return url for all subsidiaries
 sub _regions {
     return undef unless keys %subsidiary_urls;
-    my ($c, $region) = @_;
+    my ($c, $region, $country) = @_;
+    $region = $country if $subsidiary_country{$country};
     my $url = $subsidiary_urls{$region};
     my @res = ($url? $region : '');
 
