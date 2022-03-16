@@ -78,11 +78,11 @@ sub mirrors_query {
     my $capabilityx = $capability eq 'http'? 'https' : 'http';
     my $extra = '';
     if ($schemastrict && $ipvstrict) {
-       $extra = "WHERE support_scheme > 0 and support_ipv > 0";
+       $extra = "AND support_scheme > 0 and support_ipv > 0";
     } elsif ($schemastrict) {
-       $extra = "WHERE support_scheme > 0";
+       $extra = "AND support_scheme > 0";
     } elsif ($ipvstrict) {
-       $extra = "WHERE support_ipv > 0";
+       $extra = "AND support_ipv > 0";
     }
     my $hostname = $vpn? "CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END" : "s.hostname";
 
@@ -107,6 +107,7 @@ else
 end as dist,
 s.country, s.region, s.score,
 CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 OR COALESCE(stability_schemex.rating, 0) = 0 THEN 1 ELSE 0 END AS support_scheme, -- we show here 0 only when opposite scheme is supported
+CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 OR COALESCE(stability_schemex.rating, 0) = 0 THEN ( scf.capability is NULL AND COALESCE(scd.enabled, 't') = 't' ) ELSE ( scf2.capability is NULL AND COALESCE(scd2.enabled, 't') = 't' ) END AS not_disabled,
 CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 THEN stability_scheme.rating WHEN COALESCE(stability_schemex.rating, 0) > 0 THEN stability_schemex.rating ELSE 0 END AS rating_scheme,
 CASE WHEN COALESCE(stability_ipv.rating, 0)    > 0 THEN 1 ELSE 0 END AS support_ipv,
 CASE WHEN COALESCE(stability_ipv.rating, 0)    > 0 THEN stability_ipv.rating    WHEN COALESCE(stability_ipvx.rating, 0)    > 0 THEN stability_ipvx.rating    ELSE 0 END AS rating_ipv
@@ -129,7 +130,7 @@ left join server_stability stability_schemex on s.id = stability_schemex.server_
 left join server_stability stability_ipv     on s.id = stability_ipv.server_id     and stability_ipv.capability = '$ipv'
 left join server_stability stability_ipvx    on s.id = stability_ipvx.server_id    and stability_ipvx.capability = '$ipvx'
 ) x
-$extra
+WHERE not_disabled $extra
 order by rating_country desc, (dist/100)::int, support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, score, random()
 limit (case when $limit > 10 then $limit+$limit else 10 end)
 ) xx
@@ -200,7 +201,7 @@ select concat(s.id, '::', p.id) as key,
         sp.server_id as mirror_id,
         coalesce(sp.state, -2) oldstate
 from project p
-    join server s on s.enabled 
+    join server s on s.enabled
     left join server_project sp on sp.server_id = s.id and sp.project_id = p.id
 where 't'
     AND coalesce(sp.state,0) > -1
@@ -219,7 +220,7 @@ sub log_project_probe_outcome {
 insert into server_project(state, extra, dt, server_id, project_id)
 values (?, ?, now(), ?, ?);
 END_SQL
-    
+
     if ($mirror_id) {
         $sql = <<'END_SQL';
 update server_project set state = ?, extra = ?, dt = now()

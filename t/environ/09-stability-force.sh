@@ -66,7 +66,10 @@ $ap8/stop
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
 
-$mc/curl -I /download/folder1/file1.1.dat | grep -v $($ap7/print_address)
+rc=0
+$mc/curl -I /download/folder1/file1.1.dat | grep $($ap7/print_address) || rc=$?
+test $rc -gt 0
+
 
 # now scan those mirrors which were force disabled
 $mc/backstage/job -e mirror_force_ups
