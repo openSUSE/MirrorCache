@@ -370,7 +370,7 @@ sub _guess_what_to_render {
         } else {
             $msg = $msg . Dumper(@_);
         }
-        $c->app->log->error($msg);
+        $c->app->log->fatal($msg); # it is not fatal, but needed in production log
         my $reftx = $tx;
         my $refua = $ua;
     })->timeout(2)->wait;
