@@ -394,7 +394,7 @@ sub _init_path($self) {
         if !$self->mirrorlist
         && ( !$self->metalink || $self->metalink_accept )
         && !$self->zsync
-        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?)?))$/;
+        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz)$/;
 
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);
