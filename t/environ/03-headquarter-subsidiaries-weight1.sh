@@ -48,7 +48,8 @@ echo the root folder is not redirected
 curl --interface $eu_interface -Is http://$hq_address/ | grep '200 OK'
 
 echo check redirection from headquarter
-curl --interface $na_interface -Is http://$hq_address/download/folder1/file1.1.dat | grep -E "Location: http:\/\/($na_address1|$na_address2)\/download\/folder1\/file1.1.dat"
+curl --interface $na_interface -Is http://$hq_address/download/folder1/file1.1.dat
+curl --interface $na_interface -Is http://$hq_address/download/folder1/file1.1.dat | grep -E "(Location: http:\/\/($na_address1|$na_address2)\/download\/folder1\/file1.1.dat)|(200 OK)"
 
 
 # do requests and check that both na instances are being used and instance 2 is used more frequently
