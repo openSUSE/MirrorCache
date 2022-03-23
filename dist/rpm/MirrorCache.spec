@@ -79,7 +79,7 @@ install -D -m 0644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 %service_del_postun_without_restart mirrorcache-hypnotoad.service
 
 %files
-%doc README.asciidoc
+%doc README.md
 %license LICENSE
 %{_sbindir}/rcmirrorcache
 %{_sbindir}/rcmirrorcache-hypnotoad
