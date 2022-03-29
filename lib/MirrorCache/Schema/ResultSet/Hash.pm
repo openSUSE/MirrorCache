@@ -46,9 +46,9 @@ ON CONFLICT (file_id) DO UPDATE
       dt = now()
 END_SQL
     my $prep = $dbh->prepare($sql);
-    $prep->bind_param( 1, $file_id,     SQL_INTEGER);
-    $prep->bind_param( 2, $mtime,       SQL_INTEGER);
-    $prep->bind_param( 3, $size,        SQL_INTEGER);
+    $prep->bind_param( 1, $file_id,     SQL_BIGINT);
+    $prep->bind_param( 2, $mtime,       SQL_BIGINT);
+    $prep->bind_param( 3, $size,        SQL_BIGINT);
     $prep->bind_param( 4, $md5hex,      SQL_CHAR);
     $prep->bind_param( 5, $sha1hex,     SQL_CHAR);
     $prep->bind_param( 6, $sha256hex,   SQL_CHAR);
