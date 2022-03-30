@@ -11,6 +11,7 @@ use Mojo::Pg;
 __PACKAGE__->load_namespaces;
 
 my $SINGLETON;
+my $SINGLETONR;
 
 sub connect_db {
     my %args  = @_;
@@ -37,10 +38,37 @@ sub connect_db {
     return $SINGLETON;
 }
 
+sub connect_replica_db {
+    my %args  = @_;
+
+    unless ($SINGLETONR) {
+        my $dsn;
+        my $user = $ENV{MIRRORCACHE_DBUSER};
+        my $pass = $ENV{MIRRORCACHE_DBPASS};
+        if ($ENV{MIRRORCACHE_DSN_REPLICA}) {
+            $dsn = $ENV{MIRRORCACHE_DSN_REPLICA};
+        } else {
+            my $db   = $ENV{MIRRORCACHE_DB} // 'mirrorcache';
+            my $host = $ENV{MIRRORCACHE_DBREPLICA};
+            my $port = $ENV{MIRRORCACHE_DBPORT};
+            $dsn  = "DBI:Pg:dbname=$db";
+            $dsn = "$dsn;host=$host" if $host;
+            $dsn = "$dsn;port=$port" if $port;
+        }
+        $SINGLETONR = __PACKAGE__->connect($dsn, $user, $pass);
+    }
+
+    return $SINGLETONR;
+}
+
 sub disconnect_db {
     if ($SINGLETON) {
         $SINGLETON->storage->disconnect;
         $SINGLETON = undef;
+    }
+    if ($SINGLETONR) {
+        $SINGLETONR->storage->disconnect;
+        $SINGLETONR = undef;
     }
 }
 
@@ -54,6 +82,12 @@ sub dsn {
 }
 
 sub singleton { $SINGLETON || connect_db() }
+
+sub singletonR {
+    return singleton() unless $ENV{MIRRORCACHE_DBREPLICA};
+
+    $SINGLETONR || connect_replica_db();
+}
 
 sub has_table {
     my ($self,$table_name) = @_;

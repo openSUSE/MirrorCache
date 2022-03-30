@@ -223,6 +223,8 @@ sub detect_current_version() {
 
 sub schema { MirrorCache::Schema->singleton }
 
+sub schemaR { MirrorCache::Schema->singletonR }
+
 sub run { __PACKAGE__->new->start }
 
 1;

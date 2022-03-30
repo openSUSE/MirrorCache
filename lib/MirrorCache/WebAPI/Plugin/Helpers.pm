@@ -51,6 +51,7 @@ sub register {
         });
 
     $app->helper(schema => sub { MirrorCache::Schema->singleton });
+    $app->helper(schemaR => sub { MirrorCache::Schema->singletonR });
 
     $app->helper(
         # emit_event helper, adds user to events

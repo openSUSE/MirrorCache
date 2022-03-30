@@ -34,10 +34,12 @@ $mc/backstage/job folder_sync_schedule
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/start
 
-sleep 1
-
 $mc/curl -I /download/folder1/file1.1.dat | grep 302 \
-   || ( sleep 1 && $mc/curl -I /download/folder1/file1.1.dat | grep 302 ) || ( sleep 10 && $mc/curl -I /download/folder1/file1.1.dat | grep 302 )
+   || ( sleep 1 ; $mc/curl -I /download/folder1/file1.1.dat | grep 302 ) \
+   || ( sleep 5 ; $mc/curl -I /download/folder1/file1.1.dat | grep 302 ) \
+   || ( sleep 5 ; $mc/curl -I /download/folder1/file1.1.dat | grep 302 ) \
+   || ( sleep 5 ; $mc/curl -I /download/folder1/file1.1.dat | grep 302 ) \
+   || ( sleep 5 ; $mc/curl -I /download/folder1/file1.1.dat | grep 302 )
 
 $mc/db/sql "select count(*) from minion_jobs where task='folder_sync'"
 
