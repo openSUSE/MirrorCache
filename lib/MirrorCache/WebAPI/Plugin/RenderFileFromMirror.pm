@@ -479,7 +479,7 @@ sub _collect_mirrors {
     my $ipvstrict  = $dm->ipvstrict;
     my $metalink   = $dm->metalink;
     my $limit = $mirrorlist ? 100 : (( $metalink || $dm->pedantic )? 10 : 1);
-    my $rs = $dm->c->schema->resultset('Server');
+    my $rs = $dm->c->schemaR->resultset('Server');
 
     my $m;
     $m = $rs->mirrors_query(
