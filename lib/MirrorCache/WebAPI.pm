@@ -116,6 +116,7 @@ sub startup {
 
     $self->plugin('Helpers', root => $root, route => '/download');
     $self->plugin('Subsidiary');
+    $self->plugin('Stat');
     if ($root) {
         # check prefix
         if ('rsync://' eq substr($root, 0, 8)) {
@@ -207,7 +208,6 @@ sub _setup_webui {
 
     $self->plugin(AssetPack => {pipes => [qw(Sass Css JavaScript Fetch Combine)]});
     $self->asset->process;
-    $self->plugin('Stat');
     $self->plugin('Dir');
     $self->log->info("server started:  $current_version");
 }

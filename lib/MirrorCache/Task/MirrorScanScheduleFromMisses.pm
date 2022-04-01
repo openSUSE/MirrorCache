@@ -25,13 +25,15 @@ sub register {
 my $DELAY   = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
 
 sub _run {
-    my ($app, $job, $prev_stat_id) = @_;
+    my ($app, $job, $prev_stat_id, $prev_stat_table_name) = @_;
     my $job_id = $job->id;
     my $pref = "[scan_from_misses $job_id]";
     my $id_in_notes = $job->info->{notes}{stat_id};
     $prev_stat_id = $id_in_notes if $id_in_notes;
-    print(STDERR "$pref read id from notes: $id_in_notes\n") if $id_in_notes;
-    print(STDERR "$pref use id from param: $prev_stat_id\n") if $prev_stat_id && (!$id_in_notes || $prev_stat_id != $id_in_notes);
+    # print(STDERR "$pref read id from notes: $id_in_notes\n") if $id_in_notes;
+    # print(STDERR "$pref use id from param: $prev_stat_id\n") if $prev_stat_id && (!$id_in_notes || $prev_stat_id != $id_in_notes);
+    my $stat_table_in_notes = $job->info->{notes}{stat_table_name};
+    $prev_stat_table_name = $stat_table_in_notes if $stat_table_in_notes;
 
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
@@ -44,15 +46,16 @@ sub _run {
 
     my $schema = $app->schema;
     my $limit = $prev_stat_id ? 1000 : 10;
-
-    my ($stat_id, $folder_ids, $country_list) = $schema->resultset('Stat')->mirror_misses($prev_stat_id, $limit);
+    my $stat_table_name = $app->stat_table_name;
+    $prev_stat_id = 0 if ($prev_stat_table_name // $stat_table_name) ne $stat_table_name;
+    my ($stat_id, $folder_ids, $country_list) = $schema->resultset('Stat')->mirror_misses($stat_table_name, $prev_stat_id, $limit);
     $common_guard = undef;
     my $rs = $schema->resultset('Folder');
     my $last_run = 0;
     while (scalar(@$folder_ids)) {
         my $cnt = 0;
         $prev_stat_id = $stat_id;
-        print(STDERR "$pref read id from stat up to: $stat_id\n");
+        # print(STDERR "$pref read id from stat up to: $stat_id\n");
         for my $folder_id (@$folder_ids) {
             $cnt = $cnt + 1;
             $rs->request_scan($folder_id);
@@ -67,7 +70,10 @@ sub _run {
         $last_run = $last_run + $cnt;
         last unless $cnt;
         $limit = 1000;
-        ($stat_id, $folder_ids, $country_list) = $schema->resultset('Stat')->mirror_misses($prev_stat_id, $limit);
+        $prev_stat_table_name = $stat_table_name;
+        $stat_table_name = $app->stat_table_name;
+        $prev_stat_id = 0 if ($prev_stat_table_name // $stat_table_name) ne $stat_table_name;
+        ($stat_id, $folder_ids, $country_list) = $schema->resultset('Stat')->mirror_misses($stat_table_name, $prev_stat_id, $limit);
     }
 
     if ($minion->lock('mirror_force_done', 9000)) {
@@ -81,10 +87,10 @@ sub _run {
     }
 
     $prev_stat_id = 0 unless $prev_stat_id;
-    print(STDERR "$pref will retry with id: $prev_stat_id\n");
+    # print(STDERR "$pref will retry with id: $prev_stat_id\n");
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
-    $job->note(stat_id => $prev_stat_id, total => $total, last_run => $last_run);
+    $job->note(stat_id => $stat_id, total => $total, last_run => $last_run, stat_table_name => $stat_table_name);
 
     return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});

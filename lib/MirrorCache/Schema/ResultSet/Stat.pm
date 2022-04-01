@@ -35,7 +35,8 @@ sub prev_day {
 }
 
 sub curr {
-    my ($self) = @_;
+    my ($self, $stat_table_name) = @_;
+    $stat_table_name = 'stat' unless $stat_table_name;
     my $dbh     = $self->result_source->schema->storage->dbh;
 
     my $sql = <<"END_SQL";
@@ -49,7 +50,7 @@ sum(case when mirror_id < -1 and dt > date_trunc('hour', now()) then 1 else 0 en
 sum(case when mirror_id >= 0 then 1 else 0 end) as hit_day,
 sum(case when mirror_id = -1 then 1 else 0 end) as miss_day,
 sum(case when mirror_id < -1 then 1 else 0 end) as geo_day
-from stat
+from $stat_table_name
 where dt > date_trunc('day', now());
 END_SQL
     my $prep = $dbh->prepare($sql);
@@ -58,7 +59,8 @@ END_SQL
 }
 
 sub mycurr {
-    my ($self, $ip_sha1) = @_;
+    my ($self, $ip_sha1, $stat_table_name) = @_;
+    $stat_table_name = 'stat' unless $stat_table_name;
     my $dbh     = $self->result_source->schema->storage->dbh;
 
     my $sql = <<"END_SQL";
@@ -72,7 +74,7 @@ sum(case when mirror_id < -1 and dt > date_trunc('hour', now()) then 1 else 0 en
 sum(case when mirror_id >= 0 then 1 else 0 end) as hit_day,
 sum(case when mirror_id = -1 then 1 else 0 end) as miss_day,
 sum(case when mirror_id < -1 then 1 else 0 end) as geo_day
-from stat
+from $stat_table_name
 where dt > date_trunc('day', now()) and ip_sha1 = ?;
 END_SQL
     my $prep = $dbh->prepare($sql);
@@ -101,17 +103,18 @@ END_SQL
 }
 
 sub latest_hit {
-    my ($self, $prev_stat_id) = @_;
+    my ($self, $stat_table_name, $prev_stat_id) = @_;
     $prev_stat_id = 0 unless $prev_stat_id;
+    $stat_table_name = 'stat' unless $stat_table_name;
     my $dbh     = $self->result_source->schema->storage->dbh;
 
     my $sql = << "END_SQL";
-select stat.id, mirror_id, trim(stat.country),
+select s.id, mirror_id, trim(s.country),
        concat(case when secure then 'https://' else 'http://' end, CASE WHEN length(server.hostname_vpn)>0 THEN server.hostname_vpn ELSE server.hostname END, server.urldir, case when metalink then regexp_replace(path, '(.*)\.metalink', E'\\1') else path end) as url,
        substring(path,'(^(/.*)+)/') as folder, folder_id
-       from stat join server on mirror_id = server.id
-       where stat.id > ?
-       order by stat.id desc
+       from $stat_table_name s join server on mirror_id = server.id
+       where s.id > ?
+       order by s.id desc
        limit 1
 END_SQL
     my $prep = $dbh->prepare($sql);
@@ -120,30 +123,31 @@ END_SQL
 };
 
 sub path_misses {
-    my ($self, $prev_stat_id, $limit) = @_;
+    my ($self, $stat_table_name, $prev_stat_id, $limit) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = << 'END_SQL';
+    my $path_regex = '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz$';
+    my $sql = << "END_SQL";
 select * from (
-select stat.id, stat.path, stat.folder_id, trim(country)
-from stat left join folder on folder.id = stat.folder_id
+select s.id, s.path, s.folder_id, trim(country)
+from $stat_table_name s left join folder on folder.id = s.folder_id
 where mirror_id < 1
 and ( mirror_id in (0,-1) or mirrorlist )
 and file_id is null
-and stat.path !~ '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz$'
-and stat.agent NOT ILIKE '%bot%'
+and s.path !~ '$path_regex'
+and s.agent NOT ILIKE '%bot%'
 and (
-    stat.folder_id is null or
+    s.folder_id is null or
     folder.sync_requested < folder.sync_scheduled
     )
 END_SQL
-    $sql = "$sql and stat.id > $prev_stat_id" if $prev_stat_id;
+    $sql = "$sql and s.id > $prev_stat_id" if $prev_stat_id;
     $sql = "$sql limit ($limit+1)";
     $sql = "$sql ) x";
-    $sql = "$sql union all select max(id), '-max_id', null, null from stat"; # this is just to get max(id) in the same query
+    $sql = "$sql union all select max(id), '-max_id', null, null from $stat_table_name"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";
 
     my $prep = $dbh->prepare($sql);
@@ -168,7 +172,7 @@ END_SQL
 }
 
 sub mirror_misses {
-    my ($self, $prev_stat_id, $limit) = @_;
+    my ($self, $stat_table_name, $prev_stat_id, $limit) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
@@ -176,18 +180,18 @@ sub mirror_misses {
 
     my $sql = << "END_SQL";
 select * from (
-select stat.id, stat.folder_id, trim(country)
-from stat join folder on folder.id = stat.folder_id
+select s.id, s.folder_id, trim(country)
+from $stat_table_name s join folder on folder.id = s.folder_id
 where mirror_id in (-1, 0) and file_id is not null
-and stat.agent NOT ILIKE '%bot%'
+and s.agent NOT ILIKE '%bot%'
 and (
     folder.id is null or
     folder.scan_last is null or folder.scan_last > folder.scan_scheduled
     )
 END_SQL
-    $sql = "$sql and stat.id > $prev_stat_id" if $prev_stat_id;
-    $sql = "$sql order by stat.id desc limit ($limit+1) ) x";
-    $sql = "$sql union all select max(id), 0, null from stat"; # this is just to get max(id) in the same query
+    $sql = "$sql and s.id > $prev_stat_id" if $prev_stat_id;
+    $sql = "$sql order by s.id desc limit ($limit+1) ) x";
+    $sql = "$sql union all select max(id), 0, null from $stat_table_name"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";
 
     my $prep = $dbh->prepare($sql);

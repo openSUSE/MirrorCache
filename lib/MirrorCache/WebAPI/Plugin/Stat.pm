@@ -25,6 +25,7 @@ has log    => undef, weak => 1;
 has timer  => undef;
 
 has rows => undef;
+has stat_table_name => undef;
 
 my $FLUSH_INTERVAL_SECONDS = $ENV{MIRRORCACHE_STAT_FLUSH_INTERVAL_SECONDS} // 10;
 my $FLUSH_COUNT            = $ENV{MIRRORCACHE_STAT_FLUSH_COUNT} // 100;
@@ -37,6 +38,20 @@ sub register($self, $app, $args) {
     $app->helper( 'stat' => sub {
         return $self;
     });
+
+    if ($ENV{MIRRORCACHE_STAT_PARTITION}) {
+        $app->helper( 'stat_table_name' => sub {
+            my ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek, $dayOfYear, $daylightSavings) = localtime();
+            $month = $month + 1;
+            return "stat_0$month" if $month < 10;
+            return "stat_$month";
+        });
+    } else {
+        $app->helper( 'stat_table_name' => sub {
+            return 'stat';
+        });
+    }
+    $self->stat_table_name($app->stat_table_name);
     1;
 }
 
@@ -94,8 +109,9 @@ sub flush($self, $rows) {
     return unless $rows;
     $self->rows(undef);
     my @rows = @$rows;
+    my $stat_table_name = $self->stat_table_name();
     my $sql = <<"END_SQL";
-insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, mirrorlist, head, pid, execution_time)
+insert into $stat_table_name(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, mirrorlist, head, pid, execution_time)
 values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 END_SQL
 

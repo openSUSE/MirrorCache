@@ -29,7 +29,7 @@ sub register {
 my $DELAY = int($ENV{MIRRORCACHE_MIRROR_CHECK_DELAY} // 5);
 
 sub _run {
-    my ($app, $job, $prev_stat_id) = @_;
+    my ($app, $job, $prev_stat_id, $prev_stat_table_name) = @_;
     return $job->retry({delay => 10*$DELAY}) if $app->backstage->inactive_jobs_exceed_limit;
 
     my $job_id = $job->id;
@@ -37,6 +37,8 @@ sub _run {
     my $id_in_notes = $job->info->{notes}{stat_id};
     $prev_stat_id = $id_in_notes if $id_in_notes;
     $prev_stat_id = 0 unless $prev_stat_id;
+    my $stat_table_in_notes = $job->info->{notes}{stat_table_name};
+    $prev_stat_table_name = $stat_table_in_notes if $stat_table_in_notes;
 
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
@@ -44,8 +46,9 @@ sub _run {
       unless my $guard = $minion->guard('mirror_check_from_stat', 60);
 
     my $schema = $app->schema;
-
-    my ($stat_id, $mirror_id, $country, $url, $folder, $folder_id) = $schema->resultset('Stat')->latest_hit($prev_stat_id);
+    my $stat_table_name = $app->stat_table_name;
+    $prev_stat_id = 0 if ($prev_stat_table_name // $stat_table_name) ne $stat_table_name;
+    my ($stat_id, $mirror_id, $country, $url, $folder, $folder_id) = $schema->resultset('Stat')->latest_hit($stat_table_name, $prev_stat_id);
     my $last_run = 0;
     while ($stat_id && $stat_id > $prev_stat_id) {
         my $cnt = 0;
@@ -59,10 +62,13 @@ sub _run {
             return $job->retry({delay => 10*$DELAY}) if $app->backstage->inactive_jobs_exceed_limit;
             $schema->resultset('Folder')->request_scan($folder_id);
         }
+        $prev_stat_table_name = $stat_table_name;
+        $stat_table_name = $app->stat_table_name;
+        $prev_stat_id = 0 if ($prev_stat_table_name // $stat_table_name) ne $stat_table_name;
 
-        ($stat_id, $mirror_id, $country, $url, $folder, $folder_id) = $schema->resultset('Stat')->latest_hit($prev_stat_id);
+        ($stat_id, $mirror_id, $country, $url, $folder, $folder_id) = $schema->resultset('Stat')->latest_hit($stat_table_name, $prev_stat_id);
     }
-    $job->note(stat_id => $stat_id);
+    $job->note(stat_id => $stat_id, stat_table_name => $stat_table_name);
 
     return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});

@@ -270,3 +270,16 @@ create table if not exists server_stability (
     dt timestamp,
     rating int -- 0 - bad, 1 - unknown, 10 - some issues last hour, 100 - some issues last 24 hours, 1000 - no issues recorder last 24 hours.
 );
+-- 22 up
+create table stat_01(like stat including all);
+create table stat_02(like stat including all);
+create table stat_03(like stat including all);
+create table stat_04(like stat including all);
+create table stat_05(like stat including all);
+create table stat_06(like stat including all);
+create table stat_07(like stat including all);
+create table stat_08(like stat including all);
+create table stat_09(like stat including all);
+create table stat_10(like stat including all);
+create table stat_11(like stat including all);
+create table stat_12(like stat including all);
