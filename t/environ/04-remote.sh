@@ -22,8 +22,8 @@ done
 $mc/start
 $mc/status
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'us','na'"
 
 rm $ap8/dt/folder1/file2.1.dat
 
@@ -40,7 +40,7 @@ test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
 # let's pretend hashes were imported somehow and make sure they are shown in UI
-$mc/sql 'insert into hash(file_id, size, mtime, dt) select 1, 5, extract(epoch from now()), now()'
+$mc/sql 'insert into hash(file_id, size, mtime, dt) select 1, 5, unix_timestamp(), now()'
 $mc/curl /download/folder1/ | grep -A2 file1.1.dat | grep '5 Byte'
 
 $mc/curl -I /download/folder1/file2.1.dat | grep $($ap7/print_address)
@@ -108,7 +108,7 @@ $mc/curl -I /download/folder1/folder11/file1.1.dat | grep -E "$($ap7/print_addre
 $mc/curl /download/folder1/folder11/ | grep file1.1.dat
 
 
-$mc/curl /download/folder1?status=all | grep '"recent":2'| grep '"not_scanned":0' | grep '"outdated":0'
+$mc/curl /download/folder1?status=all | grep '"recent":"2"'| grep '"not_scanned":"0"' | grep '"outdated":"0"'
 $mc/curl /download/folder1?status=recent | grep $($ap7/print_address) | grep $($ap8/print_address)
 test {} == $($mc/curl /download/folder1?status=outdated)
 test {} == $($mc/curl /download/folder1?status=not_scanned)

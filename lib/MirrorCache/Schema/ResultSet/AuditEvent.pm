@@ -31,12 +31,13 @@ sub mirror_path_errors {
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
+    my $limit1 = $limit + 1;
 
     my $sql = "select id, event_data from audit_event where name in ('mirror_path_error')";
     $sql = "$sql and id > $prev_event_log_id" if $prev_event_log_id;
     $sql = "$sql union all select max(id), '-max_id' from audit_event";
     $sql = "$sql order by id desc";
-    $sql = "$sql limit ($limit+1)";
+    $sql = "$sql limit $limit1";
 
     my $prep = $dbh->prepare($sql);
     $prep->execute();
@@ -147,10 +148,10 @@ sub cleanup_audit_events {
 
     if ($other_time_constraint) {
         my @pattern_values = values %event_patterns;
-        my $sql_other      = 'delete from audit_event where id in (';
-        $sql_other = "$sql_other select id from audit_event where dt < ? and";
+        my $sql_other      = 'delete from audit_event where ';
+        $sql_other = "$sql_other dt < ? and";
         $sql_other = "$sql_other " . join(' and ', map { 'name not like ?' } @pattern_values);
-        $sql_other = "$sql_other order by dt limit 100000 )";
+        $sql_other = "$sql_other order by dt limit 100000";
         eval {
             $dbh->prepare($sql_other)->execute($other_time_constraint, @pattern_values);
             1;

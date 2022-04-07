@@ -67,7 +67,7 @@ __PACKAGE__->add_columns(
   },
   sync_requested => {
         data_type   => 'timestamp',
-        dynamic_default_on_create => 'DBIx::Class::Timestamps::now',
+        # dynamic_default_on_create => 'DBIx::Class::Timestamps::now',
         is_nullable => 1
   },
   sync_scheduled => {

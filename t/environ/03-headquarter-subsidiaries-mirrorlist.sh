@@ -51,18 +51,18 @@ $mc9/backstage/shoot
 $mc9/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
 $mc9/sql "insert into subsidiary(hostname,region) select '$eu_address','eu'"
 $mc9/start
-$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap1/print_address)','','t','jp','as'"
-$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap2/print_address)','','t','jp','as'"
+$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap1/print_address)','',1,'jp','as'"
+$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap2/print_address)','',1,'jp','as'"
 
 $mc6/gen_env MIRRORCACHE_REGION=na "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
 $mc6/start
-$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','t','us','na'"
-$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','ca','na'"
+$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','',1,'us','na'"
+$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','',1,'ca','na'"
 
 $mc7/gen_env MIRRORCACHE_REGION=eu "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
 $mc7/start
-$mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','de','eu'"
-$mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','dk','eu'"
+$mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','',1,'de','eu'"
+$mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','',1,'dk','eu'"
 
 for i in 9 6 7; do
     mc$i/backstage/job -e folder_sync -a '["/folder1"]'

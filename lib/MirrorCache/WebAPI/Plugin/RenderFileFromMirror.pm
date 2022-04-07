@@ -27,6 +27,8 @@ use Mojo::File;
 use Mojo::Date;
 use Mojo::IOLoop::Subprocess;
 
+use Data::Dumper;
+
 sub register {
     my ($self, $app) = @_;
     $app->types->type(metalink => 'application/metalink+xml; charset=UTF-8');
@@ -55,7 +57,7 @@ sub register {
             if (!$folder->wanted) {
                 $need_update = 1;
             } else {
-                my $diff = DateTime->now->subtract_datetime($folder->wanted->set_time_zone('local'));
+                my $diff = DateTime->now(time_zone => 'local')->subtract_datetime($folder->wanted->set_time_zone('local'));
                 my $diff_days = $diff->in_units('days');
                 $need_update = 1 if $diff_days > 13;
             }
@@ -284,6 +286,7 @@ sub register {
                 my $result = shift->result;
                 $code = $result->code;
                 if ($code == 200 || $code == 302 || $code == 301) {
+                    print STDERR Dumper('RECURS', $dm->scan_last_ago);
                     my $size = $result->headers->content_length if $result->headers;
                     if ((defined $size && defined $expected_size) && ($size || $expected_size) && $size ne $expected_size) {
                         my $scan_last = $dm->folder_scan_last;

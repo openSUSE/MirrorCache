@@ -1,7 +1,8 @@
 set -e
 [ -e __workdir/conf.env ] || (
 
-echo export TEST_PG=\'$(__workdir/db/print_dbi mc_test)\'
+# echo export TEST_PG=\'$(__workdir/db/print_dbi mc_test)\'
+echo export TEST_MYSQL=\'$(__workdir/db/print_dbi mc_test)\'
 
 echo "export MIRRORCACHE_ROOT=__workdir/dt
 export MIRRORCACHE_CITY_MMDB=__srcdir/t/data/city.mmdb

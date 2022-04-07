@@ -40,17 +40,17 @@ sub curr {
 
     my $sql = <<"END_SQL";
 select
-sum(case when mirror_id >= 0 and dt > date_trunc('minute', now()) then 1 else 0 end) as hit_minute,
-sum(case when mirror_id = -1 and dt > date_trunc('minute', now()) then 1 else 0 end) as miss_minute,
-sum(case when mirror_id < -1 and dt > date_trunc('minute', now()) then 1 else 0 end) as geo_minute,
-sum(case when mirror_id >= 0 and dt > date_trunc('hour', now()) then 1 else 0 end) as hit_hour,
-sum(case when mirror_id = -1 and dt > date_trunc('hour', now()) then 1 else 0 end) as miss_hour,
-sum(case when mirror_id < -1 and dt > date_trunc('hour', now()) then 1 else 0 end) as geo_hour,
+sum(case when mirror_id >= 0 and dt > date_trunc('minute', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as hit_minute,
+sum(case when mirror_id = -1 and dt > date_trunc('minute', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as miss_minute,
+sum(case when mirror_id < -1 and dt > date_trunc('minute', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as geo_minute,
+sum(case when mirror_id >= 0 and dt > date_trunc('hour', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as hit_hour,
+sum(case when mirror_id = -1 and dt > date_trunc('hour', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as miss_hour,
+sum(case when mirror_id < -1 and dt > date_trunc('hour', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as geo_hour,
 sum(case when mirror_id >= 0 then 1 else 0 end) as hit_day,
 sum(case when mirror_id = -1 then 1 else 0 end) as miss_day,
 sum(case when mirror_id < -1 then 1 else 0 end) as geo_day
 from stat
-where dt > date_trunc('day', now());
+where dt > date_trunc('day', CURRENT_TIMESTAMP(3));
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute();
@@ -63,17 +63,17 @@ sub mycurr {
 
     my $sql = <<"END_SQL";
 select
-sum(case when mirror_id >= 0 and dt > date_trunc('minute', now()) then 1 else 0 end) as hit_minute,
-sum(case when mirror_id = -1 and dt > date_trunc('minute', now()) then 1 else 0 end) as miss_minute,
-sum(case when mirror_id < -1 and dt > date_trunc('minute', now()) then 1 else 0 end) as geo_minute,
-sum(case when mirror_id >= 0 and dt > date_trunc('hour', now()) then 1 else 0 end) as hit_hour,
-sum(case when mirror_id = -1 and dt > date_trunc('hour', now()) then 1 else 0 end) as miss_hour,
-sum(case when mirror_id < -1 and dt > date_trunc('hour', now()) then 1 else 0 end) as geo_hour,
+sum(case when mirror_id >= 0 and dt > date_trunc('minute', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as hit_minute,
+sum(case when mirror_id = -1 and dt > date_trunc('minute', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as miss_minute,
+sum(case when mirror_id < -1 and dt > date_trunc('minute', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as geo_minute,
+sum(case when mirror_id >= 0 and dt > date_trunc('hour', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as hit_hour,
+sum(case when mirror_id = -1 and dt > date_trunc('hour', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as miss_hour,
+sum(case when mirror_id < -1 and dt > date_trunc('hour', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as geo_hour,
 sum(case when mirror_id >= 0 then 1 else 0 end) as hit_day,
 sum(case when mirror_id = -1 then 1 else 0 end) as miss_day,
 sum(case when mirror_id < -1 then 1 else 0 end) as geo_day
 from stat
-where dt > date_trunc('day', now()) and ip_sha1 = ?;
+where dt > date_trunc('day', CURRENT_TIMESTAMP(3)) and ip_sha1 = ?;
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($ip_sha1);
@@ -133,15 +133,16 @@ from stat left join folder on folder.id = stat.folder_id
 where mirror_id < 1
 and ( mirror_id in (0,-1) or mirrorlist )
 and file_id is null
-and stat.path !~ '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz$'
-and stat.agent NOT ILIKE '%bot%'
+and stat.path not regexp '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz$'
+and lower(stat.agent) NOT LIKE '%bot%'
 and (
     stat.folder_id is null or
     folder.sync_requested < folder.sync_scheduled
     )
 END_SQL
     $sql = "$sql and stat.id > $prev_stat_id" if $prev_stat_id;
-    $sql = "$sql limit ($limit+1)";
+    $limit = $limit + 1;
+    $sql = "$sql limit $limit";
     $sql = "$sql ) x";
     $sql = "$sql union all select max(id), '-max_id', null, null from stat"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";

@@ -20,8 +20,8 @@ $ap7/curl /folder1/ | grep file1.1.dat
 $ap8/start
 $ap8/curl /folder1/ | grep file1.1.dat
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'us','na'"
 
 $mc/curl -I /download/folder1/file1.1.dat
 
@@ -44,12 +44,12 @@ $mc/backstage/shoot
 test 1 == $($mc/db/sql "select sum(case when success then 0 else 1 end) from server_capability_check where server_id=1 and capability='http'")
 
 # add 4 more failures from the past into DB
-$mc/db/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'"
-$mc/db/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'"
-$mc/db/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'"
-$mc/db/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 'f', (select min(dt) from server_capability_check) - interval '15 min'"
-$mc/db/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'https', 'f', (select min(dt) from server_capability_check) - interval '15 min'"
-$mc/db/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'https', 'f', (select min(dt) from server_capability_check) - interval '15 min'"
+$mc/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 0, date_sub(min(dt), interval 15 minute)  from server_capability_check"
+$mc/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 0, date_sub(min(dt), interval 15 minute)  from server_capability_check"
+$mc/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 0, date_sub(min(dt), interval 15 minute)  from server_capability_check"
+$mc/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'http', 0, date_sub(min(dt), interval 15 minute)  from server_capability_check"
+$mc/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'https', 0, date_sub(min(dt), interval 15 minute)  from server_capability_check"
+$mc/sql "insert into server_capability_check(server_id, capability, success, dt) select 1, 'https', 0, date_sub(min(dt), interval 15 minute)  from server_capability_check"
 
 # make sure we added properly
 test 5 == $($mc/db/sql "select sum(case when success then 0 else 1 end) from server_capability_check where server_id=1 and capability='http'")
@@ -63,7 +63,7 @@ test 1 == $($mc/db/sql "select count(*) from server_capability_force where serve
 test 1 == $($mc/db/sql "select count(*) from server_capability_force where server_id=1 and capability='http'")
 
 # age entry, so next job will consider it
-$mc/db/sql "update server_capability_force set dt = dt - interval '3 hour'"
+$mc/db/sql "update server_capability_force set dt = date_sub(dt, interval 3 hour)"
 
 # now start back ap7 and shut down ap8 but ap7 is not redirected, because it is force disabled
 $ap7/start

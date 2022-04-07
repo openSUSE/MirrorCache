@@ -125,9 +125,11 @@ END_SQL
                     } elsif ($RECKLESS) {
                         $demand_scan{$folder_id} = 1;
                     } else {
+                        # print STDERR Dumper('STATTTTTTTTTTTTTTTT    ===> ', $mirror_id, $file_age);
                         next unless $file_age && $scan_last;
                         $scan_last->set_time_zone('local');
                         my $scan_last_ago = time() - $scan_last->epoch;
+                        # print STDERR "FILEAGE ===========================>   $file_id       $file_age\n";
                         if ($file_age < 3600) {
                             $demand_scan{$folder_id} = 1 unless $scan_last_ago < 30*60;
                         } elsif ($file_age < 4*3600) {

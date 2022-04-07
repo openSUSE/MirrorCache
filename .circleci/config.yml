@@ -30,4 +30,3 @@ workflows:
   test:
     jobs:
       - environ
-      - systemd

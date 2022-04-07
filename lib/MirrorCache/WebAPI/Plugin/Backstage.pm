@@ -20,7 +20,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Minion;
 use DBIx::Class::Timestamps 'now';
 use MirrorCache::Schema;
-use Mojo::Pg;
+use Mojo::mysql;
 
 has app => undef, weak => 1;
 
@@ -66,11 +66,11 @@ sub register {
     $self->app($app) unless $self->app;
     my $schema = $app->schema;
 
-    my $conn = Mojo::Pg->new;
+    my $conn = Mojo::mysql->new;
     $conn->dsn( $schema->dsn );
     $conn->password($ENV{MIRRORCACHE_DBPASS}) if $ENV{MIRRORCACHE_DBPASS};
 
-    $app->plugin( Minion => { Pg => $conn } );
+    $app->plugin( Minion => { mysql => $conn } );
     $self->register_tasks;
 
     # Enable the Minion Admin interface under /minion
@@ -131,7 +131,7 @@ sub inactive_jobs_exceed_limit {
     my ( $self, $limit, $task, $queue ) = @_;
     $limit = 200 unless $limit;
     $queue = 'default' unless $queue;
-    my $db = $self->app->minion->backend->pg->db;
+    my $db = $self->app->minion->backend->mysql->db;
     my $limit1 = $limit + 1;
 
     my $sql = <<'END_SQL';

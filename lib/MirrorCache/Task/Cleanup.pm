@@ -35,20 +35,11 @@ sub _run {
 
     # purge unreferenced folder_diff
     my $sql = <<'END_SQL';
-with DiffToDelete as (
-   select fd.id
-   from folder_diff fd
-   left join folder_diff_server fds on fds.folder_diff_id = fd.id
-   where
-   fds.folder_diff_id is null
-   and fd.dt < current_timestamp - interval '2 day'
-   limit 1000
- ),
-FilesDeleted as (
-   delete from folder_diff_file where folder_diff_id in
-   (select * from DiffToDelete))
-delete from folder_diff where id in
-   (select * from DiffToDelete)
+delete fd from folder_diff fd
+left join folder_diff_server fds on fds.folder_diff_id = fd.id
+where
+fds.folder_diff_id is null
+and fd.dt < date_sub(CURRENT_TIMESTAMP(3), interval 2 day)
 END_SQL
 
     eval {
@@ -67,10 +58,10 @@ where ctid in (
 )
 END_SQL
 
-    eval {
-        $schema->storage->dbh->prepare($sqlservercap)->execute();
-        1;
-    } or $job->note(last_warning => $@, at => datetime_now());
+    # eval {
+    #    $schema->storage->dbh->prepare($sqlservercap)->execute();
+    #    1;
+    # } or $job->note(last_warning => $@, at => datetime_now());
 
     # delete rows from server_capability_check to avoid overload
     $sqlservercap = <<'END_SQL';
@@ -82,10 +73,10 @@ where ctid in (
 )
 END_SQL
 
-    eval {
-        $schema->storage->dbh->prepare($sqlservercap)->execute();
-        1;
-    } or $job->note(last_warning => $@, at => datetime_now());
+    # eval {
+    #    $schema->storage->dbh->prepare($sqlservercap)->execute();
+    #    1;
+    # } or $job->note(last_warning => $@, at => datetime_now());
 
     # delete rows from audit_event
     my $fail_count;

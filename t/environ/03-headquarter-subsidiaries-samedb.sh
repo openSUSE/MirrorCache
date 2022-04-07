@@ -50,30 +50,30 @@ $mc9/backstage/shoot
 $mc9/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
 $mc9/sql "insert into subsidiary(hostname,region) select '$eu_address','eu'"
 $mc9/sql "insert into subsidiary(hostname,region) select '$as_address','as'"
-$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap1/print_address)','','t','br','sa'"
-$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap2/print_address)','','t','br','sa'"
+$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap1/print_address)','',1,'br','sa'"
+$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap2/print_address)','',1,'br','sa'"
 $mc9/start
 
 $mc6/gen_env MIRRORCACHE_TOP_FOLDERS="'folder1 folder2 folder3'" MIRRORCACHE_REGION=na MIRRORCACHE_HEADQUARTER=$hq_address
 rm -r $mc6/db
 ln -s $mc9/db $mc6/db
 $mc6/start
-$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','t','us','na'"
-$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','ca','na'"
+$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','',1,'us','na'"
+$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','',1,'ca','na'"
 
 $mc7/gen_env MIRRORCACHE_TOP_FOLDERS="'folder1 folder2 folder3'" MIRRORCACHE_REGION=eu MIRRORCACHE_HEADQUARTER=$hq_address
 rm -r $mc7/db
 ln -s $mc9/db $mc7/db
 $mc7/start
-$mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','de','eu'"
-$mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','dk','eu'"
+$mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','',1,'de','eu'"
+$mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','',1,'dk','eu'"
 
 $mc8/gen_env MIRRORCACHE_TOP_FOLDERS="'folder1 folder2 folder3'" MIRRORCACHE_REGION=as MIRRORCACHE_HEADQUARTER=$hq_address
 rm -r $mc8/db
 ln -s $mc9/db $mc8/db
 $mc8/start
-$mc8/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','jp','as'"
-$mc8/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','jp','as'"
+$mc8/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'jp','as'"
+$mc8/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'jp','as'"
 
 echo the root folder is not redirected
 curl --interface $eu_interface -Is http://$hq_address/ | grep '200 OK'

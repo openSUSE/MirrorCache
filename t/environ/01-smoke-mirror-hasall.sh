@@ -22,12 +22,12 @@ $ap8/curl /folder1/ | grep file1.1.dat
 
 FAKEURL="notexists${RANDOM}.com"
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$FAKEURL','','t','it','eu'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'de','eu'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$FAKEURL','',1,'it','eu'"
 
 
-$mc/db/sql "insert into server_capability_declaration(server_id, capability, enabled) select id, 'hasall', 't' from server where hostname = '${FAKEURL}'";
+$mc/db/sql "insert into server_capability_declaration(server_id, capability, enabled) select id, 'hasall', 1 from server where hostname = '${FAKEURL}'";
 
 $mc/curl -Is /download/folder1/file1.1.dat.mirrorlist
 

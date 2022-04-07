@@ -17,7 +17,7 @@ select sum(case when diff = 0 then 1 else 0 end) as current, sum(case when diff 
 from (
 select server_id, max(case when d1 <> d2 then 1 else 0 end) diff
 from (
-select prj.etalon, f.path, f.id, fd.folder_id, fd2.folder_id, fds.server_id, fds.folder_diff_id as d1, fds2.folder_diff_id as d2
+select prj.etalon, f.path, f.id, fd.folder_id, fds.server_id, fds.folder_diff_id as d1, fds2.folder_diff_id as d2
 from project prj
 join folder f on f.path like concat(prj.path,'/%')
 join folder_diff fd on fd.folder_id = f.id

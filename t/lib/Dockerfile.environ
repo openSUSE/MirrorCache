@@ -5,17 +5,22 @@ ENV LANG en_US.UTF-8
 
 RUN sed -i 's,http://download.opensuse.org,https://mirrorcache.opensuse.org/download,g' /etc/zypp/repos.d/*repo
 RUN zypper ar -f https://mirrorcache.opensuse.org/repositories/openSUSE:infrastructure:MirrorCache/openSUSE_Leap_15.3 mc
+RUN zypper ar -f https://download.opensuse.org/repositories/home:/andriinikitin:/branches:/devel:/languages:/perl:/CPAN-M/15.3 pm
+RUN zypper ar -f https://download.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.3 perl
 RUN zypper --gpg-auto-import-keys ref
 
 # install MirrorCache here to fetch all dependencies
 RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-Plugin-ClientIP \
-    vim postgresql postgresql-server curl sudo git-core wget tar m4 \
-    apache2 perl-Digest-MD4 tidy nginx bbe
+    vim mariadb mariadb-server curl sudo git-core wget tar m4 \
+    apache2 perl-Digest-MD4 tidy nginx bbe perl-DBD-mysql perl-Mojo-mysql perl-Minion-Backend-mysql perl-DateTime-HiRes
 
 # optional dependencies used in testing
 RUN zypper -vvv -n install perl-Geo-IP2Location perl-Inline-C gcc
 
 RUN zypper -vvv -n install make rsync
+
+RUN zypper -vvv -n install perl-DateTime-Format-MySQL
+
 
 # this hack is needed because old nginx versions cannot run as non-root
 RUN bbe -e 's,/var/log/nginx/error.log,/tmp/log_nginx_error.log,' /usr/sbin/nginx > /usr/sbin/nginx.hacked
@@ -28,5 +33,8 @@ RUN git clone https://github.com/andrii-suse/environ
 WORKDIR /opt/environ
 RUN make install
 WORKDIR /opt/project
+ENV TZ UTC
+ENV MOJO_PUBSUB_EXPERIMENTAL 1
+
 
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]

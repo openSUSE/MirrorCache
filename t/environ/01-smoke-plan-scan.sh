@@ -26,8 +26,8 @@ $ap8/start
 $ap8/curl /folder1/ | grep file1.1.dat
 
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','de','eu'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','',1,'us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','',1,'de','eu'"
 
 $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=mx
 $mc/backstage/job folder_sync_schedule_from_misses
@@ -36,7 +36,7 @@ $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
-test 1 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%'")
+$mc/sql_test 1 == "select count(*) from minion_jobs where task = 'mirror_scan' and args like '%/folder1%'"
 
 $mc/db/sql "select * from minion_locks"
 
@@ -44,7 +44,7 @@ $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=mx | grep -C10 302 | grep "$($
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 # now another job should start
-test 2 == $($mc/db/sql "select count(*) from minion_jobs where task = 'mirror_scan' and args::varchar like '%/folder1%'")
+$mc/sql_test 2 == "select count(*) from minion_jobs where task = 'mirror_scan' and args like '%/folder1%'"
 
 #######################################
 $mc/curl --interface 127.0.0.3 -I /download/folder2/file1.1.dat

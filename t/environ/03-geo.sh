@@ -13,9 +13,9 @@ for x in $mc $ap7 $ap8 $ap9; do
     $x/start
 done
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','','t','de','eu'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','','t','cn','as'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.2:1304','',1,'us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.3:1314','',1,'de','eu'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.4:1324','',1,'cn','as'"
 
 $mc/curl --interface 127.0.0.2 -I /download/folder1/file1.1.dat | grep 200
 $mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat

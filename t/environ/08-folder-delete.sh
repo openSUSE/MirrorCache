@@ -20,8 +20,8 @@ $ap7/curl /folder1/ | grep file1.1.dat
 $ap8/start
 $ap8/curl /folder1/ | grep file1.1.dat
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
+$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'us','na'"
 
 # remove folder1/file1.1.dt from ap8
 rm $ap8/dt/folder1/file2.1.dat

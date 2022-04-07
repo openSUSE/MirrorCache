@@ -20,6 +20,8 @@ use warnings;
 
 use base 'DBIx::Class::ResultSet';
 
+use Data::Dumper;
+
 sub get_sync_queue_position {
     my ($self, $path) = @_;
     my $rsource = $self->result_source;
@@ -45,8 +47,8 @@ sub set_wanted {
 
     my $sql = << "END_SQL";
 update folder
-set wanted = now()
-where id = ? and (wanted < now() -  2*7*24*60* interval '60 second' or wanted is null)
+set wanted = CURRENT_TIMESTAMP(3)
+where id = ? and (wanted < date_sub(CURRENT_TIMESTAMP(3), interval 2*7*24*60 minute) or wanted is null)
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($folder_id);
@@ -61,14 +63,17 @@ sub request_sync {
 
     my $sql = <<'END_SQL';
 insert into folder(path, wanted, sync_requested)
-values (?, now(), now())
-on conflict(path) do update set
-sync_requested = CASE WHEN folder.sync_requested > folder.sync_scheduled THEN folder.sync_requested ELSE now() END,
-wanted = CASE WHEN folder.wanted < now() - interval '24 hour' THEN now() ELSE folder.wanted END
-returning id
+values (?, CURRENT_TIMESTAMP(3), CURRENT_TIMESTAMP(3))
+on duplicate key update
+sync_requested = if(sync_requested > sync_scheduled, sync_requested, CURRENT_TIMESTAMP(3)),
+wanted = if(wanted < adddate(CURRENT_TIMESTAMP(3), -1), CURRENT_TIMESTAMP(3), wanted)
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($path);
+
+    $prep = $dbh->prepare('select id from folder where path = ?');
+    $prep->execute($path);
+
     my $res = $prep->fetchrow_arrayref;
     return $res->[0];
 }
@@ -82,8 +87,8 @@ sub request_sync_array {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-update folder set sync_requested = now()
-where ( sync_requested < COALESCE(sync_scheduled, sync_last, now()) or sync_requested is null )
+update folder set sync_requested = CURRENT_TIMESTAMP(3)
+where ( sync_requested <= COALESCE(sync_scheduled, sync_last, CURRENT_TIMESTAMP(3)) or sync_requested is null )
 END_SQL
     $sql = $sql . " AND id in (" . join( ',', map { '?' } @ids ) . ')';
     my $prep = $dbh->prepare($sql);
@@ -100,8 +105,8 @@ sub request_scan {
 
     my $sql = << "END_SQL";
 update folder
-set scan_requested = now()
-where id = ? and (scan_requested IS NULL or scan_scheduled IS NULL or scan_requested < scan_scheduled)
+set scan_requested = CURRENT_TIMESTAMP(3)
+where id = ? and (scan_requested IS NULL or scan_scheduled IS NULL or scan_requested <= scan_scheduled)
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($folder_id);
@@ -116,8 +121,8 @@ sub request_scan_array {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-update folder set scan_requested = now()
-where ( scan_requested < COALESCE(scan_scheduled, scan_last, now()) or scan_requested is null )
+update folder set scan_requested = CURRENT_TIMESTAMP(3)
+where ( scan_requested < COALESCE(scan_scheduled, scan_last, CURRENT_TIMESTAMP(3)) or scan_requested is null )
 END_SQL
     $sql = $sql . " AND id in (" . join( ',', map { '?' } @ids ) . ')';
     my $prep = $dbh->prepare($sql);
@@ -131,7 +136,7 @@ sub scan_complete {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = 'update folder set scan_last = now(), scan_scheduled = coalesce(scan_scheduled, now()) where id = ?';
+    my $sql = 'update folder set scan_last = CURRENT_TIMESTAMP(3), scan_scheduled = coalesce(scan_scheduled, CURRENT_TIMESTAMP(3)) where id = ?';
     my $prep = $dbh->prepare($sql);
     $prep->execute($folder_id);
 }
@@ -174,7 +179,7 @@ join folder f on f.id = fd.folder_id and f.path = ?
 left join folder_diff_file fdf on fdf.folder_diff_id = fd.id
 left join file fl on fl.id = fdf.file_id
 where (
-select max(file.dt) from file where folder_id = f.id and not (name like '%/')) <= fds.dt
+select cast(max(file.dt) as datetime) from file where folder_id = f.id and not (name like '%/')) <= cast(fds.dt as datetime)
 and (fdf.file_id is null or fl.name is not null) -- ignore deleted files
 and (fl.name is NULL or not (fl.name like '%/')) -- ignore folders
 group by s.id, fds.dt;
@@ -199,7 +204,7 @@ join folder f on f.id = fd.folder_id and f.path = ?
 left join folder_diff_file fdf on fdf.folder_diff_id = fd.id
 left join file fl on fl.id = fdf.file_id
 where (
-select max(file.dt) from file where folder_id = f.id and not (name like '%/')) > fds.dt
+select cast(max(file.dt) as datetime) from file where folder_id = f.id and not (name like '%/')) > cast(fds.dt as datetime)
 and (fdf.file_id is null or fl.name is not null) -- ignore deleted files
 and (fl.name is NULL or not (fl.name like '%/')) -- ignore folders
 group by s.id, fds.dt;
@@ -238,8 +243,8 @@ sub stats_all {
 
     my $sql = <<'END_SQL';
 select f.id as id, sync_last as last_sync,
-sum(case when (select max(dt) dt from file where folder_id = f.id and not (name like '%/')) <= fds.dt then 1 else 0 end ) as recent,
-sum(case when (select max(dt) dt from file where folder_id = f.id and not (name like '%/')) > fds.dt then 1 else 0 end ) as outdated,
+sum(case when (select cast(max(dt) as datetime) dt from file where folder_id = f.id and not (name like '%/')) <= cast(fds.dt as datetime) then 1 else 0 end ) as recent,
+sum(case when (select cast(max(dt) as datetime) dt from file where folder_id = f.id and not (name like '%/')) > cast(fds.dt as datetime) then 1 else 0 end ) as outdated,
 sum(case when fds.dt is null then 1 else 0 end ) as not_scanned,
 case when sync_scheduled > sync_last then (select 1+count(*)
       from folder f1
@@ -267,15 +272,16 @@ sub delete_cascade {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
+    eval {
     $schema->txn_do(
         sub {
-            $dbh->prepare("DELETE FROM folder_diff_server
-    USING folder_diff
-    WHERE folder_diff_id = folder_diff.id
+            $dbh->prepare("DELETE fdf FROM folder_diff_server fdf
+    JOIN folder_diff
+    ON fdf.folder_diff_id = folder_diff.id
         AND folder_id = ?")->execute($id);
 
-            $dbh->prepare("DELETE FROM folder_diff_file
-    USING folder_diff
+            $dbh->prepare("DELETE fdf FROM folder_diff_file fdf
+    JOIN folder_diff
     WHERE folder_diff_id = folder_diff.id
         AND folder_id = ?")->execute($id);
 
@@ -284,6 +290,11 @@ sub delete_cascade {
             $dbh->prepare("DELETE FROM file WHERE folder_id = ?")->execute($id) unless $only_diff;
             $dbh->prepare("DELETE FROM folder WHERE id = ?")->execute($id) unless $only_diff;
         });
+        1;
+    } or do {
+        print STDERR Dumper('ERRRRRRR', $@);
+        die $@;
+    };
 }
 
 sub delete_diff {

@@ -6,7 +6,7 @@ use warnings;
 
 use base 'DBIx::Class::Schema';
 use Mojo::File qw(path);
-use Mojo::Pg;
+use Mojo::mysql;
 
 __PACKAGE__->load_namespaces;
 
@@ -22,13 +22,15 @@ sub connect_db {
         my $pass = $ENV{MIRRORCACHE_DBPASS};
         if ($ENV{TEST_PG}) {
             $dsn = $ENV{TEST_PG};
+        } elsif ($ENV{TEST_MYSQL}) {
+            $dsn = $ENV{TEST_MYSQL};
         } elsif ($ENV{MIRRORCACHE_DSN}) {
             $dsn = $ENV{MIRRORCACHE_DSN};
         } else {
             my $db   = $ENV{MIRRORCACHE_DB} // 'mirrorcache';
             my $host = $ENV{MIRRORCACHE_DBHOST};
             my $port = $ENV{MIRRORCACHE_DBPORT};
-            $dsn  = "DBI:Pg:dbname=$db";
+            $dsn  = "DBI:mysql:dbname=$db";
             $dsn = "$dsn;host=$host" if $host;
             $dsn = "$dsn;port=$port" if $port;
         }
@@ -102,12 +104,12 @@ sub has_table {
 
 sub migrate {
     my $self = shift;
-    my $conn = Mojo::Pg->new;
+    my $conn = Mojo::mysql->new;
     $conn->dsn( $self->dsn );
     $conn->password($ENV{MIRRORCACHE_DBPASS}) if $ENV{MIRRORCACHE_DBPASS};
 
     my $dbh     = $self->storage->dbh;
-    my $dbschema = path(__FILE__)->dirname->child('resources', 'migrations', 'pg.sql');
+    my $dbschema = path(__FILE__)->dirname->child('resources', 'migrations', 'mysql.sql');
     $conn->auto_migrate(1)->migrations->name('mirrorcache')->from_file($dbschema);
     $conn->db; # this will do migration
 }
