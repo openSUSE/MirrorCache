@@ -57,7 +57,7 @@ sub register {
             } else {
                 my $diff = DateTime->now->subtract_datetime($folder->wanted->set_time_zone('local'));
                 my $diff_days = $diff->in_units('days');
-                $need_update = 1 if $diff_days > 13;
+                $need_update = 1 if $diff_days > 13 || $diff->in_units('months') > 0;
             }
             $schema->resultset('Folder')->set_wanted($folder_id) if $need_update;
         }
