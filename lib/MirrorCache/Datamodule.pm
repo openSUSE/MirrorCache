@@ -314,7 +314,7 @@ sub _init_location($self) {
             next unless length($c) == 2;
             $c = lc($c);
             push @avoid_countries, $c;
-            $country = '' if $c eq lc($country);
+            $country = '' if $c eq lc($country // '');
         }
         $self->_avoid_countries(\@avoid_countries);
     }

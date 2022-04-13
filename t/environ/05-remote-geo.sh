@@ -43,3 +43,7 @@ $mc/curl --interface 127.0.0.2 -I /download/folder1/file1.1.dat | grep $($ap7/pr
 
 # since Denmark has no mirrors - german mirror have been scanned and now serves the request
 $mc/curl -I /download/folder2/file1.1.dat?COUNTRY=dk | grep $($ap8/print_address)
+
+
+$mc/curl --interface 127.0.0.31 -i /download/folder1/file1.1.dat.mirrorlist?REGION=na | grep $($ap7/print_address)
+
