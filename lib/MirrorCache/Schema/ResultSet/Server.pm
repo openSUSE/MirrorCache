@@ -73,6 +73,7 @@ sub mirrors_query {
             @country_params    = ($region);
         }
     }
+    $avoid_country = $avoid_country ? '!' : '';
     my $weight_country_case = ($avoid_country or $avoid_region) ? '' : "when country $avoid_country= '$country' then 2 ";
     my $ipvx = $ipv eq 'ipv4'? 'ipv6' : 'ipv4';
     my $capabilityx = $capability eq 'http'? 'https' : 'http';
