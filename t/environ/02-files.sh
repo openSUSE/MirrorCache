@@ -22,8 +22,10 @@ unversionedfiles="
 
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
+    mkdir -p $x/dt/Folder1
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     echo $x/dt/folder1/file1.dat | xargs -n 1 touch
+    echo $x/dt/Folder1/file1.1.DAT | xargs -n 1 touch
     mkdir -p $x/dt/folder1.11test/
     for f in $unversionedfiles; do
         str=1
@@ -183,3 +185,8 @@ for f in $unversionedfiles; do
     # sha256 must be served from root
     [[ $f =~ sha256 ]] || $mc/curl -I /download/folder1.11test/$f | grep 302
 done
+
+
+# test case insensitive:
+$mc/curl -I /download/folder1/file1.1.dat | grep '302 Found'
+$mc/curl -I /download/Folder1/file1.1.DAT | grep '200 OK'

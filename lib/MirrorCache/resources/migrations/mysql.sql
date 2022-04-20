@@ -5,7 +5,7 @@
 -- 1 up
 create table if not exists folder (
     id bigint NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    path varchar(512) UNIQUE NOT NULL,
+    path varchar(512) character set utf8mb4 collate utf8mb4_bin UNIQUE NOT NULL,
     wanted            timestamp(3) NULL DEFAULT NULL, -- last day when it was requested by client, refreshed once in 24 hours
     sync_requested    timestamp(3) NULL DEFAULT NULL, -- when it was determined that sync is needed
     sync_scheduled    timestamp(3) NULL DEFAULT NULL, -- when sync job was created (scheduled)
@@ -21,26 +21,26 @@ create table if not exists folder (
 create table if not exists file (
     id bigint AUTO_INCREMENT primary key,
     folder_id bigint,
-    name varchar(512) NOT NULL,
+    name varchar(512) character set utf8mb4 collate utf8mb4_bin NOT NULL,
     size bigint,
     mtime bigint,
     dt timestamp(3) NULL DEFAULT NULL,
-    target varchar(512),
+    target varchar(512) character set utf8mb4 collate utf8mb4_bin,
     unique(folder_id, name),
     constraint `fk_file_folder` FOREIGN KEY(folder_id) references folder(id) on delete cascade
 );
 
 create table if not exists redirect (
     id int AUTO_INCREMENT NOT NULL PRIMARY KEY,
-    pathfrom varchar(512) UNIQUE NOT NULL,
-    pathto   varchar(512) NOT NULL
+    pathfrom varchar(512) character set utf8mb4 collate utf8mb4_bin UNIQUE NOT NULL,
+    pathto   varchar(512) character set utf8mb4 collate utf8mb4_bin NOT NULL
 );
 
 create table if not exists server (
     id int AUTO_INCREMENT NOT NULL PRIMARY KEY,
     hostname  varchar(128) NOT NULL UNIQUE,
     hostname_vpn varchar(128) UNIQUE,
-    urldir    varchar(128) NOT NULL,
+    urldir    varchar(128) character set utf8mb4 collate utf8mb4_bin NOT NULL,
     enabled  boolean NOT NULL,
     region  varchar(2),
     country varchar(2) NOT NULL,
@@ -136,7 +136,7 @@ create table if not exists stat (
     id bigint AUTO_INCREMENT primary key,
     ip_sha1 char(40),
     agent varchar(1024),
-    path varchar(1024) NOT NULL,
+    path varchar(1024) character set utf8mb4 collate utf8mb4_bin NOT NULL,
     country char(2),
     dt timestamp(3) NOT NULL,
     mirror_id int,
@@ -177,7 +177,7 @@ create table hash (
     sha256 char(64),
     piece_size int,
     pieces longblob,
-    target varchar(512),
+    target varchar(512) character set utf8mb4 collate utf8mb4_bin ,
     dt timestamp(3) NOT NULL,
     constraint `fk_hash_file` FOREIGN KEY(file_id) references file(id) on delete cascade
 );
@@ -194,7 +194,7 @@ create index if not exists stat_dt_ip_mirror on stat(dt, ip_sha1, mirror_id, sec
 create table project (
     id int AUTO_INCREMENT NOT NULL primary key,
     name varchar(64) unique not null,
-    path varchar(512) unique not null,
+    path varchar(512) character set utf8mb4 collate utf8mb4_bin unique not null,
     etalon int NULL,
     db_sync_last timestamp(3) NULL DEFAULT NULL,
     db_sync_every int default 1,
@@ -231,8 +231,8 @@ create index if not exists folder_scan_requested_idx on folder(scan_requested, w
 alter table subsidiary add column if not exists local boolean default '0';
 alter table folder add column if not exists hash_last_import timestamp(3) NULL DEFAULT NULL;
 -- 16 up
-alter table file add column if not exists target varchar(512);
-alter table hash add column if not exists target varchar(512);
+alter table file add column if not exists target varchar(512) character set utf8mb4 collate utf8mb4_bin;
+alter table hash add column if not exists target varchar(512) character set utf8mb4 collate utf8mb4_bin;
 -- 17 up
 create table server_project (
     server_id  int NOT NULL,
