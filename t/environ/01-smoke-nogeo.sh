@@ -21,8 +21,8 @@ $ap8/start
 $ap8/curl /folder1/ | grep file1.1.dat
 
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','',1,'us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','',1,'de','eu'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1314','','t','de','eu'"
 
 $mc/curl /download/folder1/file1.1.dat
 

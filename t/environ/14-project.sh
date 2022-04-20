@@ -23,9 +23,9 @@ $ap8/start
 # remove a file from ap7
 rm $ap7/dt/project1/folder2/file2.1.dat
 
-$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','',1,'us','na'"
-$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
-$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
 $mc/sql "insert into project(name,path,etalon) select 'proj1','/project1', 1"
 

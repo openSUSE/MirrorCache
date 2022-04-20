@@ -27,9 +27,9 @@ $mc/backstage/job mirror_scan_schedule_from_misses
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/start
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'de','eu'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap9/print_address)','',1,'cn','as'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap9/print_address)','','t','cn','as'"
 
 $mc/curl --interface 127.0.0.3 /download/folder1/ | grep file1.1.dat
 $mc/curl --interface 127.0.0.2 -I /download/folder1/file1.1.dat
@@ -48,13 +48,13 @@ $mc/curl --interface 127.0.0.2 -I /download/folder1/file1.1.dat | grep $($ap7/pr
 $mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep $($ap8/print_address)
 
 sleep 3
-test 1 == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
-test 1 == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
-test 1 == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
-test 1 == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
-test 1 == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
-test 1 == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
-test 1 == $($mc/db/sql "select state in ('finished','failed') from minion_jobs where id=$job_id") || sleep 3
+test 1 == $($mc/db/sql "select case when state in ('finished','failed') then 1 else 0 end from minion_jobs where id=$job_id") || sleep 3
+test 1 == $($mc/db/sql "select case when state in ('finished','failed') then 1 else 0 end from minion_jobs where id=$job_id") || sleep 3
+test 1 == $($mc/db/sql "select case when state in ('finished','failed') then 1 else 0 end from minion_jobs where id=$job_id") || sleep 3
+test 1 == $($mc/db/sql "select case when state in ('finished','failed') then 1 else 0 end from minion_jobs where id=$job_id") || sleep 3
+test 1 == $($mc/db/sql "select case when state in ('finished','failed') then 1 else 0 end from minion_jobs where id=$job_id") || sleep 3
+test 1 == $($mc/db/sql "select case when state in ('finished','failed') then 1 else 0 end from minion_jobs where id=$job_id") || sleep 3
+test 1 == $($mc/db/sql "select case when state in ('finished','failed') then 1 else 0 end from minion_jobs where id=$job_id")
 $mc/backstage/status
 $mc/db/sql "select state from minion_jobs where id=$job_id"
 

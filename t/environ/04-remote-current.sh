@@ -29,8 +29,8 @@ done
 $mc/start
 $mc/status
 
-$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
-$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
 $mc/backstage/job -e folder_sync -a '["/folder1"]'
 $mc/backstage/shoot

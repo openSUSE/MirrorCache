@@ -1,0 +1,34 @@
+FROM registry.opensuse.org/opensuse/leap:15.3
+ENV container docker
+
+ENV LANG en_US.UTF-8
+
+RUN sed -i 's,http://download.opensuse.org,http://mirrorcache.opensuse.org/download,g' /etc/zypp/repos.d/*repo
+RUN zypper ar -f http://mirrorcache.opensuse.org/repositories/openSUSE:infrastructure:MirrorCache/openSUSE_Leap_15.3 mc
+RUN zypper ar -f http://mirrorcache.opensuse.org/repositories/home:/andriinikitin:/branches:/devel:/languages:/perl:/CPAN-M/15.3 pm
+RUN zypper --gpg-auto-import-keys ref
+
+# install MirrorCache here to fetch all dependencies
+RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-Plugin-ClientIP \
+    vim postgresql postgresql-server curl sudo git-core wget tar m4 \
+    apache2 perl-Digest-MD4 tidy make perl-DateTime-HiRes || cat /var/log/zypper.log
+
+# dependencies to be deleted after they are merged and installed with the rpm package
+RUN zypper -vvv -n install perl-Sort-Versions
+
+VOLUME ["/sys/fs/cgroup"]
+VOLUME ["/run"]
+VOLUME ["/opt/project"]
+
+RUN systemctl enable dbus.service
+RUN systemctl enable postgresql
+
+# let pg initialize data dir in cache to save some time on every run
+RUN sudo -u postgres /usr/share/postgresql/postgresql-script start && \
+     sudo -u postgres /usr/share/postgresql/postgresql-script stop
+
+ADD src/city.mmdb /var/lib/GeoIP/GeoLite2-City.mmdb
+
+WORKDIR /opt/project
+
+ENTRYPOINT ["/usr/lib/systemd/systemd"]

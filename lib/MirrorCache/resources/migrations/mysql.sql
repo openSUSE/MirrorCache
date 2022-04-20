@@ -87,7 +87,7 @@ create table if not exists server_capability_check (
     server_id int not null,
     capability enum('http', 'https', 'ftp', 'ftps', 'rsync','ipv4', 'ipv6','country','region','as_only', 'prefix', 'hasall'),
     dt timestamp(3) NULL DEFAULT NULL,
-    success boolean,
+    -- success boolean,
     extra varchar(1024),
     unique index server_capability_check_uk(server_id, capability, dt),
     constraint `fk_capability_check_server` FOREIGN KEY(server_id) references server(id) on delete cascade
@@ -265,3 +265,6 @@ create table if not exists server_stability (
     PRIMARY KEY(server_id, capability),
     constraint `fk_stability_server` FOREIGN KEY(server_id) references server(id) on delete cascade
 );
+-- 22 up
+create index if not exists folder_diff_file_2 on folder_diff_file(file_id, folder_diff_id);
+alter table server_capability_check drop column if exists success;

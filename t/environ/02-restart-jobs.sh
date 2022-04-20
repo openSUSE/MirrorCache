@@ -14,7 +14,8 @@ $mc/sql_test 5 == "select count(*) from minion_jobs where state in ('active', 'i
 $mc/stop
 
 # let's assume some jobs were killed
-$mc/sql "delete from minion_jobs ORDER BY rand() LIMIT 3"
+$mc/sql "delete from minion_jobs where id in (SELECT id FROM minion_jobs ORDER BY random() LIMIT 3)" || \
+  $mc/sql "delete from minion_jobs ORDER BY rand() LIMIT 3"
 
 $mc/sql_test 2 == "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'"
 
@@ -23,7 +24,8 @@ $mc/start
 sleep $MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL
 sleep 1
 $mc/sql_test 5 == "select count(*) from minion_jobs where state in ('active', 'inactive') and task not like 'mirror_force%'"
-$mc/sql "delete from minion_jobs ORDER BY rand() LIMIT 3"
+$mc/sql "delete from minion_jobs where id IN (SELECT id FROM minion_jobs ORDER BY random() LIMIT 3)" || \
+  $mc/sql "delete from minion_jobs ORDER BY rand() LIMIT 3"
 sleep $MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL
 sleep 1
 

@@ -30,17 +30,17 @@ done
 $ap7/start
 $ap8/start
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','',1,'us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '[::1]:1314','',1,'us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '127.0.0.1:1304','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '[::1]:1314','','t','us','na'"
 
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
-test 0 == $($mc/db/sql "select success from server_capability_check where server_id=1 and capability='ipv6'")
-test 0 == $($mc/db/sql "select success from server_capability_check where server_id=2 and capability='ipv4'")
+$mc/sql_test "select 1 from server_capability_check where server_id=1 and capability='ipv6'"
+$mc/sql_test "select 1 from server_capability_check where server_id=2 and capability='ipv4'"
 
 # now explicitly force disable corresponding capabilities
-$mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 1,'ipv6',now()"
-$mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 2,'ipv4',now()"
+$mc/sql "insert into server_capability_force(server_id,capability,dt) select 1,'ipv6',now()"
+$mc/sql "insert into server_capability_force(server_id,capability,dt) select 2,'ipv4',now()"
 
 $mc/curl -I /download/folder1/file1.1.dat # access file to schedule jobs
 

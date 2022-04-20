@@ -148,10 +148,18 @@ sub cleanup_audit_events {
 
     if ($other_time_constraint) {
         my @pattern_values = values %event_patterns;
-        my $sql_other      = 'delete from audit_event where ';
-        $sql_other = "$sql_other dt < ? and";
-        $sql_other = "$sql_other " . join(' and ', map { 'name not like ?' } @pattern_values);
-        $sql_other = "$sql_other order by dt limit 100000";
+        my $sql_other;
+        if ($dbh->{Driver}->{Name} eq 'Pg') {
+            $sql_other = 'delete from audit_event where id in (';
+            $sql_other = "$sql_other select id from audit_event where dt < ? and";
+            $sql_other = "$sql_other " . join(' and ', map { 'name not like ?' } @pattern_values);
+            $sql_other = "$sql_other order by dt limit 100000 )";
+        } else {
+            $sql_other = 'delete from audit_event where ';
+            $sql_other = "$sql_other dt < ? and";
+            $sql_other = "$sql_other " . join(' and ', map { 'name not like ?' } @pattern_values);
+            $sql_other = "$sql_other order by dt limit 100000";
+        }
         eval {
             $dbh->prepare($sql_other)->execute($other_time_constraint, @pattern_values);
             1;

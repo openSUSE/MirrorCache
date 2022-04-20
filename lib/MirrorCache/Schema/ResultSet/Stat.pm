@@ -133,7 +133,7 @@ from stat left join folder on folder.id = stat.folder_id
 where mirror_id < 1
 and ( mirror_id in (0,-1) or mirrorlist )
 and file_id is null
-and stat.path not regexp '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz$'
+and stat.path !~ '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz$'
 and lower(stat.agent) NOT LIKE '%bot%'
 and (
     stat.folder_id is null or
@@ -146,6 +146,8 @@ END_SQL
     $sql = "$sql ) x";
     $sql = "$sql union all select max(id), '-max_id', null, null from stat"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";
+
+    $sql =~ s/\!\~/not regexp/g unless $dbh->{Driver}->{Name} eq 'Pg';
 
     my $prep = $dbh->prepare($sql);
     $prep->execute();

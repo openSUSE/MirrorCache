@@ -25,7 +25,7 @@ CZ_ADDRESS=$($ap8/print_address)
 DE_ADDRESS=$($ap9/print_address)
 
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '$CZ_ADDRESS','',1,'cz','eu',50.07,14.43"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '$CZ_ADDRESS','','t','cz','eu',50.07,14.43"
 
 $mc/backstage/job -e folder_sync -a '["/folder1"]'
 $mc/backstage/job -e mirror_scan -a '["/folder1"]'

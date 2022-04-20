@@ -97,7 +97,7 @@ create table if not exists server_capability_check (
     server_id int references server on delete cascade,
     capability server_capability_t,
     dt timestamp,
-    success boolean,
+    -- success boolean,
     extra varchar(1024)
 );
 
@@ -270,3 +270,6 @@ create table if not exists server_stability (
     dt timestamp,
     rating int -- 0 - bad, 1 - unknown, 10 - some issues last hour, 100 - some issues last 24 hours, 1000 - no issues recorder last 24 hours.
 );
+-- 22 up
+create index if not exists folder_diff_file_2 on folder_diff_file(file_id, folder_diff_id);
+alter table server_capability_check drop column if exists success;

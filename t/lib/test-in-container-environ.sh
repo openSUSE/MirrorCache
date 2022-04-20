@@ -28,15 +28,16 @@ testcase=$2
   exit 1
 }
 
+dbprovider=${MIRRORCACHE_DB_PROVIDER:-postgresql}
+
 set -eo pipefail
 
 [ -f "$testcase" ] || (echo Cannot find file "$testcase"; exit 1 ) >&2
-
 thisdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 basename=$(basename "$testcase")
 basename=${basename,,}
 basename=${basename//:/_}
-ident=mc.envtest
+ident=mc.envtest$dbprovider
 containername="$ident.${basename,,}"
 
 docker_info="$(docker info >/dev/null 2>&1)" || {
@@ -44,7 +45,7 @@ docker_info="$(docker info >/dev/null 2>&1)" || {
     (exit 1)
 }
 
-docker build -t $ident.image -f $thisdir/Dockerfile.environ $thisdir
+docker build -t $ident.image -f $thisdir/Dockerfile.environ.$dbprovider $thisdir
 
 docker rm -f "$containername" >&/dev/null || :
 
@@ -55,7 +56,8 @@ if [[ -n "$MIRRORCACHE_CITY_MMDB" ]]; then
     mc_database="--env MIRRORCACHE_CITY_MMDB=$MIRRORCACHE_CITY_MMDB"
     [[ -f "$MIRRORCACHE_CITY_MMDB" ]] && mc_database+=" -v $MIRRORCACHE_CITY_MMDB:$MIRRORCACHE_CITY_MMDB"
 fi
-docker run $map_port $mc_database --env MIRRORCACHE_PERMANENT_JOBS="" --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/project -- $ident.image
+
+docker run $map_port $mc_database --env MIRRORCACHE_PERMANENT_JOBS=""  --env MIRRORCACHE_DB_PROVIDER=$dbprovider --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/project -- $ident.image
 
 in_cleanup=0
 
@@ -87,6 +89,6 @@ echo "$*"
 [ -z $initscript ] || echo "bash -xe /opt/project/t/$initscript" | docker exec -i "$containername" bash -x
 
 set +ex
-docker exec -e TESTCASE="$testcase"  -i "$containername" bash -c "useradd $(id -nu) -u $(id -u) || :; sudo -u \#$(id -u) bash" < "$testcase"
+docker exec -e TESTCASE="$testcase" -e MIRRORCACHE_DB_PROVIDER=$dbprovider -i "$containername" bash -c "useradd $(id -nu) -u $(id -u) || :; sudo -E -u \#$(id -u) bash" < "$testcase"
 ret=$?
 ( exit $ret )

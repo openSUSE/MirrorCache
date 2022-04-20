@@ -28,8 +28,8 @@ $rs/ls_dt
 $mc/start
 $mc/status
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
 # remove folder1/file1.1.dt from ap8
 rm $ap8/dt/folder1/file2.1.dat
@@ -135,7 +135,7 @@ $mc/curl -I /download/folder1/folder11/file1.1.dat | grep -E "$(ap8/print_addres
 $mc/curl /download/folder1/folder11/ | grep file1.1.dat
 
 
-$mc/curl /download/folder1?status=all | grep '"recent":"2"'| grep '"not_scanned":"0"' | grep '"outdated":"0"'
+$mc/curl /download/folder1?status=all | grep -E '"recent":"?2"?'| grep -E '"not_scanned":"?0"?' | grep -E '"outdated":"?0"?'
 $mc/curl /download/folder1?status=recent | grep $($ap7/print_address) | grep $($ap8/print_address)
 test {} == $($mc/curl /download/folder1?status=outdated)
 test {} == $($mc/curl /download/folder1?status=not_scanned)

@@ -2,6 +2,9 @@
 
 set -ex
 
+DB=$MIRRORCACHE_DB_PROVIDER
+echo DB=$MIRRORCACHE_DB_PROVIDER
+
 make install
 echo MIRRORCACHE_ROOT=/srv/mirrorcache > /etc/mirrorcache/conf.env
 echo MIRRORCACHE_ROOT=/srv/mirrorcache > /etc/mirrorcache/conf-subtree.env
@@ -13,8 +16,8 @@ mkdir -p /srv/mirrorcache
 mkdir /srv/mirrorcache/test1
 touch /srv/mirrorcache/test1/file1.txt
 
-systemctl start postgresql
-systemctl is-active --quiet postgresql || systemctl is-active postgresql
+systemctl start $DB
+systemctl is-active --quiet $DB || systemctl is-active $DB
 
 make setup_system_db
 

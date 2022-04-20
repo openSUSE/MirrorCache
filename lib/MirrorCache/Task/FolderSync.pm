@@ -73,17 +73,17 @@ sub _sync {
             $schema->resultset('Folder')->delete_cascade($folder->id, 0);
             return $job->finish("folder has been successfully deleted from DB");
         }
-        $folder->update({sync_last => \'CURRENT_TIMESTAMP(3)', sync_requested => \'coalesce(sync_requested, CURRENT_TIMESTAMP)', sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'}); # prevent further sync attempts
+        $folder->update({sync_last => \'CURRENT_TIMESTAMP(3)', sync_requested => \'coalesce(sync_requested, CURRENT_TIMESTAMP(3))', sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'}); # prevent further sync attempts
         return $job->finish("$path is not a dir anymore");
     }
 
     # Mark sync_last early to stop other jobs to try to reschedule the sync
     my $otherFolder;
     my $update_db_last = sub {
-        $folder->update({sync_last => \'CURRENT_TIMESTAMP(3)', sync_requested => \'coalesce(sync_requested, CURRENT_TIMESTAMP)', sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
+        $folder->update({sync_last => \'CURRENT_TIMESTAMP(3)', sync_requested => \'coalesce(sync_requested, CURRENT_TIMESTAMP(3))', sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
         if ($realpath ne $path) {
             $otherFolder = $schema->resultset('Folder')->find({path => $path});
-            $otherFolder->update({sync_last => \'CURRENT_TIMESTAMP(3)', sync_requested => \'coalesce(sync_requested, CURRENT_TIMESTAMP)', sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'}) if $otherFolder;
+            $otherFolder->update({sync_last => \'CURRENT_TIMESTAMP(3)', sync_requested => \'coalesce(sync_requested, CURRENT_TIMESTAMP(3))', sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'}) if $otherFolder;
         }
     };
 

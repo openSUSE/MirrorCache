@@ -31,18 +31,18 @@ select concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.host
     -- server has capability enabled when two conditions are true:
     -- 1. server_id is not mentioned in server_capability_force
     -- 2. there is no entry in server_capability_declaration which has enabled='F' for the server_id.
-    COALESCE(fhttp.server_id  = 0, COALESCE(http.enabled,1))  as http,
-    COALESCE(fhttps.server_id = 0, COALESCE(https.enabled,1)) as https,
-    COALESCE(fipv4.server_id  = 0, COALESCE(ipv4.enabled,1))  as ipv4,
-    COALESCE(fipv6.server_id  = 0, COALESCE(ipv6.enabled,1))  as ipv6,
+    COALESCE(fhttp.server_id  = 0, COALESCE(http.enabled,'t'))  as http,
+    COALESCE(fhttps.server_id = 0, COALESCE(https.enabled,'t')) as https,
+    COALESCE(fipv4.server_id  = 0, COALESCE(ipv4.enabled,'t'))  as ipv4,
+    COALESCE(fipv6.server_id  = 0, COALESCE(ipv6.enabled,'t'))  as ipv6,
     stability_http.rating  as rating_http,
     stability_https.rating as rating_https,
     stability_ipv4.rating  as rating_ipv4,
     stability_ipv6.rating  as rating_ipv6,
-    TIMESTAMPDIFF(MICROSECOND, check_http.dt, CURRENT_TIMESTAMP(3))/1000  as ms_http,
-    TIMESTAMPDIFF(MICROSECOND, check_https.dt, CURRENT_TIMESTAMP(3))/1000 as ms_https,
-    TIMESTAMPDIFF(MICROSECOND, check_ipv4.dt, CURRENT_TIMESTAMP(3))/1000  as ms_ipv4,
-    TIMESTAMPDIFF(MICROSECOND, check_ipv6.dt, CURRENT_TIMESTAMP(3))/1000  as ms_ipv6
+    extract(epoch from (now() - check_http.dt))*1000 :: int  as ms_http,
+    extract(epoch from (now() - check_https.dt))*1000 :: int  as ms_https,
+    extract(epoch from (now() - check_ipv4.dt))*1000 :: int  as ms_ipv4,
+    extract(epoch from (now() - check_ipv6.dt))*1000 :: int  as ms_ipv6
     from server s
     left join server_capability_declaration http  on http.server_id  = s.id and http.capability  = 'http'
     left join server_capability_declaration https on https.server_id = s.id and https.capability = 'https'
@@ -57,22 +57,30 @@ select concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.host
     left join server_stability stability_ipv4  on stability_ipv4.server_id  = s.id and stability_ipv4.capability  = 'ipv4'
     left join server_stability stability_ipv6  on stability_ipv6.server_id  = s.id and stability_ipv6.capability  = 'ipv6'
     left join (
-        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'http'  and TIMESTAMPDIFF(HOUR, dt, CURRENT_TIMESTAMP(3)) < 24 group by server_id
+        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'http'  and dt > now() - interval '24 hours' group by server_id
     ) check_http  on check_http.server_id = s.id
     left join (
-        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'https' and TIMESTAMPDIFF(HOUR, dt, CURRENT_TIMESTAMP(3)) < 24 group by server_id
+        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'https' and dt > now() - interval '24 hours' group by server_id
     ) check_https on check_https.server_id = s.id
     left join (
-        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'ipv4'  and TIMESTAMPDIFF(HOUR, dt, CURRENT_TIMESTAMP(3)) < 24 group by server_id
+        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'ipv4'  and dt > now() - interval '24 hours' group by server_id
     ) check_ipv4  on check_ipv4.server_id = s.id
     left join (
-        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'ipv6'  and TIMESTAMPDIFF(HOUR, dt, CURRENT_TIMESTAMP(3)) < 24 group by server_id
+        select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'ipv6'  and dt > now() - interval '24 hours' group by server_id
     ) check_ipv6  on check_ipv6.server_id = s.id
-    where 1
-    AND (fhttp.server_id IS NULL or fhttps.server_id IS NULL) -- do not show servers which have both http and https force disabled
+    where
+        (fhttp.server_id IS NULL or fhttps.server_id IS NULL) -- do not show servers which have both http and https force disabled
     AND (fipv4.server_id IS NULL or fipv6.server_id IS NULL)  -- do not show servers which have both ipv4 and ipv6 force disabled
     AND s.enabled
 END_SQL
+
+    unless ($dbh->{Driver}->{Name} eq 'Pg') {
+        $sql =~ s/'t'/1/g;
+        $sql =~ s/extract\(epoch from \(now\(\) - /TIMESTAMPDIFF(MICROSECOND, /g;
+        $sql =~ s/dt \> now\(\) - interval '24 hours'/TIMESTAMPDIFF(HOUR, dt, CURRENT_TIMESTAMP(3)) < 24/g;
+        $sql =~ s/\)\)\*1000 :: int/, CURRENT_TIMESTAMP(3))\/1000/g;
+    }
+
     return $dbh->selectall_hashref($sql, 'id', {}) unless $country;
 
     $sql = $sql . ' AND s.country = lower(?)';
@@ -110,8 +118,8 @@ END_SQL
     $prep->execute($server_id, $capability);
 
     $sql = <<'END_SQL';
-insert into server_capability_check(server_id, capability, dt, success, extra)
-values (?, ?, CURRENT_TIMESTAMP(3), 0, ?);
+insert into server_capability_check(server_id, capability, dt, extra)
+values (?, ?, CURRENT_TIMESTAMP(3), ?);
 END_SQL
     $prep = $dbh->prepare($sql);
     $prep->execute($server_id, $capability, $error);
@@ -144,14 +152,15 @@ select concat(c.server_id,c.capability) as _key,
 from server_capability_check c
     join server s on c.server_id = s.id
     left join server_capability_force f on f.server_id  = s.id and f.capability  = c.capability
-where 1
-    AND f.server_id IS NULL
-    AND c.dt > date_sub(CURRENT_TIMESTAMP(3), interval 2 hour)
+where
+        f.server_id IS NULL
+    AND c.dt > now() - interval '2 hour'
     AND s.enabled
 group by c.server_id, c.capability, s.hostname, s.hostname_vpn, s.urldir
-having   sum(case when not c.success then 1 else 0 end) >= 5 and
-         sum(case when c.success then 1 else -1 end) < 0
+having   count(*) >= 5
 END_SQL
+    $sql =~ s/now\(\) - interval '2 hour'/date_sub(CURRENT_TIMESTAMP(3), interval 2 hour)/g unless $dbh->{Driver}->{Name} eq 'Pg';
+
     return $dbh->selectall_hashref($sql, '_key', {});
 }
 
@@ -181,10 +190,13 @@ select concat(f.server_id, f.capability) as _key,
        f.server_id as id, f.capability, concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir) as uri
 from server_capability_force f
     join server s on f.server_id = s.id
-where 1
-    AND f.dt < date_sub(CURRENT_TIMESTAMP(3), interval 2 hour)
+where
+        f.dt < now() - interval '2 hour'
     AND s.enabled
 END_SQL
+
+    $sql =~ s/now\(\) - interval '2 hour'/date_sub(CURRENT_TIMESTAMP(3), interval 2 hour)/g unless $dbh->{Driver}->{Name} eq 'Pg';
+
     return $dbh->selectall_hashref($sql, '_key', {});
 }
 

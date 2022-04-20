@@ -26,4 +26,5 @@ __workdir/status || sleep 0.4
 __workdir/status || sleep 0.5
 __workdir/status || sleep 0.7
 __workdir/status || sleep 1
-__workdir/status || sleep 1
+__workdir/status || sleep 2
+__workdir/status || sleep 5

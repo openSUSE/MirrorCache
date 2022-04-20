@@ -45,25 +45,47 @@ sub _run {
     # retry later if many folder_sync jobs are scheduled according to estimation
     return $job->retry({delay => 30}) if $app->backstage->inactive_jobs_exceed_limit(100, 'folder_sync');
 
+    my @folders;
+if ($schema->pg) {
+    $schema->storage->dbh->prepare(
+        "update folder set sync_requested = CURRENT_TIMESTAMP(3) where id in
+        (
+            select id from folder
+            where sync_requested < now() - interval '$RESYNC second' and
+            sync_requested <= sync_scheduled and
+            wanted > now() - interval '$EXPIRE second'
+            order by sync_requested limit 20
+        )"
+    )->execute();
+
+    @folders = $schema->resultset('Folder')->search({
+        sync_requested => { '>', \"COALESCE(sync_scheduled, sync_requested - 1*interval '1 second')" }
+    }, {
+        order_by => { -asc => [qw/sync_requested/] },
+        rows => $limit
+    });
+
+} else {
     $schema->storage->dbh->prepare(
         "update folder f
         join
         (
             select id from folder
             where sync_requested < date_sub(CURRENT_TIMESTAMP(3), interval $RESYNC second) and
-            sync_requested < sync_scheduled and
+            sync_requested <= sync_scheduled and
             wanted > date_sub(CURRENT_TIMESTAMP(3), interval $EXPIRE second)
             order by sync_requested limit 20
         ) x ON x.id = f.id
         set f.sync_requested = CURRENT_TIMESTAMP(3)"
     )->execute();
-
-    my @folders = $schema->resultset('Folder')->search({
+    
+    @folders = $schema->resultset('Folder')->search({
         sync_requested => { '>', \"COALESCE(sync_scheduled, date_sub(sync_requested, interval 1 second))" }
     }, {
         order_by => { -asc => [qw/sync_requested/] },
         rows => $limit
     });
+}
     my $cnt = 0;
 
     for my $folder (@folders) {

@@ -110,7 +110,7 @@ else
 end as dist,
 s.country, s.region, s.score,
 CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 OR COALESCE(stability_schemex.rating, 0) = 0 THEN 1 ELSE 0 END AS support_scheme, -- we show here 0 only when opposite scheme is supported
-CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 OR COALESCE(stability_schemex.rating, 0) = 0 THEN ( scf.capability is NULL AND COALESCE(scd.enabled, 1) = 1 ) ELSE ( scf2.capability is NULL AND COALESCE(scd2.enabled, 1) = 1 ) END AS not_disabled,
+CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 OR COALESCE(stability_schemex.rating, 0) = 0 THEN ( scf.capability is NULL AND COALESCE(scd.enabled, 't') = 't' ) ELSE ( scf2.capability is NULL AND COALESCE(scd2.enabled, 't') = 't' ) END AS not_disabled,
 CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 THEN stability_scheme.rating WHEN COALESCE(stability_schemex.rating, 0) > 0 THEN stability_schemex.rating ELSE 0 END AS rating_scheme,
 CASE WHEN COALESCE(stability_ipv.rating, 0)    > 0 THEN 1 ELSE 0 END AS support_ipv,
 CASE WHEN COALESCE(stability_ipv.rating, 0)    > 0 THEN stability_ipv.rating    WHEN COALESCE(stability_ipvx.rating, 0)    > 0 THEN stability_ipvx.rating    ELSE 0 END AS rating_ipv
@@ -118,7 +118,7 @@ from (
     select s.*, fl.name
     from folder_diff fd
     join file fl on fl.id = ?
-    join folder_diff_server fds on fd.id = fds.folder_diff_id and cast(fl.dt as DATETIME) <= cast(fds.dt as DATETIME)
+    join folder_diff_server fds on fd.id = fds.folder_diff_id and date_trunc('second', fl.dt) <= fds.dt
     join server s on fds.server_id = s.id and s.enabled  $country_condition
     left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
     where fd.folder_id = ? and fdf.file_id is NULL
@@ -134,12 +134,17 @@ left join server_stability stability_ipv     on s.id = stability_ipv.server_id  
 left join server_stability stability_ipvx    on s.id = stability_ipvx.server_id    and stability_ipvx.capability = '$ipvx'
 ) x
 WHERE not_disabled $extra
-order by rating_country desc, (dist/100), support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, score, rand()
+order by rating_country desc, (dist/100)::int, support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, score, random()
 limit $limit1
 ) xx
-order by support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, rating_country desc, (dist/100), score, rand()
+order by support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, rating_country desc, (dist/100)::int, score, random()
 limit $limit;
 END_SQL
+
+    $sql =~ s/::int//g                                                unless ($dbh->{Driver}->{Name} eq 'Pg');
+    $sql =~ s/random/rand/g                                           unless ($dbh->{Driver}->{Name} eq 'Pg');
+    $sql =~ s/date_trunc\('second', fl.dt\)/cast(fl.dt as DATETIME)/g unless ($dbh->{Driver}->{Name} eq 'Pg');
+
     my $prep = $dbh->prepare($sql);
 
     $prep->execute($file_id, @country_params, $folder_id, $folder_id);
@@ -163,7 +168,7 @@ concat(
     '://',
     CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,
     s.urldir,f.path) as url,
-max(fds.folder_diff_id) as diff_id, unix_timestamp(max(fd.dt)) as dt_epoch,
+max(fds.folder_diff_id) as diff_id, extract(epoch from max(fd.dt)) as dt_epoch,
 cap_hasall.capability as hasall
 from server s join folder f on f.id=?
 left join server_capability_declaration cap_http  on cap_http.server_id  = s.id and cap_http.capability  = 'http' and not cap_http.enabled
@@ -176,12 +181,15 @@ left join server_capability_declaration cap_hasall on cap_hasall.server_id  = s.
 left join project p on f.path like concat(p.path, '%')
 left join server_project sp on (sp.server_id, sp.project_id) = (s.id, p.id) and sp.state < 1
 where
-(  fds.folder_diff_id <=> fd.id OR fds.server_id is null)
+(fds.folder_diff_id IS NOT DISTINCT FROM fd.id OR fds.server_id is null)
 AND (cap_fhttp.server_id IS NULL or cap_fhttps.server_id IS NULL)
 AND (sp.server_id IS NULL)
 group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id, cap_hasall.capability
 order by s.id
 END_SQL
+
+    $sql =~ s/IS NOT DISTINCT FROM/<=>/g             unless ($dbh->{Driver}->{Name} eq 'Pg');
+    $sql =~ s/extract\(epoch from /unix_timestamp(/g unless ($dbh->{Driver}->{Name} eq 'Pg');
 
     my $prep = $dbh->prepare($sql);
     $prep->execute($id);
@@ -206,8 +214,8 @@ select concat(s.id, '::', p.id) as _key,
 from project p
     join server s on s.enabled
     left join server_project sp on sp.server_id = s.id and sp.project_id = p.id
-where 1
-    AND coalesce(sp.state,0) > -1
+where
+    coalesce(sp.state,0) > -1
 END_SQL
     return $dbh->selectall_hashref($sql, '_key', {});
 }

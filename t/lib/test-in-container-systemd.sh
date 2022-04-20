@@ -28,6 +28,8 @@ testcase=$2
   exit 1
 }
 
+: "${MIRRORCACHE_DB_PROVIDER:=postgresql}"
+
 set -eo pipefail
 
 [ -n "$testcase" ] || (echo No testcase provided; exit 1) >&2
@@ -52,11 +54,11 @@ docker_info="$(docker info >/dev/null 2>&1)" || {
 mkdir -p $thisdir/src
 cp $thisdir/../data/city.mmdb $thisdir/src/
 
-docker build -t $ident.image -f $thisdir/Dockerfile.systemd $thisdir
+docker build -t $ident.image -f $thisdir/Dockerfile.systemd.$MIRRORCACHE_DB_PROVIDER $thisdir
 
 map_port=""
 [ -z "$EXPOSE_PORT" ] || map_port="-p $EXPOSE_PORT:80"
-docker run --privileged $map_port --rm --name "$containername" -d -v /sys/fs/cgroup:/sys/fs/cgroup:ro -v"$thisdir/../..":/opt/project -- $ident.image
+docker run --privileged $map_port --rm --name "$containername" -d -v /sys/fs/cgroup:/sys/fs/cgroup:ro -v"$thisdir/../..":/opt/project -e MIRRORCACHE_DB_PROVIDER=$MIRRORCACHE_DB_PROVIDER -- $ident.image
 
 in_cleanup=0
 

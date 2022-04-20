@@ -35,8 +35,8 @@ done
 $ap7/start
 $ap8/start
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'ca','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','ca','na'"
 
 # remove a file from one mirror
 rm $ap8/dt/folder1/file2.1.dat
@@ -52,7 +52,7 @@ $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
-$mc/db/sql "select * from file"
+$mc/sql "select * from file"
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
@@ -119,8 +119,9 @@ $mc/sql_test 0 == "select count(*) from stat where mirror_id = -1 and file_id is
 
 $mc/sql_test 0 == "select count(*) from folder where path = '/folder2' and scan_requested > scan_scheduled"
 
-$mc/sql "update folder set scan_last = date_sub(now(), interval 5 hour) where path = '/folder2'"
-$mc/sql "update folder set scan_scheduled = date_sub(scan_last, interval 1 second), scan_requested = date_sub(scan_last, interval 2 second) where path = '/folder2'"
+$mc/sql "update folder set scan_last = now() - interval '5 hour' where path = '/folder2'"
+$mc/sql "update folder set scan_scheduled = scan_last - interval '1 second' where path = '/folder2'"
+$mc/sql "update folder set scan_requested = scan_last - interval '2 second' where path = '/folder2'"
 $mc/curl -I /download/folder2/file4.dat | grep 200
 # now an error must be logged
 $mc/sql_test 1 == "select count(*) from folder where path = '/folder2' and scan_requested > scan_scheduled"

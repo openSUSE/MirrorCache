@@ -27,8 +27,6 @@ use Mojo::File;
 use Mojo::Date;
 use Mojo::IOLoop::Subprocess;
 
-use Data::Dumper;
-
 sub register {
     my ($self, $app) = @_;
     $app->types->type(metalink => 'application/metalink+xml; charset=UTF-8');
@@ -286,7 +284,6 @@ sub register {
                 my $result = shift->result;
                 $code = $result->code;
                 if ($code == 200 || $code == 302 || $code == 301) {
-                    print STDERR Dumper('RECURS', $dm->scan_last_ago);
                     my $size = $result->headers->content_length if $result->headers;
                     if ((defined $size && defined $expected_size) && ($size || $expected_size) && $size ne $expected_size) {
                         my $scan_last = $dm->folder_scan_last;

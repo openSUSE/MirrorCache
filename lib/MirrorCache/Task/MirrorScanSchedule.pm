@@ -43,6 +43,27 @@ sub _run {
     # retry later if many jobs are scheduled according to estimation
     return $job->retry({delay => 30}) if $app->backstage->inactive_jobs_exceed_limit(100, 'mirror_scan');
 
+    my @folders;
+
+if ($schema->pg) {
+    $schema->storage->dbh->prepare(
+        "update folder set scan_requested = CURRENT_TIMESTAMP(3) where id in
+        (
+            select id from folder
+            where scan_requested < now() - interval '$RESCAN second' and
+                  scan_requested < scan_scheduled and
+                  wanted > now() - interval '$EXPIRE second'
+            order by scan_requested limit 20
+        )"
+    )->execute();
+
+    @folders = $schema->resultset('Folder')->search({
+        scan_requested => { '>', \"COALESCE(scan_scheduled, scan_requested - interval '1 second')" }
+    }, {
+        order_by => { -asc => [qw/scan_requested/] },
+        rows => $limit
+    });
+} else {
     $schema->storage->dbh->prepare(
         "update folder f
         join
@@ -56,12 +77,14 @@ sub _run {
         set scan_requested = CURRENT_TIMESTAMP(3)"
     )->execute();
 
-    my @folders = $schema->resultset('Folder')->search({
+    @folders = $schema->resultset('Folder')->search({
         scan_requested => { '>', \"COALESCE(scan_scheduled, date_sub(scan_requested, interval 1 second))" }
     }, {
         order_by => { -asc => [qw/scan_requested/] },
         rows => $limit
     });
+}
+
     my $cnt = 0;
 
     for my $folder (@folders) {

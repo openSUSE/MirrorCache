@@ -20,8 +20,8 @@ $ap7/curl /folder1/ | grep file1.1.dat
 $ap8/start
 $ap8/curl /folder1/ | grep file1.1.dat
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','',1,'us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
 $mc/curl -I /download/folder1/file1.1.dat
 
@@ -65,13 +65,14 @@ $mc/sql_test 0 == "select count(*) from audit_event where name = 'mirror_probe' 
 $mc/sql_test 0 == "select rating from server_stability where (server_id, capability) = (2, 'http')"
 $mc/sql_test 10 == "select rating from server_stability where (server_id, capability) = (1, 'http')"
 
-$mc/sql "update server_capability_check set dt = date_sub(dt, interval 1 hour) where (server_id, capability) = (1, 'http')"
+$mc/sql "update server_capability_check set dt = dt - interval '1 hour' where (server_id, capability) = (1, 'http')"
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
 $mc/sql_test 100 == "select rating from server_stability where (server_id, capability) = (1, 'http')"
 
-$mc/sql "update server_capability_check set dt = date_sub(dt, interval 24 hour) where (server_id, capability) = (1, 'http')"
+$mc/sql "update server_capability_check set dt = dt - interval '24 hour' where (server_id, capability) = (1, 'http')"
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
 $mc/sql_test 1000 == "select rating from server_stability where (server_id, capability) = (1, 'http')"
+
 

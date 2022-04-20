@@ -15,7 +15,7 @@ $mc/status
 
 ap7=$(environ ap7)
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','',1,'us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 
 for x in $mc $ap7; do
     mkdir -p $x/dt/folder{1,2,3}
@@ -34,7 +34,7 @@ $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 $mc/sql_test 3 == "select count(*) from minion_jobs where task='mirror_scan'"
 
-$mc/sql "update file set dt = date_sub(now(), interval 1 month)"  # set old date, otherwise it will interfere with rescan logic in Stat.pm
+$mc/sql "update file set dt = now() - interval '1 month'"  # set old date, otherwise it will interfere with rescan logic in Stat.pm
 
 
 # handling of mirror errors:
@@ -52,14 +52,22 @@ echo 1 > $ap7/dt/folder3/file1.1.dat && touch -d '-1 day' $ap7/dt/folder3/file1.
 
 S=15
 S1=$((60-$S))
-$mc/sql "update folder set scan_last = subtime(now(), '3:59:$S1') where path = '/folder1'"
-$mc/sql "update folder set scan_last = subtime(now(), '0:14:$S1') where path = '/folder2'"
-$mc/sql "update folder set scan_last = subtime(now(), '23:59:$S1') where path = '/folder3'"
 
-$mc/sql "update folder set sync_last = date_sub(scan_last, interval 5 second)"
-$mc/sql "update folder set scan_requested = date_sub(scan_last, interval 2 second), scan_scheduled = date_sub(scan_last, interval 1 second), sync_requested = date_sub(sync_last, interval 2 second), sync_scheduled = date_sub(sync_last, interval 1 second)"
+$mc/sql "update folder set scan_last = now() - interval '3 hour 59 minute $S1 second' where path = '/folder1'"
+$mc/sql "update folder set scan_last = now() - interval '14 minute $S1 second' where path = '/folder2'"
+$mc/sql "update folder set scan_last = now() - interval '23 hour 59 minute $S1 second' where path = '/folder3'"
 
-$mc/sql 'select * from folder'
+# $mc/sql "update folder set scan_last = now() - interval '4 hour'    + interval '$S second' where path = '/folder1'"
+# $mc/sql "update folder set scan_last = now() - interval '15 minute' + interval '$S second' where path = '/folder2'"
+# $mc/sql "update folder set scan_last = now() - interval '24 hour'   + interval '$S second' where path = '/folder3'"
+
+$mc/sql "update folder set sync_last = scan_last - interval '5 second'"
+# $mc/sql "update folder set scan_requested = date_sub(scan_last, interval 2 second), scan_scheduled = date_sub(scan_last, interval 1 second), sync_requested = date_sub(sync_last, interval 2 second), sync_scheduled = date_sub(sync_last, interval 1 second)"
+# $mc/sql "update folder set scan_requested = scan_last - interval '2 second', scan_scheduled = scan_last - interval '1 second', sync_requested = sync_last - interval '2 second', sync_scheduled = sync_last - interval '1 second'"
+$mc/sql "update folder set scan_scheduled = scan_last - interval '1 second'"
+$mc/sql "update folder set scan_requested = scan_last - interval '2 second'"
+$mc/sql "update folder set sync_scheduled = sync_last - interval '1 second'"
+$mc/sql "update folder set sync_requested = sync_last - interval '2 second'"
 
 for x in {1,2,3} ; do
     $mc/curl -I /download/folder$x/file1.1.dat?PEDANTIC=0 | grep '302 Found'
