@@ -184,7 +184,12 @@ sub register {
             my $hmtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
             my $fileorigin;
             my $fileoriginpath = $filepath;
-            if ($root->is_remote) {
+
+
+            if ($ENV{MIRRORCACHE_METALINK_PUBLISHER_URL}) {
+                $fileorigin = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL};
+                $fileorigin = $c->req->url->to_abs->scheme . "://" . $fileorigin unless $fileorigin =~ m/^http/;
+            } elsif ($root->is_remote) {
                 $fileorigin = $root->location($dm);
             } else {
                 my $redirect = $root->redirect($dm, $filepath);
@@ -500,7 +505,8 @@ sub _collect_mirrors {
             $ipv,     $lat, $lng,    \@avoid_countries, $limit,     0,
             !$mirrorlist, $ipvstrict, $vpn
         );
-        my $found_more = scalar(@$m) if $m;
+        my $found_more;
+        $found_more = scalar(@$m) if $m;
         if ($found_more) {
             $found_count += $found_more;
             push @$mirrors_region, @$m;
@@ -517,7 +523,8 @@ sub _collect_mirrors {
             $ipv,  $lat, $lng,    $avoid_countries, $limit,  1,
             !$mirrorlist, $ipvstrict, $vpn
         );
-        my $found_more = scalar(@$m) if $m;
+        my $found_more;
+        $found_more = scalar(@$m) if $m;
         if ($found_more) {
             $found_count += $found_more;
             push @$mirrors_rest, @$m;
