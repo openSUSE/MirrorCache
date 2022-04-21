@@ -5,7 +5,7 @@ use warnings;
 
 use base 'DBIx::Class';
 
-use DateTime::HiRes;
+use DateTime;
 use Exporter 'import';
 
 our @EXPORT_OK = qw(now);
@@ -29,7 +29,7 @@ sub add_timestamps {
 }
 
 sub now {
-    DateTime::HiRes->now(time_zone => 'local');
+    DateTime->now(time_zone => 'local');
 }
 
 1;
