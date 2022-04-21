@@ -13,7 +13,7 @@ $mc/status
 
 ap7=$(environ ap7)
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 
 for x in $mc $ap7; do
     mkdir -p $x/dt/folder{1,2,3}
@@ -43,8 +43,10 @@ $mc/sql_test 3 == "select count(*) from minion_jobs where task='mirror_scan'"
 # Step4 set wanted of folder1 to '2021-09-30' and confirm that wanted is updated promptly
 
 S=5
+S1=$((60-$S))
 echo Step1
-$mc/sql "update folder set wanted = now() - 2*7*24*60* interval '60 second' + interval '$S second'"
+$mc/sql "update folder set wanted = CURRENT_TIMESTAMP(3) - interval '13 day'"
+$mc/sql "update folder set wanted = wanted - interval '23 hour 59 minute $S1 second'"
 
 $mc/sql_test 0 == "select count(*) from folder where sync_requested > sync_scheduled"
 $mc/sql_test 0 == "select count(*) from folder where scan_requested > scan_scheduled"
@@ -59,12 +61,14 @@ $mc/sql_test 6 == "select count(*) from minion_jobs where task='mirror_scan'"
 
 echo Step2
 sleep $S
-$mc/sql_test 0 == "select count(*) from folder where wanted > now() - 2*7*24*60* interval '60 second'"
+$mc/sql_test 0 == "select count(*) from folder where wanted > now() - interval '14 day'"
 $mc/curl -I /download/folder3/file1.1.dat | grep 302
 
-$mc/sql "select path, wanted,  now() - 2*7*24*60* interval '60 second', now() - 2*7*24*60* interval '60 second' + interval '$S second' from folder"
-$mc/sql_test 1 == "select count(*) from folder where wanted > now() - 2*7*24*60* interval '60 second'"
+# $mc/sql "select path, wanted,  now() - 2*7*24*60* interval '60 second', now() - 2*7*24*60* interval '60 second' + interval '$S second' from folder"
+# $mc/sql_test 1 == "select count(*) from folder where wanted > now() - 2*7*24*60* interval '60 second'"
 
+# $mc/sql -n -e "select * from folder" mc_test
+# $mc/sql_test 1 == "select count(*) from folder where wanted > date_sub(now(), interval 14 day)"
 
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/job mirror_scan_schedule

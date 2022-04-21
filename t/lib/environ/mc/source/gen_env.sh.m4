@@ -1,7 +1,13 @@
 set -e
 [ -e __workdir/conf.env ] || (
 
-echo export TEST_PG=\'$(__workdir/db/print_dbi mc_test)\'
+echo __dbi='$(__workdir/db/print_dbi mc_test)'
+
+if test "${MIRRORCACHE_DB_PROVIDER}" == maraidb; then
+    echo export TEST_MYSQL='${__dbi//\/ma\//\/db\//}'
+else
+    echo export TEST_PG='${__dbi//\/pg\//\/db\//}'
+fi
 
 echo "export MIRRORCACHE_ROOT=__workdir/dt
 export MIRRORCACHE_CITY_MMDB=__srcdir/t/data/city.mmdb

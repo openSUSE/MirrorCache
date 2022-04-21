@@ -14,7 +14,7 @@ $mc/status
 
 ap7=$(environ ap7)
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 
 for x in $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}

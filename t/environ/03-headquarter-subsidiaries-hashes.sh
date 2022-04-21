@@ -69,7 +69,7 @@ for i in 9 6 7 8; do
     mc$i/backstage/job -e folder_sync -a '["/folder1"]'
     mc$i/backstage/shoot
     mc$i/backstage/shoot -q hashes
-    test  $(mc$i/db/sql "select md5 from hash where file_id=3") == $(mc$i/db/sql 'select md5 from hash where file_id=1')
+    test  $(mc$i/sql "select md5 from hash where file_id=3") == $(mc$i/sql 'select md5 from hash where file_id=1')
 done
 
 

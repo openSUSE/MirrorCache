@@ -45,7 +45,8 @@ test 5179db3d4263c9cb4ecf0edbc653ca460e3678b7 == $($mc/db/sql 'select pieces fro
 # 000000b0  34 65 63 66 30 65 64 62  63 36 35 33 63 61 34 36  |4ecf0edbc653ca46|
 # 000000c0  30 65 33 36 37 38 62 37  0a 0a 96 ff 97 cc b1     |0e3678b7.......|
 
-$mc/sql_test 96ff97ccb1 == "select encode(zhashes::bytea, 'hex') from hash where file_id=1"
+$mc/sql_test 96ff97ccb1 == "select encode(zhashes::bytea, 'hex') from hash where file_id=1" ||
+  $mc/sql_test 96FF97CCB1 == "select hex(zhashes) from hash where file_id=1"
 
 $mc/curl /download/folder1/file1.1.dat.zsync -I
 $mc/curl /download/folder1/file1.1.dat.zsync -I | grep '200 OK'

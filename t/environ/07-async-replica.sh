@@ -1,6 +1,11 @@
 #!lib/test-in-container-environ.sh
 set -ex
 
+test "$MIRRORCACHE_DB_PROVIDER" != mariadb || {
+    echo NOT IMPLEMENTED for MariaDB yet
+    exit 0
+}
+
 mc=$(environ mc $(pwd))
 
 pg=$(environ pg)

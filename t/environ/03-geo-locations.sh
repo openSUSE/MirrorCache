@@ -29,7 +29,7 @@ declare -a cases=(berlin munich altona)
 
 for case in "${cases[@]}"; do
     declare -n p="$case"
-    $mc/db/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '${p[host]}','','t','de','eu',${p[lat]},${p[lng]}"
+    $mc/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '${p[host]}','','t','de','eu',${p[lat]},${p[lng]}"
 done
 
 # first request a file, so the mirror scan will trigger on backstage run

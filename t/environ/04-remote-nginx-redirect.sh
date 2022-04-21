@@ -25,8 +25,8 @@ done
 $mc/start
 $mc/status
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,hostname_vpn,urldir,enabled,country,region) select 'non-vpn.us','$($ng8/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ng7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,hostname_vpn,urldir,enabled,country,region) select 'non-vpn.us','$($ng8/print_address)','','t','us','na'"
 
 # remove a file from ng8
 rm $ng8/dt/folder1/file2.1.dat

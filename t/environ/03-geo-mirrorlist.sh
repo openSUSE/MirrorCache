@@ -14,10 +14,10 @@ for x in $mc $ap6 $ap7 $ap8 $ap9; do
     $x/start
 done
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','cu','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','mx','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap9/print_address)','','t','ca','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','cu','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','mx','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap9/print_address)','','t','ca','na'"
 
 $mc/curl /download/folder1/file1.1.dat.mirrorlist
 

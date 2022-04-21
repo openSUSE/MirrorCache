@@ -87,6 +87,9 @@ sub mirrors_query {
     }
     my $hostname = $vpn? "CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END" : "s.hostname";
 
+    my $limit1 = 10;
+    $limit1 = $limit + $limit if $limit > 10;
+
     my $sql = <<"END_SQL";
 select * from (
 select x.id as mirror_id, concat(case when support_scheme > 0 then '$capability' else '$capabilityx' end, '://', uri) as url,
@@ -116,7 +119,7 @@ from (
     select s.*, fl.name
     from folder_diff fd
     join file fl on fl.id = ?
-    join folder_diff_server fds on fd.id = fds.folder_diff_id and fl.dt <= fds.dt
+    join folder_diff_server fds on fd.id = fds.folder_diff_id and date_trunc('second', fl.dt) <= fds.dt
     join server s on fds.server_id = s.id and s.enabled  $country_condition
     left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
     where fd.folder_id = ? and fdf.file_id is NULL
@@ -133,11 +136,16 @@ left join server_stability stability_ipvx    on s.id = stability_ipvx.server_id 
 ) x
 WHERE not_disabled $extra
 order by rating_country desc, (dist/100)::int, support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, score, random()
-limit (case when $limit > 10 then $limit+$limit else 10 end)
+limit $limit1
 ) xx
 order by support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, rating_country desc, (dist/100)::int, score, random()
 limit $limit;
 END_SQL
+
+    $sql =~ s/::int//g                                                unless ($dbh->{Driver}->{Name} eq 'Pg');
+    $sql =~ s/random/rand/g                                           unless ($dbh->{Driver}->{Name} eq 'Pg');
+    $sql =~ s/date_trunc\('second', fl.dt\)/cast(fl.dt as DATETIME)/g unless ($dbh->{Driver}->{Name} eq 'Pg');
+
     my $prep = $dbh->prepare($sql);
 
     $prep->execute($file_id, @country_params, $folder_id, $folder_id);
@@ -181,6 +189,9 @@ group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.serve
 order by s.id
 END_SQL
 
+    $sql =~ s/IS NOT DISTINCT FROM/<=>/g             unless ($dbh->{Driver}->{Name} eq 'Pg');
+    $sql =~ s/extract\(epoch from /unix_timestamp(/g unless ($dbh->{Driver}->{Name} eq 'Pg');
+
     my $prep = $dbh->prepare($sql);
     $prep->execute($id);
 
@@ -195,7 +206,7 @@ sub server_projects {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select concat(s.id, '::', p.id) as key,
+select concat(s.id, '::', p.id) as _key,
         s.id as server_id,
         p.id as project_id,
         concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir, p.path) as uri,
@@ -204,10 +215,10 @@ select concat(s.id, '::', p.id) as key,
 from project p
     join server s on s.enabled
     left join server_project sp on sp.server_id = s.id and sp.project_id = p.id
-where 't'
-    AND coalesce(sp.state,0) > -1
+where
+    coalesce(sp.state,0) > -1
 END_SQL
-    return $dbh->selectall_hashref($sql, 'key', {});
+    return $dbh->selectall_hashref($sql, '_key', {});
 }
 
 sub log_project_probe_outcome {
@@ -219,12 +230,12 @@ sub log_project_probe_outcome {
 
     my $sql = <<'END_SQL';
 insert into server_project(state, extra, dt, server_id, project_id)
-values (?, ?, now(), ?, ?);
+values (?, ?, CURRENT_TIMESTAMP(3), ?, ?);
 END_SQL
 
     if ($mirror_id) {
         $sql = <<'END_SQL';
-update server_project set state = ?, extra = ?, dt = now()
+update server_project set state = ?, extra = ?, dt = CURRENT_TIMESTAMP(3)
 where server_id = ? and project_id = ?;
 END_SQL
     }

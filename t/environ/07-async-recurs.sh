@@ -26,7 +26,7 @@ done
 $ap7/start
 $ap7/curl /folder1/ | grep file1.1.dat
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 
 $mc/backstage/job -e folder_tree -a '["/folder1"]'
 $mc/backstage/job -e folder_tree -a '["/folder2"]'

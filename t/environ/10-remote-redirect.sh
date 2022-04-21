@@ -32,11 +32,11 @@ $mc/gen_env MIRRORCACHE_PEDANTIC=1 \
 $mc/start
 $mc/status
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','us','na'"
 
-$mc/db/sql -c "insert into server_capability_force select 1, 'http'" mc_test
+$mc/sql "insert into server_capability_force(server_id, capability) select 1, 'http'"
 
 # main server supports both http and https
 ap9=$(environ ap9)
@@ -110,11 +110,11 @@ sleep 15
 $ap9/curl_https -I /folder1/file1.1.dat | grep https:// | grep $($ap7/print_address)
 
 # disable both http and https for ap6
-$mc/db/sql -c "insert into server_capability_force select 3, 'http'" mc_test
-$mc/db/sql -c "insert into server_capability_force select 3, 'https'" mc_test
+$mc/sql "insert into server_capability_force(server_id, capability) select 3, 'http'"
+$mc/sql "insert into server_capability_force(server_id, capability) select 3, 'https'"
 
 $ap9/curl_https /folder1/file1.1.dat.metalink
-$mc/db/sql -c "insert into server_capability_force select 2, 'https'" mc_test
+$mc/sql "insert into server_capability_force(server_id, capability) select 2, 'https'"
 $ap9/curl_https /folder1/file1.1.dat.metalink
 $ap9/curl_https /folder1/file1.1.dat.metalink | grep https://$($ap7/print_address)
 rc=0

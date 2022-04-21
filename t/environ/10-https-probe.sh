@@ -55,13 +55,13 @@ $ap9/curl       /download/  | grep folder1
 $ap7/start
 $ap8/start
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
-test f == $($mc/db/sql "select success from server_capability_check where server_id=1 and capability='http'")
-test f == $($mc/db/sql "select success from server_capability_check where server_id=2 and capability='https'")
+$mc/sql_test 1 == "select 1 from server_capability_check where server_id=1 and capability='http'"
+$mc/sql_test 1 == "select 1 from server_capability_check where server_id=2 and capability='https'"
 
 # now explicitly force disable corresponding capabilities
 $mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 1,'http',now()"

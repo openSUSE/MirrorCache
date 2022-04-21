@@ -12,6 +12,9 @@ test_local:
 test_docker:
 	( cd t/environ; for f in *.sh; do ./$$f && continue; echo FAIL $$f; exit 1 ; done )
 
+test_docker_mariadb:
+	( cd t/environ; for f in *.sh; do MIRRORCACHE_DB_PROVIDER=mariadb ./$$f && continue; echo FAIL $$f; exit 1 ; done )
+
 test_systemd:
 	( cd t/systemd; for f in *.sh; do ./$$f && continue; echo FAIL $$f; exit 1 ; done )
 

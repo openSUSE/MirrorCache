@@ -56,7 +56,7 @@ sub _agg {
         $app->schema->storage->dbh->prepare(
 "insert into stat_agg select dt_to, '$period'::stat_period_t, stat.mirror_id, count(*)
 from
-( select date_trunc('$period', now()) - interval '1 $period' as dt_from, date_trunc('$period', now()) as dt_to ) x
+( select date_trunc('$period', CURRENT_TIMESTAMP(3)) - interval '1 $period' as dt_from, date_trunc('$period', CURRENT_TIMESTAMP(3)) as dt_to ) x
 join stat on dt between x.dt_from and x.dt_to
 left join stat_agg on period = '$period'::stat_period_t and stat_agg.dt = x.dt_to
 where

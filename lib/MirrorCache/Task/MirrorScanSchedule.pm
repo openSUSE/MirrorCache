@@ -43,8 +43,11 @@ sub _run {
     # retry later if many jobs are scheduled according to estimation
     return $job->retry({delay => 30}) if $app->backstage->inactive_jobs_exceed_limit(100, 'mirror_scan');
 
+    my @folders;
+
+if ($schema->pg) {
     $schema->storage->dbh->prepare(
-        "update folder set scan_requested = now() where id in
+        "update folder set scan_requested = CURRENT_TIMESTAMP(3) where id in
         (
             select id from folder
             where scan_requested < now() - interval '$RESCAN second' and
@@ -54,16 +57,38 @@ sub _run {
         )"
     )->execute();
 
-    my @folders = $schema->resultset('Folder')->search({
+    @folders = $schema->resultset('Folder')->search({
         scan_requested => { '>', \"COALESCE(scan_scheduled, scan_requested - interval '1 second')" }
     }, {
         order_by => { -asc => [qw/scan_requested/] },
         rows => $limit
     });
+} else {
+    $schema->storage->dbh->prepare(
+        "update folder f
+        join
+        (
+            select id from folder
+            where scan_requested < date_sub(CURRENT_TIMESTAMP(3), interval $RESCAN second) and
+                  scan_requested < scan_scheduled and
+                  wanted > date_sub(CURRENT_TIMESTAMP(3), interval $EXPIRE second)
+            order by scan_requested limit 20
+        ) x ON x.id = f.id
+        set scan_requested = CURRENT_TIMESTAMP(3)"
+    )->execute();
+
+    @folders = $schema->resultset('Folder')->search({
+        scan_requested => { '>', \"COALESCE(scan_scheduled, date_sub(scan_requested, interval 1 second))" }
+    }, {
+        order_by => { -asc => [qw/scan_requested/] },
+        rows => $limit
+    });
+}
+
     my $cnt = 0;
 
     for my $folder (@folders) {
-        $folder->update({scan_scheduled => \'NOW()'});
+        $folder->update({scan_scheduled => \'CURRENT_TIMESTAMP(3)'});
         $minion->enqueue('mirror_scan' => [$folder->path] => {notes => {$folder->path => 1}} );
         $cnt = $cnt + 1;
     }

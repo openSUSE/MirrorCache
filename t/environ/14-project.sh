@@ -36,14 +36,15 @@ $mc/backstage/shoot
 
 $mc/curl -s /rest/project/proj1
 $mc/curl -s /rest/project/proj1/mirror_summary
-$mc/curl -s /rest/project/proj1/mirror_summary | grep '"current":3' | grep '"outdated":0'
+$mc/curl -s /rest/project/proj1/mirror_summary | grep -E '"current":"?3' | grep -E '"outdated":"?0'
 
 
 $mc/backstage/job -e folder_sync -a '["/project1/folder2"]'
 $mc/backstage/job -e mirror_scan -a '["/project1/folder2","us"]'
 $mc/backstage/shoot
 $mc/curl -s /rest/project/proj1/mirror_summary
-$mc/curl -s /rest/project/proj1/mirror_summary | grep '"current":2' | grep '"outdated":1'
+$mc/curl -s /rest/project/proj1/mirror_summary | grep -E '"current":"?2' | grep -E '"outdated":"?1'
 
 $mc/curl -s /rest/project/proj1/mirror_list
+# $mc/curl -s /rest/project/proj1/mirror_list | grep -E '{"current":"?1"?,"server_id":"?1"?,"url":"127.0.0.1:1294"},{"current":"?1"?,"server_id":"?3"?,"url":"127.0.0.1:1314"},{"current":"?0"?,"server_id":"?2"?,"url":"127.0.0.1:1304"}'
 $mc/curl -s /rest/project/proj1/mirror_list | grep '{"current":1,"server_id":1,"url":"127.0.0.1:1294"},{"current":1,"server_id":3,"url":"127.0.0.1:1314"},{"current":0,"server_id":2,"url":"127.0.0.1:1304"}'

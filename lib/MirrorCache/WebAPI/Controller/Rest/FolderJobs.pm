@@ -64,7 +64,7 @@ sub sync_tree {
     my $self = shift;
     my $path = $self->param("path");
     return $self->render(status => 400, text => "Mandatory argument is missing") unless $path;
- 
+
     my $job_id;
     eval {
         $job_id = $self->minion->enqueue('folder_tree' => [$path] => {priority => 10});

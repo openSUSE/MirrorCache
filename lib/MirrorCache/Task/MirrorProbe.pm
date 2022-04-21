@@ -58,11 +58,11 @@ sub _probe {
                 next;
             }
             my $new_rating = 1000;
-            my $min = $data->{"min_$capability"};
+            my $ms = $data->{"ms_$capability"};
             # $job->note("$id$capability" => $min);
-            if (ceil($min // 0) > 0) {
-                $new_rating = 100 if $min < 24*60;
-                $new_rating = 10  if $min < 60;
+            if (ceil($ms // 0) > 0) {
+                $new_rating = 100 if $ms < 24*60*60*100;
+                $new_rating = 10  if $ms < 60*60*100;
             }
             $rs->update_stability($id, $capability, $new_rating) if $new_rating != ($data->{"rating_$capability"} // 0);
         }

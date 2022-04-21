@@ -39,10 +39,10 @@ select concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.host
     stability_https.rating as rating_https,
     stability_ipv4.rating  as rating_ipv4,
     stability_ipv6.rating  as rating_ipv6,
-    extract(epoch from (now() - check_http.dt))/60  :: int  as min_http,
-    extract(epoch from (now() - check_https.dt))/60 :: int  as min_https,
-    extract(epoch from (now() - check_ipv4.dt))/60  :: int  as min_ipv4,
-    extract(epoch from (now() - check_ipv6.dt))/60  :: int  as min_ipv6
+    extract(epoch from (now() - check_http.dt))*1000 :: int  as ms_http,
+    extract(epoch from (now() - check_https.dt))*1000 :: int  as ms_https,
+    extract(epoch from (now() - check_ipv4.dt))*1000 :: int  as ms_ipv4,
+    extract(epoch from (now() - check_ipv6.dt))*1000 :: int  as ms_ipv6
     from server s
     left join server_capability_declaration http  on http.server_id  = s.id and http.capability  = 'http'
     left join server_capability_declaration https on https.server_id = s.id and https.capability = 'https'
@@ -68,11 +68,19 @@ select concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.host
     left join (
         select server_id, max(dt) as dt from server_capability_check x where x.capability  = 'ipv6'  and dt > now() - interval '24 hours' group by server_id
     ) check_ipv6  on check_ipv6.server_id = s.id
-    where 't'
-    AND (fhttp.server_id IS NULL or fhttps.server_id IS NULL) -- do not show servers which have both http and https force disabled
+    where
+        (fhttp.server_id IS NULL or fhttps.server_id IS NULL) -- do not show servers which have both http and https force disabled
     AND (fipv4.server_id IS NULL or fipv6.server_id IS NULL)  -- do not show servers which have both ipv4 and ipv6 force disabled
     AND s.enabled
 END_SQL
+
+    unless ($dbh->{Driver}->{Name} eq 'Pg') {
+        $sql =~ s/'t'/1/g;
+        $sql =~ s/extract\(epoch from \(now\(\) - /TIMESTAMPDIFF(MICROSECOND, /g;
+        $sql =~ s/dt \> now\(\) - interval '24 hours'/TIMESTAMPDIFF(HOUR, dt, CURRENT_TIMESTAMP(3)) < 24/g;
+        $sql =~ s/\)\)\*1000 :: int/, CURRENT_TIMESTAMP(3))\/1000/g;
+    }
+
     return $dbh->selectall_hashref($sql, 'id', {}) unless $country;
 
     $sql = $sql . ' AND s.country = lower(?)';
@@ -88,7 +96,7 @@ sub insert_stability_row {
 
     my $sql = <<'END_SQL';
 insert into server_stability(server_id, capability, rating, dt)
-values (?, ?, 1, now())
+values (?, ?, 1, CURRENT_TIMESTAMP(3))
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($server_id, $capability);
@@ -103,15 +111,15 @@ sub reset_stability {
 
     my $sql = <<'END_SQL';
 update server_stability
-set dt = now(), rating = 0
+set dt = CURRENT_TIMESTAMP(3), rating = 0
 where server_id = ? and capability = ?
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($server_id, $capability);
 
     $sql = <<'END_SQL';
-insert into server_capability_check(server_id, capability, dt, success, extra)
-values (?, ?, now(), 'f', ?);
+insert into server_capability_check(server_id, capability, dt, extra)
+values (?, ?, CURRENT_TIMESTAMP(3), ?);
 END_SQL
     $prep = $dbh->prepare($sql);
     $prep->execute($server_id, $capability, $error);
@@ -125,7 +133,7 @@ sub update_stability {
 
     my $sql = <<'END_SQL';
 update server_stability
-set dt = now(), rating = ?
+set dt = CURRENT_TIMESTAMP(3), rating = ?
 where server_id = ? and capability = ?
 END_SQL
     my $prep = $dbh->prepare($sql);
@@ -139,20 +147,21 @@ sub search_all_downs {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select concat(c.server_id,c.capability) as key,
+select concat(c.server_id,c.capability) as _key,
        c.server_id as id, c.capability, concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir) as uri
 from server_capability_check c
     join server s on c.server_id = s.id
     left join server_capability_force f on f.server_id  = s.id and f.capability  = c.capability
-where 't'
-    AND f.server_id IS NULL
+where
+        f.server_id IS NULL
     AND c.dt > now() - interval '2 hour'
     AND s.enabled
 group by c.server_id, c.capability, s.hostname, s.hostname_vpn, s.urldir
-having   sum(case when not c.success then 1 else 0 end) >= 5 and
-         sum(case when c.success then 1 else -1 end) < 0
+having   count(*) >= 5
 END_SQL
-    return $dbh->selectall_hashref($sql, 'key', {});
+    $sql =~ s/now\(\) - interval '2 hour'/date_sub(CURRENT_TIMESTAMP(3), interval 2 hour)/g unless $dbh->{Driver}->{Name} eq 'Pg';
+
+    return $dbh->selectall_hashref($sql, '_key', {});
 }
 
 sub force_down {
@@ -164,7 +173,7 @@ sub force_down {
 
     my $sql = <<'END_SQL';
 insert into server_capability_force(server_id, capability, dt, extra)
-values (?, ?, now(), ?);
+values (?, ?, CURRENT_TIMESTAMP(3), ?);
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($server_id, $capability, $error);
@@ -177,15 +186,18 @@ sub search_all_forced {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select concat(f.server_id, f.capability) as key,
+select concat(f.server_id, f.capability) as _key,
        f.server_id as id, f.capability, concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir) as uri
 from server_capability_force f
     join server s on f.server_id = s.id
-where 't'
-    AND f.dt < now() - interval '2 hour'
+where
+        f.dt < now() - interval '2 hour'
     AND s.enabled
 END_SQL
-    return $dbh->selectall_hashref($sql, 'key', {});
+
+    $sql =~ s/now\(\) - interval '2 hour'/date_sub(CURRENT_TIMESTAMP(3), interval 2 hour)/g unless $dbh->{Driver}->{Name} eq 'Pg';
+
+    return $dbh->selectall_hashref($sql, '_key', {});
 }
 
 sub force_up {

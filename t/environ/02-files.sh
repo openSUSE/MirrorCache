@@ -22,8 +22,10 @@ unversionedfiles="
 
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
+    mkdir -p $x/dt/Folder1
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     echo $x/dt/folder1/file1.dat | xargs -n 1 touch
+    echo $x/dt/Folder1/file1.1.DAT | xargs -n 1 touch
     mkdir -p $x/dt/folder1.11test/
     for f in $unversionedfiles; do
         str=1
@@ -35,8 +37,8 @@ done
 $ap7/start
 $ap8/start
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','ca','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','ca','na'"
 
 # remove a file from one mirror
 rm $ap8/dt/folder1/file2.1.dat
@@ -52,7 +54,7 @@ $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
-$mc/db/sql "select * from file"
+$mc/sql "select * from file"
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
@@ -119,8 +121,9 @@ $mc/sql_test 0 == "select count(*) from stat where mirror_id = -1 and file_id is
 
 $mc/sql_test 0 == "select count(*) from folder where path = '/folder2' and scan_requested > scan_scheduled"
 
-$mc/sql "update folder set scan_last = now()-interval '5 hour' where path = '/folder2'"
-$mc/sql "update folder set scan_scheduled = scan_last - interval '1 second', scan_requested =scan_last - interval '2 second' where path = '/folder2'"
+$mc/sql "update folder set scan_last = now() - interval '5 hour' where path = '/folder2'"
+$mc/sql "update folder set scan_scheduled = scan_last - interval '1 second' where path = '/folder2'"
+$mc/sql "update folder set scan_requested = scan_last - interval '2 second' where path = '/folder2'"
 $mc/curl -I /download/folder2/file4.dat | grep 200
 # now an error must be logged
 $mc/sql_test 1 == "select count(*) from folder where path = '/folder2' and scan_requested > scan_scheduled"
@@ -131,7 +134,7 @@ $mc/sql_test 1 == "select count(*) from folder where path = '/folder2' and scan_
 # remember number of folders in DB
 cnt=$($mc/db/sql "select count(*) from folder")
 $mc/curl -I /download//folder1//file1.1.dat
-test $cnt == $($mc/db/sql -t -c "select count(*) from folder" mc_test)
+$mc/sql_test $cnt == "select count(*) from folder"
 
 $mc/curl -I /download//folder1//file1.1.dat              | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
 $mc/curl -I /download//folder1///file1.1.dat             | grep -C 10 -P '[^/]/folder1/file1.1.dat' | grep 302
@@ -182,3 +185,8 @@ for f in $unversionedfiles; do
     # sha256 must be served from root
     [[ $f =~ sha256 ]] || $mc/curl -I /download/folder1.11test/$f | grep 302
 done
+
+
+# test case insensitive:
+$mc/curl -I /download/folder1/file1.1.dat | grep '302 Found'
+$mc/curl -I /download/Folder1/file1.1.DAT | grep '200 OK'

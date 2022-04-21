@@ -38,8 +38,8 @@ $ap8/start
 $ap8/curl /folder1/ | grep file1.1.dat
 
 
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/db/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
 
 $mc/curl -Is /download/folder1/file1.1.dat | grep -i location: | grep root1.com
 $mc/curl -H 'X-Forwarded-For: 10.0.0.1' -Is /download/folder1/file1.1.dat | grep -i location: | grep root1.vpn

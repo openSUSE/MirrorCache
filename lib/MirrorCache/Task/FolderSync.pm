@@ -73,17 +73,17 @@ sub _sync {
             $schema->resultset('Folder')->delete_cascade($folder->id, 0);
             return $job->finish("folder has been successfully deleted from DB");
         }
-        $folder->update({sync_last => \'NOW()', sync_scheduled => \'coalesce(sync_scheduled, NOW())'}); # prevent further sync attempts
+        $folder->update({sync_last => \'CURRENT_TIMESTAMP(3)', sync_requested => \'coalesce(sync_requested, CURRENT_TIMESTAMP(3))', sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'}); # prevent further sync attempts
         return $job->finish("$path is not a dir anymore");
     }
 
     # Mark sync_last early to stop other jobs to try to reschedule the sync
     my $otherFolder;
     my $update_db_last = sub {
-        $folder->update({sync_last => \'NOW()', sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
+        $folder->update({sync_last => \'CURRENT_TIMESTAMP(3)', sync_requested => \'coalesce(sync_requested, CURRENT_TIMESTAMP(3))', sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
         if ($realpath ne $path) {
             $otherFolder = $schema->resultset('Folder')->find({path => $path});
-            $otherFolder->update({sync_last => \'NOW()', sync_scheduled => \'coalesce(sync_scheduled, NOW())'}) if $otherFolder;
+            $otherFolder->update({sync_last => \'CURRENT_TIMESTAMP(3)', sync_requested => \'coalesce(sync_requested, CURRENT_TIMESTAMP(3))', sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'}) if $otherFolder;
         }
     };
 
@@ -156,7 +156,7 @@ sub _sync {
                 (defined $target && $target ne ($dbfiletargets{$file} // ''))
             ) {
                 $schema->storage->dbh->prepare(
-                    "UPDATE file set size = ?, mtime = ?, target = ?, dt = NOW()::timestamp(0) where id = ?"
+                    "UPDATE file set size = ?, mtime = ?, target = ?, dt = CURRENT_TIMESTAMP(3) where id = ?"
                 )->execute($size, $mtime, $target, $id);
                 $updated = $updated + 1;
             }
@@ -181,9 +181,9 @@ sub _sync {
 
     $job->note(updated => $realpath, count => $cnt, deleted => $deleted, updated => $updated);
     if ($cnt || $updated) {
-        $folder->update(     {sync_last => \"NOW()", scan_requested => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
+        $folder->update(     {sync_last => \"CURRENT_TIMESTAMP(3)", scan_requested => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
     } else {
-        $folder->update(     {sync_last => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
+        $folder->update(     {sync_last => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
     }
     my $need_hashes = $cnt || $updated ? 1 : 0;
     my $max_dt;
@@ -199,9 +199,9 @@ sub _sync {
     }
 
     if ($otherFolder && ($cnt || $updated || !$otherFolder->scan_requested)) {
-        $otherFolder->update({sync_last => \"NOW()", scan_requested => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'});
+        $otherFolder->update({sync_last => \"CURRENT_TIMESTAMP(3)", scan_requested => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
     } else {
-        $otherFolder->update({sync_last => \"NOW()", sync_scheduled => \'coalesce(sync_scheduled, NOW())'}) if $otherFolder;
+        $otherFolder->update({sync_last => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'}) if $otherFolder;
     }
 }
 

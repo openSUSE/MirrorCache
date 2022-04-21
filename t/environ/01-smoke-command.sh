@@ -1,6 +1,8 @@
 #!lib/test-in-container-environ.sh
 set -ex
 
+echo PROVIDER=$MIRRORCACHE_DB_PROVIDER
+
 mc=$(environ mc $(pwd))
 
 # make sure command job doesn't require MIRRORCACHE_ROOT

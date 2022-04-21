@@ -36,7 +36,9 @@ $mc/backstage/job -e folder_sync -a '["/project1/folder1"]'
 $mc/backstage/job -e mirror_scan -a '["/project1/folder1"]'
 $mc/backstage/shoot
 
-$mc/sql "select notes from minion_jobs where task = 'mirror_scan'" | grep -C100 hash1 | grep hash2
+# covers both MariaDB and Pg implementations
+$mc/sql "select notes from minion_jobs where task = 'mirror_scan'" | grep -C100 hash1 | grep hash2 || \
+  $mc/sql "select note_key, note_value from minion_jobs join minion_notes on job_id = id where task = 'mirror_scan'" | grep -C100 hash1 | grep hash2
 
 rc=0
 $mc/sql "select notes from minion_jobs where task = 'mirror_scan'" | grep -q hash3 || rc=$?

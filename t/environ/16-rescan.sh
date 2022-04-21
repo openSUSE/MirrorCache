@@ -37,22 +37,26 @@ $mc/sql_test 6 == "select count(*) from minion_jobs where task='mirror_scan'"
 # if file is older than 72 hours - schedule rescan unless it was performed up to 1 24 hours ago
 
 S=10
-$mc/sql "update file set dt = now() -  1 * interval '3600 second' where folder_id in (select id from folder where path = '/folder2')"
-$mc/sql "update file set dt = now() -  4 * interval '3600 second' where folder_id in (select id from folder where path = '/folder3')"
-$mc/sql "update file set dt = now() - 24 * interval '3600 second' where folder_id in (select id from folder where path = '/folder4')"
-$mc/sql "update file set dt = now() - 72 * interval '3600 second' where folder_id in (select id from folder where path = '/folder5')"
+S1=$((60-$S))
+$mc/sql "update file set dt = now() - interval '1 hour' where folder_id in (select id from folder where path = '/folder2')"
+$mc/sql "update file set dt = now() - interval '4 hour' where folder_id in (select id from folder where path = '/folder3')"
+$mc/sql "update file set dt = now() - interval '24 hour' where folder_id in (select id from folder where path = '/folder4')"
+$mc/sql "update file set dt = now() - interval '72 hour' where folder_id in (select id from folder where path = '/folder5')"
 
-$mc/sql "update file set dt = dt + 2*interval '$S second'"
+# should cover both Pg and MariaDB
+$mc/sql "update file set dt = dt + 2* interval '$S second'" || \
+  $mc/sql "update file set dt = date_add(dt, interval 2*$S second)"
 
-$mc/sql "update file set dt = dt - 72 * interval '3600 second' where folder_id in (select id from folder where path = '/folder6')"
+$mc/sql "update file set dt = dt - interval '72 hour' where folder_id in (select id from folder where path = '/folder6')"
 
 touch $mc/dt/folder1/file1.1.dat
-$mc/sql "update folder set scan_last = now() - interval '15 minute' + interval '$S second' where path = '/folder1'"
-$mc/sql "update folder set scan_last = now() - interval '30 minute' + interval '$S second' where path = '/folder2'"
-$mc/sql "update folder set scan_last = now() - interval '1 hour'    + interval '$S second' where path = '/folder3'"
-$mc/sql "update folder set scan_last = now() - interval '4 hour'    + interval '$S second' where path = '/folder4'"
-$mc/sql "update folder set scan_last = now() - interval '8 hour'    + interval '$S second' where path = '/folder5'"
-$mc/sql "update folder set scan_last = now() - interval '24 hour'                          where path = '/folder6'"
+
+$mc/sql "update folder set scan_last = now() - interval '14 minute $S1 second' where path = '/folder1'"
+$mc/sql "update folder set scan_last = now() - interval '29 minute $S1 second' where path = '/folder2'"
+$mc/sql "update folder set scan_last = now() - interval '59 minute $S1 second' where path = '/folder3'"
+$mc/sql "update folder set scan_last = now() - interval '3 hour 59 minute $S1 second' where path = '/folder4'"
+$mc/sql "update folder set scan_last = now() - interval '7 hour 59 minute $S1 second' where path = '/folder5'"
+$mc/sql "update folder set scan_last = now() - interval '24 hour' where path = '/folder6'"
 
 $mc/sql "update folder set scan_requested = scan_last - interval '2 second', scan_scheduled = scan_last - interval '1 second'"
 $mc/sql 'select * from folder'

@@ -28,7 +28,9 @@ sub store {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = <<'END_SQL';
+    my $sql;
+if ($dbh->{Driver}->{Name} eq 'Pg') {
+    $sql = <<'END_SQL';
 insert into hash(file_id, mtime, size, md5, sha1, sha256, piece_size, pieces, zlengths, zblock_size, zhashes, target, dt)
 values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
 ON CONFLICT (file_id) DO UPDATE
@@ -45,6 +47,25 @@ ON CONFLICT (file_id) DO UPDATE
       target      = excluded.target,
       dt = now()
 END_SQL
+} else {
+    $sql = <<'END_SQL';
+insert into hash(file_id, mtime, size, md5, sha1, sha256, piece_size, pieces, zlengths, zblock_size, zhashes, target, dt)
+values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3))
+ON DUPLICATE KEY UPDATE
+      size   = values(size),
+      mtime  = values(mtime),
+      md5    = values(md5),
+      sha1   = values(sha1),
+      sha256 = values(sha256),
+      piece_size  = values(piece_size),
+      pieces      = values(pieces),
+      zlengths    = values(zlengths),
+      zblock_size = values(zblock_size),
+      zhashes     = values(zhashes),
+      target      = values(target),
+      dt = CURRENT_TIMESTAMP(3)
+END_SQL
+}
     my $prep = $dbh->prepare($sql);
     $prep->bind_param( 1, $file_id,     SQL_BIGINT);
     $prep->bind_param( 2, $mtime,       SQL_BIGINT);
