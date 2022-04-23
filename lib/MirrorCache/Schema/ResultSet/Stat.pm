@@ -135,6 +135,7 @@ and ( mirror_id in (0,-1) or mirrorlist )
 and file_id is null
 and stat.path !~ '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz$'
 and lower(stat.agent) NOT LIKE '%bot%'
+and lower(stat.agent) NOT LIKE '%rclone%'
 and (
     stat.folder_id is null or
     folder.sync_requested < folder.sync_scheduled
@@ -176,20 +177,22 @@ sub mirror_misses {
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
+    my $limit1  = ($limit // 1) + 1;
 
     my $sql = << "END_SQL";
 select * from (
 select stat.id, stat.folder_id, trim(country)
 from stat join folder on folder.id = stat.folder_id
 where mirror_id in (-1, 0) and file_id is not null
-and stat.agent NOT ILIKE '%bot%'
+and lower(stat.agent) NOT LIKE '%bot%'
+and lower(stat.agent) NOT LIKE '%rclone%'
 and (
     folder.id is null or
     folder.scan_last is null or folder.scan_last > folder.scan_scheduled
     )
 END_SQL
     $sql = "$sql and stat.id > $prev_stat_id" if $prev_stat_id;
-    $sql = "$sql order by stat.id desc limit ($limit+1) ) x";
+    $sql = "$sql order by stat.id desc limit $limit1 ) x";
     $sql = "$sql union all select max(id), 0, null from stat"; # this is just to get max(id) in the same query
     $sql = "$sql order by id desc";
 
