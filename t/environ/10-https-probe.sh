@@ -6,7 +6,8 @@ set -ex
 mc=$(environ mc $(pwd))
 
 $mc/gen_env MIRRORCACHE_PERMANENT_JOBS="'folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses cleanup stat_agg_schedule'" \
-            MOJO_CA_FILE=$(pwd)/ca/ca.pem MOJO_REVERSE_PROXY=1
+            MOJO_CA_FILE=$(pwd)/ca/ca.pem MOJO_REVERSE_PROXY=1 \
+            MIRRORCACHE_METALINK_PUBLISHER_URL=metalink_publisher.net
 
 $mc/start
 $mc/status
@@ -78,3 +79,8 @@ $mc/backstage/shoot
 # make sure https redirects to https
 $ap9/curl_https -I /download/folder1/file1.1.dat | grep https:// | grep $($ap7/print_address)
 $ap9/curl -I /download/folder1/file1.1.dat | grep http:// | grep $($ap8/print_address)
+
+$ap9/curl_https /download/folder1/file1.1.dat.metalink | grep 'origin="https://metalink_publisher.net/folder1/file1.1.dat.metalink"'
+$ap9/curl       /download/folder1/file1.1.dat.metalink | grep 'origin="http://metalink_publisher.net/folder1/file1.1.dat.metalink"'
+$ap9/curl_https /download/folder1/file1.1.dat.mirrorlist | grep Origin | grep https://metalink_publisher.net/folder1/file1.1.dat
+$ap9/curl       /download/folder1/file1.1.dat.mirrorlist | grep Origin | grep http://metalink_publisher.net/folder1/file1.1.dat
