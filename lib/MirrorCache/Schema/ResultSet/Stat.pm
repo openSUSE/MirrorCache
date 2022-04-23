@@ -38,7 +38,9 @@ sub curr {
     my ($self) = @_;
     my $dbh     = $self->result_source->schema->storage->dbh;
 
-    my $sql = <<"END_SQL";
+    my $sql;
+if ($dbh->{Driver}->{Name} eq 'Pg') {
+    $sql = <<"END_SQL";
 select
 sum(case when mirror_id >= 0 and dt > date_trunc('minute', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as hit_minute,
 sum(case when mirror_id = -1 and dt > date_trunc('minute', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as miss_minute,
@@ -52,6 +54,23 @@ sum(case when mirror_id < -1 then 1 else 0 end) as geo_day
 from stat
 where dt > date_trunc('day', CURRENT_TIMESTAMP(3));
 END_SQL
+} else {
+    $sql = <<"END_SQL";
+select
+sum(case when mirror_id >= 0 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 minute) then 1 else 0 end) as hit_minute,
+sum(case when mirror_id = -1 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 minute) then 1 else 0 end) as miss_minute,
+sum(case when mirror_id < -1 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 minute) then 1 else 0 end) as geo_minute,
+sum(case when mirror_id >= 0 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 hour) then 1 else 0 end) as hit_hour,
+sum(case when mirror_id = -1 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 hour) then 1 else 0 end) as miss_hour,
+sum(case when mirror_id < -1 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 hour) then 1 else 0 end) as geo_hour,
+sum(case when mirror_id >= 0 then 1 else 0 end) as hit_day,
+sum(case when mirror_id = -1 then 1 else 0 end) as miss_day,
+sum(case when mirror_id < -1 then 1 else 0 end) as geo_day
+from stat
+where dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 day);
+END_SQL
+
+}
     my $prep = $dbh->prepare($sql);
     $prep->execute();
     return $dbh->selectrow_hashref($prep);
@@ -61,7 +80,9 @@ sub mycurr {
     my ($self, $ip_sha1) = @_;
     my $dbh     = $self->result_source->schema->storage->dbh;
 
-    my $sql = <<"END_SQL";
+    my $sql;
+if ($dbh->{Driver}->{Name} eq 'Pg') {
+    $sql = <<"END_SQL";
 select
 sum(case when mirror_id >= 0 and dt > date_trunc('minute', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as hit_minute,
 sum(case when mirror_id = -1 and dt > date_trunc('minute', CURRENT_TIMESTAMP(3)) then 1 else 0 end) as miss_minute,
@@ -75,6 +96,22 @@ sum(case when mirror_id < -1 then 1 else 0 end) as geo_day
 from stat
 where dt > date_trunc('day', CURRENT_TIMESTAMP(3)) and ip_sha1 = ?;
 END_SQL
+} else {
+    $sql = <<"END_SQL";
+select
+sum(case when mirror_id >= 0 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 minute) then 1 else 0 end) as hit_minute,
+sum(case when mirror_id = -1 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 minute) then 1 else 0 end) as miss_minute,
+sum(case when mirror_id < -1 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 minute) then 1 else 0 end) as geo_minute,
+sum(case when mirror_id >= 0 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 hour) then 1 else 0 end) as hit_hour,
+sum(case when mirror_id = -1 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 hour) then 1 else 0 end) as miss_hour,
+sum(case when mirror_id < -1 and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 hour) then 1 else 0 end) as geo_hour,
+sum(case when mirror_id >= 0 then 1 else 0 end) as hit_day,
+sum(case when mirror_id = -1 then 1 else 0 end) as miss_day,
+sum(case when mirror_id < -1 then 1 else 0 end) as geo_day
+from stat
+where dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 day) and ip_sha1 = ?;
+END_SQL
+}
     my $prep = $dbh->prepare($sql);
     $prep->execute($ip_sha1);
     return $dbh->selectrow_hashref($prep);
@@ -95,6 +132,8 @@ from stat_agg
 where period = '$period'::stat_period_t and dt = (select max(dt) from stat_agg where period = '$period'::stat_period_t)
 group by dt;
 END_SQL
+    $sql =~ s/::stat_period_t//g unless $dbh->{Driver}->{Name} eq 'Pg';
+
     my $prep = $dbh->prepare($sql);
     $prep->execute();
     return $dbh->selectrow_hashref($prep);

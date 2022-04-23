@@ -93,3 +93,5 @@ rc=0
 $mc/curl /download/folder3/file1.1.dat.mirrorlist | grep 'retry later' || rc=$?
 test $rc -gt 0
 $mc/curl /download/folder3/file1.1.dat.mirrorlist | grep 'http://127.0.0.1:1304/folder3/file1.1.dat'
+
+$mc/curl /rest/stat | grep '"hit":12,"miss":3'
