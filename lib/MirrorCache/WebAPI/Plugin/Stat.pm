@@ -118,6 +118,7 @@ END_SQL
                     next if $mirror_id < -1;
                     my $agent      = $row->[1];
                     next unless -1 == index($agent, 'bot');
+                    next unless -1 == index($agent, 'rclone');
                     my $file_id    = $row->[7];
                     next if $file_id && $file_id == -1;
                     if (!$file_id) {
