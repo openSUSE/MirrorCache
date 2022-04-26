@@ -147,16 +147,16 @@ sub latest_hit {
     my $sql = << "END_SQL";
 select stat.id, mirror_id, trim(stat.country),
        concat(case when secure then 'https://' else 'http://' end, CASE WHEN length(server.hostname_vpn)>0 THEN server.hostname_vpn ELSE server.hostname END, server.urldir, case when metalink then regexp_replace(path, '(.*)\.metalink', E'\\1') else path end) as url,
-       substring(path,'(^(/.*)+)/') as folder, folder_id
+       regexp_replace(path, '(^.*)/[^/]*', E'\\1') as folder, folder_id
        from stat join server on mirror_id = server.id
-       where stat.id > ?
+       where stat.id > $prev_stat_id
        order by stat.id desc
        limit 1
 END_SQL
     $sql =~ s/E'/'/g unless $dbh->{Driver}->{Name} eq 'Pg';
 
     my $prep = $dbh->prepare($sql);
-    $prep->execute($prev_stat_id);
+    $prep->execute();
     return $dbh->selectrow_array($prep);
 };
 

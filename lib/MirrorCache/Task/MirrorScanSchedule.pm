@@ -29,7 +29,7 @@ my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS} // 0);
 $RESCAN=0 if $RECKLESS;
 
 sub _run {
-    my ($app, $job) = @_;
+    my ($app, $job, $once) = @_;
 
     my $minion = $app->minion;
 
@@ -95,6 +95,7 @@ if ($schema->pg) {
     $job->note(count => $cnt);
 
     return $job->finish unless $DELAY;
+    return $job->finish if $once;
     return $job->retry({delay => $DELAY});
 }
 
