@@ -153,6 +153,8 @@ select stat.id, mirror_id, trim(stat.country),
        order by stat.id desc
        limit 1
 END_SQL
+    $sql =~ s/E'/'/g unless $dbh->{Driver}->{Name} eq 'Pg';
+
     my $prep = $dbh->prepare($sql);
     $prep->execute($prev_stat_id);
     return $dbh->selectrow_array($prep);

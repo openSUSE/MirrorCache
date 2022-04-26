@@ -47,3 +47,4 @@ $mc/curl -I /download/folder2/file1.1.dat?COUNTRY=dk | grep $($ap8/print_address
 
 $mc/curl --interface 127.0.0.31 -i /download/folder1/file1.1.dat.mirrorlist?REGION=na | grep $($ap7/print_address)
 
+$mc/curl --interface 127.0.0.31 -i /download/folder1/file1.1.dat | grep -E "$($ap7/print_address)|$($ap9/print_address)|$($ap8/print_address)"
