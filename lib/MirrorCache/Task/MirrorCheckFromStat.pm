@@ -29,7 +29,7 @@ sub register {
 my $DELAY = int($ENV{MIRRORCACHE_MIRROR_CHECK_DELAY} // 5);
 
 sub _run {
-    my ($app, $job, $prev_stat_id) = @_;
+    my ($app, $job, $prev_stat_id, $once) = @_;
     return $job->retry({delay => 10*$DELAY}) if $app->backstage->inactive_jobs_exceed_limit;
 
     my $job_id = $job->id;
@@ -56,15 +56,18 @@ sub _run {
 
         if ($res->is_error) {
             $app->log->warn("Need rescan $url: " . $res->code);
-            return $job->retry({delay => 10*$DELAY}) if $app->backstage->inactive_jobs_exceed_limit;
+            if ($app->backstage->inactive_jobs_exceed_limit) {
+                $job->note(stat_id => $stat_id);
+                return $job->retry({delay => 10*$DELAY});
+            }
             $schema->resultset('Folder')->request_scan($folder_id);
         }
-
         ($stat_id, $mirror_id, $country, $url, $folder, $folder_id) = $schema->resultset('Stat')->latest_hit($prev_stat_id);
     }
     $job->note(stat_id => $stat_id);
 
     return $job->finish unless $DELAY;
+    return $job->finish if $once;
     return $job->retry({delay => $DELAY});
 }
 
