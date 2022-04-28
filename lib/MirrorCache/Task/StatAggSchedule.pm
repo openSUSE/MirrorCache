@@ -50,19 +50,42 @@ sub _run {
     $job->retry({delay => $DELAY});
 }
 
+my $BOT_MASK = $ENV{MIRRORCACHE_BOT_MASK} // '.*(bot|rclone).*';
+
 sub _agg {
     my ($app, $job, $period) = @_;
-    eval {
-        $app->schema->storage->dbh->prepare(
-"insert into stat_agg select dt_to, '$period'::stat_period_t, stat.mirror_id, count(*)
+
+    my $dbh = $app->schema->storage->dbh;
+    my $sql = "
+insert into stat_agg select dt_to, '$period'::stat_period_t, case when agent ~ '$BOT_MASK' then -100 else stat.mirror_id end, count(*)
 from
 ( select date_trunc('$period', CURRENT_TIMESTAMP(3)) - interval '1 $period' as dt_from, date_trunc('$period', CURRENT_TIMESTAMP(3)) as dt_to ) x
 join stat on dt between x.dt_from and x.dt_to
 left join stat_agg on period = '$period'::stat_period_t and stat_agg.dt = x.dt_to
 where
 stat_agg.period is NULL
-group by stat.mirror_id, x.dt_to;"
-        )->execute();
+group by case when agent ~ '$BOT_MASK' then -100 else stat.mirror_id end, x.dt_to
+";
+
+    if ($dbh->{Driver}->{Name} ne 'Pg') {
+        my $format = '%Y-%m-%d-%H:00';
+        $format = '%Y-%m-%d-00:00' if $period eq 'day';
+        $format = '%Y-%m-%d-%H:%i' if $period eq 'minute';
+
+        $sql = "
+insert into stat_agg select dt_to, '$period', case when agent regexp '$BOT_MASK' then -100 else stat.mirror_id end, count(*)
+from
+( select date_sub(CONVERT(DATE_FORMAT(now(),'$format'),DATETIME), interval 1 $period) as dt_from, CONVERT(DATE_FORMAT(now(),'$format'),DATETIME) as dt_to ) x
+join stat on dt between x.dt_from and x.dt_to
+left join stat_agg on period = '$period' and stat_agg.dt = x.dt_to
+where
+stat_agg.period is NULL
+group by case when agent regexp '$BOT_MASK' then -100 else stat.mirror_id end, x.dt_to
+";
+    };
+
+    eval {
+        $dbh->prepare($sql)->execute;
         1;
     } or $job->note("last_warning_$period" => $@, "last_warning_$period" . "_at" => datetime_now());
 }
