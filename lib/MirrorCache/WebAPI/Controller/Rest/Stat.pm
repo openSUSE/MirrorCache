@@ -57,8 +57,14 @@ sub list {
             if (my $x = _toint($prev->{geo})) {
                 $h{'prev_geo'} = $x;
             }
+            if (my $x = _toint($prev->{bot})) {
+                $h{'prev_bot'} = $x;
+            }
             if (my $x = _toint($curr->{"geo_$period"})) {
                 $h{'geo'} = $x;
+            }
+            if (my $y = _toint($curr->{"bot_$period"})) {
+                $h{'bot'} = $y;
             }
             $res{$period} = \%h;
         };
@@ -107,6 +113,9 @@ sub mylist {
             );
             if (my $x = _toint($curr->{"geo_$period"})) {
                 $h{'geo'} = $x;
+            }
+            if (my $y = _toint($curr->{"bot_$period"})) {
+                $h{'bot'} = $y;
             }
             $res{$period} = \%h;
         };
