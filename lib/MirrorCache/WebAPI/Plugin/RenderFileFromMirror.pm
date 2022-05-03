@@ -80,7 +80,6 @@ sub register {
         }
         my $country = $dm->country;
         my $region  = $dm->region;
-        # render from root if we cannot determine country when GeoIP is enabled or unknown file
         if (!$folder || !$file) {
             return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
             return $root->render_file($dm, $filepath)
@@ -127,9 +126,9 @@ sub register {
             my $origin;
             if (my $publisher_url = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL}) {
                 $publisher_url =~ s/^https?:\/\///;
-                $origin = $url->scheme . '://' . $publisher_url;
+                $origin = $dm->scheme . '://' . $publisher_url;
             } else {
-                $origin = $url->scheme . '://' . $url->host;
+                $origin = $dm->scheme . '://' . $url->host;
                 $origin = $origin . ":" . $url->port if $url->port && $url->port != "80";
                 $origin = $origin . $dm->route;
             }
@@ -188,7 +187,7 @@ sub register {
 
             if ($ENV{MIRRORCACHE_METALINK_PUBLISHER_URL}) {
                 $fileorigin = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL};
-                $fileorigin = $c->req->url->to_abs->scheme . "://" . $fileorigin unless $fileorigin =~ m/^http/;
+                $fileorigin = $dm->scheme . "://" . $fileorigin unless $fileorigin =~ m/^http/;
             } elsif ($root->is_remote) {
                 $fileorigin = $root->location($dm);
             } else {
@@ -197,7 +196,7 @@ sub register {
                     $fileorigin = $redirect;
                     $fileoriginpath = $folder->path . '/' . $file->{name};
                 } else {
-                    $fileorigin = $url->scheme . '://' . $url->host;
+                    $fileorigin = $dm->scheme . '://' . $url->host;
                     $fileorigin = $fileorigin . ":" . $url->port if $url->port && $url->port != "80";
                     $fileorigin = $fileorigin . $dm->route;
                 }
@@ -232,6 +231,7 @@ sub register {
                 lat               => $lat,
                 lng               => $lng,
                 regions           => \@regions,
+                scheme            => $dm->scheme,
             );
             return 1;
         }

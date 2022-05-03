@@ -484,11 +484,12 @@ my $ROOT_NFS = $ENV{MIRRORCACHE_ROOT_NFS};
 sub _render_small {
     return undef unless $SMALL_FILE_SIZE && $ROOT_NFS;
     my $dm = shift;
+    return undef if (($dm->metalink && !$dm->metalink_accept) || $dm->mirrorlist || $dm->zsync);
     my ($path, undef) = $dm->path;
     my $full = $ROOT_NFS . $path;
     my $size;
     eval { $size = -s $full if -f $full; };
-    return undef unless $size && $size le $SMALL_FILE_SIZE;
+    return undef unless $size && $size <= $SMALL_FILE_SIZE;
     my $c = $dm->c;
     $c->render_file(filepath => $full);
     return 1;

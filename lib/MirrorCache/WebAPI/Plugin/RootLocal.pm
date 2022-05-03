@@ -32,6 +32,8 @@ my $app;
 
 my $root_subtree = $ENV{MIRRORCACHE_SUBTREE} // "";
 
+my $urlredirect = $ENV{MIRRORCACHE_REDIRECT};
+
 sub register {
     (my $self, $app) = @_;
     my $rootpath = $app->mc->rootlocation;
@@ -39,7 +41,6 @@ sub register {
         my ($dir, $host, $host_vpn) = (split /:/, $part, 3);
         my @root = ( $dir, $host, $host_vpn );
         push @roots, \@root;
-        push @{$app->static->paths}, $dir;
     }
 
     $app->helper( 'mc.root' => sub { $self->singleton; });
@@ -78,7 +79,7 @@ sub render_file {
     if ($redirect) {
         $res = !!$c->redirect_to($redirect . $root_subtree . $filepath);
     } else {
-        $res = !!$c->reply->static($root_subtree . $filepath);
+        $res = !!$c->render_file(filepath => $self->rootpath($filepath) . $root_subtree . $filepath);
     }
     $c->stat->redirect_to_root($dm, $not_miss);
     return $res;
@@ -89,9 +90,9 @@ sub redirect {
     $filepath = "" unless $filepath;
     for my $root (@roots) {
         next unless ( -e $root->[dir] . $root_subtree . $filepath || ( $root_subtree && ( -e $root->[dir] . $filepath  ) ) );
-
         return $dm->scheme . "://" . $root->[host_vpn] if ($dm->vpn && $root->[host_vpn]);
         return $dm->scheme . "://" . $root->[host] if ($root->[host]);
+        return $dm->scheme . "://" . $urlredirect if ($urlredirect);
         return undef;
     }
     return undef;
