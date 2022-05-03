@@ -63,12 +63,17 @@ sub register {
             $app->routes->get("/rest/$region" => sub {
                 my $c = shift;
                 my $file = $c->param('file');
+                my $https = $c->param('https');
                 return $c->render(status => 400) unless $file;
                 my $dm = MirrorCache::Datamodule->new->app($c->app);
                 $dm->reset($c);
 
                 my $req = $obj->clone;
-                $req->scheme($c->req->url->to_abs->scheme);
+                if ($https) {
+                    $req->scheme('https');
+                } else {
+                    $req->scheme($c->req->url->to_abs->scheme);
+                }
                 $req->path($req->path . $file);
                 my $country = $dm->country;
                 my $region  = $dm->region;

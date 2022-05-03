@@ -326,6 +326,9 @@ sub _init_location($self) {
 sub _init_path($self) {
     my $url = $self->c->req->url->to_abs;
     $self->_scheme($url->scheme);
+    if ($self->c->req->is_secure) {
+        $self->_scheme('https');
+    }
     my $pedantic;
     my $query = $url->query;
     if (my $query_string = $url->query->to_string) {

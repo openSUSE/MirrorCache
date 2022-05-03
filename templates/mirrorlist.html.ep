@@ -10,7 +10,7 @@
 %   my $i = 0;
 %   for my $reg (@$regions) {
 %     if ($reg) {
-%       my $url = "/rest/$reg?file=$cur_path";
+%       my $url = "/rest/$reg?file=$cur_path&$scheme=1";
         loadMirrorlist("<%= $url %>", "<%= $country %>", "<%= $region %>", "ul1000", "ul1001", "ul1002");
 %     }
 %     $i = $i+1;
