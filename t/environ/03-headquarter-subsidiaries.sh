@@ -7,10 +7,13 @@ set -ex
 # 7 - EU subsidiary
 # 8 - ASIA subsidiary
 
+SMALL_FILE_SIZE=3
+
 for i in 6 7 8 9; do
     x=$(environ mc$i $(pwd))
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    echo -n 1234 > $x/dt/folder1/filebig1.1.dat
+    echo -n 123  > $x/dt/folder1/filesmall1.1.dat
     eval mc$i=$x
 done
 
@@ -23,7 +26,9 @@ as_address=$($mc8/print_address)
 as_interface=127.0.0.4
 
 # deploy db
-$mc9/gen_env MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'
+$mc9/gen_env MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3' \
+             MIRRORCACHE_SMALL_FILE_SIZE=$SMALL_FILE_SIZE
+
 $mc9/backstage/shoot
 
 $mc9/db/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
@@ -42,20 +47,20 @@ echo the root folder is not redirected
 curl --interface $eu_interface -Is http://$hq_address/ | grep '200 OK'
 
 echo check redirection from headquarter
-curl --interface $na_interface -Is http://$hq_address/download/folder1/file1.1.dat | grep "Location: http://$na_address/download/folder1/file1.1.dat"
-curl --interface $eu_interface -Is http://$hq_address/download/folder1/file1.1.dat | grep "Location: http://$eu_address/download/folder1/file1.1.dat"
-curl --interface $as_interface -Is http://$hq_address/download/folder1/file1.1.dat | grep "Location: http://$as_address/download/folder1/file1.1.dat"
+curl --interface $na_interface -Is http://$hq_address/download/folder1/filebig1.1.dat | grep "Location: http://$na_address/download/folder1/filebig1.1.dat"
+curl --interface $eu_interface -Is http://$hq_address/download/folder1/filebig1.1.dat | grep "Location: http://$eu_address/download/folder1/filebig1.1.dat"
+curl --interface $as_interface -Is http://$hq_address/download/folder1/filebig1.1.dat | grep "Location: http://$as_address/download/folder1/filebig1.1.dat"
 
 echo check redirection from na
-curl --interface $na_interface -Is http://$na_address/download/folder1/file1.1.dat | grep '200 OK'
-curl --interface $eu_interface -Is http://$na_address/download/folder1/file1.1.dat | grep '200 OK'
+curl --interface $na_interface -Is http://$na_address/download/folder1/filebig1.1.dat | grep '200 OK'
+curl --interface $eu_interface -Is http://$na_address/download/folder1/filebig1.1.dat | grep '200 OK'
 
 echo check redirection from eu
-curl --interface $eu_interface -Is http://$eu_address/download/folder1/file1.1.dat | grep '200 OK'
+curl --interface $eu_interface -Is http://$eu_address/download/folder1/filebig1.1.dat | grep '200 OK'
 
 echo check redirection from as
-curl --interface $as_interface -Is http://$as_address/download/folder1/file1.1.dat | grep '200 OK'
-curl --interface $as_interface -Is http://$as_address/download/folder1/file1.1.dat?COUNTRY=cn | grep '200 OK'
+curl --interface $as_interface -Is http://$as_address/download/folder1/filebig1.1.dat | grep '200 OK'
+curl --interface $as_interface -Is http://$as_address/download/folder1/filebig1.1.dat?COUNTRY=cn | grep '200 OK'
 
 echo check non-download routers shouldnt be redirected
 curl --interface $na_interface -Is http://$hq_address/rest/server | grep '200 OK'
@@ -64,3 +69,7 @@ curl --interface $as_interface -Is http://$hq_address/rest/server | grep '200 OK
 curl --interface $as_interface -Is http://$as_address/rest/server | grep '200 OK'
 curl --interface $na_interface -Is http://$na_address/rest/server | grep '200 OK'
 curl --interface $eu_interface -Is http://$eu_address/rest/server | grep '200 OK'
+
+echo check small files are not redirected
+curl --interface $na_interface -Is http://$hq_address/download/folder1/filebig1.1.dat | grep "Location: http://$na_address/download/folder1/filebig1.1.dat"
+curl --interface $na_interface -Is http://$hq_address/download/folder1/filesmall1.1.dat | grep "200 OK"

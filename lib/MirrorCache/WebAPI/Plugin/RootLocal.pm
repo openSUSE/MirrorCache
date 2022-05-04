@@ -85,6 +85,21 @@ sub render_file {
     return $res;
 }
 
+sub render_file_if_small {
+    my ($self, $dm, $file, $max_size) = @_;
+
+    my $full = $self->rootpath($file);
+    return undef unless $full;
+    $full = $full . $root_subtree . $file;
+
+    my $size;
+    eval { $size = -s $full if -f $full; };
+    return undef unless ((defined $size) && $size <= $max_size);
+    my $c = $dm->c;
+    $c->render_file(filepath => $full);
+    return 1;
+}
+
 sub redirect {
     my ($self, $dm, $filepath) = @_;
     $filepath = "" unless $filepath;
