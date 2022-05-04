@@ -59,6 +59,6 @@ $mc9/db/start
 $mc9/curl --interface 127.0.0.5 /folder1/repodata/file1.dat.metalink | grep 'origin="http://127.0.0.1:3190/folder1/repodata/file1.dat.metalink"'
 
 # filebig is redirected to EU
-$mc9/curl -I --interface $eu_interface /folder1/repodata/filebig1.1.dat | grep '302'
+$mc9/curl -I --interface $eu_interface /folder1/repodata/filebig1.1.dat | grep '302 Found'
 # filesmall is served right away
 $mc9/curl -I --interface $eu_interface /folder1/repodata/filesmall1.1.dat | grep '200 OK'

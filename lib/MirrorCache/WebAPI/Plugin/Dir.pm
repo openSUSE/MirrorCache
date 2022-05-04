@@ -482,14 +482,17 @@ my $SMALL_FILE_SIZE = int($ENV{MIRRORCACHE_SMALL_FILE_SIZE} // 0);
 my $ROOT_NFS = $ENV{MIRRORCACHE_ROOT_NFS};
 
 sub _render_small {
-    return undef unless $SMALL_FILE_SIZE && $ROOT_NFS;
+    return undef unless $SMALL_FILE_SIZE && ($ROOT_NFS || !$root->is_remote );
     my $dm = shift;
+    $dm->_init_path;
     return undef if (($dm->metalink && !$dm->metalink_accept) || $dm->mirrorlist || $dm->zsync);
     my ($path, undef) = $dm->path;
-    my $full = $ROOT_NFS . $path;
+    my $full;
+    return $root->render_file_if_small($dm, $path, $SMALL_FILE_SIZE) unless $ROOT_NFS;
+    $full = $ROOT_NFS . $path;
     my $size;
     eval { $size = -s $full if -f $full; };
-    return undef unless $size && $size <= $SMALL_FILE_SIZE;
+    return undef unless (defined $size) && $size <= $SMALL_FILE_SIZE;
     my $c = $dm->c;
     $c->render_file(filepath => $full);
     return 1;
