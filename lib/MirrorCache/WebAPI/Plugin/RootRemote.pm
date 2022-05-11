@@ -94,7 +94,7 @@ sub render_file {
     my $c = $dm->c;
 
     if ($nfs && $dm->must_render_from_root && -f $nfs . $filepath) {
-        $c->render_file(filepath => $nfs . $filepath);
+        $c->render_file(filepath => $nfs . $filepath, content_type => $dm->mime);
         $c->stat->redirect_to_root($dm, $not_miss);
         return 1;
     }
@@ -111,7 +111,7 @@ sub render_file_if_nfs {
     my $c = $dm->c;
 
     return undef unless($dm->must_render_from_root && -f $nfs . $filepath);
-    $c->render_file(filepath => $nfs . $filepath);
+    $c->render_file(filepath => $nfs . $filepath, content_type => $dm->mime);
     $c->stat->redirect_to_root($dm, 1);
     return 1;
 }

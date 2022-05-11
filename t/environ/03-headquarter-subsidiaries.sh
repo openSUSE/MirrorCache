@@ -14,6 +14,7 @@ for i in 6 7 8 9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo -n 1234 > $x/dt/folder1/filebig1.1.dat
     echo -n 123  > $x/dt/folder1/filesmall1.1.dat
+    echo '[]'    > $x/dt/folder1/file.json
     eval mc$i=$x
 done
 
@@ -73,3 +74,8 @@ curl --interface $eu_interface -Is http://$eu_address/rest/server | grep '200 OK
 echo check small files are not redirected
 curl --interface $na_interface -Is http://$hq_address/download/folder1/filebig1.1.dat | grep "Location: http://$na_address/download/folder1/filebig1.1.dat"
 curl --interface $na_interface -Is http://$hq_address/download/folder1/filesmall1.1.dat | grep "200 OK"
+
+ct=$($mc9/curl -I /download/folder1/file.json | grep Content-Type)
+[[ "$ct" =~ application/json ]]
+ct=$($mc9/curl -I /folder1/file.json | grep Content-Type)
+[[ "$ct" =~ application/json ]]

@@ -19,6 +19,7 @@ use Mojo::Base -base, -signatures;
 use Mojo::URL;
 use Time::HiRes qw(time);
 use Digest::SHA qw(sha1_hex);
+use Mojolicious::Types;
 use MirrorCache::Utils 'region_for_country';
 
 has c => undef, weak => 1;
@@ -49,6 +50,9 @@ has root_subtree => ($ENV{MIRRORCACHE_SUBTREE} // "");
 has vpn_prefix => ($ENV{MIRRORCACHE_VPN_PREFIX} ? lc($ENV{MIRRORCACHE_VPN_PREFIX}) : "10.");
 
 has 'at';
+has '_mime';
+
+my $TYPES = Mojolicious::Types->new;
 
 sub elapsed($self) {
     return abs(time - $self->at);
@@ -195,6 +199,13 @@ sub original_path($self) {
         $self->_init_path;
     }
     return $self->_original_path;
+}
+
+sub mime($self) {
+    unless (defined $self->_mime) {
+        $self->_init_path;
+    }
+    return $self->_mime;
 }
 
 sub our_path($self, $path) {
@@ -399,6 +410,10 @@ sub _init_path($self) {
         && !$self->zsync
         && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz)$/;
 
+    my ($ext) = $path =~ /([^.]+)$/;
+    my $mime = '';
+    $mime = $TYPES->type($ext) // '' if $ext;
+    $self->_mime($mime);
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);
     $self->agent; # parse headers
