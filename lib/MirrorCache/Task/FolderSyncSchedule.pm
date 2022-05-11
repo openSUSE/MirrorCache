@@ -78,7 +78,7 @@ if ($schema->pg) {
         ) x ON x.id = f.id
         set f.sync_requested = CURRENT_TIMESTAMP(3)"
     )->execute();
-    
+
     @folders = $schema->resultset('Folder')->search({
         sync_requested => { '>', \"COALESCE(sync_scheduled, date_sub(sync_requested, interval 1 second))" }
     }, {

@@ -144,9 +144,13 @@ select stat.id, mirror_id, trim(stat.country),
        limit 1
 END_SQL
     $sql =~ s/E'/'/g unless $dbh->{Driver}->{Name} eq 'Pg';
+    $sql =~ s/join server/straight_join server/g unless $dbh->{Driver}->{Name} eq 'Pg';
 
     my $prep = $dbh->prepare($sql);
+    local $SIG{ALRM} = sub { die "TIMEOUT in latest_hit\n" };
+    alarm(10);
     $prep->execute();
+    alarm(0);
     return $dbh->selectrow_array($prep);
 };
 
