@@ -44,6 +44,15 @@ sub _run {
 
     # retry later if many folder_sync jobs are scheduled according to estimation
     return $job->retry({delay => 30}) if $app->backstage->inactive_jobs_exceed_limit(100, 'folder_sync');
+    my $schedule_guard;
+    unless ($schedule_guard = $minion->guard('schedule_folder', 60)) {
+        sleep 1;
+        unless ($schedule_guard = $minion->guard('schedule_folder', 60)) {
+            $job->note(sharedlock => 'Retrying');
+            return $job->retry({delay => 1});
+        }
+    }
+    $job->note(sharedlock => 'Got it');
 
     my @folders;
 if ($schema->pg) {

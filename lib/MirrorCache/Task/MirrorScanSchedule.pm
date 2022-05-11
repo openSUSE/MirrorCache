@@ -23,6 +23,7 @@ sub register {
 
 my $RESCAN = int($ENV{MIRRORCACHE_RESCAN_INTERVAL} // 24 * 60 * 60);
 my $DELAY  = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
+$DELAY     = $DELAY+1 if $DELAY; # period should differ from the same in FolderScanSchedule to avoid deadlocks
 my $EXPIRE = int($ENV{MIRRORCACHE_SCHEDULE_EXPIRE_INTERVAL} // 14 * 24 * 60 * 60);
 my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS} // 0);
 
@@ -42,6 +43,16 @@ sub _run {
 
     # retry later if many jobs are scheduled according to estimation
     return $job->retry({delay => 30}) if $app->backstage->inactive_jobs_exceed_limit(100, 'mirror_scan');
+    my $schedule_guard;
+    unless ($schedule_guard = $minion->guard('schedule_folder', 60)) {
+        sleep 1;
+        unless ($schedule_guard = $minion->guard('schedule_folder', 60)) {
+            $job->note(sharedlock => 'Retrying');
+            return $job->retry({delay => 1});
+        }
+    }
+    $job->note(sharedlock => 'Got it');
+
 
     my @folders;
 
