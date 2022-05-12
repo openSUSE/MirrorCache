@@ -1,4 +1,4 @@
-# Copyright (C) 2020,2020 SUSE LLC
+# Copyright (C) 2020-2022 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ use Sort::Versions;
 use Time::Piece;
 use Time::Seconds;
 use Time::ParseDate;
-use Mojolicious::Types;
 use MirrorCache::Utils;
 use MirrorCache::Datamodule;
 
@@ -381,12 +380,6 @@ sub _by_filename {
    versioncmp(lc($a->{name}), lc($b->{name}));
 }
 
-sub _get_ext {
-    $_[0] =~ /\.([0-9a-zA-Z]+)$/ || return;
-    return lc $1;
-}
-my $types = Mojolicious::Types->new;
-
 sub _render_dir_from_db {
     my $dm  = shift;
     my $id  = shift;
@@ -414,7 +407,7 @@ sub _render_dir_from_db {
 
         my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
         my $encoded   = Encode::decode_utf8( './' . $basename );
-        my $mime_type = $types->type( _get_ext($basename) || 'txt' ) || 'text/plain';
+        my $mime_type = $dm->mime || 'text/plain';
 
         push @files, {
             url   => $encoded,
@@ -462,7 +455,7 @@ sub _render_dir_local {
 
         my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
         my $encoded   = Encode::decode_utf8( './' . $basename );
-        my $mime_type = $types->type( _get_ext($basename) || 'txt' ) || 'text/plain';
+        my $mime_type = $dm->mime || 'text/plain';
 
         push @files, {
             url   => $encoded,
@@ -494,7 +487,7 @@ sub _render_small {
     eval { $size = -s $full if -f $full; };
     return undef unless (defined $size) && $size <= $SMALL_FILE_SIZE;
     my $c = $dm->c;
-    $c->render_file(filepath => $full);
+    $c->render_file(filepath => $full, content_type => $dm->mime);
     return 1;
 }
 

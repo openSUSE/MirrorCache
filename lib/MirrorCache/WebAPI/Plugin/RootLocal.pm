@@ -79,7 +79,7 @@ sub render_file {
     if ($redirect) {
         $res = !!$c->redirect_to($redirect . $root_subtree . $filepath);
     } else {
-        $res = !!$c->render_file(filepath => $self->rootpath($filepath) . $root_subtree . $filepath);
+        $res = !!$c->render_file(filepath => $self->rootpath($filepath) . $root_subtree . $filepath, content_type => $dm->mime);
     }
     $c->stat->redirect_to_root($dm, $not_miss);
     return $res;
@@ -96,7 +96,7 @@ sub render_file_if_small {
     eval { $size = -s $full if -f $full; };
     return undef unless ((defined $size) && $size <= $max_size);
     my $c = $dm->c;
-    $c->render_file(filepath => $full);
+    $c->render_file(filepath => $full, content_type => $dm->mime);
     return 1;
 }
 
