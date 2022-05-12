@@ -92,7 +92,7 @@ sub mirrors_query {
 
     my $sql = <<"END_SQL";
 select * from (
-select x.id as mirror_id, concat(case when support_scheme > 0 then '$capability' else '$capabilityx' end, '://', uri) as url,
+select x.id as mirror_id, left(concat(case when support_scheme > 0 then '$capability' else '$capabilityx' end, '://', uri),300) as url,
 dist,
 case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end rating_country,
 score, country, region, lng,
@@ -116,7 +116,7 @@ CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 THEN stability_scheme.rating 
 CASE WHEN COALESCE(stability_ipv.rating, 0)    > 0 THEN 1 ELSE 0 END AS support_ipv,
 CASE WHEN COALESCE(stability_ipv.rating, 0)    > 0 THEN stability_ipv.rating    WHEN COALESCE(stability_ipvx.rating, 0)    > 0 THEN stability_ipvx.rating    ELSE 0 END AS rating_ipv
 from (
-    select s.*, fl.name
+    select s.id, s.hostname, s.hostname_vpn, s.urldir, s.region, s.country, s.lat, s.lng, s.score, fl.name
     from folder_diff fd
     join file fl on fl.id = ?
     join folder_diff_server fds on fd.id = fds.folder_diff_id and date_trunc('second', fl.dt) <= fds.dt

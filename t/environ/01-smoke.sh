@@ -44,8 +44,14 @@ $mc/curl /download/folder1/ | grep file1.1.dat
 # check redirect is correct
 $mc/curl -Is /download/folder1 | grep -i 'Location: /download/folder1/'
 
+tmp_tables1="$(test "$MIRRORCACHE_DB_PROVIDER" != mariadb || $mc/sql 'show global status like '\''%tmp%disk%'\''')"
+
 # only ap7 is in US
 $mc/curl -Is /download/folder1/file1.1.dat | grep -C10 302 | grep "$($ap7/print_address)"
+
+tmp_tables2="$(test "$MIRRORCACHE_DB_PROVIDER" != mariadb || $mc/sql 'show global status like '\''%tmp%disk%'\''')"
+# test the main query doesn't create tmp tables on disk (relevant only for mariadb)
+test "$tmp_tables1" == "$tmp_tables2"
 
 ###################################
 # test files are removed properly
@@ -108,3 +114,4 @@ $mc/backstage/shoot
 
 $mc/sql 'select * from stat_agg'
 $mc/curl /rest/stat | grep '"hour":{"bot":2,"hit":24,"miss":6,"prev_bot":2,"prev_hit":24,"prev_miss":6}'
+
