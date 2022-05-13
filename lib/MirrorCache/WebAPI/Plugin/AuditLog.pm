@@ -27,7 +27,7 @@ use MirrorCache::Events;
 # mirror_country_miss means that request was served by a mirror in region
 my @error_events = qw(mirror_scan_error mirror_path_error mirror_error mirror_country_miss);
 my @other_events = qw(unknown_ip debug);
-my @user_events = qw(user_update user_delete server_create server_update server_delete);
+my @user_events = qw(user_update user_delete server_create server_update server_delete myserver_create myserver_update myserver_delete);
 
 sub register {
     my ($self, $app) = @_;

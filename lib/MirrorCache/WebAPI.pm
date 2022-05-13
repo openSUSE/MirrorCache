@@ -44,7 +44,7 @@ sub new {
 
     $self->hook(before_command => sub {
         my ($command, $arg) = @_;
-        $self->_setup_webui if ref($command) =~ m/daemon|prefork/; 
+        $self->_setup_webui if ref($command) =~ m/daemon|prefork/;
     }) unless $started;
 
     $self;
@@ -172,6 +172,16 @@ sub _setup_webui {
     $rest_operator_r->put('/server/location/:id')->name('rest_put_server_location')->to('server_location#update_location');
     $rest_operator_r->post('/sync_tree')->name('rest_post_sync_tree')->to('folder_jobs#sync_tree');
 
+    $rest_r->get('/myserver')->name('rest_myserver')->to('table#list', table => 'MyServer');
+    $rest_r->get('/myserver/:id')->to('table#list', table => 'MyServer');
+    my $rest_usr_auth;
+    $rest_usr_auth = $rest->under('/')->to('session#ensure_user');
+    my $rest_usr_r = $rest_usr_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
+    $rest_usr_r->post('/myserver')->to('table#create', table => 'MyServer');
+    $rest_usr_r->post('/myserver/:id')->name('post_myserver')->to('table#update', table => 'MyServer');
+    $rest_usr_r->delete('/myserver/:id')->to('table#destroy', table => 'MyServer');
+    $rest_usr_r->put('/myserver/location/:id')->name('rest_put_myserver_location')->to('myserver_location#update_location');
+
     $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
 
     $rest_r->get('/folder_jobs/:id')->name('rest_folder_jobs')->to('folder_jobs#list');
@@ -183,6 +193,7 @@ sub _setup_webui {
     my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
 
     $app_r->get('/server')->name('server')->to('server#index');
+    $app_r->get('/myserver')->name('myserver')->to('myserver#index');
     $app_r->get('/folder')->name('folder')->to('folder#index');
     $app_r->get('/folder/<id:num>')->name('folder_show')->to('folder#show');
 

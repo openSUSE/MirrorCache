@@ -297,7 +297,7 @@ function renderAdminTableActions(data, type, row, meta) {
     if (isEditingAdminTableRow(meta)) {
         return renderEditableAdminTableActions(data, type, row, meta);
     }
-    if (!window.isAdmin) {
+    if (!window.editable) {
         return '';
     }
     var url = $("#admintable_api_url").val();
@@ -313,7 +313,7 @@ function renderEditableAdminTableActions(data, type, row, meta) {
     if (type !== 'display') {
         return data ? data : newRowId;
     }
-    if (!window.isAdmin) {
+    if (!window.editable) {
         return '';
     }
     if (data) {
@@ -327,7 +327,7 @@ function renderEditableAdminTableActions(data, type, row, meta) {
     }
 }
 
-function setupAdminTable(isAdmin) {
+function setupAdminTable(editable) {
     // adjust sorting so empty strings come last
     jQuery.extend(jQuery.fn.dataTableExt.oSort, {
         'empty-string-last-asc': function(str1, str2) {
@@ -447,7 +447,7 @@ function setupAdminTable(isAdmin) {
     });
 
     // set/update page-global state (there can only be one admin table at a page anyways)
-    window.isAdmin = isAdmin;
+    window.editable = editable;
     window.adminTable = dataTable;
 
     // prevent sorting when help popover on table heading is clicked

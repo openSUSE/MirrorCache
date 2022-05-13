@@ -1,0 +1,38 @@
+% layout 'bootstrap';
+% title 'My Mirrors';
+
+% content_for 'ready_function' => begin
+    setupAdminTable('<%=current_username_js%>');
+% end
+
+<div class="row">
+    <div class="col-sm-12">
+        <h2><%= title %></h2>
+
+        %= include 'layouts/info'
+
+        <table id="myservers" class="admintable table table-striped">
+            <thead>
+                <tr>
+                    <th class="col_value">Id</th>
+                    <th class="col_value">Hostname</th>
+                    <th class="col_value">Urldir</th>
+                    <th class="col_value">Region</th>
+                    <th class="col_value">Country</th>
+                    <th class="col_value">Comment</th>
+                    <th class="col_value">Public Notes</th>
+                    <th class="col_value">Enabled</th>
+                    <th class="col_action">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        % if (current_user) {
+        <div class="text-center">
+            <input value="New mirror" onclick="addAdminTableRow();" type="button" class="btn btn-default"/>
+        </div>
+        % }
+        <input type="hidden" id="admintable_api_url" value="/rest/myserver"/>
+    </div>
+</div>
