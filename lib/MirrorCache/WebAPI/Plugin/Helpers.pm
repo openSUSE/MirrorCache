@@ -79,11 +79,13 @@ sub register {
         });
 
     $app->helper(current_user     => \&_current_user);
+    $app->helper(current_username => \&_current_username);
     $app->helper(is_operator      => \&_is_operator);
     $app->helper(is_admin         => \&_is_admin);
     $app->helper(is_local_request => \&_is_local_request);
 
-    $app->helper(is_admin_js    => sub { Mojo::ByteStream->new(shift->helpers->is_admin    ? 'true' : 'false') });
+    $app->helper(is_admin_js         => sub { Mojo::ByteStream->new(shift->helpers->is_admin ? 'true' : 'false') });
+    $app->helper(current_username_js => sub { Mojo::ByteStream->new(shift->helpers->current_username) });
 
     $app->helper(
         # generate popover help button with title and content
@@ -166,6 +168,15 @@ sub _current_user {
 
     $current_user = $c->stash('current_user');
     return $current_user && defined $current_user->{user} ? $current_user->{user} : undef;
+}
+
+sub _current_username {
+    my $c = shift;
+
+    return '' unless $c->current_user;
+    my $current_user = $c->stash('current_user');
+    return '' unless $current_user && $current_user->{user};
+    return $current_user->{user}->nickname;
 }
 
 sub _is_operator {

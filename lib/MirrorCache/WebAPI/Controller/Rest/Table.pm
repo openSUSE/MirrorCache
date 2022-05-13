@@ -26,13 +26,25 @@ my %tables = (
         keys     => [['id'], ['hostname'],],
         cols     => ['id', 'hostname', 'urldir', 'enabled', 'region', 'country', 'comment', 'public notes'],
         required => ['id', 'hostname', 'urldir'],
-        defaults => {urldir => '/'},
+        defaults => {urldir => ''},
+    },
+    MyServer => {
+        keys     => [['id'], ['hostname'],],
+        cols     => ['id', 'hostname', 'urldir', 'enabled', 'region', 'country', 'comment', 'public notes'],
+        required => ['id', 'hostname', 'urldir'],
+        defaults => {urldir => ''},
     },
     Folder => {
         keys     => [['id'], ['path'],],
         cols     => ['id', 'path', 'wanted', 'sync requested', 'sync scheduled', 'sync last', 'scan requested', 'scan scheduled', 'scan last'],
     },
 );
+
+sub _myserver {
+    my ($req) = @_;
+    return 1 if $req->url->to_string =~ 'myserver';
+    return 0;
+}
 
 sub list {
     my ($self) = @_;
@@ -54,11 +66,23 @@ sub list {
 
     my @result;
     eval {
-        my $rs = $self->schema->resultset($table);
-        @result = %search ? $rs->search(\%search) : $rs->all;
+        unless (_myserver($self->req)) {
+            my $rs = $self->schema->resultset($table);
+            @result = %search ? $rs->search(\%search) : $rs->all;
+        } else {
+            my $rs = $self->schema->resultset('Server');
+            $search{username} = $self->current_username;
+            @result = %search ? $rs->search(
+                \%search,
+                {
+                    join => 'server_admin',
+                }
+            ) : $rs->all;
+        }
     };
     my $error = $@;
     if ($error) {
+        print STDERR "RESP1 : " . $error . "\n";
         return $self->render(json => {error => $error}, status => 404);
     }
 
@@ -85,10 +109,11 @@ sub list {
 sub create {
     my ($self) = @_;
 
-    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $self->current_user;
+    my $username = $self->current_username;
+    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $username;
 
     my $table  = $self->param("table");
-    
+
     my %entry  = %{$tables{$table}->{defaults}};
     my $prepare_error = $self->_prepare_params($table, \%entry);
     return $self->render(json => {error => $prepare_error}, status => 400) if defined $prepare_error;
@@ -101,6 +126,8 @@ sub create {
     if ($error) {
         return $self->render(json => {error => $error}, status => 400);
     }
+    try { $self->schema->resultset('ServerAdmin')->create({server_id => $id, username => $username}); } catch { $error = shift; } if _myserver($self->req);
+
     my %event_data;
     for my $k (keys %entry) {
         next if !$entry{$k} or "$entry{$k}" eq '';
@@ -108,18 +135,27 @@ sub create {
     }
     my $name = 'mc_' . lc $table . '_create';
     $self->emit_event($name, \%event_data, $self->current_user->id);
+    if ($error) {
+        return $self->render(json => {error => $error}, status => 400);
+    }
     $self->render(json => {id => $id});
 }
 
 sub update {
     my ($self) = @_;
 
-    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $self->current_user;
+    my $username = $self->current_username;
+    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $username;
+
+    if (_myserver($self->req)) {
+        my $rc = $self->schema->resultset('ServerAdmin')->find({server_id => $self->param('id'), username => $username});
+        return $self->render(json => {error => 'Could not find admin entry for server.'}, status => 404) unless $rc && $rc->username eq $username;
+    }
 
     my $table = $self->param("table");
 
     my $entry = {};
-    my $prepare_error = $self->_prepare_params($table, $entry);
+    my $prepare_error = $self->_prepare_params($table, $entry, $username);
     return $self->render(json => {error => $prepare_error}, status => 400) if defined $prepare_error;
 
     my $schema = $self->schema;
@@ -181,7 +217,13 @@ a 404 error code when the table is not found, 400 on other errors.
 sub destroy {
     my ($self) = @_;
 
-    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $self->current_user;
+    my $username = $self->current_username;
+    return $self->render(json => {error => 'Could not identify current user (you).'}, status => 400) unless $username;
+
+    if (_myserver($self->req)) {
+        my $rc = $self->schema->resultset('ServerAdmin')->find({server_id => $self->param('id'), username => $username});
+        return $self->render(json => {error => 'Could not find admin entry for server.'}, status => 404) unless $rc && $rc->username eq $username;
+    }
 
     my $table    = $self->param("table");
     my $schema   = $self->schema;

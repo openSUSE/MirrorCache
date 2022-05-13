@@ -273,3 +273,10 @@ create table if not exists server_stability (
 -- 22 up
 create index if not exists folder_diff_file_2 on folder_diff_file(file_id, folder_diff_id);
 alter table server_capability_check drop column if exists success;
+-- 23 up
+create unique index acc_nickname_uk on acc(nickname);
+create table server_admin (
+    server_id int references server on delete cascade,
+    username varchar(64) not null,
+    primary key(server_id,username)
+);
