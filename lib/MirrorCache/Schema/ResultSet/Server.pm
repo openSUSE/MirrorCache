@@ -20,6 +20,9 @@ use warnings;
 
 use base 'DBIx::Class::ResultSet';
 
+# MariaDB will create temporary disk table for each mirror_query if this is bigger than default
+my $MIRRORCACHE_MAX_PATH = int($ENV{MIRRORCACHE_MAX_PATH} // 512);
+
 sub mirrors_query {
     my (
         $self, $country, $region, $folder_id,       $file_id, $capability,
@@ -92,7 +95,7 @@ sub mirrors_query {
 
     my $sql = <<"END_SQL";
 select * from (
-select x.id as mirror_id, left(concat(case when support_scheme > 0 then '$capability' else '$capabilityx' end, '://', uri),300) as url,
+select x.id as mirror_id, left(concat(case when support_scheme > 0 then '$capability' else '$capabilityx' end, '://', uri),$MIRRORCACHE_MAX_PATH) as url,
 dist,
 case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end rating_country,
 score, country, region, lng,
