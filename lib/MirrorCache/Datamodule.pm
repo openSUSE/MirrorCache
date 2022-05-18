@@ -47,6 +47,7 @@ has '_root_longitude' => ($ENV{MIRRORCACHE_ROOT_LONGITUDE} ? int($ENV{MIRRORCACH
 
 has root_subtree => ($ENV{MIRRORCACHE_SUBTREE} // "");
 
+has _vpn_var => $ENV{MIRRORCACHE_VPN};
 has vpn_prefix => ($ENV{MIRRORCACHE_VPN_PREFIX} ? lc($ENV{MIRRORCACHE_VPN_PREFIX}) : "10.");
 
 has 'at';
@@ -89,6 +90,8 @@ sub ip($self) {
 }
 
 sub vpn($self) {
+    return $self->_vpn_var if defined $self->_vpn_var;
+
     unless (defined $self->_vpn) {
         my $ip = $self->ip;
         $ip =~ s/^::ffff://;
