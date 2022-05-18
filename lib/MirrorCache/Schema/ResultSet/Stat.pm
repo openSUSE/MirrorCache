@@ -168,7 +168,7 @@ from stat left join folder on folder.id = stat.folder_id
 where mirror_id < 1
 and ( mirror_id in (0,-1) or mirrorlist )
 and file_id is null
-and stat.path !~ '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?)|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz$'
+and stat.path !~ '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz)$'
 and lower(stat.agent) NOT LIKE '%bot%'
 and lower(stat.agent) NOT LIKE '%rclone%'
 and (
