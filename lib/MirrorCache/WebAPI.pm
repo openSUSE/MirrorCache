@@ -116,6 +116,7 @@ sub startup {
 
     $self->plugin('Helpers', root => $root, route => '/download');
     $self->plugin('Subsidiary');
+    $self->plugin('Project');
     if ($root) {
         # check prefix
         if ('rsync://' eq substr($root, 0, 8)) {
@@ -183,12 +184,16 @@ sub _setup_webui {
     $rest_usr_r->put('/myserver/location/:id')->name('rest_put_myserver_location')->to('myserver_location#update_location');
 
     $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
+    $rest_r->get('/repmirror')->name('rest_repmirror')->to('report_mirror#list');
 
     $rest_r->get('/folder_jobs/:id')->name('rest_folder_jobs')->to('folder_jobs#list');
     $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show') if $self->_geodb;
 
     $rest_r->get('/stat')->name('rest_stat')->to('stat#list');
     $rest_r->get('/mystat')->name('rest_mystat')->to('stat#mylist');
+
+    my $report_r = $r->any('/report')->to(namespace => 'MirrorCache::WebAPI::Controller::Report');
+    $report_r->get('/mirror')->name('report_mirror')->to('mirror#index');
 
     my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
 

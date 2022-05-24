@@ -276,3 +276,18 @@ create table server_admin (
     primary key(server_id,username),
     constraint `fk_server_admin` FOREIGN KEY(server_id) references server(id) on delete cascade
 );
+-- 24 up
+create table report (
+    id int AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    title       varchar(64),
+    description varchar(256),
+    interval_seconds int DEFAULT 3600
+);
+insert into report select 1, 'Mirrors', NULL, 15*60;
+create table report_body (
+    report_id int,
+    dt timestamp,
+    body text,
+    constraint `fk_report_body_report` FOREIGN KEY(report_id) references report(id) on delete cascade
+);
+create index if not exists report_content_dt_inx on report_body(report_id, dt);

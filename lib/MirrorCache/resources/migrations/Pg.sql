@@ -280,3 +280,17 @@ create table server_admin (
     username varchar(64) not null,
     primary key(server_id,username)
 );
+-- 24 up
+create table report (
+    id serial NOT NULL PRIMARY KEY,
+    title       varchar(64),
+    description varchar(256),
+    interval_seconds int DEFAULT 3600
+);
+insert into report select 1, 'Mirrors', NULL, 15*60;
+create table report_body (
+    report_id int references report on delete cascade,
+    dt timestamp,
+    body text
+);
+create index if not exists report_content_dt_inx on report_body(report_id, dt);
