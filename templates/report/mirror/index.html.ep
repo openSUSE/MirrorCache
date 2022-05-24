@@ -1,0 +1,31 @@
+% layout 'bootstrap';
+% title 'Mirror Report';
+
+% content_for 'ready_function' => begin
+    setupReportTable();
+% end
+
+<div class="row">
+    <div class="col-sm-12">
+        <h2><%= title %></h2>
+
+        %= include 'layouts/info'
+
+        <table id="servers" class="reporttable table table-striped">
+            <thead>
+                <tr>
+                    <th class="col_value">Region</th>
+                    <th class="col_value">Country</th>
+                    <th class="col_value">Url</th>
+                    % for my $project (@$projects) {
+                    <th class="col_value"><%= $project  %> score</th>
+                    <th class="col_value"><%= $project  %> victim</th>
+                    % }
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <input type="hidden" id="reporttable_api_url" value="/rest/repmirror"/>
+    </div>
+</div>

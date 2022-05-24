@@ -247,4 +247,49 @@ END_SQL
     $prep->execute($state, $extra, $server_id, $project_id);
 }
 
+sub report_mirrors {
+    my ($self, $project, $region) = @_;
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $where1  = '';
+    my $where2  = '';
+    $where1 = "WHERE REPLACE(prj.name,' ','') = ?" if $project;
+    $where2 = "WHERE s.region = ?"  if $region;
+
+    my $sql = <<"END_SQL";
+select s.region, s.country, x.name project, s.id, min(case when s1 = 0 then 1 else 0 end) as curr, round((sum(s2)*1.0)/(sum(s1)+sum(s2))*100) as score, concat(s.hostname, s.urldir) as url, max(example) victim
+from (
+select prj.name, fds.server_id,
+    sum(case when fds.folder_diff_id != fds2.folder_diff_id then 1 else 0 end) s1,
+    sum(case when fds.folder_diff_id = fds2.folder_diff_id then 1 else 0 end) s2,
+    max(case when fds.folder_diff_id != fds2.folder_diff_id then f.path else '' end) example
+from project prj
+join folder f on f.path like concat(prj.path,'%')
+join folder_diff fd on fd.folder_id = f.id
+join folder_diff fd2 on fd2.folder_id = fd.folder_id
+join folder_diff_server fds on fd.id = fds.folder_diff_id
+join folder_diff_server fds2 on fd2.id = fds2.folder_diff_id and fds2.server_id = prj.etalon
+$where1
+group by fds2.server_id, prj.name, fds.server_id ) x
+join server s on x.server_id = s.id
+$where2
+group by s.id, x.name
+order by region, country, score, url;
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    if ($project && $region) {
+        $prep->execute($project, $region);
+    } elsif ($project) {
+        $prep->execute($project);
+    } elsif ($region) {
+        $prep->execute($region);
+    } else {
+        $prep->execute;
+    }
+    my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
+    return $server_arrayref;
+}
+
 1;
