@@ -407,6 +407,7 @@ sub _init_path($self) {
 
     $self->_pedantic($pedantic) if defined $pedantic;
 
+    $self->agent; # parse headers
     $self->must_render_from_root(1)
         if !$self->mirrorlist
         && ( !$self->metalink || $self->metalink_accept )
@@ -419,7 +420,6 @@ sub _init_path($self) {
     $self->_mime($mime);
     $self->_path($path);
     $self->_trailing_slash($trailing_slash);
-    $self->agent; # parse headers
 }
 
 sub root_is_hit($self) {
