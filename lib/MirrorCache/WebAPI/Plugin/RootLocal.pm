@@ -79,7 +79,9 @@ sub render_file {
     if ($redirect) {
         $res = !!$c->redirect_to($redirect . $root_subtree . $filepath);
     } else {
-        $res = !!$c->render_file(filepath => $self->rootpath($filepath) . $root_subtree . $filepath, content_type => $dm->mime);
+        my $rootpath = $self->rootpath($filepath);
+        return !!$c->render(status => 404, text => "File $filepath not found") unless $rootpath;
+        $res = !!$c->render_file(filepath => $rootpath . $root_subtree . $filepath, content_type => $dm->mime);
     }
     $c->stat->redirect_to_root($dm, $not_miss);
     return $res;

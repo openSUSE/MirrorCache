@@ -71,8 +71,9 @@ sub indx {
       || _redirect_geo($dm)
       || _redirect_normalized($dm)
       || _render_stats($dm)
-      || _local_render($dm)
-      || _render_from_db($dm);
+      || _local_render($dm, 0) # check if we should render local
+      || _render_from_db($dm)
+      || _local_render($dm, 1); # check if we should render local when metalink cannot be provided
 
     my $tx = $c->render_later->tx;
     my $rendered;
@@ -242,8 +243,9 @@ sub _render_stats_not_scanned {
 }
 
 sub _local_render {
-    my $dm = shift;
-    return undef if $dm->extra;
+    my $dm     = shift;
+    my $accept = shift;
+    return undef if $dm->extra && (!$accept || !$dm->metalink_accept);
     my ($path, $trailing_slash) = $dm->path;
 
     return $root->render_file_if_nfs($dm, $path) if $root->is_remote;
@@ -272,13 +274,7 @@ sub _render_from_db {
                 $dm->folder_id($parent_folder->id);
             } else {
                 my $another_folder = $rsFolder->find({path => $dm->root_subtree . $f->dirname});
-                if (!$another_folder) {
-                    my $res = $c->render(status => 425, text => "The file is unknown, retry later");
-                    # log miss here even thoough we haven't rendered anything
-                    $c->stat->redirect_to_root($dm, 0);
-                    return $res;
-                }
-                $dm->folder_id($another_folder->id);
+                return undef unless $another_folder; # nothing found, proceed to _guess_what_to_render
             }
             my $file;
             $file = $schema->resultset('File')->find_with_hash($parent_folder->id, $f->basename) if $parent_folder && !$trailing_slash;

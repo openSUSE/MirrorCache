@@ -22,10 +22,11 @@ unversionedfiles="
 
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
-    mkdir -p $x/dt/Folder1
+    mkdir -p $x/dt/Folder1/repodata
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
     echo $x/dt/folder1/file1.dat | xargs -n 1 touch
     echo $x/dt/Folder1/file1.1.DAT | xargs -n 1 touch
+    echo $x/dt/Folder1/repodata/repomd.xml | xargs -n 1 touch
     mkdir -p $x/dt/folder1.11test/
     for f in $unversionedfiles; do
         str=1
@@ -36,6 +37,8 @@ done
 
 $ap7/start
 $ap8/start
+
+$mc/curl -I -H "Accept: */*, application/metalink+xml" /download/Folder1/repodata/repomd.xml | grep '200 OK'
 
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','ca','na'"
