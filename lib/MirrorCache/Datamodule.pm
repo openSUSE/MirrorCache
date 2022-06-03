@@ -38,6 +38,7 @@ has '_agent';
 has [ '_is_secure', '_is_ipv4', '_ipvstrict', '_is_head' ];
 has 'mirrorlist';
 has 'zsync';
+has [ 'torrent', 'magnet', 'btih' ];
 has 'json';
 has [ 'folder_id', 'file_id', 'file_age', 'folder_sync_last', 'folder_scan_last' ]; # shortcut to requested folder and file, if known
 
@@ -105,7 +106,7 @@ sub vpn($self) {
 }
 
 sub extra($self) {
-    return ($self->metalink || $self->mirrorlist || $self->zsync);
+    return ($self->metalink || $self->mirrorlist || $self->zsync || $self->magnet || $self->torrent || $self->btih );
 }
 
 sub region($self) {
@@ -258,10 +259,8 @@ sub is_head($self) {
 
 sub redirect($self, $url) {
     my $xtra = '';
-    if ($self->_original_path =~ m/.*\.metalink$/) {
-        $xtra = ".metalink";
-    } elsif ($self->_original_path =~ m/.*\.mirrorlist$/) {
-        $xtra = ".mirrorlist";
+    if ($self->_original_path =~ m/(\.metalink|\.mirrorlist|\.torrent|\.magnet|\.btih)$/) {
+        $xtra = $1;
     }
 
     return $self->c->redirect_to($url . $xtra . $self->query1);
@@ -350,6 +349,9 @@ sub _init_path($self) {
         $self->_query1('?' . $query_string);
         $self->mirrorlist(1) if defined $query->param('mirrorlist');
         $self->zsync(1)      if defined $query->param('zsync');
+        $self->torrent(1)    if defined $query->param('torrent');
+        $self->magnet(1)     if defined $query->param('magnet');
+        $self->btih(1)       if defined $query->param('btih');
         $self->json(1)       if defined $query->param('json') || defined $query->param('JSON');
         $pedantic = $query->param('PEDANTIC');
     } else {
@@ -392,6 +394,24 @@ sub _init_path($self) {
     if (!$trailing_slash && ((my $pos = length($path) - length('.zsync')) > 1)) {
         if ('.zsync' eq substr($path, $pos)) {
             $self->zsync(1);
+            $path = substr($path, 0, $pos);
+        }
+    }
+    if (!$trailing_slash && ((my $pos = length($path) - length('.torrent')) > 1)) {
+        if ('.torrent' eq substr($path, $pos)) {
+            $self->torrent(1);
+            $path = substr($path, 0, $pos);
+        }
+    }
+    if (!$trailing_slash && ((my $pos = length($path) - length('.magnet')) > 1)) {
+        if ('.magnet' eq substr($path, $pos)) {
+            $self->magnet(1);
+            $path = substr($path, 0, $pos);
+        }
+    }
+    if (!$trailing_slash && ((my $pos = length($path) - length('.btih')) > 1)) {
+        if ('.btih' eq substr($path, $pos)) {
+            $self->btih(1);
             $path = substr($path, 0, $pos);
         }
     }

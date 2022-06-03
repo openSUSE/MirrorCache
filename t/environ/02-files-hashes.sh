@@ -57,3 +57,12 @@ $mc/curl /download/folder1/file1.1.dat.metalink | grep -o "<mtime>$(date +%s -r 
 $mc/curl /download/folder1/file1.1.dat.metalink | grep -o '<hash type="md5">b2c5860a03d2c4f1f049a3b2409b39a8</hash>'
 $mc/curl /download/folder1/file1.1.dat.metalink | grep -o '<hash type="sha-256">63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458</hash>'
 $mc/curl /download/folder1/file1.1.dat.metalink | grep -o '<hash>5179db3d4263c9cb4ecf0edbc653ca460e3678b7</hash>'
+
+$mc/curl -I /download/folder1/file1.1.dat.btih | grep '200 OK'
+$mc/curl /download/folder1/file1.1.dat.btih
+$mc/curl -I /download/folder1/file1.1.dat.magnet | grep '200 OK'
+$mc/curl /download/folder1/file1.1.dat.magnet
+$mc/curl -I /download/folder1/file1.1.dat.torrent | grep '200 OK'
+$mc/curl /download/folder1/file1.1.dat.torrent
+
+echo success
