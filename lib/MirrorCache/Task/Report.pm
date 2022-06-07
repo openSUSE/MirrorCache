@@ -56,8 +56,11 @@ sub _run {
                     my $score = $p->[0];
                     my $victim = $p->[1];
                     $project =~ tr/ //ds;
-                    $row{$project . "score"}  = $score;
-                    $row{$project . "victim"} = $victim;
+                    $project =~ tr/\.//ds;
+                    $project = lc($project);
+                    $project = "c$project" if $project =~ /^\d/;
+                    $row{$project . 'score'}  = $score;
+                    $row{$project . 'victim'} = $victim;
                 }
                 push @report, \%row;
             }

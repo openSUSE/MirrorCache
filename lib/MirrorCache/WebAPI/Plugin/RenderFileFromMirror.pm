@@ -25,6 +25,7 @@ use XML::Writer;
 use DateTime;
 use Mojo::File;
 use Mojo::Date;
+use Mojo::Util;
 use Mojo::IOLoop::Subprocess;
 
 sub register {
@@ -89,14 +90,30 @@ sub register {
         if (!$folder || !$file) {
             return $c->render(status => 404, text => "File not found");
         }
-        if ($dm->zsync) {
-            my $url = $root->is_remote ? $root->location($dm, $folder->path) : $root->redirect($dm, $folder->path);
-            if ($url) {
-                $url = $url . "/" . $basename;
-            } else {
-                ($url = $c->req->url->to_abs->to_string) =~ s/\.zsync$//;
+        my $url;
+        if ($dm->torrent || $dm->zsync || $dm->metalink) {
+            $url = $root->is_remote ? $root->location($dm, $folder->path) : $root->redirect($dm, $folder->path);
+            if (!$dm->metalink) {
+                if ($url && ! $dm->metalink) {
+                    $url = $url . "/" . $basename;
+                } else {
+                    ($url = $c->req->url->to_abs->to_string) =~ s/\.(torrent|zsync)$//;
+                }
             }
+        }
+
+        if ($dm->zsync) {
             _render_zsync($c, $url, $basename, $file->{mtime}, $file->{size}, $file->{sha1}, $file->{zblock_size}, $file->{zlengths}, $file->{zhashes});
+            $c->stat->redirect_to_root($dm, 1);
+            return 1;
+        }
+        if ($dm->btih) {
+            _render_btih($c, $basename, $file);
+            $c->stat->redirect_to_root($dm, 1);
+            return 1;
+        }
+        if ($dm->magnet) {
+            _render_magnet($c, $url, $basename, $file);
             $c->stat->redirect_to_root($dm, 1);
             return 1;
         }
@@ -112,7 +129,7 @@ sub register {
         $mirror = $mirrors_region[0]  if !$mirror && @mirrors_region;
         $mirror = $mirrors_rest[0]    if !$mirror && @mirrors_rest;
 
-        if ($dm->metalink || $dm->mirrorlist) {
+        if ($dm->extra) {
             if ($mirror) {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
             } else {
@@ -120,29 +137,30 @@ sub register {
             }
         }
 
-        if ($dm->metalink && !($dm->metalink_accept && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
-            my $url = $c->req->url->to_abs;
+        return _render_torrent($dm, $file, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $url) if $dm->torrent;
 
+        if ($dm->metalink && !($dm->metalink_accept && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
             my $origin;
             if (my $publisher_url = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL}) {
                 $publisher_url =~ s/^https?:\/\///;
                 $origin = $dm->scheme . '://' . $publisher_url;
             } else {
-                $origin = $dm->scheme . '://' . $url->host;
-                $origin = $origin . ":" . $url->port if $url->port && $url->port != "80";
+                my $originurl = $c->req->url->to_abs; 
+                $origin = $dm->scheme . '://' . $originurl->host;
+                $origin = $origin . ":" . $originurl->port if $originurl->port && $originurl->port != "80";
                 $origin = $origin . $dm->route;
             }
             $origin = $origin . $filepath;
             my $xml    = _build_metalink(
                 $dm, $folder->path, $file, $country, $region, \@mirrors_country, \@mirrors_region,
-                \@mirrors_rest, $origin, 'MirrorCache', $root->is_remote ? $root->location($dm) : $root->redirect($dm, $folder->path) );
+                \@mirrors_rest, $origin, 'MirrorCache', $url);
             $c->res->headers->content_disposition('attachment; filename="' .$basename. '.metalink"');
             $c->render(data => $xml, format => 'metalink');
             return 1;
         }
 
         if ($dm->mirrorlist) {
-            my $url    = $c->req->url->to_abs;
+            $url = $c->req->url->to_abs;
             my @mirrordata;
             if ($country and !$dm->avoid_countries || !(grep { $country eq $_ } $dm->avoid_countries)) {
                 for my $m (@mirrors_country) {
@@ -558,6 +576,108 @@ EOT
         });
 
     return 1;
+}
+
+sub _render_btih() {
+    my ($c, $filename, $file) = @_;
+
+    unless($file->{md5}) {
+        $c->render(status => 404, text => "File not found");
+        return 1;
+    }
+
+    $c->render(text => "$filename " . _calc_btih($filename, $file));
+    return 1;
+}
+
+sub _render_magnet() {
+    my ($c, $url, $filename, $file) = @_;
+
+    unless($file->{piece_size}) {
+        $c->render(status => 404, text => "File not found");
+        return 1;
+    }
+
+    my $btih  = _calc_btih($filename, $file);
+    my $md5   = $file->{md5};
+    my $size  = $file->{size};
+    $filename = Mojo::Util::url_escape($filename);
+    $url      = Mojo::Util::url_escape($url);
+
+    $c->render(text => "magnet:?xt=urn:btih:$btih&amp;xt=urn:md5:$md5&amp;xl=$size&amp;dn=$filename&amp;as=$url");
+    return 1;
+}
+
+sub _render_torrent() {
+    my ($dm, $file, $mirrors_country, $mirrors_region, $mirrors_rest, $url) = @_;
+
+    my $c = $dm->c;
+
+    unless($file->{piece_size}) {
+        $c->render(status => 404, text => "File not found");
+        return 1;
+    }
+
+    my $tracker     = $ENV{MIRRORCACHE_TRACKER} // 'http://tracker.opensuse.org:6969/announce';
+    my $trackerlen  = length($tracker);
+    my $filename    = $file->{name};
+    my $filenamelen = length($filename);
+    my $size        = $file->{size};
+    my $mtime       = $file->{mtime};
+    my $md5         = $file->{md5};
+    my $piece_size  = $file->{piece_size};
+    my $sha1        = pack 'H*', $file->{sha1};
+    my $sha256      = pack 'H*', $file->{sha256};
+    my $pieces      = pack 'H*', $file->{pieces};
+
+    my $header = "d8:announce$trackerlen:$tracker" .
+                 "13:announce-listll$trackerlen:${tracker}ee" .
+                 "7:comment$filenamelen:$filename" .
+                 "10:created by11:MirrorCache13:creation datei${mtime}e" .
+                 "4:infod6:lengthi${size}e" .
+                 "6:md5sum32:$md5" .
+                 "4:name$filenamelen:$filename" .
+                 "12:piece lengthi${piece_size}e" .
+                 "6:pieces" . length($pieces) . ":";
+
+    my $footer = "4:sha120:$sha1" .
+                 "6:sha25632:${sha256}e" .
+                 "7:sourcesl";
+    if (scalar(@$mirrors_country) > 0 || scalar(@$mirrors_region) > 0 || scalar(@$mirrors_rest) > 0) {
+        for my $m (@$mirrors_country, @$mirrors_region, @$mirrors_rest) {
+            $footer = $footer . length($m->{url}) . ":" . $m->{url};
+        }
+    } else {
+        $footer = $footer . length($url) . ":" . $url;
+    }
+    $footer = $footer . 'ee';
+
+    $c->res->headers->content_length(length($header) + length($pieces) + length($footer));
+    $c->write($header => sub () {
+            $c->write($pieces => sub () {
+                $c->write($footer => sub () {$c->finish});
+            })
+        });
+
+    return 1;
+}
+
+sub _calc_btih() {
+    my ($filename, $file) = @_;
+
+    my $sha1 = Digest::SHA->new(1);
+    $sha1->
+        add('d')->
+        add('6:lengthi:' . $file->{size})->
+        add('6:md5sum32:' . $file->{md5})->
+        add('4:name' . length($filename) . ":$filename")->
+        add('12:piece lengthi:' . $file->{piece_size})->
+        add('6:pieces:' . length($file->{pieces}))->add($file->{pieces})->
+        add('4:sha120:' . $file->{sha1})->
+        add('6:sha25632:' . $file->{sha256})->
+        add('e');
+
+    return $sha1->hexdigest;
 }
 
 1;

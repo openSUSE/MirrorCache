@@ -5,7 +5,6 @@ ENV LANG en_US.UTF-8
 
 RUN sed -i 's,http://download.opensuse.org,http://mirrorcache.opensuse.org/download,g' /etc/zypp/repos.d/*repo
 RUN zypper ar -f http://mirrorcache.opensuse.org/repositories/openSUSE:infrastructure:MirrorCache/openSUSE_Leap_15.3 mc
-RUN zypper ar -f http://mirrorcache.opensuse.org/repositories/home:/andriinikitin:/branches:/devel:/languages:/perl:/CPAN-M/15.3 pm
 RUN zypper ar -f http://mirrorcache.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.3 perl
 RUN zypper --gpg-auto-import-keys ref
 

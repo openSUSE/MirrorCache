@@ -184,7 +184,7 @@ sub _redirect_normalized {
     my ($path, $trailing_slash, $original_path) = $dm->path;
     return undef if $path eq '/';
     $path = $path . '.metalink' if $dm->metalink && !$dm->metalink_accept;
-    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path || $dm->mirrorlist || $dm->zsync;
+    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path || ($dm->extra && !$dm->metalink);
     return undef;
 }
 

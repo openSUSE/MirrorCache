@@ -7,8 +7,11 @@ function setupReportTable() {
 
         // add column
         var columnName;
-        columnName = th.text().trim().replace(/ /g,"").toLowerCase();
-        columns.push({ data: columnName });
+        columnName = th.text().trim().replace(/ /g,"").toLowerCase().replace(/\./g,"");
+        if (columnName.match(/^\d/)) {
+            columnName = 'c' + columnName;
+        }
+        columns.push({ data: columnName, defaultContent: "" });
     });
 
     var url = $("#reporttable_api_url").val();
