@@ -36,6 +36,15 @@ workflows:
     jobs:
       - environ:
           db: postgresql
+          filters:
+            branches:
+              ignore: gh-pages
       - environ:
           db: mariadb
-      - systemd
+          filters:
+            branches:
+              ignore: gh-pages
+      - systemd:
+          filters:
+              branches:
+                ignore: gh-pages
