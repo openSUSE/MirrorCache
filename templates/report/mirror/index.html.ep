@@ -5,12 +5,24 @@
     setupReportTable();
 % end
 
+<form id='ajaxform'>
 <div class="row">
     <div class="col-sm-12">
         <h2><%= title %></h2>
 
         %= include 'layouts/info'
-
+        <div id="checkboxes">
+            % my $i = 0;
+            % for my $project (@$projects) {
+            <input id="<%= $project %>checkbox" type="checkbox"<%= $i < 2? ' checked="checked"' : '' %>"/>
+            <label for="<%= $project %>checkbox"><%= $project %></label>
+            %     $i = $i + 1;
+            % }
+            % # <input value="1" name="proj2checkbox" type="checkbox" id="proj2checkbox"/>
+            % # <label for="filter-proj2">proj2</label>
+        </div>
+        <input name="victimcheckbox" type="checkbox" id="victimcheckbox"/>
+        <label for="victimcheckbox">Blame</label>
         <table id="servers" class="reporttable table table-striped">
             <thead>
                 <tr>
@@ -29,3 +41,4 @@
         <input type="hidden" id="reporttable_api_url" value="/rest/repmirror"/>
     </div>
 </div>
+</form>
