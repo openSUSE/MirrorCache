@@ -15,6 +15,7 @@
 
 package MirrorCache::Task::Report;
 use Mojo::Base 'Mojolicious::Plugin';
+use Mojo::UserAgent;
 use Mojo::JSON qw(decode_json encode_json);
 
 sub register {
@@ -65,6 +66,24 @@ sub _run {
                 push @report, \%row;
             }
         }
+    }
+
+    my @regions = $app->subsidiary->regions;
+    for my $region (@regions) {
+        next unless $region;
+        next if $app->subsidiary->local($region);
+        my $url = $app->subsidiary->url($region);
+        eval {
+            my $res = Mojo::UserAgent->new->get($url . "/rest/repmirror")->res;
+            if ($res->code < 500 && $res->code > 199) {
+                my $json = $res->json('/report');
+                my @elements = $json->@*;
+                push @report, @elements;
+            } else {
+                print STDERR "Error code accessing {$url}:" . $res->code . "\n";
+            }
+            1;
+        } or print STDERR "Error requesting {$url}:" . $@ . "\n";
     }
     my $json = encode_json(\@report);
     my $sql = 'insert into report_body select 1, now(), ?';

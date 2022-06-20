@@ -145,7 +145,7 @@ sub register {
                 $publisher_url =~ s/^https?:\/\///;
                 $origin = $dm->scheme . '://' . $publisher_url;
             } else {
-                my $originurl = $c->req->url->to_abs; 
+                my $originurl = $c->req->url->to_abs;
                 $origin = $dm->scheme . '://' . $originurl->host;
                 $origin = $origin . ":" . $originurl->port if $originurl->port && $originurl->port != "80";
                 $origin = $origin . $dm->route;
