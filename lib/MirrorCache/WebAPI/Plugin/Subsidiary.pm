@@ -32,6 +32,8 @@ sub register {
     if ($ENV{MIRRORCACHE_REGION}) {
         $subsidiary_region = lc($ENV{MIRRORCACHE_REGION});
         $app->helper('subsidiary.has'     => sub { return undef; });
+        $app->helper('subsidiary.url'     => sub { return undef; });
+        $app->helper('subsidiary.local'   => sub { return undef; });
         $app->helper('subsidiary.regions' => sub { return undef; });
     } else {
         eval { #the table may be missing - no big deal
@@ -100,6 +102,8 @@ sub register {
          });
 
          $app->helper('subsidiary.has'     => \&_has_subsidiary);
+         $app->helper('subsidiary.url'     => \&_url_for_region);
+         $app->helper('subsidiary.local'   => \&_is_region_local);
          $app->helper('subsidiary.regions' => \&_regions);
     }
     return $self;
@@ -124,16 +128,36 @@ sub _has_subsidiary {
     return $url;
 }
 
+sub _url_for_region {
+    return undef unless keys %subsidiary_urls;
+    my ($c, $region) = @_;
+
+    my $arr = $subsidiary_urls{$region};
+    return undef if !$arr || 'ARRAY' ne ref $arr;
+    my $region_url = $arr->[rand @$arr]; # this how we respect weight of each node
+
+    return $region_url;
+}
+
+sub _is_region_local {
+    return undef unless keys %subsidiary_urls;
+    my ($c, $region) = @_;
+    return undef unless $region;
+    return $subsidiary_local{$region};
+}
+
 # return url for all subsidiaries
 sub _regions {
     return undef unless keys %subsidiary_urls;
     my ($c, $region, $country) = @_;
-    $region = $country if $subsidiary_country{$country};
-    my $url = $subsidiary_urls{$region};
+    $region = $country if ($country && $subsidiary_country{$country});
+    my $url;
+    $url = $subsidiary_urls{$region} if $region;
     my @res = ($url? $region : '');
 
     for my $s (@regions) {
-        next if $region eq $s;
+        next unless $s;
+        next if $region && $region eq $s;
         next if $subsidiary_local{$s};
         push @res, $s;
     }
