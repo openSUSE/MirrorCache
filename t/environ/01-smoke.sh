@@ -72,6 +72,13 @@ $mc/curl -s /download/folder1/file2.1.dat.metalink | grep '<url type="http" loca
 $mc/curl -sL /                  | tidy --drop-empty-elements no
 $mc/curl -sL /download/folder1/ | tidy --drop-empty-elements no
 
+echo MIRRORCACHE_CUSTOM_FOOTER_MESSAGE='"Sponsored by openSUSE"' >> $mc/conf.env
+$mc/stop
+$mc/start
+
+$mc/curl -sL /                  | tidy --drop-empty-elements no | grep 'Sponsored by openSUSE'
+$mc/curl -sL /download/folder1/ | tidy --drop-empty-elements no | grep 'Sponsored by openSUSE'
+
 $mc/curl -s '/download/folder1/file2.1.dat?mirrorlist' | grep 'http://127.0.0.1:1304/folder1/file2.1.dat'
 $mc/curl -s '/download/folder1/file2.1.dat.mirrorlist' | grep 'http://127.0.0.1:1304/folder1/file2.1.dat'
 $mc/curl -s '/download/folder1/file2.1.dat.mirrorlist' | tidy --drop-empty-elements no
