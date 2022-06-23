@@ -82,28 +82,30 @@ sub register {
         my $country = $dm->country;
         my $region  = $dm->region;
         if (!$folder || !$file) {
-            return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file); # file is unknown - cannot generate metalink
+            return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file && !$dm->metalink_accept); # file is unknown - cannot generate metalink
             return $root->render_file($dm, $filepath)
-              unless $dm->extra; # TODO we still can check file on mirrors even if it is missing in DB
+              if !$dm->extra || $dm->metalink_accept; # TODO we still can check file on mirrors even if it is missing in DB
         }
 
         if (!$folder || !$file) {
             return $c->render(status => 404, text => "File not found");
         }
-        my $url;
-        if ($dm->torrent || $dm->zsync || $dm->metalink) {
-            $url = $root->is_remote ? $root->location($dm, $folder->path) : $root->redirect($dm, $folder->path);
-            if (!$dm->metalink) {
-                if ($url && ! $dm->metalink) {
-                    $url = $url . "/" . $basename;
-                } else {
-                    ($url = $c->req->url->to_abs->to_string) =~ s/\.(torrent|zsync)$//;
-                }
-            }
+        my $baseurl; # just hostname + eventual urldir (without folder and file)
+        my $fullurl; # baseurl with path and filename
+        if ($dm->metalink || $dm->torrent || $dm->zsync || $dm->magnet) {
+	    $baseurl = $root->is_remote ? $root->location($dm) : $root->redirect($dm, $folder->path) # we must pass $path here because it potenially has impact
         }
+        if ($dm->torrent || $dm->zsync || $dm->magnet) {
+            if ($baseurl) {
+                $fullurl = $baseurl . '/' . $filepath;
+            } else {
+                ($fullurl = $c->req->url->to_abs->to_string) =~ s/\.(torrent|zsync|magnet)$//;
+            }
+	}
+
 
         if ($dm->zsync) {
-            _render_zsync($c, $url, $basename, $file->{mtime}, $file->{size}, $file->{sha1}, $file->{zblock_size}, $file->{zlengths}, $file->{zhashes});
+            _render_zsync($c, $fullurl, $basename, $file->{mtime}, $file->{size}, $file->{sha1}, $file->{zblock_size}, $file->{zlengths}, $file->{zhashes});
             $c->stat->redirect_to_root($dm, 1);
             return 1;
         }
@@ -113,7 +115,7 @@ sub register {
             return 1;
         }
         if ($dm->magnet) {
-            _render_magnet($c, $url, $basename, $file);
+            _render_magnet($c, $fullurl, $basename, $file);
             $c->stat->redirect_to_root($dm, 1);
             return 1;
         }
@@ -137,7 +139,7 @@ sub register {
             }
         }
 
-        return _render_torrent($dm, $file, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $url) if $dm->torrent;
+        return _render_torrent($dm, $file, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $fullurl) if $dm->torrent;
 
         if ($dm->metalink && !($dm->metalink_accept && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
             my $origin;
@@ -153,14 +155,13 @@ sub register {
             $origin = $origin . $filepath;
             my $xml    = _build_metalink(
                 $dm, $folder->path, $file, $country, $region, \@mirrors_country, \@mirrors_region,
-                \@mirrors_rest, $origin, 'MirrorCache', $url);
+                \@mirrors_rest, $origin, 'MirrorCache', $baseurl);
             $c->res->headers->content_disposition('attachment; filename="' .$basename. '.metalink"');
             $c->render(data => $xml, format => 'metalink');
             return 1;
         }
 
         if ($dm->mirrorlist) {
-            $url = $c->req->url->to_abs;
             my @mirrordata;
             if ($country and !$dm->avoid_countries || !(grep { $country eq $_ } $dm->avoid_countries)) {
                 for my $m (@mirrors_country) {
@@ -214,6 +215,7 @@ sub register {
                     $fileorigin = $redirect;
                     $fileoriginpath = $folder->path . '/' . $file->{name};
                 } else {
+                    my $url = $c->req->url->to_abs;
                     $fileorigin = $dm->scheme . '://' . $url->host;
                     $fileorigin = $fileorigin . ":" . $url->port if $url->port && $url->port != "80";
                     $fileorigin = $fileorigin . $dm->route;
