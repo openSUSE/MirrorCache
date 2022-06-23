@@ -12,6 +12,11 @@
         <a>Version <%= $ver %></a>
         % }
       </div>
+      % if (my $msg = eval '$custom_footer_message') {
+      <div class="list-inline">
+        <%= $msg %>
+      </div>
+      % }
     </div>
   </div>
 </footer>

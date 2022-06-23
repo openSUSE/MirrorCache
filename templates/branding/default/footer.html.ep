@@ -1,11 +1,23 @@
 <footer class='footer'>
+      % if (my $msg = eval '$custom_footer_message') {
+<div class="container">
+  <div class='d-flex justify-content-between'>
+    <div id="footer-links" class="list-inline">
+      % } else {
   <div class='container-fluid'>
     <div id="footer-links" class="text-center">
+      % }
       <a href="https://github.com/openSUSE/MirrorCache"><i class="fab fa-github"></i> Source code</a>
       <a href="https://github.com/openSUSE/MirrorCache/issues/new"><i class="fas fa-bug"></i> Report issue</a>
       % if (my $ver = eval '$current_version') {
         <i class="fas fa-code-branch"></i> Version <%= $ver %>
       % }
     </div>
+      % if (my $msg = eval '$custom_footer_message') {
+    <div id="footer-custom-message" class="list-inline">
+      <i class="fas fa-dollar-sign"></i> <%= $msg %>
+    </div>
+  </div>
+      % }
   </div>
 </footer>

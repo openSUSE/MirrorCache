@@ -86,6 +86,7 @@ sub startup {
     $self->version($current_version);
 
     $self->defaults(branding => $ENV{MIRRORCACHE_BRANDING});
+    $self->defaults(custom_footer_message => $ENV{MIRRORCACHE_CUSTOM_FOOTER_MESSAGE});
 
     $self->plugin('RenderFile');
 
