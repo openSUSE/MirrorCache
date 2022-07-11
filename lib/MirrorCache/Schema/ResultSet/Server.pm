@@ -253,34 +253,36 @@ sub report_mirrors {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
+    my $whereon = 'ON 1 = 1';
     my $where1  = '';
     my $where2  = '';
+    $whereon = "ON REPLACE(prj.name,' ','') = ?" if $project;
     $where1 = "WHERE REPLACE(prj.name,' ','') = ?" if $project;
     $where2 = "WHERE s.region = ?"  if $region;
 
     my $sql = <<"END_SQL";
 select s.region, s.country, x.name project, s.id, min(case when s1 = 0 then 1 else 0 end) as curr, round((sum(s2)*1.0)/(sum(s1)+sum(s2))*100) as score, concat(s.hostname, s.urldir) as url, max(example) victim
 from (
-select prj.name, fds.server_id,
-    sum(case when fds.folder_diff_id != fds2.folder_diff_id then 1 else 0 end) s1,
-    sum(case when fds.folder_diff_id = fds2.folder_diff_id then 1 else 0 end) s2,
+select prj.name, s.id,
+    sum(case when fds.folder_diff_id != fds2.folder_diff_id or fds.folder_diff_id is null then 1 else 0 end) s1,
+    sum(case when fds.folder_diff_id  = fds2.folder_diff_id and fds.folder_diff_id is not null then 1 else 0 end) s2,
     max(case when fds.folder_diff_id != fds2.folder_diff_id then f.path else '' end) example
-from project prj
+from server s
+join project prj $whereon
 join folder f on f.path like concat(prj.path,'%')
 join folder_diff fd on fd.folder_id = f.id
-join folder_diff fd2 on fd2.folder_id = fd.folder_id
-join folder_diff_server fds on fd.id = fds.folder_diff_id
-join folder_diff_server fds2 on fd2.id = fds2.folder_diff_id and fds2.server_id = prj.etalon
+left join folder_diff_server fds on fd.id = fds.folder_diff_id and fds.server_id = s.id
+join folder_diff_server fds2 on fd.id = fds2.folder_diff_id and fds2.server_id = prj.etalon
 $where1
-group by fds2.server_id, prj.name, fds.server_id ) x
-join server s on x.server_id = s.id
+group by s.id, prj.name, fds.server_id ) x
+join server s on x.id = s.id
 $where2
 group by s.id, x.name
 order by region, country, score, url;
 END_SQL
     my $prep = $dbh->prepare($sql);
     if ($project && $region) {
-        $prep->execute($project, $region);
+        $prep->execute($project, $project, $region);
     } elsif ($project) {
         $prep->execute($project);
     } elsif ($region) {
