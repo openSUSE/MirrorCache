@@ -60,7 +60,7 @@ table { width:100%%; }
             <div><span>Path: </span><%= $folder->{path} %></div>
             <div><span>Last sync: </span><%= $folder->{sync_last} %></div>
             <div><span>Sync Scheduled: </span><%= $folder->{sync_scheduled} %></div>
-            <div><span>Sync Requested: </span><%= $folder->{sync_requested} %></div>            
+            <div><span>Sync Requested: </span><%= $folder->{sync_requested} %></div>
         </div>
     </div>
 </div>

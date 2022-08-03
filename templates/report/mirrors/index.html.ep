@@ -1,0 +1,162 @@
+% layout 'bootstrap';
+
+% my $first_old = '';
+% my $first;
+% for my $project (@$projects) {
+%     my $name   = $project->{name};
+%     ($first) = split ' ', $name, 2;
+%     if ($first_old && $first_old ne $first) {
+%         $first = '';
+%         last;
+%     }
+%     $first_old = $first;
+% }
+% if ($first) {
+%     title 'Mirrors Report for ' . $first;
+% } else {
+%     title 'Mirrors Report';
+% }
+
+% content_for 'head' => begin
+
+<style type='text/css'>
+
+a.repoperfect {
+    color: green
+}
+
+a.repogood {
+    color: olive
+}
+
+a.repouncertain {
+    color: grey
+}
+
+a.repooutdated {
+    color: red
+}
+
+div.repo {
+    float: left;
+    margin-right: 2px;
+}
+
+tr:nth-child(even) {
+    background-color: #88888822;
+}
+
+tr:hover td {
+    background-color: #88888840;
+}
+
+tr:nth-child(even):hover td {
+    background-color: #88888820;
+}
+
+td.newregion, tr:hover td.newregion {
+    background: #fff;
+    font-size: 1.2rem;
+    padding: 1.5rem 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    td.newregion, tr:hover td.newregion {
+        background: #212529;
+    }
+    thead th {
+        background: linear-gradient(to top, #787878 0%, #363a3c 1px, #363a3c 100%);
+    }
+    thead th:nth-child(even), thead th:nth-child(1), thead th:nth-child(3) {
+        background: linear-gradient(to top, #787878 0%, #2f3236 1px, #2f3236 100%);
+    }
+}
+
+</style>
+% end
+
+%= include_branding 'report_mirrors_banner'
+
+<form>
+<div class="row">
+    <div class="col-sm-12">
+        <h2><%= title %></h2>
+        %= include 'layouts/info'
+        <table id="servers" class="reporttable table table-striped">
+            <thead>
+                <tr>
+                    <th class="col_value">Country</th>
+                    <th class="col_value">Url</th>
+                    % my $first_old = '';
+                    % for my $project (@$projects) {
+                    %     my $name   = $project->{name};
+                    %     (my $first) = split ' ', $name, 2;
+                    %     $first = "Leap $first"   if 0 == rindex $first, "15.", 0;
+                    %     $first = "Build Service" if $first eq 'repositories';
+                    %     $first = "Tumbleweed"    if $first eq 'TW';
+                    %     if ($first_old ne $first) {
+                    %          if ($first_old) {
+                    </th>
+                    %          }
+                    <th class="col_value"><%= $first %>
+                    %     }
+                    %     $first_old = $first;
+                    % }
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                % my $prev_region = '';
+                % for my $m (@$mirrors) {
+                %     my $region = $m->{region};
+                %     if ($region ne $prev_region) {
+                %         my $region_name = region_name($region);
+                <tr><td colspan="24" class="newregion"><%= $region_name %>:</td></tr>
+                %     }
+                %     $prev_region = $region;
+                <tr>
+                %     my $url = $m->{url};
+                    <td><%= $m->{country} %></td>
+                    <td><a href="http://<%= $url %>"><%=$url%></a></td>
+                %     my $inner = '';
+                %     $first_old = '';
+                    <td>
+                %     for my $project (@$projects) {
+                %         my $name    = $project->{name};
+                %         my $alias   = $project->{alias};
+                %         my $path    = $project->{path};
+                %         my $column1 = $alias . "score";
+                %         my $column2 = $alias . "victim";
+                %         my ($first, $second) = split ' ', $name;
+                %         my $victim = $m->{$column2};
+                %         if ($first_old && $first_old ne $first) {
+                    </td><td>
+                %         }
+                %         $first_old = $first;
+                %         my $x = $m->{$column1};
+                %         if (!defined $x) {
+                %             next;
+                %         }
+                %         $second = 'repo' unless $second;
+                %         my $style = 'repooutdated';
+                %         $style = 'repouncertain'  if $x >= 30;
+                %         $style = 'repogood'       if $x >= 75;
+                %         $style = 'repoperfect'    if $x == 100;
+                        <div class="repo">
+                            <a class="<%=$style%>"
+                %         if ($victim) {
+                               title="diff in: <%=$victim%>"
+                %         }
+                %         $second = 'iso' if $second eq 'ISO' || $second eq 'ISOs';
+                               href="http://<%=$url . $path%>">
+                                <%= $second %>
+                            </a>
+                        </div>
+                %     }
+                    </td>
+                % }
+            </tbody>
+        </table>
+    </div>
+</div>
+</form>

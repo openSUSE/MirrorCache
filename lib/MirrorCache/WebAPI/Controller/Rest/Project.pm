@@ -1,4 +1,4 @@
-# Copyright (C) 2021 SUSE LLC
+# Copyright (C) 2022 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,6 +42,14 @@ sub mirror_summary {
     my $rec = $self->schema->resultset('Project')->mirror_summary($name);
 
     $self->render(json => { current => $rec->{current}, outdated => $rec->{outdated} });
+}
+
+sub list {
+    my ($self) = @_;
+
+    my $list = $self->mcproject->list_full;
+
+    $self->render(json => $list);
 }
 
 1;

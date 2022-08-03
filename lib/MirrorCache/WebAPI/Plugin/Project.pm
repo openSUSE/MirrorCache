@@ -27,6 +27,7 @@ sub register {
     my ($self, $app) = @_;
 
     $app->helper('mcproject.list' => \&_list);
+    $app->helper('mcproject.list_full' => \&_list_full);
     return $self;
 }
 
@@ -44,7 +45,10 @@ sub _init_if_needed {
     for my $p (@projects) {
         my $name = $p->name;
         my $alias = $name;
-        $alias =~ tr/ //ds; # remove spaces
+        $alias =~ tr/ //ds;  # remove spaces
+        $alias =~ tr/\.//ds; # remove dots
+        $alias = "c$alias" if $alias =~ /^\d/;
+        $alias = lc($alias);
         $projects_path{$name} = $p->path;
         $projects_alias{$name} = $alias;
     }
@@ -57,6 +61,22 @@ sub _list {
     my @res;
     for my $p (@projects) {
         push @res, $p->name;
+    }
+    return \@res;
+}
+
+sub _list_full {
+    my ($c) = @_;
+    _init_if_needed($c);
+
+    my @res;
+    for my $p (@projects) {
+        my $name  = $p->name;
+        my $alias = $projects_alias{$name};
+        my $path  = $projects_path{$name};
+
+        my %prj = ( name => $name, alias => $alias, path => $path );
+        push @res, \%prj;
     }
     return \@res;
 }
