@@ -161,6 +161,7 @@ sub _setup_webui {
     my $rest_r    = $rest->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
     $rest_r->get('/server')->name('rest_server')->to('table#list', table => 'Server');
     $rest_r->get('/server/:id')->to('table#list', table => 'Server');
+    $rest_r->get('/project')->to('project#list');
     $rest_r->get('/project/:name')->to('project#show');
     $rest_r->get('/project/:name/mirror_summary')->to('project#mirror_summary');
     $rest_r->get('/project/:name/mirror_list')->to('project#mirror_list');
@@ -195,6 +196,8 @@ sub _setup_webui {
 
     my $report_r = $r->any('/report')->to(namespace => 'MirrorCache::WebAPI::Controller::Report');
     $report_r->get('/mirror')->name('report_mirror')->to('mirror#index');
+    $report_r->get('/mirrors')->name('report_mirrors')->to('mirrors#index');
+    $report_r->get('/mirrors/:project')->name('report_mirrors_project')->to('mirrors#index');
 
     my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
 

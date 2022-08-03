@@ -143,6 +143,21 @@ sub register {
         }
         $app->helper( trusted_addr => sub { %trust_addr{ shift->tx->original_remote_address } });
     }
+
+    $app->helper(
+        'region_name' => sub {
+            shift;
+            my $reg = shift;
+            return 'Unknown'       unless $reg;
+            return 'Oceania'       if $reg eq 'oc';
+            return 'North America' if $reg eq 'na';
+            return 'South America' if $reg eq 'sa';
+            return 'Africa'        if $reg eq 'af';
+            return 'Europe'        if $reg eq 'eu';
+            return 'Asia'          if $reg eq 'as';
+            return 'Unknown';
+        });
+
 }
 
 sub _current_user {

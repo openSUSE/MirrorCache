@@ -253,32 +253,54 @@ sub report_mirrors {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $whereon = 'ON 1 = 1';
     my $where1  = '';
-    my $where2  = '';
-    $whereon = "ON REPLACE(prj.name,' ','') = ?" if $project;
     $where1 = "WHERE REPLACE(prj.name,' ','') = ?" if $project;
-    $where2 = "WHERE s.region = ?"  if $region;
 
     my $sql = <<"END_SQL";
-select s.region, s.country, x.name project, s.id, min(case when s1 = 0 then 1 else 0 end) as curr, round((sum(s2)*1.0)/(sum(s1)+sum(s2))*100) as score, concat(s.hostname, s.urldir) as url, max(example) victim
+with
+etalon as (
+    select prj.id project_id, prj.name, f.id as folder_id, fd2.id as diff_id, f.path
+    from project prj
+    join folder f on f.path like concat(prj.path,'%')
+    join folder_diff fd2 on fd2.folder_id = f.id
+    join folder_diff_server fds2 on fd2.id = fds2.folder_diff_id and fds2.server_id = prj.etalon
+    -- where prj.name = 'repositories'
+    $where1
+),
+project_folder_count as (
+    select project_id, count(*) cnt
+    from etalon
+    group by project_id
+)
+select s.id, s.region, s.country,
+    concat(s.hostname, s.urldir) as url,
+    project,
+    round(case when project_folder_count.cnt > 3 then s_eq * 100 / project_folder_count.cnt when s_eq =  project_folder_count.cnt then 100 else 50 end, 0) score,
+    s_eq, s_ne, victim, project_folder_count.cnt
 from (
-select prj.name, s.id,
-    sum(case when fds.folder_diff_id != fds2.folder_diff_id or fds.folder_diff_id is null then 1 else 0 end) s1,
-    sum(case when fds.folder_diff_id  = fds2.folder_diff_id and fds.folder_diff_id is not null then 1 else 0 end) s2,
-    max(case when fds.folder_diff_id != fds2.folder_diff_id then f.path else '' end) example
-from server s
-join project prj $whereon
-join folder f on f.path like concat(prj.path,'%')
-join folder_diff fd on fd.folder_id = f.id
-left join folder_diff_server fds on fd.id = fds.folder_diff_id and fds.server_id = s.id
-join folder_diff_server fds2 on fd.id = fds2.folder_diff_id and fds2.server_id = prj.etalon
-$where1
-group by s.id, prj.name, fds.server_id ) x
-join server s on x.id = s.id
-$where2
-group by s.id, x.name
-order by region, country, score, url;
+select
+    cmp.project_id,
+    cmp.name project,
+    cmp.server_id,
+    sum(s_eq) s_eq, sum(s_ne) s_ne,
+    max(example) victim
+from (
+    select
+        etalon.project_id,
+        etalon.name,
+        case when etalon.diff_id = fd.id then 1 else 0 end as s_eq,
+        case when etalon.diff_id != fd.id or fd.id is null then 1 else 0 end as s_ne,
+        case when etalon.diff_id != fd.id or fd.id is null then path else '' end example,
+        fds.server_id
+    from etalon
+    left join folder_diff fd on fd.folder_id = etalon.folder_id
+    left join folder_diff_server fds on fds.folder_diff_id = fd.id
+) cmp
+group by server_id, project_id, name
+) smry
+join project_folder_count on project_folder_count.project_id = smry.project_id
+join server s on smry.server_id = s.id
+order by region, country, score, url, project;
 END_SQL
     my $prep = $dbh->prepare($sql);
     if ($project && $region) {

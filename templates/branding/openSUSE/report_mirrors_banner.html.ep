@@ -1,0 +1,32 @@
+<div class="report-mirrors-banner">
+
+      <p class="alert alert-danger">
+        The information on this page is generated directly off the
+        database used by the
+        <a href="http://download.opensuse.org/">master download server</a>
+        every 30 minutes.
+        Under normal circumstances, there <em>should</em> be no need to use
+        mirrors directly, and look at this table for that purpose.
+        If you <em>do</em> see the need, there might be something wrong
+        and it would be appreciated if you notify the admins about it,
+        so it can be fixed for the benefit of yourself, and possibly
+        many other users.
+      </p>
+
+      <p class="alert alert-warning">
+        This page lists mirror servers where you can download openSUSE.
+        For specific distributions, we recommend <a href="http://get.opensuse.org/">get.opensuse.org</a>
+        to help with choosing the correct download, which will automatically choose the best mirror.
+        The report uses heuristic scoring system to show how outdated the mirrors are. Scoring is done for tree of folders,
+	so a mirror with a bad score can still have recent files in some locations and may be useful.
+	Meaning of colors:
+        <span style="color:green">up to date</span>, <span style="color:olive">quite up to date</span>, <span style="color:grey">might be outdated</span>, <span style="color:red">outdated</span>.
+	The state is also dynamic, so the score and the colors may change on next refresh.
+      </p>
+
+      <p class="alert alert-info">
+        If you have a server with some space left, and want to help with making the openSUSE experience better for other users,
+        <a href="https://en.opensuse.org/openSUSE:Mirror_howto">become a mirror</a>!
+      </p>
+
+</div>
