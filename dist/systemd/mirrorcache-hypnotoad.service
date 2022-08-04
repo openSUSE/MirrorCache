@@ -1,7 +1,7 @@
 [Unit]
 Description=MirrorCache webApp
 Before=apache2.service
-After=postgresql.service nss-lookup.target
+After=postgresql.service mariadb.service nss-lookup.target
 
 [Service]
 User=mirrorcache
