@@ -53,6 +53,7 @@ has vpn_prefix => ($ENV{MIRRORCACHE_VPN_PREFIX} ? lc($ENV{MIRRORCACHE_VPN_PREFIX
 
 has 'at';
 has '_mime';
+has 'mirror_country';
 
 my $TYPES = Mojolicious::Types->new;
 

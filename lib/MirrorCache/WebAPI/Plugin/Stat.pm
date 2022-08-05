@@ -68,7 +68,7 @@ sub redirect_to_mirror($self, $mirror_id, $dm) {
     $path = $dm->root_subtree . $path;
     my $rows = $self->rows;
     my @rows = defined $rows? @$rows : ();
-    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head, $$, int($dm->elapsed*1000), $dm->file_age, $dm->folder_scan_last ];
+    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head, $$, int($dm->elapsed*1000), $dm->file_age, $dm->folder_scan_last, $dm->mirror_country ];
     my $cnt = @rows;
     if ($cnt >= $FLUSH_COUNT) {
         $self->rows(undef);
@@ -108,13 +108,16 @@ END_SQL
             $dbh = $self->schema->storage->dbh;
             my $prep = $dbh->prepare($sql);
             for my $row (@rows) {
-                my $folder_id  = $row->[6];
+                my $folder_id = $row->[6];
                 my $mirror_id = $row->[5];
+                my $country   = $row->[3];
+                my $country_m = pop @$row;
                 my $scan_last = pop @$row;
                 my $file_age  = pop @$row;
                 $prep->execute(@$row);
                 if ($folder_id) {
-                    next if $mirror_id > 0;
+                    # print STDERR "XXXX: $country, $country_m, $mirror_id\n";
+                    next if $mirror_id > 0 && (!$country || !$country_m || ($country eq $country_m));
                     next if $mirror_id < -1;
                     my $agent      = $row->[1];
                     next unless -1 == index($agent, 'bot');
