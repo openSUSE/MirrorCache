@@ -131,6 +131,7 @@ sub register {
         $mirror = $mirrors_region[0]  if !$mirror && @mirrors_region;
         $mirror = $mirrors_rest[0]    if !$mirror && @mirrors_rest;
 
+        $dm->mirror_country($mirror->{country}) if $mirror;
         if ($dm->extra) {
             if ($mirror) {
                 $c->stat->redirect_to_mirror($mirror->{mirror_id}, $dm);
