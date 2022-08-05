@@ -152,7 +152,7 @@ sub _regions {
     my ($c, $region, $country) = @_;
     $region = $country if ($country && $subsidiary_country{$country});
     my $url;
-    $url = $subsidiary_urls{$region} if $region;
+    $url = $subsidiary_urls{$region} if $region && !$subsidiary_local{$region};
     my @res = ($url? $region : '');
 
     for my $s (@regions) {
