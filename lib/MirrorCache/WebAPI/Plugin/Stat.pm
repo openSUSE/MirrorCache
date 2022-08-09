@@ -116,7 +116,6 @@ END_SQL
                 my $file_age  = pop @$row;
                 $prep->execute(@$row);
                 if ($folder_id) {
-                    # print STDERR "XXXX: $country, $country_m, $mirror_id\n";
                     next if $mirror_id > 0 && (!$country || !$country_m || ($country eq $country_m));
                     next if $mirror_id < -1;
                     my $agent      = $row->[1];

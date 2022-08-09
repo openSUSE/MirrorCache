@@ -68,7 +68,7 @@ sub indx {
     return $c
       if _render_hashes($dm)
       || _render_small($dm)
-      || _redirect_geo($dm)
+      || _redirect_project_ln_geo($dm)
       || _redirect_normalized($dm)
       || _render_stats($dm)
       || _local_render($dm, 0) # check if we should render local
@@ -151,17 +151,25 @@ sub _render_dir {
     return $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
 }
 
-sub _redirect_geo {
+# this combines similar checks for redirecting as specified in DB links and projects, as well as subsidiaries
+sub _redirect_project_ln_geo {
     my $dm = shift;
-    my $route = $dm->route;
     my ($path, $trailing_slash) = $dm->path;
 
     my $c = $dm->c;
-    my $ln;
-    $ln = $root->detect_ln($path);
+    # each project may have a redirect defined in DB, so all requests are redirected for it
+    my $redirect = $c->mcproject->redirect($path);
+    if ($redirect) {
+        $dm->redirect($redirect . $path);
+        $c->stat->redirect_to_region($dm);
+        return 1;
+    }
+
+    my $ln = $root->detect_ln($path);
     if ($ln) {
         # redirect to the symlink
         $dm->redirect($dm->route . $ln);
+        $c->stat->redirect_to_region($dm);
         return 1;
     }
     return undef if $trailing_slash || $path eq '/' || $dm->mirrorlist;

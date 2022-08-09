@@ -77,8 +77,17 @@ for i in 6 8 9; do
     mc$i/backstage/shoot
 done
 
+echo "Let's pretend proj 2 has no good mirrors in as and we redirect all requests from it to us subsidiary"
+$mc8/sql "update project set redirect = '$na_address/download' where id = 2"
+
+echo project1 redirects to regular mirror
+$mc8/curl -I /download/project1/folder1/file1.1.dat | grep -E "$($ap7/print_address)|$($ap8/print_address)"
+
+echo project2 redirects to us
+$mc8/curl -I /download/project2/folder1/file1.1.dat | grep $na_address/download/project2/folder1/file1.1.dat
+
 # all countries present in report
-mc9/curl -s /rest/repmirror \
+$mc9/curl -s /rest/repmirror \
           | grep '"country":"br"' \
           | grep '"country":"de"' \
           | grep '"country":"dk"' \
