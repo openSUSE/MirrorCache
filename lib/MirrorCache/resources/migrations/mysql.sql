@@ -291,3 +291,6 @@ create table report_body (
     constraint `fk_report_body_report` FOREIGN KEY(report_id) references report(id) on delete cascade
 );
 create index if not exists report_content_dt_inx on report_body(report_id, dt);
+-- 25 up
+alter table project add column if not exists redirect varchar(512);
+

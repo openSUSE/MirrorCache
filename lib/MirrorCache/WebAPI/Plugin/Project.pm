@@ -22,12 +22,15 @@ my $initialized = 0;
 my @projects;
 my %projects_path;
 my %projects_alias;
+my %projects_redirect;
+my %projects_region_redirect;
 
 sub register {
     my ($self, $app) = @_;
 
     $app->helper('mcproject.list' => \&_list);
     $app->helper('mcproject.list_full' => \&_list_full);
+    $app->helper('mcproject.redirect' => \&_redirect);
     return $self;
 }
 
@@ -40,8 +43,6 @@ sub _init_if_needed {
         1;
     } or $c->log->error(Dumper("Cannot load projects", @_));
 
-
-
     for my $p (@projects) {
         my $name = $p->name;
         my $alias = $name;
@@ -51,6 +52,18 @@ sub _init_if_needed {
         $alias = lc($alias);
         $projects_path{$name} = $p->path;
         $projects_alias{$name} = $alias;
+        my $redirect = $p->redirect;
+        next unless $redirect;
+        my @parts = split ';', $redirect;
+        for my $r (@parts) {
+            my $prefix = substr($r,0,3);
+            my $c = chop($prefix);
+            if (':' eq $c) {
+                $projects_region_redirect{$prefix}{$name} = substr($r,3);
+            } else {
+                $projects_redirect{$name} = $r;
+            }
+        }
     }
 }
 
@@ -80,5 +93,22 @@ sub _list_full {
     }
     return \@res;
 }
+
+sub _redirect {
+    my ($c, $path, $region) = @_;
+    _init_if_needed($c);
+
+    for my $p (@projects) {
+        my $name  = $p->name;
+        my $redirect;
+        $redirect = $projects_region_redirect{$region}{$name} if $region;
+        $redirect = $projects_redirect{$name} unless $redirect;
+        next unless $redirect;
+        my $ppath  = $projects_path{$name};
+        return $redirect if (0 == rindex($path, $ppath, 0));
+    }
+    return '';
+}
+
 
 1;
