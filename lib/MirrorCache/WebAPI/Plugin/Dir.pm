@@ -158,9 +158,9 @@ sub _redirect_project_ln_geo {
 
     my $c = $dm->c;
     # each project may have a redirect defined in DB, so all requests are redirected for it
-    my $redirect = $c->mcproject->redirect($path);
+    my $redirect = $c->mcproject->redirect($path, $dm->region);
     if ($redirect) {
-        $dm->redirect($redirect . $path);
+        $dm->redirect($dm->scheme . '://' . $redirect . $path);
         $c->stat->redirect_to_region($dm);
         return 1;
     }

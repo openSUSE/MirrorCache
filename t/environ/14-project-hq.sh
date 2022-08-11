@@ -77,14 +77,30 @@ for i in 6 8 9; do
     mc$i/backstage/shoot
 done
 
-echo "Let's pretend proj 2 has no good mirrors in as and we redirect all requests from it to us subsidiary"
+echo project1 to eu if we contacted hq from na
+$mc9/sql "update project set redirect = 'na:$eu_address/download' where id = 1"
+echo project2 to na even if we contacted hq from as or eu
+$mc9/sql "update project set redirect = 'as:$na_address/download;eu:$na_address/download' where id = 2"
+echo test project1 redirects
+$mc9/curl --interface $na_interface -I  /download/project1/folder1/file1.1.dat | grep "$eu_address"
+$mc9/curl --interface $eu_interface -I  /download/project1/folder1/file1.1.dat | grep "$eu_address"
+
+echo test project2 redirects
+$mc9/curl --interface $eu_interface -I  /download/project2/folder1/file1.1.dat | grep "$na_address"
+$mc9/curl --interface $as_interface -I  /download/project2/folder1/file1.1.dat | grep "$na_address"
+$mc9/curl --interface $as_interface -IL /download/project2/folder1/file1.1.dat | grep -E "$($ap3/print_address)|$($ap4/print_address)"
+$mc9/curl --interface $na_interface -I  /download/project2/folder1/file1.1.dat | grep "$na_address"
+
+echo "Let's pretend proj 2 has no good mirrors in as and we redirect all requests from it to na subsidiary"
 $mc8/sql "update project set redirect = '$na_address/download' where id = 2"
 
 echo project1 redirects to regular mirror
 $mc8/curl -I /download/project1/folder1/file1.1.dat | grep -E "$($ap7/print_address)|$($ap8/print_address)"
 
-echo project2 redirects to us
+echo project2 redirects to na
 $mc8/curl -I /download/project2/folder1/file1.1.dat | grep $na_address/download/project2/folder1/file1.1.dat
+$mc8/curl -IL /download/project2/folder1/file1.1.dat | grep -E "$($ap3/print_address)|$($ap4/print_address)"
+
 
 # all countries present in report
 $mc9/curl -s /rest/repmirror \
