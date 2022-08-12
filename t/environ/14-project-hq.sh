@@ -109,6 +109,7 @@ $mc9/curl -s /rest/repmirror \
           | grep '"country":"dk"' \
           | grep '"country":"ca"' \
           | grep '"country":"us"' \
-          | grep '"country":"jp"'
+          | grep '"country":"jp"' \
+          | grep -F '"region":"na (http:\/\/127.0.0.1:3160)"'
 
 
