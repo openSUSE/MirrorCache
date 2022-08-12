@@ -75,10 +75,13 @@ sub _run {
         my $url = $app->subsidiary->url($region);
         eval {
             my $res = Mojo::UserAgent->new->get($url . "/rest/repmirror")->res;
-            if ($res->code < 500 && $res->code > 199) {
+            if ($res->code < 300 && $res->code > 199) {
                 my $json = $res->json('/report');
                 my @elements = $json->@*;
-                push @report, @elements;
+                for my $item (@elements) {
+                    $item->{region} = $item->{region} . " ($url)";
+                }
+                push @report, @elements if @elements;
             } else {
                 print STDERR "Error code accessing {$url}:" . $res->code . "\n";
             }

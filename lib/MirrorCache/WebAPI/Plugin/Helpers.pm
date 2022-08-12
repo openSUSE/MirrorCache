@@ -147,15 +147,19 @@ sub register {
     $app->helper(
         'region_name' => sub {
             shift;
-            my $reg = shift;
-            return 'Unknown'       unless $reg;
-            return 'Oceania'       if $reg eq 'oc';
-            return 'North America' if $reg eq 'na';
-            return 'South America' if $reg eq 'sa';
-            return 'Africa'        if $reg eq 'af';
-            return 'Europe'        if $reg eq 'eu';
-            return 'Asia'          if $reg eq 'as';
-            return 'Unknown';
+            my $input = shift;
+            return 'Unknown'       unless $input;
+            my $reg = substr($input, 0, 2);
+            my $res = 'Unknown';
+            $res = 'Oceania'       if $reg eq 'oc';
+            $res = 'North America' if $reg eq 'na';
+            $res = 'South America' if $reg eq 'sa';
+            $res = 'Africa'        if $reg eq 'af';
+            $res = 'Europe'        if $reg eq 'eu';
+            $res = 'Asia'          if $reg eq 'as';
+
+            return $res . substr($input, 2);
+
         });
 
 }
