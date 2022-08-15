@@ -39,9 +39,9 @@ sub _init_if_needed {
     my ($c) = @_;
     $initialized = 1;
     eval { #the table may be missing - no big deal (only reports might be inaccurate if some other error occurred).
-        @projects = $c->schema->resultset('Project')->all;
+        @projects = $c->schema->resultset('Project')->search(undef, { order_by => { -desc => [qw/prio name/] } });
         1;
-    } or $c->log->error(Dumper("Cannot load projects", @_));
+    } or $c->log->error(Dumper("Cannot load projects", $@));
 
     for my $p (@projects) {
         my $name = $p->name;
