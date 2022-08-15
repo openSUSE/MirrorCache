@@ -299,7 +299,7 @@ from (
 group by server_id, project_id, name
 ) smry
 join project_folder_count on project_folder_count.project_id = smry.project_id
-join server s on smry.server_id = s.id
+join server s on smry.server_id = s.id and s.enabled
 order by region, country, score, url, project;
 END_SQL
     my $prep = $dbh->prepare($sql);

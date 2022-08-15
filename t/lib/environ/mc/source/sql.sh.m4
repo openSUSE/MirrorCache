@@ -2,6 +2,7 @@
 test "$MIRRORCACHE_DB_PROVIDER" != mariadb || {
 
 sql=${1/"'t'"/"1"}
+sql=${sql/"'f'"/"0"}
 sql=${sql/"extract(epoch from now())"/"unix_timestamp()"}
 
 re="(update|insert|select)(.*)\s([a-z_A-Z]*)((\([a-z_0-9]*\))?) - interval '([0-9]+) (month|day|hour|minute|second)'(.*)$"
