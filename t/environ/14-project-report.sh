@@ -10,8 +10,9 @@ ap7=$(environ ap7)
 ap6=$(environ ap6)
 ap5=$(environ ap5)
 ap4=$(environ ap4)
+ap3=$(environ ap3)
 
-for x in $mc $ap7 $ap8 $ap6 $ap5 $ap4; do
+for x in $mc $ap7 $ap8 $ap6 $ap5 $ap4 $ap3; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     mkdir -p $x/dt/project1/{folder1,folder2,folder3}
     mkdir -p $x/dt/project2/{folder1,folder2,folder3}
@@ -20,6 +21,7 @@ for x in $mc $ap7 $ap8 $ap6 $ap5 $ap4; do
     echo $x/dt/project2/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 done
 
+$ap3/start
 $ap4/start
 $ap5/start
 $ap6/start
@@ -38,6 +40,7 @@ $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($a
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','cn','as'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','jp','as'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','f','jp','as'"
 
 $mc/sql "insert into project(name,path,etalon) select '2.0 1','/project2/folder1', 3"
 $mc/sql "insert into project(name,path,etalon) select 'proj1','/project1', 3"
@@ -64,3 +67,10 @@ $mc/curl /report/mirrors | tidy --drop-empty-elements no | \
    grep -C3 '\b2\b' | \
    grep -C3 -F '</a>'
 
+
+rc=0
+# no disabled mirror in the report
+$mc/curl /report/mirrors | grep $($ap3/print_address) || rc=$?
+test $rc -gt 0
+
+echo success
