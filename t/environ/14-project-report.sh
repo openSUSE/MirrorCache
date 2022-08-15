@@ -39,8 +39,8 @@ $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($a
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','cn','as'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','jp','as'"
 
-$mc/sql "insert into project(name,path,etalon) select 'proj1','/project1', 3"
 $mc/sql "insert into project(name,path,etalon) select '2.0 1','/project2/folder1', 3"
+$mc/sql "insert into project(name,path,etalon) select 'proj1','/project1', 3"
 $mc/sql "insert into project(name,path,etalon) select '2.0 2','/project2/folder2', 3"
 
 $mc/backstage/job -e folder_sync -a '["/project1/folder1"]'
