@@ -24,15 +24,15 @@ use Data::Dumper;
 my %tables = (
     Server => {
         keys     => [['id'], ['hostname'],],
-        cols     => ['id', 'hostname', 'urldir', 'enabled', 'region', 'country', 'comment', 'public notes'],
+        cols     => ['id', 'sponsor', 'sponsor url', 'hostname', 'urldir', 'enabled', 'region', 'country', 'comment', 'public notes'],
         required => ['id', 'hostname', 'urldir'],
-        defaults => {urldir => ''},
+        defaults => {urldir => '', sponsor => '', 'sponsor_url' => ''},
     },
     MyServer => {
         keys     => [['id'], ['hostname'],],
-        cols     => ['id', 'hostname', 'urldir', 'enabled', 'region', 'country', 'comment', 'public notes'],
+        cols     => ['id', 'sponsor', 'sponsor url', 'hostname', 'urldir', 'enabled', 'region', 'country', 'comment', 'public notes'],
         required => ['id', 'hostname', 'urldir'],
-        defaults => {urldir => ''},
+        defaults => {urldir => '', sponsor => '', 'sponsor_url' => ''},
     },
     Folder => {
         keys     => [['id'], ['path'],],
@@ -167,7 +167,7 @@ sub update {
         if ($rc) {
             my @event_data;
             for my $k (keys %{ $entry }) {
-                next if !$entry->{$k} || "$entry->{$k}" eq '' and !$rc->$k || $rc->$k . '' eq '';
+                next if !$entry->{$k} || ("$entry->{$k}" eq '' && (!$rc->$k || $rc->$k . '' eq ''));
                 if (!$rc->$k or $rc->$k . '' eq '') {
                     push @event_data, {"new $k" => $entry->{$k}};
                 } elsif ($entry->{$k} ne $rc->$k) {
@@ -282,12 +282,13 @@ sub _prepare_params {
         $validation->required($par);
     }
     for my $par (@{$tables{$table}->{cols}}) {
-        next if $par eq 'id' && !$self->param($par);
+        my $par1 = $par;
+        $par1 =~ tr/ /_/;
+        $par1 =~ tr/+/_/;
+        next if $par eq 'id' && !$self->param($par) && !$self->param($par1);
         if (defined $validation->param($par)) {
-            $entry->{$par} = trim $validation->param($par);
+            $entry->{$par1} = trim $validation->param($par);
         } else {
-            my $par1 = $par;
-            $par1 =~ tr/ /_/;
             $entry->{$par1} = $self->param($par);
         }
     }

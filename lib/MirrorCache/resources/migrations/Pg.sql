@@ -298,4 +298,5 @@ create index if not exists report_content_dt_inx on report_body(report_id, dt);
 alter table project add column if not exists redirect varchar(512);
 -- 26 up
 alter table project add column if not exists prio int;
+alter table server add column if not exists sponsor varchar(64), add column if not exists sponsor_url varchar(64);
 
