@@ -1,5 +1,7 @@
 % layout 'bootstrap';
 
+% #######################################
+% # Build Title
 % my $first_old = '';
 % my $first;
 % for my $project (@$projects) {
@@ -16,6 +18,30 @@
 % } else {
 %     title 'Mirrors Report';
 % }
+
+% #######################################
+% # Stash extra menu links
+% my @extra_menu;
+% $first_old = '';
+% $first = '';
+% for my $project (@$allprojects) {
+%     my $name   = $project->{name};
+%     ($first) = split ' ', $name, 2;
+%     $first = "Leap $first"   if 0 == rindex $first, "15.", 0;
+%     $first = "Build Service" if $first eq 'repositories';
+%     $first = "Tumbleweed"    if $first eq 'TW';
+%     my %extra_menu_item = ( title => $first, href => "/report/mirrors?project=$first" );
+%     push @extra_menu, \%extra_menu_item unless $first_old;
+
+%     if ($first_old && $first_old ne $first) {
+%         push @extra_menu, \%extra_menu_item;
+%         $first = '';
+%         last;
+%     }
+%     $first_old = $first;
+% }
+% stash('extra_menu' => \@extra_menu);
+
 
 % content_for 'head' => begin
 
@@ -87,7 +113,7 @@ td.newregion, tr:hover td.newregion {
                 <tr>
                     <th class="col_value">Country</th>
                     <th class="col_value">Url</th>
-                    % my $first_old = '';
+                    % $first_old = '';
                     % for my $project (@$projects) {
                     %     my $name   = $project->{name};
                     %     (my $first) = split ' ', $name, 2;

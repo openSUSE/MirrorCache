@@ -20,7 +20,8 @@ use Mojo::JSON qw(decode_json encode_json);
 sub index {
     my ($self) = @_;
     my $project  = $self->param('project');
-    my $projects = $self->mcproject->list_full;
+    my $allprojects = $self->mcproject->list_full;
+    my $projects    = $self->mcproject->list_full;
 
     if ($project && $project ne "all") {
         my @projects_new;
@@ -43,8 +44,9 @@ sub index {
         $self->stash;
         $self->render(
             "report/mirrors/index",
-            mirrors  => $hash,
-            projects => $projects
+            mirrors     => $hash,
+            projects    => $projects,
+            allprojects => $allprojects
         );
     };
     my $error = $@;
