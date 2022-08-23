@@ -3,6 +3,8 @@ set -exo pipefail
 
 mc=$(environ mc $(pwd))
 
+# $mc/gen_env MIRRORCACHE_BRANDING=openSUSE
+
 $mc/start
 
 ap8=$(environ ap8)
@@ -35,7 +37,7 @@ rm -r $ap5/dt/project2/folder2/
 rm -r $ap5/dt/project1/
 rm -r $ap4/dt/project2/
 
-$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','us','na'"
+$mc/sql "insert into server(hostname,sponsor,sponsor_url,urldir,enabled,country,region) select '$($ap6/print_address)','sponsor1','www.sponsor.org','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','cn','as'"

@@ -273,6 +273,7 @@ project_folder_count as (
     group by project_id
 )
 select s.id, s.region, s.country,
+    s.sponsor, s.sponsor_url,
     concat(s.hostname, s.urldir) as url,
     project,
     round(case when project_folder_count.cnt > 3 then s_eq * 100 / project_folder_count.cnt when s_eq =  project_folder_count.cnt then 100 else 50 end, 0) score,
