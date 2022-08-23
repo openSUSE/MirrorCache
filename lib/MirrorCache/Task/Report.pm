@@ -36,8 +36,10 @@ sub _run {
     my $mirrors = $schema->resultset('Server')->report_mirrors;
     # this is just tmp structure we use for aggregation
     my %report;
+    my %sponsor;
     for my $m (@$mirrors) {
         $report{$m->{region}}{$m->{country}}{$m->{url}}{$m->{project}} = [$m->{score},$m->{victim}];
+        $sponsor{$m->{url}} = [$m->{sponsor},$m->{sponsor_url}];
     }
     # json expects array, so we collect array here
     my @report;
@@ -51,6 +53,11 @@ sub _run {
                     country => $country,
                     url     => $url,
                 );
+                if (my $sponsor = $sponsor{$url}) {
+                    $row{'sponsor'} = $sponsor->[0] if $sponsor->[0];
+                    $row{'sponsor_url'} = $sponsor->[1] if $sponsor->[1];
+                }
+                
                 my $by_project = $by_country->{$url};
                 for my $project (sort keys %$by_project) {
                     my $p = $by_project->{$project};

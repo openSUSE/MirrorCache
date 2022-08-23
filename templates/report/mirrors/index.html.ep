@@ -102,6 +102,8 @@ td.newregion, tr:hover td.newregion {
 % end
 
 %= include_branding 'report_mirrors_banner'
+% my $mc_branding = eval '$branding' // 'MirrorCache';
+% my $is_opensuse = $mc_branding eq 'openSUSE';
 
 <form>
 <div class="row">
@@ -112,6 +114,9 @@ td.newregion, tr:hover td.newregion {
             <thead>
                 <tr>
                     <th class="col_value">Country</th>
+                    % if ($is_opensuse) {
+                    <th class="col_value">Operator</th>
+                    % }
                     <th class="col_value">Url</th>
                     % $first_old = '';
                     % for my $project (@$projects) {
@@ -143,6 +148,13 @@ td.newregion, tr:hover td.newregion {
                 <tr>
                 %     my $url = $m->{url};
                     <td><%= $m->{country} %></td>
+                %     if ($is_opensuse) {
+                %         my $sponsor     = $m->{sponsor};
+                %         my $sponsor_url = $m->{sponsor_url};
+                %         $sponsor = $sponsor_url unless $sponsor;
+                %         $sponsor_url = $sponsor unless $sponsor_url;
+                    <td><a href="https://<%= $sponsor_url %>"><%=$sponsor%></a></td>
+                %     }
                     <td><a href="http://<%= $url %>"><%=$url%></a></td>
                 %     my $inner = '';
                 %     $first_old = '';
