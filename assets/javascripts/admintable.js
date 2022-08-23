@@ -130,7 +130,7 @@ function getAdminTableRowData(trElement, dataToSubmit, internalRowData) {
     var tableHeadings = trElement.closest('table').find('th');
     trElement.find('td').each(function() {
         var th = tableHeadings.eq(this.cellIndex);
-        var name = th.text().trim().toLowerCase();
+        var name = th.text().trim().toLowerCase().replace(/ /g, '_');
         var value;
         if (th.hasClass("col_value")) {
             value = $(this).find("input").val();
@@ -362,7 +362,7 @@ function setupAdminTable(editable) {
         if (th.hasClass('col_action')) {
             columnName = 'id';
         } else {
-            columnName = th.text().trim().toLowerCase();
+            columnName = th.text().trim().toLowerCase().replace(/ /g, '_');
         }
         columns.push({ data: columnName });
 
