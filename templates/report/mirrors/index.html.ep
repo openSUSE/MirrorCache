@@ -24,19 +24,21 @@
 % my @extra_menu;
 % $first_old = '';
 % $first = '';
+% my %extra_menu_item_all = ( title => 'All Mirrors', href => "/report/mirrors" );
+% push @extra_menu, \%extra_menu_item_all;
+
 % for my $project (@$allprojects) {
 %     my $name   = $project->{name};
 %     ($first) = split ' ', $name, 2;
-%     $first = "Leap $first"   if 0 == rindex $first, "15.", 0;
-%     $first = "Build Service" if $first eq 'repositories';
-%     $first = "Tumbleweed"    if $first eq 'TW';
-%     my %extra_menu_item = ( title => $first, href => "/report/mirrors?project=$first" );
+%     my $extra_title = $first;
+%     $extra_title = "Leap $first"   if 0 == rindex $first, "15.", 0;
+%     $extra_title = "Build Service" if $first eq 'repositories';
+%     $extra_title = "Tumbleweed"    if $first eq 'TW';
+%     my %extra_menu_item = ( title => $extra_title, href => "/report/mirrors?project=$first" );
 %     push @extra_menu, \%extra_menu_item unless $first_old;
 
 %     if ($first_old && $first_old ne $first) {
 %         push @extra_menu, \%extra_menu_item;
-%         $first = '';
-%         last;
 %     }
 %     $first_old = $first;
 % }
@@ -119,9 +121,10 @@ td.newregion, tr:hover td.newregion {
                     % }
                     <th class="col_value">Url</th>
                     % $first_old = '';
+                    % $first = '';
                     % for my $project (@$projects) {
                     %     my $name   = $project->{name};
-                    %     (my $first) = split ' ', $name, 2;
+                    %     ($first) = split ' ', $name, 2;
                     %     $first = "Leap $first"   if 0 == rindex $first, "15.", 0;
                     %     $first = "Build Service" if $first eq 'repositories';
                     %     $first = "Tumbleweed"    if $first eq 'TW';
