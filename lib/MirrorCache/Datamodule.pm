@@ -323,18 +323,25 @@ sub _init_location($self) {
             $region = lc($p);
         }
     }
-    if (my $p = $query->param('AVOID_COUNTRY')) {
-        my @avoid_countries = ();
+    if (!$country) {
+        $country = '';
+    } else {
+        $country = substr(lc($country), 0, 2) ;
+    }
+    my $p = $query->param('AVOID_COUNTRY');
+    my @avoid_countries = ();
+    @avoid_countries = ('by', 'ru') if $country eq 'ua';
+    if ($p) {
         for my $c (split ',', $p) {
             next unless length($c) == 2;
             $c = lc($c);
             push @avoid_countries, $c;
             $country = '' if $c eq lc($country // '');
-        }
-        $self->_avoid_countries(\@avoid_countries);
+        };
     }
-    $country = substr($country, 0, 2) if $country;
-    $self->_country($country // '');
+    $self->_avoid_countries(\@avoid_countries);
+
+    $self->_country($country);
     $self->_region($region // '');
 }
 
