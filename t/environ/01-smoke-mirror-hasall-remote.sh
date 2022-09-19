@@ -10,6 +10,7 @@ mc=$(environ mc $(pwd))
 
 $mc/gen_env \
     MIRRORCACHE_ROOT=http://$($ap9/print_address) \
+    MIRRORCACHE_METALINK_GREEDY=3 \
     MIRRORCACHE_REDIRECT=$FAKEURL2
 
 $mc/start
@@ -31,7 +32,7 @@ $ap7/curl /folder1/ | grep file1.1.dat
 
 $ap8/start
 $ap8/curl /folder1/ | grep file1.1.dat
-
+rm $ap7/dt/folder1/file2.1.dat # remove a file from ap7
 
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
@@ -55,4 +56,11 @@ $mc/curl /download/folder1/file1.1.dat.metalink | grep "${FAKEURL2}"/folder1/fil
 rc=0
 $mc/curl -I /download/folder1/file1.1.dat?"COUNTRY=it&PEDANTIC=1" | grep "${FAKEURL}" || rc=$?
 test $rc -gt 0
+
+echo When METALINK_GREEDY is set, REDIRECT url will appear only as comment if mirror count exceeds value of METALINK_GREEDY
+$mc/curl /download/folder1/file1.1.dat.metalink | grep -A1 'File origin' | grep '<!-- http://'${FAKEURL2}'/folder1/file1.1.dat -->'
+
+echo for file2 REDIRECT still appears in metalink from folder2, because mirror count doesnt exceed value of METALINK_GREEDY
+$mc/curl /download/folder1/file2.1.dat.metalink | grep -A1 'File origin' | grep '<url type="http" location="" preference="98">http://'${FAKEURL2}'/folder1/file2.1.dat</url>'
+
 echo success
