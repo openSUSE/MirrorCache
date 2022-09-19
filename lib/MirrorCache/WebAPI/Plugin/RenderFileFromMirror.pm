@@ -352,6 +352,9 @@ sub register {
     return $app;
 }
 
+# metalink should not include root url in mirror list if mirror count exceeds METALINK_GREEDY parameter
+my $METALINK_GREEDY = int( $ENV{MIRRORCACHE_METALINK_GREEDY} // 0 ) // 0;
+
 sub _build_metalink() {
     my (
         $dm,             $path,         $file,   $country,   $region, $mirrors_country,
@@ -423,9 +426,13 @@ sub _build_metalink() {
                 return if $root_included and !$print;
 
                 $writer->comment("File origin location: ") if $print;
-                $writer->startTag('url', type => substr($rooturl,0,$colon), location => uc($dm->root_country), preference => $preference);
-                $writer->characters($rooturl . $fullname);
-                $writer->endTag('url');
+                if ($METALINK_GREEDY && $METALINK_GREEDY <= (100 - $preference)) {
+                    $writer->comment($rooturl . $fullname);
+                } else {
+                    $writer->startTag('url', type => substr($rooturl,0,$colon), location => uc($dm->root_country), preference => $preference);
+                    $writer->characters($rooturl . $fullname);
+                    $writer->endTag('url');
+                }
                 $root_included = 1;
                 $preference--;
             };
