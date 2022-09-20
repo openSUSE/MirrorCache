@@ -47,6 +47,9 @@ sub register {
     return $app;
 }
 
+# Assume UserAgent of such pattern never lists directories and only needs to render files
+my $PACKAGE_MANAGER_PATTERN = 'ZYpp .*|Debian APT.*|libdnf.*|osc.*';
+
 sub indx {
     my $c = shift;
     my $reqpath = $c->req->url->path;
@@ -74,6 +77,11 @@ sub indx {
       || _local_render($dm, 0) # check if we should render local
       || _render_from_db($dm)
       || _local_render($dm, 1); # check if we should render local when metalink cannot be provided
+
+    if ($dm->agent =~ qr/$PACKAGE_MANAGER_PATTERN/) {
+        my ($path, $trailing_slash) = $dm->path;
+        return $root->render_file($dm, $path . $trailing_slash);
+    }
 
     my $tx = $c->render_later->tx;
     my $rendered;
@@ -366,7 +374,7 @@ sub _guess_what_to_render {
         # this should happen only if $url is a valid file or non-existing path
         return $root->render_file($dm, $path . $trailing_slash);
     })->catch(sub {
-        my $res = $root->render_file($dm, $path . $trailing_slash);
+        $root->render_file($dm, $path . $trailing_slash);
         my $msg = "Error while guessing how to render $url: ";
         if (1 == scalar(@_)) {
             $msg = $msg . $_[0];
