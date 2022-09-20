@@ -268,6 +268,7 @@ sub redirect($self, $url) {
 }
 
 sub _init_headers($self) {
+    $self->_agent('');
     my $headers = $self->c->req->headers;
     return unless $headers;
     $self->_agent($headers->user_agent ? $headers->user_agent : '');
