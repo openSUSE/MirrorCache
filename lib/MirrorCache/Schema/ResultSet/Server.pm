@@ -128,6 +128,8 @@ from (
     where fd.folder_id = ? and fdf.file_id is NULL
 ) s
 join folder f on f.id = ?
+left join project p                          on f.path like concat(p.path, '%')
+left join server_project   sp                on (sp.server_id, sp.project_id) = (s.id, p.id)
 left join server_capability_declaration scd  on s.id = scd.server_id and scd.capability = '$capability' and NOT scd.enabled
 left join server_capability_force scf        on s.id = scf.server_id and scf.capability = '$capability'
 left join server_capability_declaration scd2 on s.id = scd2.server_id and scd.capability = '$ipv' and NOT scd.enabled
@@ -136,6 +138,7 @@ left join server_stability stability_scheme  on s.id = stability_scheme.server_i
 left join server_stability stability_schemex on s.id = stability_schemex.server_id and stability_schemex.capability = '$capabilityx'
 left join server_stability stability_ipv     on s.id = stability_ipv.server_id     and stability_ipv.capability = '$ipv'
 left join server_stability stability_ipvx    on s.id = stability_ipvx.server_id    and stability_ipvx.capability = '$ipvx'
+where sp.state is NULL or sp.state > 0
 ) x
 WHERE not_disabled $extra
 order by rating_country desc, (dist/100)::int, support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, score, random()
