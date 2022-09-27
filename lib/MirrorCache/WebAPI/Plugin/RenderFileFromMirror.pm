@@ -390,27 +390,34 @@ sub _build_metalink() {
         $writer->startTag('file', name => $basename);
         $writer->dataElement( size => $file->{size} ) if $file->{size};
         $writer->comment('<mtime>' . $file->{mtime} . '</mtime>') if ($file->{mtime});
-        if (my $md5 = $file->{md5}) {
-            $writer->startTag('hash', type => 'md5');
-            $writer->characters($md5);
-            $writer->endTag('hash');
-        }
-        if (my $sha1 = $file->{sha1}) {
-            $writer->startTag('hash', type => 'sha-1');
-            $writer->characters($sha1);
-            $writer->endTag('hash');
-        }
-        if (my $sha256 = $file->{sha256}) {
-            $writer->startTag('hash', type => 'sha-256');
-            $writer->characters($sha256);
-            $writer->endTag('hash');
-        }
-        if (my $piece_size = $file->{piece_size}) {
-            $writer->startTag('pieces', length => $piece_size, type => 'sha-1');
-            for my $piece (grep {$_} split /(.{40})/, $file->{pieces}) {
-                $writer->dataElement( hash => $piece );
+        my $md5 = $file->{md5};
+        my $sha1 = $file->{sha1};
+        my $sha256 = $file->{sha256};
+        if ($md5 || $sha1 || $sha256) {
+            $writer->startTag('verification');
+            if ($md5) {
+                $writer->startTag('hash', type => 'md5');
+                $writer->characters($md5);
+                $writer->endTag('hash');
             }
-            $writer->endTag('pieces');
+            if ($sha1) {
+                $writer->startTag('hash', type => 'sha-1');
+                $writer->characters($sha1);
+                $writer->endTag('hash');
+            }
+            if ($sha256) {
+                $writer->startTag('hash', type => 'sha-256');
+                $writer->characters($sha256);
+                $writer->endTag('hash');
+            }
+            if (my $piece_size = $file->{piece_size}) {
+                $writer->startTag('pieces', length => $piece_size, type => 'sha-1');
+                for my $piece (grep {$_} split /(.{40})/, $file->{pieces}) {
+                    $writer->dataElement( hash => $piece );
+                }
+                $writer->endTag('pieces');
+            }
+            $writer->endTag('verification');
         }
 
         my $colon = $rooturl ? index(substr($rooturl,0,6),':') : '';
