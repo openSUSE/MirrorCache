@@ -14,7 +14,7 @@ RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-P
     apache2 perl-Digest-MD4 tidy nginx bbe perl-DBD-mysql perl-Mojo-mysql perl-Minion-Backend-mysql perl-DateTime-HiRes
 
 # optional dependencies used in testing
-RUN zypper -vvv -n install perl-Geo-IP2Location perl-Inline-C gcc perl-DateTime-Format-MySQL
+RUN zypper -vvv -n install perl-Geo-IP2Location perl-Inline-C gcc perl-DateTime-Format-MySQL libxml2-tools
 
 # this hack is needed because old nginx versions cannot run as non-root
 RUN bbe -e 's,/var/log/nginx/error.log,/tmp/log_nginx_error.log,' /usr/sbin/nginx > /usr/sbin/nginx.hacked

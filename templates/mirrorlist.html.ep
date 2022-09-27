@@ -52,6 +52,7 @@
       <li>MD5 Hash: <%= $file->{md5} %></li>
       % }
       <li><a href="<%= $bc_url . $bc_last %>.metalink">Metalink (v3.0)</a></li>
+      <li><a href="<%= $bc_url . $bc_last %>.meta4">Metalink (v4.0)</a></li>
       % if ($file->{url}) {
       <li>Origin: <a href="<%= $file->{url} %>"><%= $file->{url} %></a></li>
       % }

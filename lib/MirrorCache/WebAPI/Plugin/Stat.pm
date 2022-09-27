@@ -68,7 +68,7 @@ sub redirect_to_mirror($self, $mirror_id, $dm) {
     $path = $dm->root_subtree . $path;
     my $rows = $self->rows;
     my @rows = defined $rows? @$rows : ();
-    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, $dm->metalink? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head, $$, int($dm->elapsed*1000), $dm->file_age, $dm->folder_scan_last, $dm->mirror_country ];
+    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, ($dm->metalink || $dm->meta4)? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head, $$, int($dm->elapsed*1000), $dm->file_age, $dm->folder_scan_last, $dm->mirror_country ];
     my $cnt = @rows;
     if ($cnt >= $FLUSH_COUNT) {
         $self->rows(undef);

@@ -200,7 +200,8 @@ sub _redirect_normalized {
     my ($path, $trailing_slash, $original_path) = $dm->path;
     return undef if $path eq '/';
     $path = $path . '.metalink' if $dm->metalink && !$dm->metalink_accept;
-    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path || ($dm->extra && !$dm->metalink);
+    $path = $path . '.meta4'    if $dm->meta4    && !$dm->meta4_accept;
+    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path || ($dm->extra && !$dm->metalink && !$dm->meta4);
     return undef;
 }
 
@@ -261,7 +262,7 @@ sub _render_stats_not_scanned {
 sub _local_render {
     my $dm     = shift;
     my $accept = shift;
-    return undef if $dm->extra && (!$accept || !$dm->metalink_accept);
+    return undef if $dm->extra && (!$accept || (!$dm->metalink_accept && !$dm->meta4_accept));
     my ($path, $trailing_slash) = $dm->path;
     if ($root->is_remote) {
         # we can just render top folders
@@ -328,7 +329,7 @@ sub _guess_what_to_render {
     my ($path, $trailing_slash) = $dm->path;
 
     if ($dm->extra) {
-        return $root->render_file($dm, $path) if $dm->metalink_accept;
+        return $root->render_file($dm, $path) if $dm->metalink_accept || $dm->meta4_accept;
         # the file is unknown, we cannot show generate meither mirrorlist or metalink
         my $res = $c->render(status => 425, text => "The file is unknown, retry later");
         # log miss here even thoough we haven't rendered anything
@@ -520,7 +521,7 @@ sub _render_small {
     return undef unless $SMALL_FILE_SIZE && ($ROOT_NFS || !$root->is_remote );
     my $dm = shift;
     $dm->_init_path;
-    return undef if (($dm->metalink && !$dm->metalink_accept) || $dm->mirrorlist || $dm->zsync);
+    return undef if (($dm->metalink && !$dm->metalink_accept) || ($dm->meta4 && !$dm->meta4_accept) || $dm->mirrorlist || $dm->zsync);
     my ($path, undef) = $dm->path;
     my $full;
     return $root->render_file_if_small($dm, $path, $SMALL_FILE_SIZE) unless $ROOT_NFS;
