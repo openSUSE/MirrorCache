@@ -122,3 +122,7 @@ $mc/backstage/shoot
 $mc/sql 'select * from stat_agg'
 $mc/curl /rest/stat | grep '"hour":{"bot":2,"hit":24,"miss":6,"prev_bot":2,"prev_hit":24,"prev_miss":6}'
 
+$mc/curl /download/folder3/file1.1.dat.metalink | xmllint --noout --format -
+$mc/curl /download/folder3/file1.1.dat.meta4    | xmllint --noout --format -
+$mc/curl /download/folder3/file1.1.dat.meta4    | grep '<url location="US" priority="1">http://127.0.0.1:1304/folder3/file1.1.dat</url>'
+

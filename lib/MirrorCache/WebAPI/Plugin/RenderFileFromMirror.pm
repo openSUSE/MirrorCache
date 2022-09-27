@@ -30,7 +30,8 @@ use Mojo::IOLoop::Subprocess;
 
 sub register {
     my ($self, $app) = @_;
-    $app->types->type(metalink => 'application/metalink+xml; charset=UTF-8');
+    $app->types->type(metalink =>  'application/metalink+xml; charset=UTF-8');
+    $app->types->type(meta4    => 'application/metalink4+xml; charset=UTF-8');
 
     $app->helper( 'mirrorcache.render_file' => sub {
         my ($c, $filepath, $dm, $file)= @_;
@@ -83,6 +84,7 @@ sub register {
         my $region  = $dm->region;
         if (!$folder || !$file) {
             return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file && !$dm->metalink_accept); # file is unknown - cannot generate metalink
+            return $root->render_file($dm, $filepath . '.meta4')     if ($dm->meta4    && !$file && !$dm->meta4_accept);    # file is unknown - cannot generate meta4
             return $root->render_file($dm, $filepath)
               if !$dm->extra || $dm->metalink_accept; # TODO we still can check file on mirrors even if it is missing in DB
         }
@@ -92,7 +94,7 @@ sub register {
         }
         my $baseurl; # just hostname + eventual urldir (without folder and file)
         my $fullurl; # baseurl with path and filename
-        if ($dm->metalink || $dm->torrent || $dm->zsync || $dm->magnet) {
+        if ($dm->metalink || $dm->meta4 || $dm->torrent || $dm->zsync || $dm->magnet) {
 	    $baseurl = $root->is_remote ? $root->location($dm) : $root->redirect($dm, $folder->path) # we must pass $path here because it potenially has impact
         }
         if ($dm->torrent || $dm->zsync || $dm->magnet) {
@@ -140,9 +142,7 @@ sub register {
             }
         }
 
-        return _render_torrent($dm, $file, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $fullurl) if $dm->torrent;
-
-        if ($dm->metalink && !($dm->metalink_accept && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
+        if (($dm->metalink || $dm->meta4) && !(($dm->metalink_accept || $dm->meta4_accept) && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
             my $origin;
             if (my $publisher_url = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL}) {
                 $publisher_url =~ s/^https?:\/\///;
@@ -154,13 +154,24 @@ sub register {
                 $origin = $origin . $dm->route;
             }
             $origin = $origin . $filepath;
-            my $xml    = _build_metalink(
+            my $xml;
+            if ($dm->meta4) {
+                $xml = _build_meta4(
+                    $dm, $folder->path, $file, $country, $region, \@mirrors_country, \@mirrors_region,
+                    \@mirrors_rest, $origin, 'MirrorCache', $baseurl);
+                $c->res->headers->content_disposition('attachment; filename="' .$basename. '.meta4"');
+                $c->render(data => $xml, format => 'meta4');
+                return 1;
+            }
+            $xml = _build_metalink(
                 $dm, $folder->path, $file, $country, $region, \@mirrors_country, \@mirrors_region,
                 \@mirrors_rest, $origin, 'MirrorCache', $baseurl);
             $c->res->headers->content_disposition('attachment; filename="' .$basename. '.metalink"');
             $c->render(data => $xml, format => 'metalink');
             return 1;
         }
+
+        return _render_torrent($dm, $file, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $fullurl) if $dm->torrent;
 
         if ($dm->mirrorlist) {
             my @mirrordata;
@@ -354,6 +365,125 @@ sub register {
 
 # metalink should not include root url in mirror list if mirror count exceeds METALINK_GREEDY parameter
 my $METALINK_GREEDY = int( $ENV{MIRRORCACHE_METALINK_GREEDY} // 0 ) // 0;
+my $publisher = $ENV{MIRRORCACHE_METALINK_PUBLISHER} || 'openSUSE';
+my $publisher_url = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL} || 'http://download.opensuse.org';
+
+
+sub _build_meta4() {
+    my (
+        $dm,             $path,         $file,   $country,   $region, $mirrors_country,
+        $mirrors_region, $mirrors_rest, $origin, $generator, $rooturl
+    ) = @_;
+    my $basename = $file->{name};
+    $country = uc($country) if $country;
+    $region  = uc($region)  if $region;
+
+    my $writer = XML::Writer->new(OUTPUT => 'self', DATA_MODE => 1, DATA_INDENT => 2, );
+    $writer->xmlDecl('UTF-8');
+    $writer->startTag('metalink', xmlns => 'urn:ietf:params:xml:ns:metalink');
+    $writer->dataElement( generator => $generator ) if $generator;
+    $writer->dataElement( origin    => $origin, dynamic => 'true') if $origin;
+    $writer->dataElement( published => strftime('%Y-%m-%dT%H:%M:%SZ', localtime time));
+
+    $writer->startTag('publisher');
+    $writer->dataElement( name => $publisher    ) if $publisher;
+    $writer->dataElement( url  => $publisher_url) if $publisher_url;
+    $writer->endTag('publisher');
+
+    $writer->startTag('file', name => $basename);
+    $writer->dataElement( size => $file->{size} ) if $file->{size};
+    $writer->comment('<mtime>' . $file->{mtime} . '</mtime>') if ($file->{mtime});
+    if (my $md5 = $file->{md5}) {
+        $writer->startTag('hash', type => 'md5');
+        $writer->characters($md5);
+        $writer->endTag('hash');
+    }
+    if (my $sha1 = $file->{sha1}) {
+        $writer->startTag('hash', type => 'sha-1');
+        $writer->characters($sha1);
+        $writer->endTag('hash');
+    }
+    if (my $sha256 = $file->{sha256}) {
+        $writer->startTag('hash', type => 'sha-256');
+        $writer->characters($sha256);
+        $writer->endTag('hash');
+    }
+    if (my $piece_size = $file->{piece_size}) {
+        $writer->startTag('pieces', length => $piece_size, type => 'sha-1');
+        for my $piece (grep {$_} split /(.{40})/, $file->{pieces}) {
+            $writer->dataElement( hash => $piece );
+        }
+        $writer->endTag('pieces');
+    }
+
+    my $priority = 1;
+    my $fullname = $path . '/' . $basename;
+    my $root_included = 0;
+    my $print_root = sub {
+        return unless $rooturl;
+
+        my $print = shift;
+        return if $root_included and !$print;
+
+        $writer->comment("File origin location: ") if $print;
+        if ($METALINK_GREEDY && $METALINK_GREEDY <= $priority) {
+            $writer->comment($rooturl . $fullname);
+        } else {
+            $writer->startTag('url', location => uc($dm->root_country), priority => $priority);
+            $writer->characters($rooturl . $fullname);
+            $writer->endTag('url');
+        }
+        $root_included = 1;
+        $priority++;
+    };
+    $writer->comment("Mirrors which handle this country ($country): ");
+    for my $m (@$mirrors_country) {
+        my $url = $m->{url};
+
+        $print_root->() if $country ne uc($m->{country}) && $dm->root_is_better($m->{region}, $m->{lng});
+        $writer->startTag('url', location => uc($m->{country}), priority => $priority);
+        $writer->characters($url);
+        $writer->endTag('url');
+        $priority++;
+    }
+    $print_root->() if $dm->root_country eq lc($country);
+
+    $writer->comment("Mirrors in the same continent ($region): ");
+    for my $m (@$mirrors_region) {
+        my $url   = $m->{url};
+
+        $print_root->() if $dm->root_is_better($m->{region}, $m->{lng});
+        $writer->startTag(
+                    'url',
+                    location => uc($m->{country}),
+                    priority => $priority
+                );
+        $writer->characters($url);
+        $writer->endTag('url');
+        $priority++;
+    }
+    $print_root->() if $dm->root_is_hit;
+
+    $writer->comment("Mirrors in other parts of the world: ");
+    for my $m (@$mirrors_rest) {
+        my $url   = $m->{url};
+        $print_root->() if $dm->root_is_better($m->{region}, $m->{lng});
+        $writer->startTag(
+                    'url',
+                    location => uc($m->{country}),
+                    priority => $priority
+                );
+        $writer->characters($url);
+        $writer->endTag('url');
+        $priority++;
+    }
+
+    $print_root->(1);
+    $writer->endTag('file');
+    $writer->endTag('metalink');
+
+    return $writer->end();
+}
 
 sub _build_metalink() {
     my (
@@ -363,9 +493,6 @@ sub _build_metalink() {
     my $basename = $file->{name};
     $country = uc($country) if $country;
     $region  = uc($region)  if $region;
-
-    my $publisher = $ENV{MIRRORCACHE_METALINK_PUBLISHER} || 'openSUSE';
-    my $publisher_url = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL} || 'http://download.opensuse.org';
 
     my $writer = XML::Writer->new(OUTPUT => 'self', DATA_MODE => 1, DATA_INDENT => 2, );
     $writer->xmlDecl('UTF-8');
@@ -412,8 +539,10 @@ sub _build_metalink() {
             }
             if (my $piece_size = $file->{piece_size}) {
                 $writer->startTag('pieces', length => $piece_size, type => 'sha-1');
+                my $piecen = 0;
                 for my $piece (grep {$_} split /(.{40})/, $file->{pieces}) {
-                    $writer->dataElement( hash => $piece );
+                    $writer->dataElement( hash => $piece, piece => $piecen);
+                    $piecen++;
                 }
                 $writer->endTag('pieces');
             }
@@ -517,7 +646,7 @@ sub _collect_mirrors {
     my $avoid_countries = $dm->avoid_countries;
     my $mirrorlist = $dm->mirrorlist;
     my $ipvstrict  = $dm->ipvstrict;
-    my $metalink   = $dm->metalink;
+    my $metalink   = $dm->metalink || $dm->meta4;
     my $limit = $mirrorlist ? 100 : (( $metalink || $dm->pedantic )? 10 : 1);
     my $rs = $dm->c->schemaR->resultset('Server');
 

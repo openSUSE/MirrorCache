@@ -27,6 +27,7 @@ has c => undef, weak => 1;
 has [ '_route', '_route_len' ]; # this is '/download'
 has [ 'route', 'route_len' ]; # this may be '/download' or empty if one of TOP_FOLDERS present
 has [ 'metalink', 'metalink_accept' ];
+has [ 'meta4', 'meta4_accept' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng', '_vpn' ];
 has [ '_avoid_countries' ];
 has [ '_pedantic' ];
@@ -107,7 +108,7 @@ sub vpn($self) {
 }
 
 sub extra($self) {
-    return ($self->metalink || $self->mirrorlist || $self->zsync || $self->magnet || $self->torrent || $self->btih );
+    return ($self->metalink || $self->meta4 || $self->mirrorlist || $self->zsync || $self->magnet || $self->torrent || $self->btih );
 }
 
 sub region($self) {
@@ -260,7 +261,7 @@ sub is_head($self) {
 
 sub redirect($self, $url) {
     my $xtra = '';
-    if ($self->_original_path =~ m/(\.metalink|\.mirrorlist|\.torrent|\.magnet|\.btih)$/) {
+    if ($self->_original_path =~ m/(\.metalink|\.meta4|\.mirrorlist|\.torrent|\.magnet|\.btih)$/) {
         $xtra = $1;
     }
 
@@ -275,6 +276,10 @@ sub _init_headers($self) {
     if ($headers->accept && $headers->accept =~ m/\bapplication\/metalink/) {
         $self->metalink(1);
         $self->metalink_accept(1);
+    }
+    if ($headers->accept && $headers->accept =~ m/\bapplication\/metalink4/) {
+        $self->meta4(1);
+        $self->meta4_accept(1);
     }
 }
 
@@ -394,6 +399,12 @@ sub _init_path($self) {
             $path = substr($path,0,$pos);
         }
     }
+    if(!$trailing_slash && ((my $pos = length($path)-length('.meta4')) > 1)) {
+        if ('.meta4' eq substr($path,$pos)) {
+            $self->meta4(1);
+            $path = substr($path,0,$pos);
+        }
+    }
     if (!$trailing_slash && ((my $pos = length($path) - length('.mirrorlist')) > 1)) {
         if ('.mirrorlist' eq substr($path, $pos)) {
             $self->mirrorlist(1);
@@ -440,6 +451,7 @@ sub _init_path($self) {
     $self->must_render_from_root(1)
         if !$self->mirrorlist
         && ( !$self->metalink || $self->metalink_accept )
+        && ( !$self->meta4    || $self->meta4_accept )
         && !$self->zsync
         && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz)|gpg-pubkey.*\.asc|CHECKSUMS)$/;
 
