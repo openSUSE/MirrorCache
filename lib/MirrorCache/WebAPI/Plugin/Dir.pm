@@ -263,8 +263,11 @@ sub _local_render {
     my $accept = shift;
     return undef if $dm->extra && (!$accept || !$dm->metalink_accept);
     my ($path, $trailing_slash) = $dm->path;
-
-    return $root->render_file_if_nfs($dm, $path) if $root->is_remote;
+    if ($root->is_remote) {
+        # we can just render top folders
+        return _render_top_folders($dm) if $ENV{MIRRORCACHE_TOP_FOLDERS} && $path eq '/';
+        return $root->render_file_if_nfs($dm, $path);
+    }
 
     if ($root->is_dir($path)) {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
@@ -390,6 +393,33 @@ sub _guess_what_to_render {
 sub _by_filename {
    $b->{dir} cmp $a->{dir} ||
    versioncmp(lc($a->{name}), lc($b->{name}));
+}
+
+sub _render_top_folders {
+    my $dm  = shift;
+    my $dir = '/';
+    my $c   = $dm->c;
+    my @files;
+    my $json = $dm->json;
+
+    for my $basename ( @top_folders ) {
+        if ($json) {
+            push @files, {
+                name  => $basename,
+            };
+            next;
+        }
+        my $encoded   = Encode::decode_utf8( './' . $basename );
+
+        push @files, {
+            url   => $encoded,
+            name  => $basename,
+            dir   => 1,
+        };
+    }
+    my @items = sort _by_filename @files;
+    return $c->render( json => \@items) if $json;
+    return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => undef );
 }
 
 sub _render_dir_from_db {
