@@ -79,6 +79,10 @@ sub reset($self, $c, $top_folder = undef) {
     }
     $self->c($c);
     $self->_ip(undef);
+    $self->metalink(undef);
+    $self->metalink_accept(undef);
+    $self->meta4(undef);
+    $self->meta4_accept(undef);
 }
 
 sub ip_sha1($self) {
@@ -313,10 +317,14 @@ sub _init_req($self) {
 }
 
 sub _init_location($self) {
+    my $query = $self->c->req->url->query;
+    if (my $p = $query->param('IP')) {
+        $self->_ip($p);
+    }
     my ($lat, $lng, $country, $region) = $self->c->geodb->location($self->ip);
+    $region = 'eu' if $country && $country eq 'tr';
     $self->_lat($lat);
     $self->_lng($lng);
-    my $query = $self->c->req->url->query;
     if (my $p = $query->param('COUNTRY')) {
         if (length($p) == 2 ) {
             $country = $p;

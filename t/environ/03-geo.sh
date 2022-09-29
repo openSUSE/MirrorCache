@@ -36,6 +36,9 @@ $mc/curl --interface 127.0.0.4 -i /download/folder1/file1.1.dat.mirrorlist?COUNT
 $mc/curl --interface 127.0.0.4 -I /download/folder1/file1.1.dat | grep 1324
 $mc/curl --interface 127.0.0.3 -I /download/folder1/file1.1.dat | grep 1314
 $mc/curl --interface 127.0.0.2 -I /download/folder1/file1.1.dat | grep 1304
+$mc/curl -I /download/folder1/file1.1.dat?IP=127.0.0.4 | grep 1324
+$mc/curl -I /download/folder1/file1.1.dat?IP=127.0.0.3 | grep 1314
+$mc/curl -I /download/folder1/file1.1.dat?IP=127.0.0.2 | grep 1304
 
 # check same continent
 $mc/curl --interface 127.0.0.4 -Is /download/folder1/file1.1.dat?COUNTRY=jp | grep 1324
@@ -66,3 +69,4 @@ $mc/curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s /do
 
 # check continent
 $mc/curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s /download/folder1/file1.1.dat?COUNTRY=fr | grep -B20 127.0.0.3
+$mc/curl -H "Accept: */*, application/metalink4+xml" --interface 127.0.0.2 -s /download/folder1/file1.1.dat?COUNTRY=fr | grep -B20 127.0.0.3
