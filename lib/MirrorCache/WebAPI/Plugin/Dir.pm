@@ -404,17 +404,18 @@ sub _render_top_folders {
     my $json = $dm->json;
 
     for my $basename ( @top_folders ) {
+        my $basename2 = "$basename/";
         if ($json) {
             push @files, {
-                name  => $basename,
+                name  => $basename2,
             };
             next;
         }
-        my $encoded   = Encode::decode_utf8( './' . $basename );
+        my $encoded   = Encode::decode_utf8( './' . $basename2 );
 
         push @files, {
             url   => $encoded,
-            name  => $basename,
+            name  => $basename2,
             dir   => 1,
         };
     }
