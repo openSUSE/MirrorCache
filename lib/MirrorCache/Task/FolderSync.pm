@@ -181,9 +181,9 @@ sub _sync {
 
     $job->note(updated => $realpath, count => $cnt, deleted => $deleted, updated => $updated);
     if ($cnt || $updated) {
-        $folder->update(     {sync_last => \"CURRENT_TIMESTAMP(3)", scan_requested => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
+        $folder->update( {sync_last => \"CURRENT_TIMESTAMP(3)", scan_requested => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
     } else {
-        $folder->update(     {sync_last => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
+        $folder->update( {sync_last => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
     }
     my $need_hashes = $cnt || $updated ? 1 : 0;
     my $max_dt;

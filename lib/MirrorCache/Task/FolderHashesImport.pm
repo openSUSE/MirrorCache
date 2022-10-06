@@ -16,6 +16,9 @@
 package MirrorCache::Task::FolderHashesImport;
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::UserAgent;
+use Mojo::Date;
+
+my $DELAY = $ENV{MIRRORCACHE_HASHES_IMPORT_RETRY_DELAY} // 10*60;
 
 sub register {
     my ($self, $app) = @_;
@@ -55,17 +58,26 @@ sub _run {
     return $job->fail('Request to HEADQUARTER ' . $hq_url . ' failed, response code ' . $res->code)
       if $res->code > 299;
 
+    return $job->retry({delay => $DELAY}) if $res->code == 201;
+
     my $res_json = $res->json;
     my $last_import;
+    my $rsFile;
+    my $rsHash;
     for my $hash (@$res_json) {
         my $basename = $hash->{name};
         next unless $basename;
-        my $file = $schema->resultset('File')->find({folder_id => $folder_id, name => $basename});
+        $rsFile = $schema->resultset('File') unless $rsFile;
+        my $file = $rsFile->find({folder_id => $folder_id, name => $basename});
         next unless $file;
         eval {
-            $schema->resultset('Hash')->store($file->id, $hash->{mtime}, $hash->{size}, $hash->{md5},
+            $rsHash = $schema->resultset('Hash') unless $rsHash;
+            $rsHash->store($file->id, $hash->{mtime}, $hash->{size}, $hash->{md5},
                 $hash->{sha1}, $hash->{sha256}, $hash->{piece_size}, $hash->{pieces}, undef, undef, undef, $hash->{target});
-            $last_import = Mojo::Date($hash->{dt}) if ($last_import && $hash->{dt} && $last_import->epoch < Mojo::Date->new($hash->{dt})->epoch);
+            if (my $hdt = $hash->{dt}) {
+                my $hDt = Mojo::Date->new($hdt);
+                $last_import = $hDt if !$last_import || ( $hdt && $last_import->epoch < $hDt->epoch);
+            }
             $count++;
         };
         if ($@) {
@@ -76,8 +88,22 @@ sub _run {
         }
     }
 
-    $folder->hash_last_import($last_import) if $last_import && $count;
-    $job->note(count => $count, errors => $errcount);
+    $folder->update( { hash_last_import => DateTime->from_epoch( epoch => $last_import->epoch ) } ) if $count && $last_import;
+    # check if some recent files don't have hashes and retry if any
+    my $need_retry;
+    {
+        my $dbh     = $schema->storage->dbh;
+
+        my $sql = "select 1 from file left join hash on file_id = id where folder_id = ? and file_id is null and file.dt > now() - interval '1 hour' limit 1";
+        $sql    = "select 1 from file left join hash on file_id = id where folder_id = ? and file_id is null and file.dt > date_sub(now(), interval 1 hour) limit 1" unless $dbh->{Driver}->{Name} eq 'Pg';
+        my $prep = $dbh->prepare($sql);
+        $prep->execute($folder_id);
+        ($need_retry) = $dbh->selectrow_array($prep);
+    }
+    $need_retry = 0 unless $need_retry;
+    $job->note(count => $count, errors => $errcount, need_retry => $need_retry);
+
+    $job->retry({delay => $DELAY}) if $need_retry;
 }
 
 1;
