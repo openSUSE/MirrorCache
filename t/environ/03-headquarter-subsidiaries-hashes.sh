@@ -87,4 +87,31 @@ done
 
 mc9/curl -IL /download/folder1/file-Media.iso | grep '200 OK'
 
+echo Step 4. Add files, but hash calculation on the main server happens later
+DELAY=1;
+
+for i in 6 7 8 9; do
+    echo 1111111113 > mc$i/dt/folder1/file1.2.dat
+    echo 1111111113 > mc$i/dt/folder1/file4.2.dat
+    mc$i/backstage/job -e folder_sync -a '["/folder1"]'
+    mc$i/backstage/shoot
+    MIRRORCACHE_HASHES_IMPORT_RETRY_DELAY=$DELAY mc$i/backstage/shoot -q hashes
+    if test $i != 9; then
+        test -z $(mc$i/sql "select md5 from hash where file_id=5")
+        test -z $(mc$i/sql "select md5 from hash where file_id=6")
+    else
+        test $(mc$i/sql "select md5 from hash where file_id=5") == $(mc$i/sql 'select md5 from hash where file_id=6')
+        test $(mc$i/sql "select md5 from hash where file_id=3") != $(mc$i/sql 'select md5 from hash where file_id=6')
+    fi
+done
+
+sleep $DELAY
+
+# now the hashes on subsidiaries should be retried and match the headquarter
+for i in 6 7 8; do
+    mc$i/backstage/shoot -q hashes
+    test $(mc$i/sql "select md5 from hash where file_id=5") == $(mc9/sql 'select md5 from hash where file_id=6')
+    test $(mc$i/sql "select md5 from hash where file_id=6") == $(mc9/sql 'select md5 from hash where file_id=6')
+done
+
 echo success

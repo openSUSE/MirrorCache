@@ -10,8 +10,8 @@ set -ex
 
 for i in 9 6; do
     x=$(environ mc$i $(pwd))
-    mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    mkdir -p $x/dt/{folder1,folder2,folder3,folder4}
+    echo $x/dt/{folder1,folder2,folder3,folder4}/{file1.1,file2.1}.dat | xargs -n 1 touch
     echo 1111111111 > $x/dt/folder1/file1.1.dat
     echo 1111111112 > $x/dt/folder2/file1.1.dat
     eval mc$i=$x
@@ -19,8 +19,8 @@ done
 
 for i in 1 2 3 4; do
     x=$(environ ap$i)
-    mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    mkdir -p $x/dt/{folder1,folder2,folder3,folder4}
+    echo $x/dt/{folder1,folder2,folder3,folder4}/{file1.1,file2.1}.dat | xargs -n 1 touch
     echo 1111111111 > $x/dt/folder1/file1.1.dat
     echo 1111111112 > $x/dt/folder2/file1.1.dat
     eval ap$i=$x
@@ -35,7 +35,7 @@ na_address=$($mc6/print_address)
 na_interface=127.0.0.2
 
 # deploy db
-$mc9/gen_env MIRRORCACHE_HASHES_COLLECT=1 MIRRORCACHE_HASHES_PIECES_MIN_SIZE=5 "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'" MIRRORCACHE_BRANDING=SUSE MIRRORCACHE_WORKERS=4 MIRRORCACHE_DAEMON=1
+$mc9/gen_env MIRRORCACHE_HASHES_COLLECT=1 MIRRORCACHE_HASHES_PIECES_MIN_SIZE=5 "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3 folder4'" MIRRORCACHE_BRANDING=SUSE MIRRORCACHE_WORKERS=4 MIRRORCACHE_DAEMON=1
 $mc9/backstage/shoot
 
 $mc9/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
@@ -58,10 +58,10 @@ curl -s "http://$hq_address/folder1/?hashes" | grep file1.1.dat
 curl -s "http://$na_address/folder1/?hashes&since=2021-01-01" | grep file1.1.dat
 
 for i in 9 6; do
-    test b2c5860a03d2c4f1f049a3b2409b39a8 == $(mc$i/db/sql 'select md5 from hash where file_id=1')
-    test 5179db3d4263c9cb4ecf0edbc653ca460e3678b7 == $(mc$i/db/sql 'select sha1 from hash where file_id=1')
-    test 63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458 == $(mc$i/db/sql 'select sha256 from hash where file_id=1')
-    test 5179db3d4263c9cb4ecf0edbc653ca460e3678b7 == $(mc$i/db/sql 'select pieces from hash where file_id=1')
+    test b2c5860a03d2c4f1f049a3b2409b39a8 == $(mc$i/sql 'select md5 from hash where file_id=1')
+    test 5179db3d4263c9cb4ecf0edbc653ca460e3678b7 == $(mc$i/sql 'select sha1 from hash where file_id=1')
+    test 63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458 == $(mc$i/sql 'select sha256 from hash where file_id=1')
+    test 5179db3d4263c9cb4ecf0edbc653ca460e3678b7 == $(mc$i/sql 'select pieces from hash where file_id=1')
 done
 
 mc9/curl -sL /folder1/file1.1.dat.metalink | grep 63d19a99ef7db94ddbb1e4a5083062226551cd8197312e3aa0aa7c369ac3e458
@@ -81,12 +81,57 @@ echo Import folder unknown on master
 curl -si "http://$hq_address/folder2?hashes"
 mc9/backstage/shoot
 mc9/backstage/shoot -q hashes
-test d8f5889697e9ec5ba9a8ab4aede6e7d1d7858884e81db19b3e9780d6a64671a3 == $(mc9/db/sql 'select sha256 from hash where file_id=3')
+test d8f5889697e9ec5ba9a8ab4aede6e7d1d7858884e81db19b3e9780d6a64671a3 == $(mc9/sql 'select sha256 from hash where file_id=3')
 
 mc6/backstage/job -e folder_sync -a '["/folder2"]'
 mc6/backstage/shoot
 mc6/backstage/shoot -q hashes
 
-test d8f5889697e9ec5ba9a8ab4aede6e7d1d7858884e81db19b3e9780d6a64671a3 == $(mc6/db/sql 'select sha256 from hash where file_id=3')
+test d8f5889697e9ec5ba9a8ab4aede6e7d1d7858884e81db19b3e9780d6a64671a3 == $(mc6/sql 'select sha256 from hash where file_id=3')
+
+DELAY=1;
+echo Import folder unknown on master, but relay on automatic retry
+mc6/backstage/job -e folder_sync -a '["/folder3"]'
+mc6/backstage/shoot
+MIRRORCACHE_HASHES_IMPORT_RETRY_DELAY=$DELAY mc6/backstage/shoot -q hashes
+
+mc9/backstage/shoot
+mc9/backstage/shoot -q hashes
+test e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 == $(mc9/sql 'select sha256 from hash where file_id=5')
+
+sleep $DELAY
+mc6/backstage/shoot -q hashes
+test e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 == $(mc6/sql 'select sha256 from hash where file_id=5')
+
+
+test -n "$(mc6/sql 'select hash_last_import from folder where id=3')"
+
+
+echo Emulate hashes on master were calculated only partially
+
+mc9/backstage/job -e folder_sync -a '["/folder4"]'
+mc9/backstage/shoot
+mc9/backstage/shoot -q hashes
+test e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 == $(mc9/sql 'select sha256 from hash where file_id=7')
+test e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 == $(mc9/sql 'select sha256 from hash where file_id=8')
+
+mc9/sql 'delete from hash where file_id=8'
+
+mc6/backstage/job -e folder_sync -a '["/folder4"]'
+mc6/backstage/shoot
+MIRRORCACHE_HASHES_IMPORT_RETRY_DELAY=$DELAY mc6/backstage/shoot -q hashes
+
+test e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 == $(mc9/sql 'select sha256 from hash where file_id=7')
+test                                                                  -z "$(mc9/sql 'select sha256 from hash where file_id=8')"
+echo Recalculate hashes on HQ
+mc9/backstage/job -e folder_hashes_create -a '["/folder4"]'
+mc9/backstage/shoot
+
+sleep $DELAY
+mc6/backstage/shoot -q hashes # this should retry the import because some hashes were missing
+test e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 == $(mc9/sql 'select sha256 from hash where file_id=7')
+test e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 == $(mc6/sql 'select sha256 from hash where file_id=8')
+
+test -n "$(mc6/sql 'select hash_last_import from folder where id=3')"
 
 echo success
