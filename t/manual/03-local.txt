@@ -1,0 +1,24 @@
+Testing mirrorcache locally.
+
+executable 03-local.sh will build and spawn Docker container with local MirrorCache instance, which serves files from folder mc1/dt in checkout path of MirrorCache project.
+
+example use to start container (port 80 must be free on the host):
+
+git clone https://github.com/openSUSE/MirrorCache ~/testmc
+cd ~/testmc/t/manual
+EXPOSE_PORT=3110 ./03-local.sh
+
+example check hashes generation from outside of container:
+
+cd ~/testmc
+mkdir mc1/dt/folder1
+echo 1111 > mc1/dt/folder1/aaa
+
+
+curl -s 127.0.0.1:80/download/folder1 | grep aaa
+curl -s 127.0.0.1:80/download/folder1/aaa
+
+curl -si 127.0.0.1:80/download/folder1/aaa.meta4
+sleep 20 # the service needs some time to generage metalink file
+curl -si 127.0.0.1:80/download/folder1/aaa.meta4
+
