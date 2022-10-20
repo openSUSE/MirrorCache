@@ -43,7 +43,7 @@ sub _run {
       unless my $common_guard = $minion->guard('schedule_from_misses', 60);
 
     my $schema = $app->schema;
-    my $limit = $prev_stat_id? 50 : 10;
+    my $limit = 10000;
 
     my ($stat_id, $folders, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
     $common_guard = undef;
@@ -78,7 +78,7 @@ sub _run {
         }
         $last_run = $last_run + $cnt;
         last unless $cnt;
-        $limit = 1000;
+        $limit = 10000;
         ($stat_id, $folders, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
     }
 
