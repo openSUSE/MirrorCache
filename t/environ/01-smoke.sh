@@ -138,4 +138,16 @@ $mc/curl -H "Accept: */*, application/metalink+xml, application/x-zsync" /downlo
     | grep -C 20 "URL: http://$($ap8/print_address)/folder1/file9.1.dat" \
     | grep -C 20 "URL: http://$($mc/print_address)/download/folder1/file9.1.dat"
 
+
+$mc/backstage/job -e report -a '["once"]'
+$mc/backstage/shoot
+
+$mc/curl /rest/repdownload | grep '"known_files_no_mirrors":"6","known_files_redirected":"26","known_files_requested":"26"' | grep '"total_requests":"32"'
+
+$mc/sql "update agg_download set dt = dt - interval '1 day' where period = 'hour'"
+$mc/backstage/job -e report -a '["once"]'
+$mc/backstage/shoot
+
+$mc/curl /rest/repdownload?period=day | grep '"known_files_no_mirrors":"12","known_files_redirected":"56","known_files_requested":"56"' | grep '"total_requests":"68"'
+
 echo success

@@ -296,4 +296,72 @@ alter table project add column if not exists redirect varchar(512);
 -- 26 up
 alter table project add column if not exists prio int;
 alter table server add column if not exists sponsor varchar(64), add column if not exists sponsor_url varchar(64);
+-- 27 up
+alter table server modify column sponsor varchar(128);
 
+create table popular_file_type (
+    id int AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    name varchar(64) UNIQUE,
+    mask varchar(256)
+);
+insert into popular_file_type(name) values
+('rpm'),('gz'),('drpm'),('content'),('deb'),('xml'),('media'),('iso'),('Packages'),('asc'),('txt'),('key'),('xz'),('dsc'),('repo'),('Sources'),('db'),('qcow2'),('InRelease'),('sha256');
+
+create table popular_os (
+    id int AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    name varchar(64) UNIQUE,
+    mask varchar(256),
+    version varchar(256),
+    neg_mask varchar(256)
+);
+
+insert into popular_os(id, name, mask, version, neg_mask) values
+(1, 'factory',    '.*/(openSUSE_)?[Ff]actory/.*', NULL, '.*microos.*'),
+(2, 'tumbleweed', '.*/(openSUSE_)?[Tt]umbleweed(-non-oss)?/.*', NULL, NULL),
+(3, 'microos',    '.*microos.*', NULL, NULL),
+(4, 'leap',       '.*[lL]eap(/|_)(([1-9][0-9])(\.|_)([0-9])?(-test|-Current)?)/.*|(.*\/(15|12|43|42)\.(1|2|3|4|5)\/.*)', '\3\8.\5\6\9', '.*leap-micro.*'),
+(5, 'leap-micro', '.*leap-micro(-current)?((/|-)(([1-9][0-9]?)(\.|_|-)([0-9])))?.*', '\5.\7', ''),
+(100, 'xubuntu',  '.*xUbuntu(-|_)([a-zA-Z]+|[1-9][0-9]\.[0-9]*).*', '\2', NULL),
+(101, 'debian',   '.*[Dd]ebian(-|_)?([a-zA-Z]+|[1-9]?[0-9](\.[0-9]+)?).*', '\2', '.*[Uu]buntu.*'),
+(102, 'ubuntu',   '.*[Uu]buntu(-|_)([a-zA-Z]+|[1-9][0-9]?(\.[0-9]*)?).*', '\2', '.*x[Uu]buntu.*'),
+(200, 'rhel',     '.*(RHEL|rhel)(-|_)([a-zA-Z]+|([1-9]))/.*', '\3', '.*CentOS.*'),
+(201, 'centos',   '.*(CentOS|centos|EPEL)(-|_|\:\/)?([a-zA-Z]+|([1-9]([\._]([0-9]+|[a-zA-Z]+)+)?)):?\/.*', '\3', ''),
+(202, 'fedora',   '.*[Ff]edora_?(([0-9]|_|[a-zA-Z])*)/.*', '\1', '');
+
+create table popular_arch (
+    id int AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    name varchar(64) UNIQUE,
+    mask varchar(256),
+    neg_mask varchar(256)
+);
+
+insert into popular_arch(id, name) values
+(1, 'x86_64'),
+(2, 'noarch'),
+(3, 'ppc64'),
+(4, 'aarch64'),
+(5, 'arm64'),
+(6, 'amd64'),
+(7, 's390'),
+(8, 'i386'),
+(9, 'i486'),
+(10, 'i586'),
+(11, 'i686'),
+(100, 'src');
+
+create table agg_download (
+    period     enum('minute', 'hour', 'day', 'month', 'year', 'total', 'uptime') NOT NULL,
+    dt         timestamp NOT NULL,
+    project_id int NOT NULL,
+    country    varchar(2),
+    mirror_id  int NOT NULL,
+    file_type  int,
+    os_id      int,
+    os_version varchar(16),
+    arch_id    smallint,
+    meta_id    bigint,
+    cnt        bigint,
+    cnt_known  bigint,
+    bytes      bigint,
+    primary key(period, dt, project_id, country, mirror_id, file_type, os_id, os_version, arch_id, meta_id)
+);

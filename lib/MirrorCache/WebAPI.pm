@@ -187,6 +187,7 @@ sub _setup_webui {
 
     $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
     $rest_r->get('/repmirror')->name('rest_repmirror')->to('report_mirror#list');
+    $rest_r->get('/repdownload')->name('rest_repdownload')->to('report_download#list');
 
     $rest_r->get('/folder_jobs/:id')->name('rest_folder_jobs')->to('folder_jobs#list');
     $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show') if $self->_geodb;

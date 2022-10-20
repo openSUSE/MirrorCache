@@ -460,7 +460,7 @@ sub _init_path($self) {
     $self->agent; # parse headers
     $self->must_render_from_root(1)
         if ( $self->accept_all || !$self->extra )
-        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz)|gpg-pubkey.*\.asc|CHECKSUMS)$/;
+        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/(media|products)|\/content|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz)|gpg-pubkey.*\.asc|CHECKSUMS)$/;
 
     my ($ext) = $path =~ /([^.]+)$/;
     my $mime = '';

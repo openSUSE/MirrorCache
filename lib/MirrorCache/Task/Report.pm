@@ -32,6 +32,102 @@ sub _run {
       unless my $guard = $minion->guard('report', 15*60);
 
     my $schema = $app->schema;
+    _run_mirrors($app, $schema);
+    _run_download_hour($app, $schema);
+    _run_download_day($app, $schema);
+
+    return $job->finish if $once;
+    return $job->retry({delay => $DELAY});
+}
+
+sub _run_download_day {
+    my ($app, $schema) = @_;
+    my $sql = "
+insert into agg_download(period, dt, project_id, country, mirror_id,
+        file_type,
+        os_id, os_version,
+        arch_id,
+        meta_id,
+        cnt,
+        cnt_known,
+        bytes)
+select 'day'::stat_period_t, date_trunc('day', dt), project_id, country, mirror_id,
+        file_type,
+        os_id, os_version,
+        arch_id,
+        meta_id,
+        sum(cnt),
+        sum(cnt_known),
+        sum(bytes)
+from agg_download
+where period = 'hour'
+  and dt >= coalesce((select max(dt) + interval '1 day' from agg_download where period = 'day'), now() - interval '10 day')
+  and dt < date_trunc('day', now())
+group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+";
+
+    unless ($schema->pg) {
+        $sql =~ s/::stat_period_t//g;
+        $sql =~ s/interval '1 day'/interval 1 day/g;
+        $sql =~ s/interval '10 day'/interval 10 day/g;
+        $sql =~ s/date_trunc\('day', /date(/g;
+    }
+
+    $schema->storage->dbh->prepare($sql)->execute();
+    1;
+}
+
+sub _run_download_hour {
+    my ($app, $schema) = @_;
+    my $sql = "
+insert into agg_download(period, dt, project_id, country, mirror_id,
+        file_type,
+        os_id, os_version,
+        arch_id,
+        meta_id,
+        cnt,
+        cnt_known,
+        bytes)
+select 'hour'::stat_period_t, date_trunc('hour', stat.dt), coalesce(p.id, 0), coalesce(stat.country, ''), stat.mirror_id,
+        coalesce(ft.id, 0),
+        coalesce(os.id, 0), coalesce(regexp_replace(stat.path, os.mask, os.version), ''),
+        coalesce(arch.id, 0),
+        0,
+        count(*) cnt,
+        sum(case when file_id > 0 then 1 else 0 end) cnt_known,
+        sum(coalesce(f.size, 0)) bytes
+from
+stat
+left join project p            on stat.path like concat(p.path, '%')
+left join file f               on f.id = file_id
+left join popular_file_type ft on stat.path like concat('%.', ft.name)
+left join popular_os os        on stat.path ~ os.mask   and (coalesce(os.neg_mask,'') = '' or not stat.path ~ os.neg_mask)
+left join popular_arch arch    on stat.path like concat('%', arch.name, '%')
+left join agg_download d       on stat.mirror_id = d.mirror_id
+                              and stat.country = d.country
+                              and d.project_id = coalesce(p.id, 0)
+                              and d.file_type  = coalesce(ft.id, 0)
+                              and d.dt > now() - interval '4 hour'
+                              and d.period = 'hour'
+where stat.dt > now() - interval '4 hour'
+    and stat.mirror_id > -2
+    and d.period IS NULL
+group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+";
+
+    unless ($schema->pg) {
+        $sql =~ s/::stat_period_t//g;
+        $sql =~ s/interval '4 hour'/interval 4 hour/g;
+        $sql =~ s/date_trunc\('hour', stat.dt\)/(date(stat.dt) + interval hour(stat.dt) hour)/g;
+        $sql =~ s/ ~ / RLIKE /g;
+    }
+
+    $schema->storage->dbh->prepare($sql)->execute();
+    1;
+}
+
+sub _run_mirrors {
+    my ($app, $schema) = @_;
 
     my $mirrors = $schema->resultset('Server')->report_mirrors;
     # this is just tmp structure we use for aggregation
@@ -57,7 +153,7 @@ sub _run {
                     $row{'sponsor'} = $sponsor->[0] if $sponsor->[0];
                     $row{'sponsor_url'} = $sponsor->[1] if $sponsor->[1];
                 }
-                
+
                 my $by_project = $by_country->{$url};
                 for my $project (sort keys %$by_project) {
                     my $p = $by_project->{$project};
@@ -99,9 +195,6 @@ sub _run {
     my $sql = 'insert into report_body select 1, now(), ?';
 
     $schema->storage->dbh->prepare($sql)->execute($json);
-
-    return $job->finish if $once;
-    return $job->retry({delay => $DELAY});
 }
 
 1;
