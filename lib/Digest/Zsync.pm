@@ -18,7 +18,7 @@ sub digest ($self) {
 }
 
 sub init ($self, $size) {
-    $self->block_size(4096)   if $size > 1024*1024*128;
+    $self->block_size(4096)   if $size > 1024*1024*4;
     $self->block_size(2*4096) if $size > 1024*1024*1024;
     $self->block_size(4*4096) if $size > 1024*1024*1024*16;
 
@@ -45,7 +45,8 @@ sub add($self, $data) {
     my $zhashes = $self->hashes;
     my $block_size = $self->block_size;
     use bytes;
-    for my $block (grep {$_} split /(.{$block_size})/, $data) {
+    while (length($data)) {
+        (my $block, $data) = unpack("a${block_size}a*", $data);
         my $diff = $self->block_size - length($block);
         $block .= (chr(0) x $diff) if $diff;
         push @$zhashes, zsync_rsum06($block, $block_size, $self->rsum_len);
