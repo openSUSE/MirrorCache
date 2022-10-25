@@ -47,7 +47,14 @@ sub _scan {
         unless my $guard = $minion->guard('mirror_scan' . $path,  20*60);
 
     $job->note($path => 1);
-    my ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = _dbfiles($app, $job, $path);
+    my ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+    {
+        return $job->finish('folder sync job is still active')
+            unless my $guard_r = $minion->guard('folder_sync' . $path, 360);
+
+        ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) 
+            = _dbfiles($app, $job, $path);
+    }
     return undef unless $dbfiles;
 
     my $count = _doscan($app, $job, $path, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
