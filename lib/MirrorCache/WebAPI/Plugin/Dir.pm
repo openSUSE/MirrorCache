@@ -197,10 +197,11 @@ sub _redirect_project_ln_geo {
 
 sub _redirect_normalized {
     my $dm = shift;
+    return undef if $dm->accept;
     my ($path, $trailing_slash, $original_path) = $dm->path;
     return undef if $path eq '/';
-    $path = $path . '.metalink' if $dm->metalink && !$dm->metalink_accept;
-    $path = $path . '.meta4'    if $dm->meta4    && !$dm->meta4_accept;
+    $path = $path . '.metalink' if $dm->metalink;
+    $path = $path . '.meta4'    if $dm->meta4;
     return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path || ($dm->extra && !$dm->metalink && !$dm->meta4);
     return undef;
 }
@@ -262,7 +263,7 @@ sub _render_stats_not_scanned {
 sub _local_render {
     my $dm     = shift;
     my $accept = shift;
-    return undef if $dm->extra && (!$accept || (!$dm->metalink_accept && !$dm->meta4_accept));
+    return undef if $dm->extra && (!$accept || !$dm->accept_all);
     my ($path, $trailing_slash) = $dm->path;
     if ($root->is_remote) {
         # we can just render top folders
@@ -329,7 +330,7 @@ sub _guess_what_to_render {
     my ($path, $trailing_slash) = $dm->path;
 
     if ($dm->extra) {
-        return $root->render_file($dm, $path) if $dm->metalink_accept || $dm->meta4_accept;
+        return $root->render_file($dm, $path) if $dm->accept_all;
         # the file is unknown, we cannot show generate meither mirrorlist or metalink
         my $res = $c->render(status => 425, text => "The file is unknown, retry later");
         # log miss here even thoough we haven't rendered anything
@@ -522,7 +523,7 @@ sub _render_small {
     return undef unless $SMALL_FILE_SIZE && ($ROOT_NFS || !$root->is_remote );
     my $dm = shift;
     $dm->_init_path;
-    return undef if (($dm->metalink && !$dm->metalink_accept) || ($dm->meta4 && !$dm->meta4_accept) || $dm->mirrorlist || $dm->zsync);
+    return undef if ($dm->metalink && !$dm->accept_all) || ($dm->meta4 && !$dm->accept_all) || $dm->mirrorlist || $dm->zsync;
     my ($path, undef) = $dm->path;
     my $full;
     return $root->render_file_if_small($dm, $path, $SMALL_FILE_SIZE) unless $ROOT_NFS;

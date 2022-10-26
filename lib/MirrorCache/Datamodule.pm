@@ -26,8 +26,7 @@ has c => undef, weak => 1;
 
 has [ '_route', '_route_len' ]; # this is '/download'
 has [ 'route', 'route_len' ]; # this may be '/download' or empty if one of TOP_FOLDERS present
-has [ 'metalink', 'metalink_accept' ];
-has [ 'meta4', 'meta4_accept' ];
+has [ 'metalink', 'meta4', 'zsync', 'accept_all', 'accept' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng', '_vpn' ];
 has [ '_avoid_countries' ];
 has [ '_pedantic' ];
@@ -38,7 +37,6 @@ has 'must_render_from_root';
 has '_agent';
 has [ '_is_secure', '_is_ipv4', '_ipvstrict', '_is_head' ];
 has 'mirrorlist';
-has 'zsync';
 has [ 'torrent', 'magnet', 'btih' ];
 has 'json';
 has [ 'folder_id', 'file_id', 'file_age', 'folder_sync_last', 'folder_scan_last' ]; # shortcut to requested folder and file, if known
@@ -80,9 +78,11 @@ sub reset($self, $c, $top_folder = undef) {
     $self->c($c);
     $self->_ip(undef);
     $self->metalink(undef);
-    $self->metalink_accept(undef);
+    $self->accept_all(undef);
+    $self->accept(undef);
     $self->meta4(undef);
-    $self->meta4_accept(undef);
+    $self->zsync(undef);
+    $self->mirrorlist(undef);
 }
 
 sub ip_sha1($self) {
@@ -277,14 +277,16 @@ sub _init_headers($self) {
     my $headers = $self->c->req->headers;
     return unless $headers;
     $self->_agent($headers->user_agent ? $headers->user_agent : '');
-    if ($headers->accept && $headers->accept =~ m/\bapplication\/metalink/) {
-        $self->metalink(1);
-        $self->metalink_accept(1);
+    return unless $headers->accept;
+
+    if ($headers->accept ne '*/*') {
+        $self->accept(1);
+        $self->accept_all(1) if $headers->accept =~ m/\*\/\*/ ;
     }
-    if ($headers->accept && $headers->accept =~ m/\bapplication\/metalink4/) {
-        $self->meta4(1);
-        $self->meta4_accept(1);
-    }
+
+    $self->metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/;
+    $self->meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/;
+    $self->zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/;
 }
 
 sub _init_req($self) {
@@ -457,10 +459,7 @@ sub _init_path($self) {
 
     $self->agent; # parse headers
     $self->must_render_from_root(1)
-        if !$self->mirrorlist
-        && ( !$self->metalink || $self->metalink_accept )
-        && ( !$self->meta4    || $self->meta4_accept )
-        && !$self->zsync
+        if ( $self->accept_all || !$self->extra )
         && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/media|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz)|gpg-pubkey.*\.asc|CHECKSUMS)$/;
 
     my ($ext) = $path =~ /([^.]+)$/;
