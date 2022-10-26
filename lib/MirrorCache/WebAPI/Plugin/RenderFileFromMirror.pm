@@ -107,12 +107,6 @@ sub register {
             }
 	}
 
-
-        if ($dm->zsync && ($file->{zlengths} || !$dm->accept_all)) {
-            _render_zsync($c, $fullurl, $basename, $file->{mtime}, $file->{size}, $file->{sha1}, $file->{zblock_size}, $file->{zlengths}, $file->{zhashes});
-            $c->stat->redirect_to_root($dm, 1);
-            return 1;
-        }
         if ($dm->btih) {
             _render_btih($c, $basename, $file);
             $c->stat->redirect_to_root($dm, 1);
@@ -142,6 +136,12 @@ sub register {
             } else {
                 $c->stat->redirect_to_root($dm);
             }
+        }
+
+        if ($dm->zsync && ($file->{zlengths} || !$dm->accept_all)) {
+            _render_zsync($c, $fullurl, $basename, $file->{mtime}, $file->{size}, $file->{sha1}, $file->{zblock_size}, $file->{zlengths}, $file->{zhashes},
+                           \@mirrors_country, \@mirrors_region, \@mirrors_rest);
+            return 1;
         }
 
         if (($dm->metalink || $dm->meta4) && !($dm->accept_all && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
@@ -648,7 +648,7 @@ sub _collect_mirrors {
     my $avoid_countries = $dm->avoid_countries;
     my $mirrorlist = $dm->mirrorlist;
     my $ipvstrict  = $dm->ipvstrict;
-    my $metalink   = $dm->metalink || $dm->meta4;
+    my $metalink   = $dm->metalink || $dm->meta4 || $dm->zsync;
     my $limit = $mirrorlist ? 100 : (( $metalink || $dm->pedantic )? 10 : 1);
     my $rs = $dm->c->schemaR->resultset('Server');
 
@@ -700,7 +700,7 @@ sub _collect_mirrors {
 }
 
 sub _render_zsync() {
-    my ($c, $url, $filename, $mtime, $size, $sha1, $zblock_size, $zlengths, $zhash) = @_;
+    my ($c, $url, $filename, $mtime, $size, $sha1, $zblock_size, $zlengths, $zhash, $mirrors_country, $mirrors_region, $mirrors_rest) = @_;
 
     unless($zhash) {
         $c->render(status => 404, text => "File not found");
@@ -713,10 +713,13 @@ MTime: $mtime
 Blocksize: $zblock_size
 Length: $size
 Hash-Lengths: $zlengths
-URL: $url
-SHA-1: $sha1
-
 EOT
+
+    for my $m (@$mirrors_country, @$mirrors_region, @$mirrors_rest) {
+        $header = $header . "URL: $m->{url}\n";
+    }
+    $header = $header . "URL: $url\n";
+    $header = $header . "SHA-1: $sha1\n";
 
     $c->res->headers->content_length(length($header) + length ($zhash));
     $c->write($header => sub () {
