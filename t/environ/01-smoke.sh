@@ -4,7 +4,10 @@ set -ex
 mc=$(environ mc $(pwd))
 MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
-$mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+$mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL \
+            MIRRORCACHE_HASHES_COLLECT=1 \
+            MIRRORCACHE_ZSYNC_COLLECT=dat \
+            MIRRORCACHE_HASHES_PIECES_MIN_SIZE=5
 
 $mc/start
 $mc/status
@@ -15,6 +18,7 @@ ap7=$(environ ap7)
 for x in $mc $ap7 $ap8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    echo 11111 > $x/dt/folder1/file9.1.dat
 done
 
 $ap7/start
@@ -126,3 +130,12 @@ $mc/curl /download/folder3/file1.1.dat.metalink | xmllint --noout --format -
 $mc/curl /download/folder3/file1.1.dat.meta4    | xmllint --noout --format -
 $mc/curl /download/folder3/file1.1.dat.meta4    | grep '<url location="US" priority="1">http://127.0.0.1:1304/folder3/file1.1.dat</url>'
 
+
+$mc/backstage/shoot -q hashes
+
+$mc/curl -H "Accept: */*, application/metalink+xml, application/x-zsync" /download/folder1/file9.1.dat \
+    | grep -C 20 "URL: http://$($ap7/print_address)/folder1/file9.1.dat" \
+    | grep -C 20 "URL: http://$($ap8/print_address)/folder1/file9.1.dat" \
+    | grep -C 20 "URL: http://$($mc/print_address)/download/folder1/file9.1.dat"
+
+echo success
