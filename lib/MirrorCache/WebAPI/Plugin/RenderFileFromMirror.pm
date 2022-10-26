@@ -72,8 +72,10 @@ sub register {
             my $fldid = ($realfolder_id? $realfolder_id : $folder_id);
             if (!$dm->zsync) {
                 $file = $schema->resultset('File')->find_with_hash($fldid, $basename) unless $file;
-            } else {
+            } elsif (!$dm->meta4 && !$dm->metalink) {
                 $file = $schema->resultset('File')->find_with_zhash($fldid, $basename);
+            } else {
+                $file = $schema->resultset('File')->find_with_hash_and_zhash($fldid, $basename);
             }
         }
         if($file) {
@@ -83,10 +85,10 @@ sub register {
         my $country = $dm->country;
         my $region  = $dm->region;
         if (!$folder || !$file) {
-            return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file && !$dm->metalink_accept); # file is unknown - cannot generate metalink
-            return $root->render_file($dm, $filepath . '.meta4')     if ($dm->meta4    && !$file && !$dm->meta4_accept);    # file is unknown - cannot generate meta4
+            return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file && !$dm->accept); # file is unknown - cannot generate metalink
+            return $root->render_file($dm, $filepath . '.meta4')     if ($dm->meta4    && !$file && !$dm->accept); # file is unknown - cannot generate meta4
             return $root->render_file($dm, $filepath)
-              if !$dm->extra || $dm->metalink_accept; # TODO we still can check file on mirrors even if it is missing in DB
+              if !$dm->extra || $dm->accept_all; # TODO we still can check file on mirrors even if it is missing in DB
         }
 
         if (!$folder || !$file) {
@@ -106,7 +108,7 @@ sub register {
 	}
 
 
-        if ($dm->zsync) {
+        if ($dm->zsync && ($file->{zlengths} || !$dm->accept_all)) {
             _render_zsync($c, $fullurl, $basename, $file->{mtime}, $file->{size}, $file->{sha1}, $file->{zblock_size}, $file->{zlengths}, $file->{zhashes});
             $c->stat->redirect_to_root($dm, 1);
             return 1;
@@ -142,7 +144,7 @@ sub register {
             }
         }
 
-        if (($dm->metalink || $dm->meta4) && !(($dm->metalink_accept || $dm->meta4_accept) && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
+        if (($dm->metalink || $dm->meta4) && !($dm->accept_all && 'media.1/media' eq substr($filepath,length($filepath)-length('media.1/media')))) {
             my $origin;
             if (my $publisher_url = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL}) {
                 $publisher_url =~ s/^https?:\/\///;

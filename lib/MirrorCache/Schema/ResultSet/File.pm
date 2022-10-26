@@ -76,7 +76,7 @@ END_SQL
     return $dbh->selectrow_hashref($prep);
 }
 
-sub find_with_zhash {
+sub find_with_hash_and_zhash {
     my ($self, $folder_id, $name) = @_;
 
     my $rsource = $self->result_source;
@@ -84,11 +84,75 @@ sub find_with_zhash {
     my $dbh     = $schema->storage->dbh;
 
     # html parser may loose seconds from file.mtime, so we allow hash.mtime differ for up to 1 min for now
-    my $sql = <<'END_SQL';
+    my $sql;
+if ($dbh->{Driver}->{Name} eq 'Pg') {
+    $sql = <<'END_SQL';
 select file.id, file.folder_id, file.name,
 case when coalesce(file.size, 0::bigint)  = 0::bigint and coalesce(hash.size, 0::bigint)  != 0::bigint then hash.size else file.size end size,
 case when coalesce(file.mtime, 0::bigint) = 0::bigint and coalesce(hash.mtime, 0::bigint) != 0::bigint then hash.mtime else file.mtime end mtime,
 coalesce(hash.target, file.target) target,
+file.dt, hash.md5, hash.sha1, hash.sha256, hash.piece_size, hash.pieces,
+hash.zlengths, hash.zblock_size, hash.zhashes,
+(DATE_PART('day',    now() - file.dt) * 24 * 3600 +
+ DATE_PART('hour',   now() - file.dt) * 3600 +
+ DATE_PART('minute', now() - file.dt) * 60 +
+ DATE_PART('second', now() - file.dt)) as age
+from file
+left join hash on file_id = id and
+(
+  (file.size = hash.size and abs(file.mtime - hash.mtime) < 61)
+  or
+  (coalesce(file.size, 0::bigint) = 0::bigint and coalesce(hash.size, 0::bigint) != 0::bigint and file.dt <= hash.dt)
+)
+where file.folder_id = ?
+END_SQL
+
+} else {
+    $sql = <<'END_SQL';
+select file.id, file.folder_id, file.name,
+case when coalesce(file.size, 0)  = 0 and coalesce(hash.size, 0)  != 0 then hash.size else file.size end size,
+case when coalesce(file.mtime, 0) = 0 and coalesce(hash.mtime, 0) != 0 then hash.mtime else file.mtime end mtime,
+coalesce(hash.target, file.target) target,
+file.dt, hash.md5, hash.sha1, hash.sha256, hash.piece_size, hash.pieces,
+hash.zlengths, hash.zblock_size, hash.zhashes,
+TIMESTAMPDIFF(SECOND, file.dt, CURRENT_TIMESTAMP(3)) as age
+from file
+left join hash on file_id = id and
+(
+  (file.size = hash.size and abs(file.mtime - hash.mtime) < 61)
+  or
+  (coalesce(file.size, 0) = 0 and coalesce(hash.size, 0) != 0 and file.dt <= hash.dt)
+)
+where file.folder_id = ?
+END_SQL
+}
+    return $dbh->selectall_hashref($sql, 'id', {}, $folder_id) unless $name;
+
+    $sql = $sql . " and file.name = ?";
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($folder_id, $name);
+    return $dbh->selectrow_hashref($prep);
+}
+
+sub find_with_zhash {
+    my ($self, $folder_id, $name) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql;
+    # html parser may loose seconds from file.mtime, so we allow hash.mtime differ for up to 1 min for now
+if ($dbh->{Driver}->{Name} eq 'Pg') {
+    $sql = <<'END_SQL';
+select file.id, file.folder_id, file.name,
+case when coalesce(file.size, 0::bigint)  = 0::bigint and coalesce(hash.size, 0::bigint)  != 0::bigint then hash.size else file.size end size,
+case when coalesce(file.mtime, 0::bigint) = 0::bigint and coalesce(hash.mtime, 0::bigint) != 0::bigint then hash.mtime else file.mtime end mtime,
+coalesce(hash.target, file.target) target,
+(DATE_PART('day',    now() - file.dt) * 24 * 3600 +
+ DATE_PART('hour',   now() - file.dt) * 3600 +
+ DATE_PART('minute', now() - file.dt) * 60 +
+ DATE_PART('second', now() - file.dt)) as age,
 file.dt, hash.sha1, hash.zlengths, hash.zblock_size, hash.zhashes
 from file
 left join hash on file_id = id and
@@ -99,8 +163,24 @@ left join hash on file_id = id and
 )
 where file.folder_id = ?
 END_SQL
-    $sql =~ s/::bigint//g unless $dbh->{Driver}->{Name} eq 'Pg';
-
+} else {
+    $sql = <<'END_SQL';
+select file.id, file.folder_id, file.name,
+case when coalesce(file.size, 0)  = 0 and coalesce(hash.size, 0)  != 0 then hash.size else file.size end size,
+case when coalesce(file.mtime, 0) = 0 and coalesce(hash.mtime, 0) != 0 then hash.mtime else file.mtime end mtime,
+coalesce(hash.target, file.target) target,
+TIMESTAMPDIFF(SECOND, file.dt, CURRENT_TIMESTAMP(3)) as age,
+file.dt, hash.sha1, hash.zlengths, hash.zblock_size, hash.zhashes
+from file
+left join hash on file_id = id and
+(
+  (file.size = hash.size and abs(file.mtime - hash.mtime) < 61)
+  or
+  (coalesce(file.size, 0) = 0 and coalesce(hash.size, 0) != 0 and file.dt <= hash.dt)
+)
+where file.folder_id = ?
+END_SQL
+}
     return $dbh->selectall_hashref($sql, 'id', {}, $folder_id) unless $name;
 
     $sql = $sql . " and file.name = ?";
