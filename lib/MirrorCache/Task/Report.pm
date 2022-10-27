@@ -63,7 +63,11 @@ from agg_download
 where period = 'hour'
   and dt >= coalesce((select max(dt) + interval '1 day' from agg_download where period = 'day'), now() - interval '10 day')
   and dt < date_trunc('day', now())
-group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+group by date_trunc('day', dt), project_id, country, mirror_id,
+        file_type,
+        os_id, os_version,
+        arch_id,
+        meta_id
 ";
 
     unless ($schema->pg) {
@@ -88,11 +92,11 @@ insert into agg_download(period, dt, project_id, country, mirror_id,
         cnt,
         cnt_known,
         bytes)
-select 'hour'::stat_period_t, date_trunc('hour', stat.dt), coalesce(p.id, 0), coalesce(stat.country, ''), stat.mirror_id,
-        coalesce(ft.id, 0),
-        coalesce(os.id, 0), coalesce(regexp_replace(stat.path, os.mask, os.version), ''),
-        coalesce(arch.id, 0),
-        0,
+select 'hour'::stat_period_t cperiod, date_trunc('hour', stat.dt) cdt, coalesce(p.id, 0) cpid, coalesce(stat.country, '') ccountry, stat.mirror_id cmirror_id,
+        coalesce(ft.id, 0) cft_id,
+        coalesce(os.id, 0) cos_id, coalesce(regexp_replace(stat.path, os.mask, os.version), '') cos_version,
+        coalesce(arch.id, 0) carch_id,
+        0 cmeta_id,
         count(*) cnt,
         sum(case when file_id > 0 then 1 else 0 end) cnt_known,
         sum(coalesce(f.size, 0)) bytes
@@ -104,20 +108,25 @@ left join popular_file_type ft on stat.path like concat('%.', ft.name)
 left join popular_os os        on stat.path ~ os.mask   and (coalesce(os.neg_mask,'') = '' or not stat.path ~ os.neg_mask)
 left join popular_arch arch    on stat.path like concat('%', arch.name, '%')
 left join agg_download d       on stat.mirror_id = d.mirror_id
-                              and stat.country = d.country
+                              and coalesce(stat.country,'') = d.country
                               and d.project_id = coalesce(p.id, 0)
                               and d.file_type  = coalesce(ft.id, 0)
-                              and d.dt > now() - interval '4 hour'
+                              and d.os_id = coalesce(os.id, 0)
+                              and d.os_version = coalesce(regexp_replace(stat.path, os.mask, os.version), '')
+                              and d.arch_id = coalesce(arch.id, 0)
+                              and d.dt = date_trunc('hour', stat.dt)
+                              and d.dt > now() - interval '5 hour'
                               and d.period = 'hour'
 where stat.dt > now() - interval '4 hour'
     and stat.mirror_id > -2
     and d.period IS NULL
-group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+group by cperiod, cdt, cpid, ccountry, cmirror_id, cft_id, cos_id, cos_version, carch_id, cmeta_id
 ";
 
     unless ($schema->pg) {
         $sql =~ s/::stat_period_t//g;
         $sql =~ s/interval '4 hour'/interval 4 hour/g;
+        $sql =~ s/interval '5 hour'/interval 5 hour/g;
         $sql =~ s/date_trunc\('hour', stat.dt\)/(date(stat.dt) + interval hour(stat.dt) hour)/g;
         $sql =~ s/ ~ / RLIKE /g;
     }

@@ -75,7 +75,7 @@ sub list {
         next if ($p =~ /^\s*$/);
         return $self->render(status => 422, json => {error => "Unsupported value for group: $p (Valid value is comma separated combination of: 'project', 'country', 'os' or 'os_version', 'arch')"});
     }
-    my $sql = $sql_select . $tmp . $sql_agg . ", concat(dt $key) as k" . $sql_from . $sql_where . $sql_group . $key . $sql_order . $key . $sql_limit;
+    my $sql = $sql_select . $tmp . $sql_agg . ", concat_ws('', dt $key) as k" . $sql_from . $sql_where . $sql_group . $key . $sql_order . $key . $sql_limit;
     my @res;
     eval {
         my $res = $self->schema->storage->dbh->selectall_hashref($sql, 'k', {});
