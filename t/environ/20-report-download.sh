@@ -82,11 +82,14 @@ $mc/curl /rest/repdownload | grep '"known_files_no_mirrors":"36","known_files_re
 $mc/curl /rest/repdownload?period=day | grep '"known_files_no_mirrors":"144","known_files_redirected":"432","known_files_requested":"432"' | grep '"bytes_redirected":"4752"' | grep '"total_requests":"576"'
 
 
-$mc/curl /rest/repdownload?group=country
-$mc/curl /rest/repdownload?group=project
-$mc/curl /rest/repdownload?group=arch
-$mc/curl /rest/repdownload?group=os
-$mc/curl /rest/repdownload?group=os_version
-$mc/curl /rest/repdownload?group=country,os_version,arch,project
+# $mc/curl /rest/repdownload?group=country
+# $mc/curl /rest/repdownload?group=project
+# $mc/curl /rest/repdownload?group=arch
+# $mc/curl /rest/repdownload?group=os
+# $mc/curl /rest/repdownload?group=os_version
+$mc/curl /rest/repdownload?group=country,os_version,arch,project | grep '"arch":"amd64","bytes_redirected":"22","bytes_served":"0","bytes_total":"22","country":"cn"'
+
+$mc/backstage/job -e report -a '["once"]'
+$mc/backstage/shoot
 
 echo success
