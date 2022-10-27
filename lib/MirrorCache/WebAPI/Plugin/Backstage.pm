@@ -82,6 +82,14 @@ sub register {
       $app->routes->under('/minion')->to('session#ensure_operator');
     $app->plugin( 'Minion::Admin' => { route => $auth } );
 
+    # allow the continuously polled stats to be available on an
+    # unauthenticated route to prevent recurring broken requests to the login
+    # provider if not logged in
+    my $route = $app->routes->find('minion_stats')->remove;
+    $app->routes->any('/minion')->add_child($route);
+    $route = $app->routes->find('minion_history')->remove;
+    $app->routes->any('/minion')->add_child($route);
+
     my $backstage = MirrorCache::WebAPI::Plugin::Backstage->new($app);
     $app->helper( backstage => sub { $backstage } );
 
