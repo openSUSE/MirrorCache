@@ -708,6 +708,7 @@ sub _render_zsync() {
     }
 
     my $header = <<"EOT";
+zsync: 0.6.2-mirrorcache
 Filename: $filename
 MTime: $mtime
 Blocksize: $zblock_size
@@ -719,7 +720,7 @@ EOT
         $header = $header . "URL: $m->{url}\n";
     }
     $header = $header . "URL: $url\n";
-    $header = $header . "SHA-1: $sha1\n";
+    $header = $header . "SHA-1: $sha1\n\n";
 
     $c->res->headers->content_length(length($header) + length ($zhash));
     $c->write($header => sub () {

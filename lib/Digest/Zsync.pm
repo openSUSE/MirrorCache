@@ -18,7 +18,7 @@ sub digest ($self) {
 }
 
 sub init ($self, $size) {
-    $self->block_size(4096)   if $size > 1024*1024*4;
+    $self->block_size(4096)   if $size > 100000000; # default behavior of zsyncmake
     $self->block_size(2*4096) if $size > 1024*1024*1024;
     $self->block_size(4*4096) if $size > 1024*1024*1024*16;
 
