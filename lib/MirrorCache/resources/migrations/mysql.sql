@@ -365,3 +365,9 @@ create table agg_download (
     bytes      bigint,
     primary key(period, dt, project_id, country, mirror_id, file_type, os_id, os_version, arch_id, meta_id)
 );
+-- 28 up
+update popular_os set version = '\\3\\8.\\5\\6\\9' where version = '\3\8.\5\6\9';
+update popular_os set version = '\\5.\\7' where version = '\5.\7';
+update popular_os set version = '\\1' where version = '\1';
+update popular_os set version = '\\2' where version = '\2';
+update popular_os set version = '\\3' where version = '\3';
