@@ -14,14 +14,7 @@ __PACKAGE__->load_namespaces;
 my $SINGLETON;
 my $SINGLETONR;
 
-my $PROVIDER = $ENV{MIRRORCACHE_DB_PROVIDER};
-
-$PROVIDER = 'mysql' if !$PROVIDER && $ENV{TEST_MYSQL};
-
-$PROVIDER = 'postgresql' unless $PROVIDER;
-
-$PROVIDER = 'Pg'    if $PROVIDER eq 'postgresql';
-$PROVIDER = 'mysql' if $PROVIDER eq 'mariadb';
+my $PROVIDER;
 
 sub pg {
     return 1 if $PROVIDER eq 'Pg';
@@ -33,7 +26,9 @@ sub provider {
 }
 
 sub connect_db {
-    my %args  = @_;
+    my ($self, $provider, $dsn, $user, $pass) = @_;
+
+    $PROVIDER = $provider;
 
     unless ($SINGLETON) {
         if (pg()) {
@@ -42,46 +37,16 @@ sub connect_db {
             require 'Mojo/' . $PROVIDER . '.pm';
         }
 
-        my $dsn;
-        my $user = $ENV{MIRRORCACHE_DBUSER};
-        my $pass = $ENV{MIRRORCACHE_DBPASS};
-        if ($ENV{TEST_PG}) {
-            $dsn = $ENV{TEST_PG};
-        } elsif ($ENV{TEST_MYSQL}) {
-            $dsn = $ENV{TEST_MYSQL};
-        } elsif ($ENV{MIRRORCACHE_DSN}) {
-            $dsn = $ENV{MIRRORCACHE_DSN};
-        } else {
-            my $db   = $ENV{MIRRORCACHE_DB} // 'mirrorcache';
-            my $host = $ENV{MIRRORCACHE_DBHOST};
-            my $port = $ENV{MIRRORCACHE_DBPORT};
-            $dsn  = "DBI:$PROVIDER:dbname=$db";
-            $dsn = "$dsn;host=$host" if $host;
-            $dsn = "$dsn;port=$port" if $port;
-        }
         $SINGLETON = __PACKAGE__->connect($dsn, $user, $pass);
     }
 
     return $SINGLETON;
 }
 
-sub connect_replica_db {
-    my %args  = @_;
+sub connect_replica {
+    my ($self, $provider, $dsn, $user, $pass) = @_;
 
     unless ($SINGLETONR) {
-        my $dsn;
-        my $user = $ENV{MIRRORCACHE_DBUSER};
-        my $pass = $ENV{MIRRORCACHE_DBPASS};
-        if ($ENV{MIRRORCACHE_DSN_REPLICA}) {
-            $dsn = $ENV{MIRRORCACHE_DSN_REPLICA};
-        } else {
-            my $db   = $ENV{MIRRORCACHE_DB} // 'mirrorcache';
-            my $host = $ENV{MIRRORCACHE_DBREPLICA};
-            my $port = $ENV{MIRRORCACHE_DBPORT};
-            $dsn  = "DBI:$PROVIDER:dbname=$db";
-            $dsn = "$dsn;host=$host" if $host;
-            $dsn = "$dsn;port=$port" if $port;
-        }
         $SINGLETONR = __PACKAGE__->connect($dsn, $user, $pass);
     }
 
@@ -108,12 +73,11 @@ sub dsn {
     return $ci;
 }
 
-sub singleton { $SINGLETON || connect_db() }
+sub singleton { $SINGLETON }
 
 sub singletonR {
-    return singleton() unless $ENV{MIRRORCACHE_DBREPLICA};
-
-    $SINGLETONR || connect_replica_db();
+     return $SINGLETONR if $SINGLETONR;
+     return singleton();
 }
 
 sub has_table {
@@ -128,10 +92,10 @@ sub has_table {
 }
 
 sub migrate {
-    my $self = shift;
+    my ($self, $pass) = @_;
     my $conn = "Mojo::$PROVIDER"->new;
     $conn->dsn( $self->dsn );
-    $conn->password($ENV{MIRRORCACHE_DBPASS}) if $ENV{MIRRORCACHE_DBPASS};
+    $conn->password($pass) if $pass;
 
     my $dbh     = $self->storage->dbh;
     my $dbschema = path(__FILE__)->dirname->child('resources', 'migrations', "$PROVIDER.sql");

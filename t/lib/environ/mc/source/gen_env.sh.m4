@@ -3,7 +3,7 @@ set -e
 
 echo __dbi='$(__workdir/db/print_dbi mc_test)'
 
-if test "${MIRRORCACHE_DB_PROVIDER}" == maraidb; then
+if test "${MIRRORCACHE_DB_PROVIDER}" == mariadb; then
     echo export TEST_MYSQL='${__dbi//\/ma\//\/db\//}'
 else
     echo export TEST_PG='${__dbi//\/pg\//\/db\//}'
