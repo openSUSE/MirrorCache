@@ -19,10 +19,11 @@ use Mojo::Base 'Mojolicious';
 use Mojolicious::Commands;
 
 use MirrorCache::Schema;
+use MirrorCache::Config;
 use MirrorCache::Utils 'random_string';
 
 has 'version';
-has 'root';
+has 'mcconfig';
 has '_geodb';
 
 sub new {
@@ -53,21 +54,37 @@ sub new {
 # This method will run once at server start
 sub startup {
     my $self = shift;
-    my $root = $ENV{MIRRORCACHE_ROOT} || "";
+
+    my $cfgfile = $ENV{MIRRORCACHE_INI};
+
+    if ($cfgfile) {
+        die "Cannot read config file: {$cfgfile}." unless -r $cfgfile;
+    }
+
+    my $config = MirrorCache::Config->new;
+    $config->init($cfgfile) or die "Cannot initialize config file {$cfgfile}";
+    $self->mcconfig($config);
+    my $mcconfig = $self->mcconfig;
+    my $root     = $mcconfig->root;
+
     my $geodb_file = $ENV{MIRRORCACHE_CITY_MMDB} || $ENV{MIRRORCACHE_IP2LOCATION};
 
     die("Geo IP location database is not a file ($geodb_file)\nPlease check MIRRORCACHE_CITY_MMDB or MIRRORCACHE_IP2LOCATION") if $geodb_file && ! -f $geodb_file;
     my $geodb;
 
+    my $db_provider = $mcconfig->db_provider;
+
     eval {
-        MirrorCache::Schema->singleton;
+        MirrorCache::Schema->connect_db     ($mcconfig->db_provider, $mcconfig->dsn,         $mcconfig->dbuser, $mcconfig->dbpass);
+        MirrorCache::Schema->connect_replica($mcconfig->db_provider, $mcconfig->dsn_replica, $mcconfig->dbuser, $mcconfig->dbpass) if $mcconfig->dsn_replica;
         1;
     } or die("Database connect failed: $@");
 
     eval {
-        MirrorCache::Schema->singleton->migrate();
+        MirrorCache::Schema->singleton->migrate($mcconfig->dbpass);
         1;
     } or die("Automatic migration failed: $@\nFix table structure and insert into mojo_migrations select 'mirrorcache', version");
+
     my $secret = random_string(16);
     $self->config->{hypnotoad}{listen}   = [$ENV{MOJO_LISTEN} // 'http://*:8080'];
     $self->config->{hypnotoad}{proxy}    = $ENV{MOJO_REVERSE_PROXY} // 0,
@@ -75,7 +92,6 @@ sub startup {
     # $self->config->{hypnotoad}{pid_file} = $ENV{MIRRORCACHE_HYPNOTOAD_PID}, - already set in constructor
     $self->config->{_openid_secret} = $secret;
     $self->secrets([$secret]);
-
 
     push @{$self->commands->namespaces}, 'MirrorCache::WebAPI::Command';
 
@@ -127,13 +143,12 @@ sub startup {
         } else {
             $self->plugin('RootRemote');
         }
-        $self->root($root)
     }
 }
 
 sub _setup_webui {
     my $self = shift;
-    my $root = $self->root;
+    my $root = $self->mcconfig->root;
     die("MIRRORCACHE_ROOT is not set") unless $root;
     if ((-1 == rindex($root, 'http', 0)) && (-1 == rindex($root, 'rsync://', 0)) ) {
         my $i = index($root, ':');

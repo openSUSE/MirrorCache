@@ -27,7 +27,7 @@ use Data::Dumper;
 
 use MirrorCache::Utils;
 
-# rooturlredirect as defined in MIRRORCACHE_REDIRECT
+# rooturlredirect as defined in mcconfig->redirect
 # rooturlsredirect same as above just https
 has [ 'app', 'reader', 'rooturlredirect', 'rooturlsredirect', 'rooturlredirectvpn', 'rooturlredirectvpns' ];
 
@@ -38,7 +38,7 @@ sub register {
     $self->app( $app );
     $self->reader( new File::Listing::Rsync->new->init($url) );
     my $redirect;
-    if ($redirect = $ENV{MIRRORCACHE_REDIRECT}) {
+    if ($redirect = $app->mcconfig->redirect) {
         $redirect = "http://$redirect" unless 'http://' eq substr($redirect, 0, length('http://'));
     } else {
         $redirect = $url;
@@ -48,7 +48,7 @@ sub register {
     substr($redirect,0,length('http://'),'https://');
     $self->rooturlsredirect($redirect);
 
-    if (my $redirectvpn = $ENV{MIRRORCACHE_REDIRECT_VPN}) {
+    if (my $redirectvpn = $app->mcconfig->redirect_vpn) {
         $redirectvpn = "http://$redirectvpn" unless 'http://' eq substr($redirectvpn, 0, length('http://'));
         $self->rooturlredirectvpn($redirectvpn);
         my $redirectvpns = $redirectvpn =~ s/http:/https:/r;
@@ -123,7 +123,7 @@ sub location {
     $filepath = "" unless $filepath;
     my $c;
     $c = $dm->c if $dm;
-    if ($dm && $ENV{MIRRORCACHE_REDIRECT_VPN} && $dm->vpn) {
+    if ($dm && $self->rootredirectvpn && $dm->vpn) {
         return $self->rooturlredirectvpn . $filepath unless $c && $c->req->is_secure;
         return $self->rooturlredirectvpns . $filepath;
     }

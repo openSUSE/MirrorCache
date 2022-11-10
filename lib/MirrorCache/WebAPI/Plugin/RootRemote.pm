@@ -23,7 +23,7 @@ use File::Basename;
 use HTML::Parser;
 use Time::Piece;
 
-# rooturlredirect as defined in MIRRORCACHE_REDIRECT
+# rooturlredirect as defined in mcconfig->redirect
 # rooturlsredirect same as above just https
 has [ 'rooturl', 'rooturlredirect', 'rooturlredirects', 'rooturlredirectvpn', 'rooturlredirectvpns' ];
 
@@ -37,7 +37,7 @@ sub register {
     $self->rooturl($rooturl);
 
     my $redirect = $rooturl;
-    if ($redirect = $ENV{MIRRORCACHE_REDIRECT}) {
+    if ($redirect = $app->mcconfig->redirect) {
         $redirect  = "http://$redirect" unless 'http://' eq substr($redirect, 0, length('http://'));
     } else {
         $redirect = $rooturl;
@@ -46,7 +46,7 @@ sub register {
     my $redirects = $redirect =~ s/http:/https:/r;
     $self->rooturlredirects($redirects);
 
-    if (my $redirectvpn = $ENV{MIRRORCACHE_REDIRECT_VPN}) {
+    if (my $redirectvpn = $app->mcconfig->redirect_vpn) {
         $redirectvpn = "http://$redirectvpn" unless 'http://' eq substr($redirectvpn, 0, length('http://'));
         $self->rooturlredirectvpn($redirectvpn);
         my $redirectvpns = $redirectvpn =~ s/http:/https:/r;
@@ -121,7 +121,7 @@ sub location {
     $filepath = "" unless $filepath;
     my $c;
     $c = $dm->c if $dm;
-    if ($dm && $ENV{MIRRORCACHE_REDIRECT_VPN} && $dm->vpn) {
+    if ($dm && $self->rooturlredirectvpn && $dm->vpn) {
         return $self->rooturlredirectvpn . $filepath unless $c && $c->req->is_secure;
         return $self->rooturlredirectvpns . $filepath;
     }

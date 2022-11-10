@@ -25,14 +25,12 @@ use Cwd;
 
 use constant { dir=>0, host=>1, host_vpn=>2 };
 
-sub singleton { state $root = shift->SUPER::new; return $root; };
-
 my @roots;
 my $app;
 
 my $root_subtree = $ENV{MIRRORCACHE_SUBTREE} // "";
 
-my $urlredirect = $ENV{MIRRORCACHE_REDIRECT};
+has 'urlredirect';
 
 sub register {
     (my $self, $app) = @_;
@@ -43,7 +41,8 @@ sub register {
         push @roots, \@root;
     }
 
-    $app->helper( 'mc.root' => sub { $self->singleton; });
+    $self->urlredirect($app->mcconfig->redirect);
+    $app->helper( 'mc.root' => sub { $self; });
 }
 
 sub is_remote {
@@ -109,7 +108,7 @@ sub redirect {
         next unless ( -e $root->[dir] . $root_subtree . $filepath || ( $root_subtree && ( -e $root->[dir] . $filepath  ) ) );
         return $dm->scheme . "://" . $root->[host_vpn] if ($dm->vpn && $root->[host_vpn]);
         return $dm->scheme . "://" . $root->[host] if ($root->[host]);
-        return $dm->scheme . "://" . $urlredirect if ($urlredirect);
+        return $dm->scheme . "://" . $self->urlredirect if ($self->urlredirect);
         return undef;
     }
     return undef;
