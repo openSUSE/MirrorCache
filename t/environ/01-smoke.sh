@@ -139,6 +139,7 @@ $mc/curl -H "Accept: */*, application/metalink+xml, application/x-zsync" /downlo
     | grep -C 20 "URL: http://$($mc/print_address)/download/folder1/file9.1.dat"
 
 
+$mc/sql "update stat set dt = dt - interval '1 hour'"
 $mc/backstage/job -e report -a '["once"]'
 $mc/backstage/shoot
 

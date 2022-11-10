@@ -115,9 +115,10 @@ left join agg_download d       on stat.mirror_id = d.mirror_id
                               and d.os_version = coalesce(regexp_replace(stat.path, os.mask, os.version), '')
                               and d.arch_id = coalesce(arch.id, 0)
                               and d.dt = date_trunc('hour', stat.dt)
-                              and d.dt > now() - interval '5 hour'
+                              and d.dt > now() - interval '7 hour'
                               and d.period = 'hour'
-where stat.dt > now() - interval '4 hour'
+where stat.dt > now() - interval '6 hour'
+    and stat.dt < date_trunc('hour', now())
     and stat.mirror_id > -2
     and d.period IS NULL
 group by cperiod, cdt, cpid, ccountry, cmirror_id, cft_id, cos_id, cos_version, carch_id, cmeta_id
@@ -125,9 +126,10 @@ group by cperiod, cdt, cpid, ccountry, cmirror_id, cft_id, cos_id, cos_version, 
 
     unless ($schema->pg) {
         $sql =~ s/::stat_period_t//g;
-        $sql =~ s/interval '4 hour'/interval 4 hour/g;
-        $sql =~ s/interval '5 hour'/interval 5 hour/g;
+        $sql =~ s/interval '6 hour'/interval 6 hour/g;
+        $sql =~ s/interval '7 hour'/interval 7 hour/g;
         $sql =~ s/date_trunc\('hour', stat.dt\)/(date(stat.dt) + interval hour(stat.dt) hour)/g;
+        $sql =~ s/date_trunc\('hour', now\(\)\)/(date(now()) + interval hour(now()) hour)/g;
         $sql =~ s/ ~ / RLIKE /g;
     }
 
