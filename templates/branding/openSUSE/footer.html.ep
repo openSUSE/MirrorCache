@@ -14,7 +14,7 @@
       </div>
       % if (my $msg = eval '$custom_footer_message') {
       <div class="list-inline">
-        <%= $msg %>
+        <%== $msg %>
       </div>
       % }
     </div>

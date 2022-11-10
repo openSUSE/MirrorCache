@@ -15,7 +15,7 @@
     </div>
       % if (my $msg = eval '$custom_footer_message') {
     <div id="footer-custom-message" class="list-inline">
-      <i class="fas fa-dollar-sign"></i> <%= $msg %>
+      <i class="fas fa-dollar-sign"></i> <%== $msg %>
     </div>
   </div>
       % }
