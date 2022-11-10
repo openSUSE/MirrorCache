@@ -136,9 +136,7 @@ sub startup {
     $self->plugin('Project');
     if ($root) {
         # check prefix
-        if ('rsync://' eq substr($root, 0, 8)) {
-            $self->plugin('RootRsync', { url => $root });
-        } elsif (-1 == rindex $root, 'http', 0) {
+        if (-1 == rindex $root, 'http', 0) {
             $self->plugin('RootLocal');
         } else {
             $self->plugin('RootRemote');
@@ -150,7 +148,7 @@ sub _setup_webui {
     my $self = shift;
     my $root = $self->mcconfig->root;
     die("MIRRORCACHE_ROOT is not set") unless $root;
-    if ((-1 == rindex($root, 'http', 0)) && (-1 == rindex($root, 'rsync://', 0)) ) {
+    if (-1 == rindex($root, 'http', 0)) {
         my $i = index($root, ':');
         my $dir = ($i > -1 ? substr($root, 0, $i) : $root);
         die("MIRRORCACHE_ROOT is not a directory ($root)") unless -d $dir;
