@@ -368,3 +368,5 @@ create table agg_download (
     bytes      bigint,
     primary key(period, dt, project_id, country, mirror_id, file_type, os_id, os_version, arch_id, meta_id)
 );
+-- 28
+-- do nothing
