@@ -21,7 +21,7 @@ use warnings;
 use base 'DBIx::Class::ResultSet';
 
 sub find_with_hash {
-    my ($self, $folder_id, $name) = @_;
+    my ($self, $folder_id, $name, $xtra) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
@@ -70,14 +70,22 @@ END_SQL
 }
     return $dbh->selectall_hashref($sql, 'id', {}, $folder_id) unless $name;
 
-    $sql = $sql . " and file.name = ?";
-    my $prep = $dbh->prepare($sql);
-    $prep->execute($folder_id, $name);
+    my $prep;
+
+    if ($xtra) {
+        $sql = $sql . " and file.name like ? and (file.name = ? or file.name = ?) order by file.name desc";
+        $prep = $dbh->prepare($sql);
+        $prep->execute($folder_id, "$name%", $name, $name . $xtra);
+    } else {
+        $sql = $sql . " and file.name = ?";
+        $prep = $dbh->prepare($sql);
+        $prep->execute($folder_id, $name);
+    }
     return $dbh->selectrow_hashref($prep);
 }
 
 sub find_with_hash_and_zhash {
-    my ($self, $folder_id, $name) = @_;
+    my ($self, $folder_id, $name, $xtra) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
@@ -128,14 +136,22 @@ END_SQL
 }
     return $dbh->selectall_hashref($sql, 'id', {}, $folder_id) unless $name;
 
-    $sql = $sql . " and file.name = ?";
-    my $prep = $dbh->prepare($sql);
-    $prep->execute($folder_id, $name);
+    my $prep;
+
+    if ($xtra) {
+        $sql = $sql . " and file.name like ? and (file.name = ? or file.name = ?) order by file.name desc";
+        $prep = $dbh->prepare($sql);
+        $prep->execute($folder_id, "$name%", $name, $name . $xtra);
+    } else {
+        $sql = $sql . " and file.name = ?";
+        $prep = $dbh->prepare($sql);
+        $prep->execute($folder_id, $name);
+    }
     return $dbh->selectrow_hashref($prep);
 }
 
 sub find_with_zhash {
-    my ($self, $folder_id, $name) = @_;
+    my ($self, $folder_id, $name, $xtra) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
@@ -183,9 +199,17 @@ END_SQL
 }
     return $dbh->selectall_hashref($sql, 'id', {}, $folder_id) unless $name;
 
-    $sql = $sql . " and file.name = ?";
-    my $prep = $dbh->prepare($sql);
-    $prep->execute($folder_id, $name);
+    my $prep;
+
+    if ($xtra) {
+        $sql = $sql . " and file.name like ? and (file.name = ? or file.name = ?) order by file.name desc";
+        $prep = $dbh->prepare($sql);
+        $prep->execute($folder_id, "$name%", $name, $name . $xtra);
+    } else {
+        $sql = $sql . " and file.name = ?";
+        $prep = $dbh->prepare($sql);
+        $prep->execute($folder_id, $name);
+    }
     return $dbh->selectrow_hashref($prep);
 }
 

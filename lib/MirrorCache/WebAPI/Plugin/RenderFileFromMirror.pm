@@ -41,6 +41,8 @@ sub register {
         my $realdirname = $root->realpath($f->dirname);
         $realdirname = $dirname unless $realdirname;
         my $basename = $f->basename;
+        $basename = $file->{name} if $file;
+
         my $dirname_basename = $dirname->basename;
         my $subtree = $dm->root_subtree;
         return $root->render_file($dm, $filepath, 1) if $dm->must_render_from_root; # && $root->is_reachable;
@@ -70,12 +72,16 @@ sub register {
         }
         if ($folder) {
             my $fldid = ($realfolder_id? $realfolder_id : $folder_id);
+
+            my $x = '';
+            $x = '.zsync' if  ($dm->zsync && !$dm->accept_zsync);
+
             if (!$dm->zsync) {
-                $file = $schema->resultset('File')->find_with_hash($fldid, $basename) unless $file;
+                $file = $schema->resultset('File')->find_with_hash($fldid, $basename, $x) unless $file;
             } elsif (!$dm->meta4 && !$dm->metalink) {
-                $file = $schema->resultset('File')->find_with_zhash($fldid, $basename);
+                $file = $schema->resultset('File')->find_with_zhash($fldid, $basename, $x);
             } else {
-                $file = $schema->resultset('File')->find_with_hash_and_zhash($fldid, $basename);
+                $file = $schema->resultset('File')->find_with_hash_and_zhash($fldid, $basename, $x);
             }
         }
         if($file) {
@@ -85,8 +91,8 @@ sub register {
         my $country = $dm->country;
         my $region  = $dm->region;
         if (!$folder || !$file) {
-            return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file && !$dm->accept); # file is unknown - cannot generate metalink
-            return $root->render_file($dm, $filepath . '.meta4')     if ($dm->meta4    && !$file && !$dm->accept); # file is unknown - cannot generate meta4
+            return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file && !$dm->accept_metalink); # file is unknown - cannot generate metalink
+            return $root->render_file($dm, $filepath . '.meta4')     if ($dm->meta4    && !$file && !$dm->accept_neta4); # file is unknown - cannot generate meta4
             return $root->render_file($dm, $filepath)
               if !$dm->extra || $dm->accept_all; # TODO we still can check file on mirrors even if it is missing in DB
         }

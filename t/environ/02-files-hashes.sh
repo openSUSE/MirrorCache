@@ -15,6 +15,8 @@ $mc/status
 for x in $mc; do
     mkdir -p $x/dt/folder1
     echo 1111111111 > $x/dt/folder1/file1.1.dat
+    echo 1111111111 > $x/dt/folder1/file2.1.dat
+    echo 2345 > $x/dt/folder1/file2.1.dat.zsync
 done
 
 # force scan
@@ -69,13 +71,17 @@ $mc/curl /download/folder1/file1.1.dat.torrent
 $mc/curl /download/folder1/file1.1.dat.metalink | xmllint --noout --format -
 $mc/curl /download/folder1/file1.1.dat.meta4    | xmllint --noout --format -
 
-# prefers zsync when available
+echo prefers zsync when available
 $mc/curl -H "Accept: application/x-zsync" /download/folder1/file1.1.dat  | head -n -1 | grep -C10 "Hash-Lengths: 1,2,3" | grep "URL: http://127.0.0.1:3110/download/folder1/file1.1.dat" | grep -P 'file1.1.dat$'
 $mc/curl -H "Accept: application/metalink+xml, application/x-zsync" /download/folder1/file1.1.dat  | head -n -1 | grep -C10 "Hash-Lengths: 1,2,3" | grep "URL: http://127.0.0.1:3110/download/folder1/file1.1.dat" | grep -P 'file1.1.dat$'
 $mc/curl -H "Accept: */*, application/metalink+xml, application/x-zsync" /download/folder1/file1.1.dat  | head -n -1 | grep -C10 "Hash-Lengths: 1,2,3" | grep "URL: http://127.0.0.1:3110/download/folder1/file1.1.dat" | grep -P 'file1.1.dat$'
 
-# now delete zsync hashes from DB and it should return metalink
+echo now delete zsync hashes from DB and it should return metalink
 $mc/sql 'update hash set zlengths = NULL where file_id = 1'
 $mc/curl -H "Accept: */*, application/metalink+xml, application/x-zsync" /download/folder1/file1.1.dat  | grep '<hash type="md5">b2c5860a03d2c4f1f049a3b2409b39a8</hash>'
+
+$mc/curl /download/folder1/file2.1.dat.zsync | grep 2345
+$mc/curl -H  "Accept: application/metalink+xml" /download/folder1/file2.1.dat.zsync | grep '<metalink'
+$mc/curl -H "Accept: application/x-zsync" /download/folder1/file2.1.dat | grep -C10 "Hash-Lengths: 1,2,3"
 
 echo success
