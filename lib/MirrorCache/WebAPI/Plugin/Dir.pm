@@ -297,10 +297,20 @@ sub _render_from_db {
                 my $another_folder = $rsFolder->find({path => $dm->root_subtree . $f->dirname});
                 return undef unless $another_folder; # nothing found, proceed to _guess_what_to_render
             }
+            my $xtra = '';
+            $xtra = '.zsync' if $dm->zsync && !$dm->accept_zsync;
             my $file;
-            $file = $schema->resultset('File')->find_with_hash($parent_folder->id, $f->basename) if $parent_folder && !$trailing_slash;
+            $file = $schema->resultset('File')->find_with_hash($parent_folder->id, $f->basename, $xtra) if $parent_folder && !$trailing_slash;
+
             # folders are stored with trailing slash in file table, so they will not be selected here
             if ($file) {
+                my $filename = $file->{name} if $file;
+                if ($dm->zsync && !$dm->accept_zsync && $file && $filename && '.zsync' eq substr $filename, -length('.zsync')) {
+                    $dm->zsync(0);
+                    $dm->accept_all(1);
+                    $dm->_path($dm->path . '.zsync');
+                    $path = $path . '.zsync';
+                }
                 if ($file->{target}) {
                     # redirect to the symlink
                     $dm->redirect($dm->route . $f->dirname . '/' . $file->{target});

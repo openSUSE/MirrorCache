@@ -26,7 +26,7 @@ has c => undef, weak => 1;
 
 has [ '_route', '_route_len' ]; # this is '/download'
 has [ 'route', 'route_len' ]; # this may be '/download' or empty if one of TOP_FOLDERS present
-has [ 'metalink', 'meta4', 'zsync', 'accept_all', 'accept' ];
+has [ 'metalink', 'meta4', 'zsync', 'accept_all', 'accept_metalink', 'accept_meta4', 'accept_zsync' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng', '_vpn' ];
 has [ '_avoid_countries' ];
 has [ '_pedantic' ];
@@ -77,9 +77,11 @@ sub reset($self, $c, $top_folder = undef) {
     }
     $self->c($c);
     $self->_ip(undef);
-    $self->metalink(undef);
     $self->accept_all(undef);
-    $self->accept(undef);
+    $self->accept_meta4(undef);
+    $self->accept_metalink(undef);
+    $self->accept_zsync(undef);
+    $self->metalink(undef);
     $self->meta4(undef);
     $self->zsync(undef);
     $self->mirrorlist(undef);
@@ -272,6 +274,10 @@ sub redirect($self, $url) {
     return $self->c->redirect_to($url . $xtra . $self->query1);
 }
 
+sub accept($self) {
+    return $self->accept_metalink || $self->accept_meta4 || $self->accept_zsync;
+}
+
 sub _init_headers($self) {
     $self->_agent('');
     my $headers = $self->c->req->headers;
@@ -280,13 +286,16 @@ sub _init_headers($self) {
     return unless $headers->accept;
 
     if ($headers->accept ne '*/*') {
-        $self->accept(1);
         $self->accept_all(1) if $headers->accept =~ m/\*\/\*/ ;
     }
 
     $self->metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/;
     $self->meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/;
     $self->zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/;
+
+    $self->accept_metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/;
+    $self->accept_meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/;
+    $self->accept_zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/;
 }
 
 sub _init_req($self) {
@@ -460,7 +469,7 @@ sub _init_path($self) {
     $self->agent; # parse headers
     $self->must_render_from_root(1)
         if ( $self->accept_all || !$self->extra )
-        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/(media|products)|\/content|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz)|gpg-pubkey.*\.asc|CHECKSUMS)$/;
+        && $path =~ m/.*\/(repodata\/repomd.xml[^\/]*|media\.1\/(media|products)|content|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz)|gpg-pubkey.*\.asc|CHECKSUMS)$/;
 
     my ($ext) = $path =~ /([^.]+)$/;
     my $mime = '';
