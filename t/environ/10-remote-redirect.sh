@@ -135,7 +135,7 @@ test $rc -gt 0
 
 
 # check ap8 is listed lower in the mirrorlist and has http
-$ap9/curl_https /folder1/file1.1.dat.mirrorlist | grep -A1 https://$($ap7/print_address) | grep http://$($ap8/print_address)
+$ap9/curl_https /folder1/file1.1.dat.mirrorlist | grep -A10 https://$($ap7/print_address) | grep http://$($ap8/print_address)
 
 $ap9/curl /folder1/file1.1.dat.mirrorlist | grep http
 rc=0

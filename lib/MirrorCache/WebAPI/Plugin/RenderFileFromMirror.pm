@@ -183,6 +183,8 @@ sub register {
                       {
                         url      => $m->{url},
                         location => uc($m->{country}),
+                        lat      => $m->{lat},
+                        lng      => $m->{lng},
                       };
                 }
             }
@@ -194,6 +196,8 @@ sub register {
                       {
                         url      => $m->{url},
                         location => uc($m->{country}),
+                        lat      => $m->{lat},
+                        lng      => $m->{lng},
                       };
                 }
                 @mirrordata_region = sort { $a->{location} cmp $b->{location} || $a->{url} cmp $b->{url} } @mirrordata_region;
@@ -205,6 +209,8 @@ sub register {
                   {
                     url      => $m->{url},
                     location => uc($m->{country}),
+                    lat      => $m->{lat},
+                    lng      => $m->{lng},
                   };
             }
             @mirrordata_rest = sort { $a->{location} cmp $b->{location} || $a->{url} cmp $b->{url} } @mirrordata_rest;
@@ -252,10 +258,12 @@ sub register {
             $c->stash('nonavbar' => 1) if ($ENV{MIRRORCACHE_BRANDING});
             $c->stash('mirrorlist' => 1);
             my ($lat, $lng) = $dm->coord;
+            my $preferred_url = $mirror->{url} if $mirror && (0 == @regions);
             $c->render(
                 'mirrorlist',
                 cur_path          => $filepath,
                 file              => $filedata,
+                preferred_url     => $preferred_url,
                 mirrordata        => \@mirrordata,
                 mirrordata_region => \@mirrordata_region,
                 mirrordata_rest   => \@mirrordata_rest,

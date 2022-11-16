@@ -59,7 +59,7 @@ $mc/backstage/shoot
 $mcsub/curl -I /tool/v1/file1.1.dat?COUNTRY=us | grep $($ap7/print_address)/folder1/file1.1.dat
 $mcsub/curl -I /tool/v1/file1.1.dat?COUNTRY=de | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
 
-$mcsub/curl /tool/v1/file1.1.dat.mirrorlist | grep -C 10 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
+$mcsub/curl /tool/v1/file1.1.dat.mirrorlist | grep -C 20 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
 $mcsub/curl /tool/v1/file1.1.dat.metalink   | grep -C 10 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
 
 $mcsub/curl -I /tool/v2/file1.1.dat.metalink   | grep 425

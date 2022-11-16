@@ -65,4 +65,4 @@ $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
-$mc/curl --interface 127.0.0.15 /download/folder2/file1.1.dat.mirrorlist | grep -C10 $munich_host | grep -C10 $berlin_host | grep -C10 $altona_host | grep http
+$mc/curl --interface 127.0.0.15 /download/folder2/file1.1.dat.mirrorlist | grep -C20 $munich_host | grep -C20 $berlin_host | grep -C20 $altona_host | grep http
