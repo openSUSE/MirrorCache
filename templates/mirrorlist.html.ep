@@ -5,6 +5,24 @@
 % my $bc_last = pop @breadcrumbs;
 % my $bc_url = '/';
 
+% content_for 'head' => begin
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.2/dist/leaflet.css" integrity="sha256-sA+zWATbFveLLNqWO2gtiw3HL/lh1giY/Inf1BJ0z14=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.2/dist/leaflet.js" integrity="sha256-o9N1jGDZrf5tS+Ft4gbIK7mYMipq9lqpVJ91xHSyKhg=" crossorigin=""></script>
+<style type='text/css'>
+img.huechange  { filter: hue-rotate(120deg) }
+img.huechange1 { filter: hue-rotate(90deg) }
+</style>
+
+
+<script>
+var preferred_url = "<%= $preferred_url %>";
+var lat = <%= $lat %>;
+var lng = <%= $lng %>;
+</script>
+
+% end
+
 % if ($regions && @$regions) {
 % content_for 'ready_function' => begin
 %   my $i = 0;
@@ -56,6 +74,9 @@
       % if ($file->{url}) {
       <li>Origin: <a href="<%= $file->{url} %>"><%= $file->{url} %></a></li>
       % }
+      % if ($preferred_url) {
+      <li>Preferred mirror: <a href="<%= $preferred_url %>"><%= URI->new( $preferred_url )->host %></a></li>
+      % }
     </ul>
   </div>
 
@@ -63,15 +84,22 @@
   % if ($ip && $lat && $lng) {
   <p>List of best mirrors for IP address <%= $ip %>, located at <%=$lat%>,<%=$lng%> in (<%=$country%>)</p>
   % }
+<h5><a onclick="toggleMap(<%=$lat%>,<%=$lng%>, 0);event.preventDefault();">Mirrors which handle this country: </a><i id="h51" class="fa-solid fa-map-pin" onclick="toggleMap(<%=$lat%>,<%=$lng%>,0);"><%= @$mirrordata %></i></h5>
   % if ($mirrordata && @$mirrordata) {
-  <h5>Mirrors which handle this country: <%= @$mirrordata %></h5>
     <ul>
     % for my $mirror (@$mirrordata) {
       <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
+      <script>
+      mirrors_country.push({
+        url:"<%= $mirror->{url} %>",
+        country:"<%= $mirror->{country} %>",
+        lat:"<%= $mirror->{lat} %>",
+        lng:"<%= $mirror->{lng} %>",
+      });
+      </script>
     % }
     </ul>
   % } else {
-  <h5>Mirrors which handle this country: </h5>
   %   if ($regions && @$regions && $regions->[0]) {
     <ul id="ul1000"><p id="ul1000tohide">Loading...</p></ul>
   %   } else {
@@ -79,15 +107,25 @@
   %   }
   % }
 
+<div id="map1" style="width: 600px; height: 400px; display: none"></div>
+
+
+<h5><a onclick="toggleMap(<%=$lat%>,<%=$lng%>, 1);event.preventDefault();">Mirrors in other countries, but same continent: </a><i id="h52" class="fa-solid fa-map-pin" onclick="toggleMap(<%=$lat%>,<%=$lng%>, 1);"><%= @$mirrordata_region %></i></h5>
   % if ($mirrordata_region && @$mirrordata_region) {
-  <h5>Mirrors in other countries, but same continent:</h5>
     <ul id="ul1001">
     % for my $mirror (@$mirrordata_region) {
       <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
+      <script>
+      mirrors_region.push({
+        url:"<%= $mirror->{url} %>",
+        country:"<%= $mirror->{country} %>",
+        lat:"<%= $mirror->{lat} %>",
+        lng:"<%= $mirror->{lng} %>",
+      });
+      </script>
     % }
     </ul>
   % } else {
-  <h5>Mirrors in other countries, but same continent:</h5>
   %   if ($regions && @$regions && $regions->[0]) {
     <ul id="ul1001"><p id="ul1001tohide">Loading...</p></ul>
   %   } else {
@@ -95,15 +133,23 @@
   %   }
   % }
 
+<div id="map2" style="width: 600px; height: 400px; display: none"></div>
+<h5><a onclick="toggleMap(<%=$lat%>,<%=$lng%>, 2 );event.preventDefault();">Mirrors in other parts of the world: </a><i id="h53" class="fa-solid fa-map-pin" onclick="toggleMap(<%=$lat%>,<%=$lng%>,2);"><%= @$mirrordata_rest %></i></h5>
   % if ($mirrordata_rest && @$mirrordata_rest) {
-  <h5>Mirrors in other parts of the world:</h5>
     <ul id="ul1002">
     % for my $mirror (@$mirrordata_rest) {
       <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
+      <script>
+      mirrors_rest.push({
+        url:"<%= $mirror->{url} %>",
+        country:"<%= $mirror->{country} %>",
+        lat:"<%= $mirror->{lat} %>",
+        lng:"<%= $mirror->{lng} %>",
+      });
+      </script>
     % }
     </ul>
   % } else {
-  <h5>Mirrors in other parts of the world:</h5>
   %   if ($regions && @$regions > 1) {
     <ul id="ul1002"><p id="ul1002tohide">Loading...</p></ul>
   %   } else {
@@ -111,4 +157,8 @@
   %   }
   % }
 
+<div id="map3" style="width: 600px; height: 400px; display: none"></div>
+
+<button onclick="toggleMap(<%=$lat%>,<%=$lng%>,3);">Toggle map</button>
+<div id="mapAll" style="width: 600px; height: 400px; display: none"></div>
 </div>

@@ -112,5 +112,5 @@ mc9/backstage/shoot
 
 curl -sL --interface $as_interface http://$hq_address/folder2/file1.1.dat.mirrorlist | grep -C10 $($ap1/print_address) | grep $($ap2/print_address)
 
-test 2 == $(curl -sL --interface $as_interface http://$hq_address/folder2/file1.1.dat.mirrorlist?COUNTRY=br | grep -A5 'Mirrors which handle this country' | grep '(BR)' | wc -l)
+test 2 == $(curl -sL --interface $as_interface http://$hq_address/folder2/file1.1.dat.mirrorlist?COUNTRY=br | grep -A20 'Mirrors which handle this country' | grep '(BR)' | wc -l)
 

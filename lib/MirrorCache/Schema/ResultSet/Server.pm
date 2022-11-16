@@ -98,7 +98,7 @@ select * from (
 select x.id as mirror_id, left(concat(case when support_scheme > 0 then '$capability' else '$capabilityx' end, '://', uri),$MIRRORCACHE_MAX_PATH) as url,
 dist,
 case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end rating_country,
-score, country, region, lng,
+score, country, region, lat, lng,
 support_scheme,
 rating_scheme,
 support_ipv,

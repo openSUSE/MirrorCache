@@ -51,18 +51,18 @@ $mc9/backstage/shoot
 $mc9/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
 $mc9/sql "insert into subsidiary(hostname,region) select '$eu_address','eu'"
 $mc9/start
-$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap1/print_address)','','t','jp','as'"
-$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap2/print_address)','','t','jp','as'"
+$mc9/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '$($ap1/print_address)','','t','jp','as',33,130"
+$mc9/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '$($ap2/print_address)','','t','jp','as',37,139"
 
 $mc6/gen_env MIRRORCACHE_REGION=na "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
 $mc6/start
-$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','t','us','na'"
-$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','ca','na'"
+$mc6/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '$($ap3/print_address)','','t','us','na',43,-116"
+$mc6/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '$($ap4/print_address)','','t','ca','na',43,-79"
 
 $mc7/gen_env MIRRORCACHE_REGION=eu "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'"
 $mc7/start
-$mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','de','eu'"
-$mc7/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','dk','eu'"
+$mc7/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '$($ap5/print_address)','','t','de','eu',43,8"
+$mc7/sql "insert into server(hostname,urldir,enabled,country,region,lat,lng) select '$($ap6/print_address)','','t','dk','eu',55,9"
 
 for i in 9 6 7; do
     mc$i/backstage/job -e folder_sync -a '["/folder1"]'
@@ -71,9 +71,9 @@ for i in 9 6 7; do
 done
 
 
-curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json"            | grep -F '{"l1":[{"location":"US","url":"http:\/\/127.0.0.1:1264\/folder1\/file1.1.dat"}],"l2":[{"location":"CA","url":"http:\/\/127.0.0.1:1274\/folder1\/file1.1.dat"}],"l3":[]}'
-curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json&COUNTRY=ca" | grep -F '{"l1":[{"location":"CA","url":"http:\/\/127.0.0.1:1274\/folder1\/file1.1.dat"}],"l2":[{"location":"US","url":"http:\/\/127.0.0.1:1264\/folder1\/file1.1.dat"}],"l3":[]}'
-curl -s "http://$eu_address/folder1/file1.1.dat?mirrorlist&json" | grep -F '{"l1":[],"l2":[],"l3":[{"location":"DE"'
+curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json"            | grep -F '{"l1":[{"lat":"43.000","lng":"-116.000","location":"US","url":"http:\/\/127.0.0.1:1264\/folder1\/file1.1.dat"}],"l2":[{"lat":"43.000","lng":"-79.000","location":"CA","url":"http:\/\/127.0.0.1:1274\/folder1\/file1.1.dat"}],"l3":[]}'
+curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json&COUNTRY=ca" | grep -F '{"l1":[{"lat":"43.000","lng":"-79.000","location":"CA","url":"http:\/\/127.0.0.1:1274\/folder1\/file1.1.dat"}],"l2":[{"lat":"43.000","lng":"-116.000","location":"US","url":"http:\/\/127.0.0.1:1264\/folder1\/file1.1.dat"}],"l3":[]}'
+curl -s "http://$eu_address/folder1/file1.1.dat?mirrorlist&json" | grep -F '{"l1":[],"l2":[],"l3":[{"lat":"43.000","lng":"8.000","location":"DE"'
 
 curl -s "http://$hq_address/rest/eu?file=/folder1/file1.1.dat" | grep -C50 $($ap5/print_address) | grep $($ap6/print_address)
 curl -s "http://$hq_address/rest/na?file=/folder1/file1.1.dat" | grep -C50 $($ap3/print_address) | grep $($ap4/print_address)
