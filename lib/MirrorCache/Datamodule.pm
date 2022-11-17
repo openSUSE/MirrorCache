@@ -85,6 +85,9 @@ sub reset($self, $c, $top_folder = undef) {
     $self->meta4(undef);
     $self->zsync(undef);
     $self->mirrorlist(undef);
+    $self->torrent(undef);
+    $self->magnet(undef);
+    $self->btih(undef);
 }
 
 sub ip_sha1($self) {
@@ -267,7 +270,7 @@ sub is_head($self) {
 
 sub redirect($self, $url) {
     my $xtra = '';
-    if ($self->_original_path =~ m/(\.metalink|\.meta4|\.mirrorlist|\.torrent|\.magnet|\.btih)$/) {
+    if ($self->_original_path =~ m/(\.metalink|\.meta4|\.zsync|\.mirrorlist|\.torrent|\.magnet|\.btih)$/) {
         $xtra = $1;
     }
 
@@ -285,10 +288,6 @@ sub _init_headers($self) {
     $self->_agent($headers->user_agent ? $headers->user_agent : '');
     return unless $headers->accept;
 
-    if ($headers->accept ne '*/*') {
-        $self->accept_all(1) if $headers->accept =~ m/\*\/\*/ ;
-    }
-
     $self->metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/;
     $self->meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/;
     $self->zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/;
@@ -296,6 +295,8 @@ sub _init_headers($self) {
     $self->accept_metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/;
     $self->accept_meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/;
     $self->accept_zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/;
+
+    $self->accept_all(1) if $headers->accept =~ m/\*\/\*/ && ($self->_original_path !~ m/(\.metalink|\.meta4|\.zsync|\.mirrorlist|\.torrent|\.magnet|\.btih)$/);
 }
 
 sub _init_req($self) {
