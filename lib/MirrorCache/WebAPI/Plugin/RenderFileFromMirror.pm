@@ -92,7 +92,7 @@ sub register {
         my $region  = $dm->region;
         if (!$folder || !$file) {
             return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file && !$dm->accept_metalink); # file is unknown - cannot generate metalink
-            return $root->render_file($dm, $filepath . '.meta4')     if ($dm->meta4    && !$file && !$dm->accept_neta4); # file is unknown - cannot generate meta4
+            return $root->render_file($dm, $filepath . '.meta4')     if ($dm->meta4    && !$file && !$dm->accept_meta4); # file is unknown - cannot generate meta4
             return $root->render_file($dm, $filepath)
               if !$dm->extra || $dm->accept_all; # TODO we still can check file on mirrors even if it is missing in DB
         }

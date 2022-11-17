@@ -95,6 +95,8 @@ test "$($mc/curl -s /version)" != ""
 $mc/curl /download/folder3/file1.1.dat.metalink   | grep 'retry later'
 $mc/curl /download/folder3/file1.1.dat.mirrorlist | grep 'retry later'
 
+$mc/curl -iH "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" /download/folder3/file1.1.dat.metalink | grep 'retry later'
+
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
@@ -113,8 +115,8 @@ $mc/curl /download/folder3/file1.1.dat.mirrorlist | grep 'http://127.0.0.1:1304/
 
 $mc/curl -A mybot-1.0 /download/folder3/file1.1.dat.mirrorlist | grep 'http://127.0.0.1:1304/folder3/file1.1.dat'
 
-$mc/curl /rest/stat | grep '"bot":1,"hit":12,"miss":3'
-$mc/curl /rest/mystat | grep '"bot":1,"hit":12,"miss":3'
+$mc/curl /rest/stat | grep '"bot":1,"hit":12,"miss":4'
+$mc/curl /rest/mystat | grep '"bot":1,"hit":12,"miss":4'
 
 $mc/sql "insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, head, mirrorlist, pid, execution_time) select ip_sha1, agent, path, country, dt - interval '1 hour', mirror_id, folder_id, file_id, secure, ipv4, metalink, head, mirrorlist, pid, execution_time from stat"
 $mc/sql "insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, head, mirrorlist, pid, execution_time) select ip_sha1, agent, path, country, dt - interval '1 day', mirror_id, folder_id, file_id, secure, ipv4, metalink, head, mirrorlist, pid, execution_time from stat"
@@ -124,7 +126,7 @@ $mc/backstage/job stat_agg_schedule
 $mc/backstage/shoot
 
 $mc/sql 'select * from stat_agg'
-$mc/curl /rest/stat | grep '"hour":{"bot":2,"hit":24,"miss":6,"prev_bot":2,"prev_hit":24,"prev_miss":6}'
+$mc/curl /rest/stat | grep '"hour":{"bot":2,"hit":24,"miss":8,"prev_bot":2,"prev_hit":24,"prev_miss":8}'
 
 $mc/curl /download/folder3/file1.1.dat.metalink | xmllint --noout --format -
 $mc/curl /download/folder3/file1.1.dat.meta4    | xmllint --noout --format -
@@ -139,16 +141,18 @@ $mc/curl -H "Accept: */*, application/metalink+xml, application/x-zsync" /downlo
     | grep -C 20 "URL: http://$($mc/print_address)/download/folder1/file9.1.dat"
 
 
+$mc/curl -iH "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" /download/folder1/file9.1.dat.metalink | grep '200 OK'
+
 $mc/sql "update stat set dt = dt - interval '1 hour'"
 $mc/backstage/job -e report -a '["once"]'
 $mc/backstage/shoot
 
-$mc/curl /rest/repdownload | grep '"known_files_no_mirrors":"6","known_files_redirected":"26","known_files_requested":"26"' | grep '"total_requests":"32"'
+$mc/curl /rest/repdownload | grep '"known_files_no_mirrors":"8","known_files_redirected":"26","known_files_requested":"26"' | grep '"total_requests":"34"'
 
 $mc/sql "update agg_download set dt = dt - interval '1 day' where period = 'hour'"
 $mc/backstage/job -e report -a '["once"]'
 $mc/backstage/shoot
 
-$mc/curl /rest/repdownload?period=day | grep '"known_files_no_mirrors":"12","known_files_redirected":"56","known_files_requested":"56"' | grep '"total_requests":"68"'
+$mc/curl /rest/repdownload?period=day | grep '"known_files_no_mirrors":"16","known_files_redirected":"57","known_files_requested":"57"' | grep '"total_requests":"73"'
 
 echo success
