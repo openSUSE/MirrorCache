@@ -224,6 +224,8 @@ sub _setup_webui {
     my $admin_auth = $admin->under('/')->to('session#ensure_admin')->name('ensure_admin');
     my $admin_r = $admin_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Admin');
 
+    $self->plugin('Status' => { route => $admin->under('/status') }) if $self->mcconfig->plugin_status;
+
     $admin_r->delete('/folder/<id:num>')->to('folder#delete_cascade');
     $admin_r->delete('/folder_diff/<id:num>')->to('folder#delete_diff');
 

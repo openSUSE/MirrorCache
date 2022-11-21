@@ -34,6 +34,8 @@ has dsn_replica  => $ENV{MIRRORCACHE_DSN_REPLICA};
 has redirect     => $ENV{MIRRORCACHE_REDIRECT};
 has redirect_vpn => $ENV{MIRRORCACHE_REDIRECT_VPN};
 
+has plugin_status => $ENV{MIRRORCACHE_PLUGIN_STATUS};
+
 has db_provider           => undef;
 has custom_footer_message => $ENV{MIRRORCACHE_CUSTOM_FOOTER_MESSAGE};
 
@@ -59,6 +61,9 @@ sub init($self, $cfgfile) {
         }
         if (my $v = $cfg->val('db', 'dsn')) {
             $self->dsn($v);
+        }
+        if (my $v = $cfg->val('plugin', 'status')) {
+            $self->plugin_status($v);
         }
     }
 
