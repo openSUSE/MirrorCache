@@ -67,9 +67,19 @@ test 2 == $($mc/db/sql "select count(*) from server_stability where capability =
 $mc/sql "update audit_event set dt = dt - interval '50 day'"
 audit_events=$($mc/sql "select count(*) from audit_event")
 
+
+$mc/sql_test 2 == 'select count(*) from stat'
+
+
+$mc/sql "insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, head, mirrorlist, pid, execution_time) select ip_sha1, agent, path, country, dt - interval '10 day', mirror_id, folder_id, file_id, secure, ipv4, metalink, head, mirrorlist, pid, execution_time from stat"
+$mc/sql_test 4 == 'select count(*) from stat'
+
 # run cleanup job
 $mc/backstage/job cleanup
 $mc/backstage/shoot
+
+echo test old stat entries are deleted
+$mc/sql_test 2 == 'select count(*) from stat'
 
 # test for reduced number of rows
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
@@ -77,4 +87,5 @@ test 3 == $($mc/db/sql "select count(*) from folder_diff_file")
 # server_id had too old checks and they were cleaned in the cleanup job
 test 2 == $($mc/db/sql "select count(*) from server_capability_check")
 test $audit_events -gt $($mc/db/sql "select count(*) from audit_event")
+
 echo success

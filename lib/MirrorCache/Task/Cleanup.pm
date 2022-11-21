@@ -22,7 +22,8 @@ sub register {
     $app->minion->add_task(cleanup => sub { _run($app, @_) });
 }
 
-my $DELAY        = int($ENV{MIRRORCACHE_SCHEDULE_CLEANUP_RETRY_INTERVAL} // 2 * 60);
+my $DELAY          = int($ENV{MIRRORCACHE_SCHEDULE_CLEANUP_RETRY_INTERVAL} // 2 * 60);
+my $STAT_KEEP_DAYS = int($ENV{MIRRORCACHE_STAT_KEEP_DAYS} // 8) // 8;
 
 sub _run {
     my ($app, $job) = @_;
@@ -92,6 +93,25 @@ END_SQL
         ($fail_count, $last_warning) = $schema->resultset('AuditEvent')->cleanup_audit_events($app);
         $fail_count ? 0 : 1;
     } or $job->note(last_warning => $last_warning, delete_fail_count => $fail_count, at => datetime_now());
+
+    # delete rows from stat
+    my $sqlstat;
+    if ($schema->pg) {
+$sqlservercap = <<END_SQL;
+delete from stat
+where ctid in (
+   select ctid from stat
+   where dt < (current_timestamp - interval '$STAT_KEEP_DAYS day')
+   LIMIT 100000
+)
+END_SQL
+    } else {
+        $sqlservercap = "delete from stat where dt < date_sub(current_timestamp, interval $STAT_KEEP_DAYS day) LIMIT 100000";
+    }
+    eval {
+        $schema->storage->dbh->prepare($sqlservercap)->execute();
+        1;
+    } or $job->note(last_warning => $@, at => datetime_now());
 
 
     return $job->retry({delay => $DELAY});
