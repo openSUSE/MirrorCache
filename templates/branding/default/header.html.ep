@@ -10,6 +10,9 @@
          <li class='nav-item' id="download_root">
             %= link_to 'Downloads' => url_for('/download/') => class => 'nav-link'
          </li>
+         <li class='nav-item' id="download_browse">
+            %= link_to 'Browse'    => url_for('/browse/') => class => 'nav-link'
+         </li>
          <li class='nav-item' id="server">
             %= link_to 'Mirrors' => url_for('server') => class => 'nav-link'
          </li>
