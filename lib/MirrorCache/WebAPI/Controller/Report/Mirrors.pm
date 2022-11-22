@@ -15,7 +15,7 @@
 
 package MirrorCache::WebAPI::Controller::Report::Mirrors;
 use Mojo::Base 'Mojolicious::Controller';
-use Mojo::JSON qw(decode_json encode_json);
+use Mojo::JSON qw(decode_json);
 
 sub index {
     my ($self) = @_;
