@@ -149,6 +149,7 @@ sub _render_dir {
         $dm->folder_id($folder_id);
         $dm->file_id(-1);
     }
+    return $c->render( 'browse', cur_path => $dir, folder_id => $folder_id ) if $dm->route eq '/browse';
 
     return _render_dir_local($dm, $folder_id, $dir) unless $root->is_remote; # just render files if we have them locally
 
@@ -431,6 +432,7 @@ sub _render_top_folders {
         };
     }
     my @items = sort _by_filename @files;
+    return $c->render( json => { data => \@items } ) if $dm->jsontable;
     return $c->render( json => \@items) if $json;
     return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => undef );
 }
@@ -440,6 +442,9 @@ sub _render_dir_from_db {
     my $id  = shift;
     my $dir = shift;
     my $c   = $dm->c;
+
+    return $c->render( 'browse', cur_path => $dir, folder_id => $id ) if $dm->route eq '/browse';
+
     my @files;
     my $childrenfiles = $c->schema->resultset('File')->find_with_hash($id);
     my $json = $dm->json;
@@ -474,6 +479,7 @@ sub _render_dir_from_db {
         };
     }
     my @items = sort _by_filename @files;
+    return $c->render( json => { data => \@items } ) if $dm->jsontable;
     return $c->render( json => \@items) if $json;
     return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => $id );
 }
@@ -483,6 +489,8 @@ sub _render_dir_local {
     my $id  = shift;
     my $dir = shift;
     my $c   = $dm->c;
+    return $c->render( 'browse', cur_path => $dir, folder_id => $id ) if $dm->route eq '/browse';
+
     my @files;
 
     my $realpath = $root->realpath($dir);
@@ -522,6 +530,7 @@ sub _render_dir_local {
         };
     }
     my @items = sort _by_filename @files;
+    return $c->render( json => { data => \@items } ) if $dm->jsontable;
     return $c->render( json => \@items) if $json;
     return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => $id );
 }

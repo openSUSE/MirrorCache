@@ -1,0 +1,52 @@
+% layout 'bootstrap';
+% title $cur_path;
+% my @breadcrumbs = split '/', 'browse' . $cur_path;
+% my $bc_last = pop @breadcrumbs;
+% my $bc_url = '/';
+
+%= include 'layouts/info'
+
+% content_for 'ready_function' => begin
+    setupBrowseTable("<%= $cur_path %>");
+% end
+
+<div class="container-download">
+
+  <div id="breadcrumbs">
+    <ol class="breadcrumb break-long-content">
+      % foreach my $bc (@breadcrumbs) {
+      %   next unless (defined $bc and length $bc);
+      %   $bc_url .= $bc . '/';
+      <li class="breadcrumb-item"><a href="<%= $bc_url %>"><%== $bc %></a></li>
+      % }
+      % my $folder_id_safe = stash('folder_id');
+      % if ($folder_id_safe) {
+      <li class="breadcrumb-item active"><a href="<%= url_for("/app/folder/$folder_id") %>"><%== $bc_last %></a></li>
+      % } else {
+      <li class="breadcrumb-item active"><%== $bc_last %></a></li>
+      % }
+    </ol>
+  </div>
+
+<form id='ajaxform'>
+<div class="row">
+    <div class="col-sm-12">
+        %= include 'layouts/info'
+        </div>
+        <table id="data" class="browsetable table table-striped">
+            <thead>
+                <tr>
+                    <th class="col_value">Name</th>
+                    <th class="col_value">Last Modified</th>
+                    <th class="col_value">Size</th>
+                    <th class="col_value">Metadata</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <input type="hidden" id="browse_api_url" value="/download<%= $cur_path %>/?jsontable"/>
+    </div>
+</div>
+</form>
+</div>

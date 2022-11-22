@@ -114,6 +114,7 @@
 < https://cdn.datatables.net/1.10.16/js/dataTables.bootstrap4.js
 < http://timeago.yarp.com/jquery.timeago.js
 < javascripts/mirrorcache.js
+< javascripts/browse.js
 < javascripts/mirrorlist.js
 < javascripts/reporttable.js
 < javascripts/reportdownloadtable.js

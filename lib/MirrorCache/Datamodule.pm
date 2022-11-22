@@ -24,8 +24,8 @@ use MirrorCache::Utils 'region_for_country';
 
 has c => undef, weak => 1;
 
-has [ '_route', '_route_len' ]; # this is '/download'
-has [ 'route', 'route_len' ]; # this may be '/download' or empty if one of TOP_FOLDERS present
+has [ '_route', '_route_len' ]; # this is '/download' or '/browse'
+has [ 'route', 'route_len' ]; # this may be '/download' or '/browse' or empty if one of TOP_FOLDERS present
 has [ 'metalink', 'meta4', 'zsync', 'accept_all', 'accept_metalink', 'accept_meta4', 'accept_zsync' ];
 has [ '_ip', '_country', '_region', '_lat', '_lng', '_vpn' ];
 has [ '_avoid_countries' ];
@@ -38,7 +38,7 @@ has '_agent';
 has [ '_is_secure', '_is_ipv4', '_ipvstrict', '_is_head' ];
 has 'mirrorlist';
 has [ 'torrent', 'magnet', 'btih' ];
-has 'json';
+has [ 'json', 'jsontable' ];
 has [ 'folder_id', 'file_id', 'file_age', 'folder_sync_last', 'folder_scan_last' ]; # shortcut to requested folder and file, if known
 
 has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
@@ -224,8 +224,11 @@ sub mime($self) {
 }
 
 sub our_path($self, $path) {
-    return 1 if 0 eq rindex($path, $self->_route, 0);
-    return 0;
+    return 1     if 0 eq rindex($path, $self->_route, 0);
+    return 0 unless 0 eq rindex($path, '/browse/', 0);
+    $self->_route('/browse');
+    $self->_route_len(length('/browse'));
+    return 1;
 }
 
 sub agent($self) {
@@ -387,6 +390,8 @@ sub _init_path($self) {
         $self->magnet(1)     if defined $query->param('magnet');
         $self->btih(1)       if defined $query->param('btih');
         $self->json(1)       if defined $query->param('json') || defined $query->param('JSON');
+        $self->json(1)       if defined $query->param('jsontable');
+        $self->jsontable(1)  if defined $query->param('jsontable');
         $pedantic = $query->param('PEDANTIC');
     } else {
         $self->_query('');
