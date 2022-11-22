@@ -72,14 +72,40 @@ sub list {
             $sql_from  = $sql_from  . " left join popular_arch arch on arch_id = arch.id";
             next;
         }
+        if ($p eq 'mirror') {
+            $tmp       = $tmp . ', s.hostname as mirror';
+            $key       = $key . ", s.hostname";
+            $sql_from  = $sql_from  . " left join server s on mirror_id = s.id";
+            next;
+        }
+        if ($p eq 'type') {
+            $tmp       = $tmp . ', ft.name as type';
+            $key       = $key . ", ft.name";
+            $sql_from  = $sql_from  . " left join popular_file_type ft on file_type = ft.id";
+            next;
+        }
         next if ($p =~ /^\s*$/);
-        return $self->render(status => 422, json => {error => "Unsupported value for group: $p (Valid value is comma separated combination of: 'project', 'country', 'os' or 'os_version', 'arch')"});
+        return $self->render(status => 422, json => {error => "Unsupported value for group: $p (Valid value is comma separated combination of: project, country, os or os_version, arch, mirror, type)"});
     }
     my $sql = $sql_select . $tmp . $sql_agg . ", concat_ws('', dt $key) as k" . $sql_from . $sql_where . $sql_group . $key . $sql_order . $key . $sql_limit;
+
+    my $schema = $self->schema;
+    unless ($schema->pg) {
+        $sql =~ s/date_trunc\('hour', dt\)/(date(dt) + interval hour(dt) hour)/g;
+        $sql =~ s/date_trunc\('day', dt\)/date(dt)/g;
+    }
     my @res;
     eval {
-        my $res = $self->schema->storage->dbh->selectall_hashref($sql, 'k', {});
-        $self->render( json => $res );
+        my $data = $schema->storage->dbh->selectall_hashref($sql, 'k', {});
+        my @keys = sort keys %$data;
+        my @data;
+        for my $k (@keys) {
+            push @data, $data->{$k};
+        }
+        my %res = (
+            data => \@data,
+        );
+        $self->render( json => \%res );
         1;
     };
     my $error = $@;

@@ -80,6 +80,18 @@
           %= link_to 'TW Mirrors'  => url_for('/report/mirrors/tumbleweed') => class => 'dropdown-item'
           </li><li>
           %= link_to 'Build Service Mirrors'  => url_for('/report/mirrors/repositories') => class => 'dropdown-item'
+          </li><li>
+          %= link_to 'Downloads/project' => url_for('/report/download?group=project') => class => 'dropdown-item'
+          </li><li>
+          %= link_to 'Downloads/mirror'  => url_for('/report/download?group=mirror')  => class => 'dropdown-item'
+          </li><li>
+          %= link_to 'Downloads/OS'      => url_for('/report/download?group=os')      => class => 'dropdown-item'
+          </li><li>
+          %= link_to 'Downloads/country' => url_for('/report/download?group=country') => class => 'dropdown-item'
+          </li><li>
+          %= link_to 'Downloads/arch'    => url_for('/report/download?group=arch')    => class => 'dropdown-item'
+          </li><li>
+          %= link_to 'Downloads/type'    => url_for('/report/download?group=type')    => class => 'dropdown-item'
           </li>
         </ul>
       </li>

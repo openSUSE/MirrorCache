@@ -213,6 +213,8 @@ sub _setup_webui {
     $report_r->get('/mirrors')->name('report_mirrors')->to('mirrors#index');
     $report_r->get('/mirrors/:project')->name('report_mirrors_project')->to('mirrors#index');
 
+    $report_r->get('/download')->name('report_download')->to('download#index');
+
     my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
 
     $app_r->get('/server')->name('server')->to('server#index');

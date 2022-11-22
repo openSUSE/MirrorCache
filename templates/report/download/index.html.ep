@@ -1,0 +1,32 @@
+% layout 'bootstrap';
+% title "Downloads per " . $column;
+
+% content_for 'ready_function' => begin
+    setupReportDownloadTable("<%= $column %>");
+% end
+
+<form id='ajaxform'>
+<div class="row">
+    <div class="col-sm-12">
+        <h2><%= title %></h2>
+
+        %= include 'layouts/info'
+        </div>
+        <table id="data" class="reporttable table table-striped">
+            <thead>
+                <tr>
+                    <th class="col_value">Date</th>
+                    <th class="col_value"><%= $column %></th>
+                    <th class="col_value">Total Requests</th>
+                    <th class="col_value">Known Files Requested</th>
+                    <th class="col_value">Known Files Redirected</th>
+                    <th class="col_value">Bytes Redirected</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <input type="hidden" id="reporttable_api_url" value="/rest/repdownload?period=day&group=<%= $column %>"/>
+    </div>
+</div>
+</form>
