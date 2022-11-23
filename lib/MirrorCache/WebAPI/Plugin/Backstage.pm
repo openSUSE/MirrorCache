@@ -72,7 +72,12 @@ sub register {
 
     my $conn = "Mojo::$db"->new;
     $conn->dsn( $schema->dsn );
-    $conn->password($ENV{MIRRORCACHE_DBPASS}) if $ENV{MIRRORCACHE_DBPASS};
+    if (my $user = $app->mcconfig->dbuser) {
+        $conn->username($user);
+    }
+    if (my $pass = $app->mcconfig->dbpass) {
+        $conn->password($pass);
+    }
 
     $app->plugin( Minion => { $db => $conn } );
     $self->register_tasks;

@@ -57,7 +57,7 @@ sub init($self, $cfgfile) {
             }
         }
         if (my $v = $cfg->val('db', 'provider')) {
-            $self->db_provider($v);
+            $db_provider = $v;
         }
         if (my $v = $cfg->val('db', 'dsn')) {
             $self->dsn($v);
