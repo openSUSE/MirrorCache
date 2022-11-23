@@ -81,7 +81,7 @@ sub startup {
     } or die("Database connect failed: $@");
 
     eval {
-        MirrorCache::Schema->singleton->migrate($mcconfig->dbpass);
+        MirrorCache::Schema->singleton->migrate($mcconfig->dbuser, $mcconfig->dbpass);
         1;
     } or die("Automatic migration failed: $@\nFix table structure and insert into mojo_migrations select 'mirrorcache', version");
 

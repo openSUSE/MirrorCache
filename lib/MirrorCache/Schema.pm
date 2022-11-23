@@ -92,15 +92,15 @@ sub has_table {
 }
 
 sub migrate {
-    my ($self, $pass) = @_;
+    my ($self, $user, $pass) = @_;
     my $conn = "Mojo::$PROVIDER"->new;
     $conn->dsn( $self->dsn );
-    $conn->password($pass) if $pass;
-
-    my $dbh     = $self->storage->dbh;
     my $dbschema = path(__FILE__)->dirname->child('resources', 'migrations', "$PROVIDER.sql");
     $conn->auto_migrate(1)->migrations->name('mirrorcache')->from_file($dbschema);
-    $conn->db; # this will do migration
+
+    $conn->username($user) if $user;
+    $conn->password($pass) if $pass;
+    my $db = $conn->db; # this will do migration
 }
 
 1;
