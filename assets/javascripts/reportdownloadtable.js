@@ -16,20 +16,22 @@ function setupReportDownloadTable(column) {
     columns.push({
         data: 'bytes_redirected',
         defaultContent: "",
-        render: function (data) {
-            if (Math.abs(data) < 1024) {
-                return data;
+        render: function (data, type, row, meta) {
+            if(type === 'display') {
+                if (Math.abs(data) < 1024) {
+                    return data;
+                }
+                const units = ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+                let u = -1;
+
+                do {
+                    data /= 1024;
+                    ++u;
+                } while (Math.round(Math.abs(data) * 10) >= 1024 && u < units.length - 1);
+
+                return data.toFixed(1) + ' ' + units[u];
             }
-            const units = ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-            let u = -1;
-
-            do {
-                data /= 1024;
-                ++u;
-            } while (Math.round(Math.abs(data) * 10) >= 1024*1024 && u < units.length - 1);
-
-
-            return data.toFixed(2) + ' ' + units[u];
+            return data;
         }
     });
 
@@ -43,6 +45,10 @@ function setupReportDownloadTable(column) {
             url: url,
         },
         columns: columns,
+        lengthMenu: [
+            [100, 1000, 10, -1],
+            [100, 1000, 10, 'All'],
+        ],
         search: {
             regex: true,
         },
