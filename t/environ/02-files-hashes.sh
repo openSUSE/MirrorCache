@@ -51,7 +51,7 @@ $mc/sql_test 96ff97ccb1 == "select encode(zhashes::bytea, 'hex') from hash where
   $mc/sql_test 96FF97CCB1 == "select hex(zhashes) from hash where file_id=1"
 
 $mc/curl /download/folder1/file1.1.dat.zsync -I
-$mc/curl /download/folder1/file1.1.dat.zsync -I | grep '200 OK'
+$mc/curl /download/folder1/file1.1.dat.zsync -I | grep -C20 '200 OK' | grep -i 'content-type' | grep 'application/x-zsync'
 $mc/curl /download/folder1/file1.1.dat.zsync | head -n -1 | grep -C10 "Hash-Lengths: 1,2,3" | grep "URL: http://127.0.0.1:3110/download/folder1/file1.1.dat" | grep -P 'file1.1.dat$'
 
 $mc/curl /download/folder1/file1.1.dat.metalink | grep -o "<size>$(stat --printf="%s" $mc/dt/folder1/file1.1.dat)</size>"
