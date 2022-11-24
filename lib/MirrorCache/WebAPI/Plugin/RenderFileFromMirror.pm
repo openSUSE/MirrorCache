@@ -30,8 +30,9 @@ use Mojo::IOLoop::Subprocess;
 
 sub register {
     my ($self, $app) = @_;
-    $app->types->type(metalink =>  'application/metalink+xml; charset=UTF-8');
+    $app->types->type(metalink => 'application/metalink+xml; charset=UTF-8');
     $app->types->type(meta4    => 'application/metalink4+xml; charset=UTF-8');
+    $app->types->type(zsync    => 'application/x-zsync');
 
     $app->helper( 'mirrorcache.render_file' => sub {
         my ($c, $filepath, $dm, $file)= @_;
@@ -744,6 +745,7 @@ EOT
     $header = $header . "SHA-1: $sha1\n\n";
 
     $c->res->headers->content_length(length($header) + length ($zhash));
+    $c->res->headers->content_type('application/x-zsync');
     $c->write($header => sub () {
             $c->write($zhash => sub () {$c->finish});
         });
