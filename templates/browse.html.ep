@@ -1,6 +1,6 @@
 % layout 'bootstrap';
 % title $cur_path;
-% my @breadcrumbs = split '/', 'browse' . $cur_path;
+% my @breadcrumbs = split '/', $cur_path;
 % my $bc_last = pop @breadcrumbs;
 % my $bc_url = '/';
 

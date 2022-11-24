@@ -6,7 +6,14 @@ function setupBrowseTable(path) {
         defaultContent: "",
         render: function (data, type, row, meta) {
             if(type === 'display'){
-                data = '<a href="/browse' + path + '/' + data + '">' + data + '</a>';
+                data = '<a href="' + path + '/' + data + '">' + data + '</a>';
+            }
+            if(type === 'sort'){
+                if(data.slice(-1) != '/') {
+                    data = '~' + data;
+                } else {
+                    data = '_' + data;
+                }
             }
             return data;
         }
@@ -38,8 +45,8 @@ function setupBrowseTable(path) {
                 do {
                     data /= 1024;
                     ++u;
-                } while (Math.round(Math.abs(data) * 10) >= 1024*1024 && u < units.length - 1);
-                return data.toFixed(2) + ' ' + units[u];
+                } while (Math.round(Math.abs(data) * 10) >= 1024 && u < units.length - 1);
+                return data.toFixed(1) + ' ' + units[u];
             }
             return data;
         }
@@ -48,11 +55,13 @@ function setupBrowseTable(path) {
         data: 'name',
         defaultContent: "",
         render: function (data, type, row, meta) {
-            if(row['name'].slice(-1) == '/') {
-                return '';
-            }
             if(type === 'display'){
-                data = '<a href="/browse' + path + '/' + data + '.mirrorlist">Details</a>';
+                if(data.slice(-1) == '/') {
+                    return '';
+                }
+                if(type === 'display'){
+                    data = '<a href=".' + path + '/' + data + '.mirrorlist">Details</a>';
+                }
             }
             return data;
         }

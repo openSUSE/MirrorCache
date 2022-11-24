@@ -84,7 +84,8 @@ var lng = <%= $lng %>;
   % if ($ip && $lat && $lng) {
   <p>List of best mirrors for IP address <%= $ip %>, located at <%=$lat%>,<%=$lng%> in (<%=$country%>)</p>
   % }
-<h5><a onclick="toggleMap(<%=$lat%>,<%=$lng%>, 0);event.preventDefault();">Mirrors which handle this country: </a><i id="h51" class="fa-solid fa-map-pin" onclick="toggleMap(<%=$lat%>,<%=$lng%>,0);"><%= @$mirrordata %></i></h5>
+<h5><a onclick="toggleMap(<%=$lat%>,<%=$lng%>, 0);event.preventDefault();">Mirrors which handle this country: </a><i id="h51" class="far fa-map" onclick="toggleMap(<%=$lat%>,<%=$lng%>,0);"><%= @$mirrordata %></i></h5>
+<div id="map1" style="width: 600px; height: 400px; display: none"></div>
   % if ($mirrordata && @$mirrordata) {
     <ul>
     % for my $mirror (@$mirrordata) {
@@ -107,10 +108,10 @@ var lng = <%= $lng %>;
   %   }
   % }
 
-<div id="map1" style="width: 600px; height: 400px; display: none"></div>
 
 
-<h5><a onclick="toggleMap(<%=$lat%>,<%=$lng%>, 1);event.preventDefault();">Mirrors in other countries, but same continent: </a><i id="h52" class="fa-solid fa-map-pin" onclick="toggleMap(<%=$lat%>,<%=$lng%>, 1);"><%= @$mirrordata_region %></i></h5>
+<h5><a onclick="toggleMap(<%=$lat%>,<%=$lng%>, 1);event.preventDefault();">Mirrors in other countries, but same continent: </a><i id="h52" class="far fa-map" onclick="toggleMap(<%=$lat%>,<%=$lng%>, 1);"><%= @$mirrordata_region %></i></h5>
+<div id="map2" style="width: 600px; height: 400px; display: none"></div>
   % if ($mirrordata_region && @$mirrordata_region) {
     <ul id="ul1001">
     % for my $mirror (@$mirrordata_region) {
@@ -133,8 +134,8 @@ var lng = <%= $lng %>;
   %   }
   % }
 
-<div id="map2" style="width: 600px; height: 400px; display: none"></div>
-<h5><a onclick="toggleMap(<%=$lat%>,<%=$lng%>, 2 );event.preventDefault();">Mirrors in other parts of the world: </a><i id="h53" class="fa-solid fa-map-pin" onclick="toggleMap(<%=$lat%>,<%=$lng%>,2);"><%= @$mirrordata_rest %></i></h5>
+<h5><a onclick="toggleMap(<%=$lat%>,<%=$lng%>, 2 );event.preventDefault();">Mirrors in other parts of the world: </a><i id="h53" class="far fa-map" onclick="toggleMap(<%=$lat%>,<%=$lng%>,2);"><%= @$mirrordata_rest %></i></h5>
+<div id="map3" style="width: 600px; height: 400px; display: none"></div>
   % if ($mirrordata_rest && @$mirrordata_rest) {
     <ul id="ul1002">
     % for my $mirror (@$mirrordata_rest) {
@@ -156,8 +157,6 @@ var lng = <%= $lng %>;
     <ul><li>None</li></ul>
   %   }
   % }
-
-<div id="map3" style="width: 600px; height: 400px; display: none"></div>
 
 <button onclick="toggleMap(<%=$lat%>,<%=$lng%>,3);">Toggle map</button>
 <div id="mapAll" style="width: 600px; height: 400px; display: none"></div>
