@@ -149,7 +149,7 @@ sub _render_dir {
         $dm->folder_id($folder_id);
         $dm->file_id(-1);
     }
-    return $c->render( 'browse', cur_path => $dir, folder_id => $folder_id ) if $dm->route eq '/browse';
+    return $c->render( 'browse', cur_path => $dir, folder_id => $folder_id ) if !$dm->json && $dm->browse;
 
     return _render_dir_local($dm, $folder_id, $dir) unless $root->is_remote; # just render files if we have them locally
 
@@ -442,12 +442,12 @@ sub _render_dir_from_db {
     my $id  = shift;
     my $dir = shift;
     my $c   = $dm->c;
+    my $json = $dm->json;
 
-    return $c->render( 'browse', cur_path => $dir, folder_id => $id ) if $dm->route eq '/browse';
+    return $c->render( 'browse', cur_path => $dir, folder_id => $id ) if !$json && $dm->browse;
 
     my @files;
     my $childrenfiles = $c->schema->resultset('File')->find_with_hash($id);
-    my $json = $dm->json;
 
     for my $file_id ( keys %$childrenfiles ) {
         my $child = $childrenfiles->{$file_id};
@@ -489,14 +489,14 @@ sub _render_dir_local {
     my $id  = shift;
     my $dir = shift;
     my $c   = $dm->c;
-    return $c->render( 'browse', cur_path => $dir, folder_id => $id ) if $dm->route eq '/browse';
+    my $json = $dm->json;
+    return $c->render( 'browse', cur_path => $dir, folder_id => $id ) if !$json && $dm->browse;
 
     my @files;
 
     my $realpath = $root->realpath($dir);
     $realpath =  $dm->root_subtree . $dir unless $realpath;
     my $files = $root->list_files($realpath);
-    my $json = $dm->json;
 
     for my $f ( @$files ) {
         my $basename = $f->basename;

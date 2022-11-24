@@ -79,3 +79,21 @@ ct=$($mc9/curl -I /download/folder1/file.json | grep Content-Type)
 [[ "$ct" =~ application/json ]]
 ct=$($mc9/curl -I /folder1/file.json | grep Content-Type)
 [[ "$ct" =~ application/json ]]
+
+$mc9/curl /download/folder1/ | grep file.json
+$mc9/curl /folder1/ | grep file.json
+
+echo /browse doesnt listen files - it will ajax them
+rc=0
+$mc9/curl /browse/folder1/ | grep file.json || rc=$?
+test $rc -gt 0
+
+echo for browsers default rendering of TOP_FOLDER should be /browse
+rc=0
+$mc9/curl -H 'User-Agent: Chromium/xyz' /folder1/ | grep file.json || rc=$?
+test $rc -gt 0
+
+echo unless /download is asked explicitly
+$mc9/curl -H 'User-Agent: Chromium/xyz' /download/folder1/ | grep file.json
+
+echo success

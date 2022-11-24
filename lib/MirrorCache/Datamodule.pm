@@ -24,6 +24,7 @@ use MirrorCache::Utils 'region_for_country';
 
 has c => undef, weak => 1;
 
+my @ROUTES = ( '/browse', '/download' );
 has [ '_route', '_route_len' ]; # this is '/download' or '/browse'
 has [ 'route', 'route_len' ]; # this may be '/download' or '/browse' or empty if one of TOP_FOLDERS present
 has [ 'metalink', 'meta4', 'zsync', 'accept_all', 'accept_metalink', 'accept_meta4', 'accept_zsync' ];
@@ -35,6 +36,7 @@ has [ '_query', '_query1' ];
 has '_original_path';
 has 'must_render_from_root';
 has '_agent';
+has '_browser';
 has [ '_is_secure', '_is_ipv4', '_ipvstrict', '_is_head' ];
 has 'mirrorlist';
 has [ 'torrent', 'magnet', 'btih' ];
@@ -61,8 +63,6 @@ sub elapsed($self) {
 }
 
 sub app($self, $app) {
-    $self->_route($app->mc->route);
-    $self->_route_len(length($self->_route));
     $self->_root_region(region_for_country($self->root_country) || '');
 }
 
@@ -224,11 +224,15 @@ sub mime($self) {
 }
 
 sub our_path($self, $path) {
-    return 1     if 0 eq rindex($path, $self->_route, 0);
-    return 0 unless 0 eq rindex($path, '/browse/', 0);
-    $self->_route('/browse');
-    $self->_route_len(length('/browse'));
-    return 1;
+    for my $r (@ROUTES) {
+        next unless 0 eq rindex($path, $r, 0);
+        $self->_route($r);
+        $self->_route_len(length($r));
+        $self->route($r);
+        $self->route_len(length($r));
+        return 1;
+    }
+    return 0;
 }
 
 sub agent($self) {
@@ -236,6 +240,20 @@ sub agent($self) {
         $self->_init_headers;
     }
     return $self->_agent;
+}
+
+sub browse($self) {
+    return 1 if ($self->route eq '/browse') || 
+         (!$self->route && $self->_route eq '/browse');
+    return 0;
+}
+
+
+sub browser($self) {
+    unless (defined $self->_browser) {
+        $self->_init_headers;
+    }
+    return $self->_browser;
 }
 
 sub is_secure($self) {
@@ -286,9 +304,19 @@ sub accept($self) {
 
 sub _init_headers($self) {
     $self->_agent('');
+    $self->_browser('');
     my $headers = $self->c->req->headers;
     return unless $headers;
-    $self->_agent($headers->user_agent ? $headers->user_agent : '');
+    if (my $agent = $headers->user_agent) {
+        $self->_agent($agent);
+        if ($agent =~ $self->c->mcconfig->browser_agent_mask) {
+            $self->_browser($1) if $1;
+            unless ($self->_route) {
+                $self->_route('/browse');
+                $self->_route_len(length('/browse'));
+            }
+        }
+    }
     return unless $headers->accept;
 
     $self->metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/;
