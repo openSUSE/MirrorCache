@@ -64,6 +64,10 @@ function setupBrowseTable(path) {
         ajax: {
             url: url,
         },
+        lengthMenu: [
+            [100, 1000, 10, -1],
+            [100, 1000, 10, 'All'],
+        ],
         columns: columns,
         search: {
             regex: true,

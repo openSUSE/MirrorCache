@@ -39,13 +39,15 @@ has plugin_status => $ENV{MIRRORCACHE_PLUGIN_STATUS};
 has db_provider           => undef;
 has custom_footer_message => $ENV{MIRRORCACHE_CUSTOM_FOOTER_MESSAGE};
 
+has browser_agent_mask => $ENV{MIRRORCACHE_BROWSER_AGENT_MASK} // '(?i)(firefox|msie|chrom|safari|seamonkey|opera|opr|trident).*';
+
 sub init($self, $cfgfile) {
     my $db_provider = $ENV{MIRRORCACHE_DB_PROVIDER};
 
     my $cfg;
     $cfg = Config::IniFiles->new(-file => $cfgfile, -fallback => 'default') if $cfgfile;
     if ($cfg) {
-        for my $k (qw/root redirect/) {
+        for my $k (qw/root redirect browser_agent_mask/) {
             if (my $v = $cfg->val('default', $k)) {
                 $self->$k($v);
             }

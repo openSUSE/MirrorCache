@@ -31,7 +31,6 @@ sub register {
 
     my ($self, $app, $args ) = @_;
     my $root  = $args->{root};
-    my $route = $args->{route};
 
     $app->helper( 'mc.rootlocation' => sub {
         shift; # $c
@@ -40,7 +39,6 @@ sub register {
         return $root . $path if ((substr $path, -1) eq '/');
         return $root . $path . '/';
     });
-    $app->helper( 'mc.route' => sub { $route });
 
     $app->helper(
         format_time => sub {
