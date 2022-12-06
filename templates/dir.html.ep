@@ -1,9 +1,11 @@
 % layout 'bootstrap';
 % title $cur_path;
-% my @breadcrumbs = split '/', 'download' . $cur_path;
-% my $bc_last = pop @breadcrumbs;
+% $route = '/' unless $route;
 % my $bc_url = '/';
-
+% my $full_path = $cur_path;
+% $full_path = $route . $cur_path unless $route eq '/';
+% my @breadcrumbs = split '/', $full_path;
+% my $bc_last = pop @breadcrumbs;
 %= include 'layouts/info'
 
 % my $mc_branding = eval '$branding' // '';
@@ -16,9 +18,12 @@
 % }
 
 <div class="container-download">
-
   <div id="breadcrumbs">
     <ol class="breadcrumb break-long-content">
+      % if ($route eq '/' && $full_path ne $route) {
+      <li class="breadcrumb-item"><a href="/">^</a></li>
+      % # <li class="breadcrumb-item"><a href="/"><i class="fab fa-github"></i></a></li>
+      % }
       % foreach my $bc (@breadcrumbs) {
       %   next unless (defined $bc and length $bc);
       %   $bc_url .= $bc . '/';
@@ -27,7 +32,7 @@
       % my $folder_id_safe = stash('folder_id');
       % if ($folder_id_safe) {
       <li class="breadcrumb-item active"><a href="<%= url_for("/app/folder/$folder_id") %>"><%== $bc_last %></a></li>
-      % } else {
+      % } elsif ($bc_last) {
       <li class="breadcrumb-item active"><%== $bc_last %></a></li>
       % }
     </ol>

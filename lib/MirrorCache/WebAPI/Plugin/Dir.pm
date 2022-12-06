@@ -56,7 +56,7 @@ sub indx {
 
     my $top_folder;
     if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
-        if ($reqpath eq '/') {
+        if ($reqpath =~ /^\/+$/) {
             $top_folder = '/';
         } else {
             my @found = grep { $reqpath =~ /^\/$_/ } @top_folders;
@@ -149,7 +149,7 @@ sub _render_dir {
         $dm->folder_id($folder_id);
         $dm->file_id(-1);
     }
-    return $c->render( 'browse', cur_path => $dm->route . $dir, folder_id => $folder_id ) if !$dm->json && $dm->browse;
+    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $folder_id ) if !$dm->json && $dm->browse;
 
     return _render_dir_local($dm, $folder_id, $dir) unless $root->is_remote; # just render files if we have them locally
 
@@ -434,7 +434,7 @@ sub _render_top_folders {
     my @items = sort _by_filename @files;
     return $c->render( json => { data => \@items } ) if $dm->jsontable;
     return $c->render( json => \@items) if $json;
-    return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => undef );
+    return $c->render( 'dir', files => \@items, route => $dm->route, cur_path => $dir, folder_id => undef );
 }
 
 sub _render_dir_from_db {
@@ -444,7 +444,7 @@ sub _render_dir_from_db {
     my $c   = $dm->c;
     my $json = $dm->json;
 
-    return $c->render( 'browse', cur_path => $dm->route . $dir, folder_id => $id ) if !$json && $dm->browse;
+    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $id ) if !$json && $dm->browse;
 
     my @files;
     my $childrenfiles = $c->schema->resultset('File')->find_with_hash($id);
@@ -481,7 +481,7 @@ sub _render_dir_from_db {
     my @items = sort _by_filename @files;
     return $c->render( json => { data => \@items } ) if $dm->jsontable;
     return $c->render( json => \@items) if $json;
-    return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => $id );
+    return $c->render( 'dir', files => \@items, route => $dm->route, cur_path => $dir, folder_id => $id );
 }
 
 sub _render_dir_local {
@@ -490,7 +490,7 @@ sub _render_dir_local {
     my $dir = shift;
     my $c   = $dm->c;
     my $json = $dm->json;
-    return $c->render( 'browse', cur_path => $dm->route . $dir, folder_id => $id ) if !$json && $dm->browse;
+    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $id ) if !$json && $dm->browse;
 
     my @files;
 
@@ -532,7 +532,7 @@ sub _render_dir_local {
     my @items = sort _by_filename @files;
     return $c->render( json => { data => \@items } ) if $dm->jsontable;
     return $c->render( json => \@items) if $json;
-    return $c->render( 'dir', files => \@items, cur_path => $dir, folder_id => $id );
+    return $c->render( 'dir', files => \@items, route => $dm->route, cur_path => $dir, folder_id => $id );
 }
 
 my $SMALL_FILE_SIZE = int($ENV{MIRRORCACHE_SMALL_FILE_SIZE} // 0);

@@ -243,8 +243,7 @@ sub agent($self) {
 }
 
 sub browse($self) {
-    return 1 if ($self->route eq '/browse') || 
-         (!$self->route && $self->_route eq '/browse');
+    return 1 if ($self->route && $self->route eq '/browse') || (!$self->route && $self->browser);
     return 0;
 }
 
