@@ -268,6 +268,7 @@ sub register {
             $c->render(
                 'mirrorlist',
                 cur_path          => $filepath,
+                route             => $dm->route,
                 file              => $filedata,
                 preferred_url     => $preferred_url,
                 mirrordata        => \@mirrordata,

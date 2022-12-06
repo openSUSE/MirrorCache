@@ -1,12 +1,16 @@
 function setupBrowseTable(path) {
     // read columns from empty HTML table rendered by the server
     var columns = [];
+    if (path != '/') {
+        path = path + '/';
+    }
     columns.push({
         data: 'name',
+        className: 'name',
         defaultContent: "",
         render: function (data, type, row, meta) {
             if(type === 'display'){
-                data = '<a href="' + path + '/' + data + '">' + data + '</a>';
+                data = '<a href="' + path + data + '">' + data + '</a>';
             }
             if(type === 'sort'){
                 if(data.slice(-1) != '/') {
@@ -20,16 +24,18 @@ function setupBrowseTable(path) {
     });
     columns.push({
         data: 'mtime',
+        className: 'mtime',
         defaultContent: "",
         render: function (data, type, row, meta) {
             if(type === 'display' && data > 0){
-                data = new Date(data * 1000).toLocaleString();
+                data = new Date(data * 1000).toLocaleString().replace(/.\d+$/g, "");;
             }
             return data;
         }
     });
     columns.push({
         data: 'size',
+        className: 'size',
         defaultContent: "",
         render: function (data, type, row, meta) {
             if(type === 'display' && data > 0){
@@ -60,7 +66,7 @@ function setupBrowseTable(path) {
                     return '';
                 }
                 if(type === 'display'){
-                    data = '<a href=".' + path + '/' + data + '.mirrorlist">Details</a>';
+                    data = '<a href="' + path + data + '.mirrorlist">Details</a>';
                 }
             }
             return data;
@@ -74,8 +80,8 @@ function setupBrowseTable(path) {
             url: url,
         },
         lengthMenu: [
-            [100, 1000, 10, -1],
-            [100, 1000, 10, 'All'],
+            [20, 100, 1000, 10, -1],
+            [20, 100, 1000, 10, 'All'],
         ],
         columns: columns,
         search: {

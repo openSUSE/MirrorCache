@@ -16,7 +16,9 @@ function handleMirrorlistAjaxError(request, code, error, element) {
         error += ': ' + request.responseText.error;
     }
 
-    element.innerText = 'Error: ' + error;
+    if (element) {
+        element.innerText = 'Error: ' + error;
+    }
 }
 
 function loadMirrorlist(url, country, region, element1, element2, element3) {
