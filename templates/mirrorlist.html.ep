@@ -44,7 +44,6 @@ var lng = <%= $lng %>;
     <ol class="breadcrumb break-long-content">
       % if ($route eq '/' && $full_path ne $route) {
       <li class="breadcrumb-item"><a href="/">^</a></li>
-      % # <li class="breadcrumb-item"><a href="/"><i class="fab fa-github"></i></a></li>
       % }
       % foreach my $bc (@breadcrumbs) {
       %   next unless (defined $bc and length $bc);
@@ -95,7 +94,7 @@ var lng = <%= $lng %>;
   % if ($mirrordata && @$mirrordata) {
     <ul>
     % for my $mirror (@$mirrordata) {
-      <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
+      <li><a href="<%= $mirror->{url} %>"><%= $mirror->{hostname} %></a> (<%= $mirror->{location} %>)</li>
       <script>
       mirrors_country.push({
         url:"<%= $mirror->{url} %>",
@@ -121,7 +120,7 @@ var lng = <%= $lng %>;
   % if ($mirrordata_region && @$mirrordata_region) {
     <ul id="ul1001">
     % for my $mirror (@$mirrordata_region) {
-      <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
+      <li><a href="<%= $mirror->{url} %>"><%= $mirror->{hostname} %></a> (<%= $mirror->{location} %>)</li>
       <script>
       mirrors_region.push({
         url:"<%= $mirror->{url} %>",
@@ -145,7 +144,7 @@ var lng = <%= $lng %>;
   % if ($mirrordata_rest && @$mirrordata_rest) {
     <ul id="ul1002">
     % for my $mirror (@$mirrordata_rest) {
-      <li><a href="<%= $mirror->{url} %>"><%= $mirror->{url} %></a> (<%= $mirror->{location} %>)</li>
+      <li><a href="<%= $mirror->{url} %>"><%= $mirror->{hostname} %></a> (<%= $mirror->{location} %>)</li>
       <script>
       mirrors_rest.push({
         url:"<%= $mirror->{url} %>",

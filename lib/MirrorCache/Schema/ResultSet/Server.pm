@@ -95,7 +95,10 @@ sub mirrors_query {
 
     my $sql = <<"END_SQL";
 select * from (
-select x.id as mirror_id, left(concat(case when support_scheme > 0 then '$capability' else '$capabilityx' end, '://', uri),$MIRRORCACHE_MAX_PATH) as url,
+select x.id as mirror_id,
+case when support_scheme > 0 then '$capability' else '$capabilityx' end as scheme,
+hostname,
+uri,
 dist,
 case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end rating_country,
 score, country, region, lat, lng,
@@ -104,8 +107,8 @@ rating_scheme,
 support_ipv,
 rating_ipv
 from (
-select s.id,
-    concat($hostname,s.urldir,f.path,'/',s.name) as uri,
+select s.id, $hostname as hostname,
+    left(concat(s.urldir,f.path,'/',s.name),$MIRRORCACHE_MAX_PATH) as uri,
 s.lat as lat,
 s.lng as lng,
 case when $lat=0 and $lng=0 then 0

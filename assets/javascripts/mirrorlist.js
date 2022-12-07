@@ -38,13 +38,14 @@ function loadMirrorlist(url, country, region, element1, element2, element3) {
                 span.innerHTML = " (" + obj.location + ")";
                 var ul = document.getElementById(element1);
                 var li = document.createElement("li");
-                a.textContent = obj.url;
+                a.textContent = obj.hostname;
                 a.setAttribute('href', obj.url);
                 li.appendChild(a);
                 li.appendChild(span);
                 ul.appendChild(li);
                 mirrors_country.push({
                     url:obj.url,
+                    hostname:obj.hostname,
                     country:obj.location,
                     lat:obj.lat,
                     lng:obj.lng,
@@ -67,13 +68,14 @@ function loadMirrorlist(url, country, region, element1, element2, element3) {
                 span.innerHTML = " (" + obj.location + ")";
                 var ul = document.getElementById(element2);
                 var li = document.createElement("li");
-                a.textContent = obj.url;
+                a.textContent = obj.hostname;
                 a.setAttribute('href', obj.url);
                 li.appendChild(a);
                 li.appendChild(span);
                 ul.appendChild(li);
                 mirrors_region.push({
                     url:obj.url,
+                    hostname:obj.hostname,
                     country:obj.location,
                     lat:obj.lat,
                     lng:obj.lng,
@@ -96,13 +98,14 @@ function loadMirrorlist(url, country, region, element1, element2, element3) {
                 span.innerHTML = " (" + obj.location + ")";
                 var ul = document.getElementById(element3);
                 var li = document.createElement("li");
-                a.textContent = obj.url;
+                a.textContent = obj.hostname;
                 a.setAttribute('href', obj.url);
                 li.appendChild(a);
                 li.appendChild(span);
                 ul.appendChild(li);
                 mirrors_rest.push({
                     url:obj.url,
+                    hostname:obj.hostname,
                     country:obj.location,
                     lat:obj.lat,
                     lng:obj.lng,

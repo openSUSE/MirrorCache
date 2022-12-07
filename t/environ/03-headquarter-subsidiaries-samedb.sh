@@ -84,8 +84,8 @@ for i in 9 6 7 8; do
     mc$i/backstage/shoot
 done
 
-curl -s "http://$hq_address/rest/eu?file=/folder1/file1.1.dat" | grep -C50 $($ap5/print_address) | grep $($ap6/print_address)
-curl -s "http://$hq_address/rest/na?file=/folder1/file1.1.dat" | grep -C50 $($ap3/print_address) | grep $($ap4/print_address)
+curl --compressed -s "http://$hq_address/rest/eu?file=/folder1/file1.1.dat" | grep -C50 $($ap5/print_address) | grep $($ap6/print_address)
+curl --compressed -s "http://$hq_address/rest/na?file=/folder1/file1.1.dat" | grep -C50 $($ap3/print_address) | grep $($ap4/print_address)
 
 curl -sL http://$hq_address/folder1/file1.1.dat.metalink | grep file1.1.dat
 curl -sL --interface 127.0.0.4 http://$hq_address/folder1/file1.1.dat.metalink | grep file1.1.dat
@@ -114,3 +114,4 @@ curl -sL --interface $as_interface http://$hq_address/folder2/file1.1.dat.mirror
 
 test 2 == $(curl -sL --interface $as_interface http://$hq_address/folder2/file1.1.dat.mirrorlist?COUNTRY=br | grep -A20 'Mirrors which handle this country' | grep '(BR)' | wc -l)
 
+echo success

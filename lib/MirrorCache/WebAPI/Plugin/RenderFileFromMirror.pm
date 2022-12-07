@@ -188,6 +188,7 @@ sub register {
                     push @mirrordata,
                       {
                         url      => $m->{url},
+                        hostname => $m->{hostname},
                         location => uc($m->{country}),
                         lat      => $m->{lat},
                         lng      => $m->{lng},
@@ -201,6 +202,7 @@ sub register {
                     push @mirrordata_region,
                       {
                         url      => $m->{url},
+                        hostname => $m->{hostname},
                         location => uc($m->{country}),
                         lat      => $m->{lat},
                         lng      => $m->{lng},
@@ -214,6 +216,7 @@ sub register {
                 push @mirrordata_rest,
                   {
                     url      => $m->{url},
+                    hostname => $m->{hostname},
                     location => uc($m->{country}),
                     lat      => $m->{lat},
                     lng      => $m->{lng},
@@ -710,6 +713,9 @@ sub _collect_mirrors {
             $found_count += $found_more;
             push @$mirrors_rest, @$m;
         }
+    }
+    for $m (@$mirrors_country, @$mirrors_region, @$mirrors_rest) {
+        $m->{url} = $m->{scheme} . '://' . $m->{hostname} . $m->{uri};
     }
     return $found_count;
 }

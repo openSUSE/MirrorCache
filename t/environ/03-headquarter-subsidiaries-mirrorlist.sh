@@ -71,9 +71,9 @@ for i in 9 6 7; do
 done
 
 
-curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json"            | grep -F '{"l1":[{"lat":"43.000","lng":"-116.000","location":"US","url":"http:\/\/127.0.0.1:1264\/folder1\/file1.1.dat"}],"l2":[{"lat":"43.000","lng":"-79.000","location":"CA","url":"http:\/\/127.0.0.1:1274\/folder1\/file1.1.dat"}],"l3":[]}'
-curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json&COUNTRY=ca" | grep -F '{"l1":[{"lat":"43.000","lng":"-79.000","location":"CA","url":"http:\/\/127.0.0.1:1274\/folder1\/file1.1.dat"}],"l2":[{"lat":"43.000","lng":"-116.000","location":"US","url":"http:\/\/127.0.0.1:1264\/folder1\/file1.1.dat"}],"l3":[]}'
-curl -s "http://$eu_address/folder1/file1.1.dat?mirrorlist&json" | grep -F '{"l1":[],"l2":[],"l3":[{"lat":"43.000","lng":"8.000","location":"DE"'
+curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json"            | grep -F '{"l1":[{"hostname":"127.0.0.1:1264","lat":"43.000","lng":"-116.000","location":"US","url":"http:\/\/127.0.0.1:1264\/folder1\/file1.1.dat"}],"l2":[{"hostname":"127.0.0.1:1274","lat":"43.000","lng":"-79.000","location":"CA","url":"http:\/\/127.0.0.1:1274\/folder1\/file1.1.dat"}],"l3":[]}'
+curl -s "http://$na_address/folder1/file1.1.dat?mirrorlist&json&COUNTRY=ca" | grep -F '{"l1":[{"hostname":"127.0.0.1:1274","lat":"43.000","lng":"-79.000","location":"CA","url":"http:\/\/127.0.0.1:1274\/folder1\/file1.1.dat"}],"l2":[{"hostname":"127.0.0.1:1264","lat":"43.000","lng":"-116.000","location":"US","url":"http:\/\/127.0.0.1:1264\/folder1\/file1.1.dat"}],"l3":[]}'
+curl -s "http://$eu_address/folder1/file1.1.dat?mirrorlist&json" | grep -F '{"l1":[],"l2":[],"l3":[{"hostname":"127.0.0.1:1284","lat":"43.000","lng":"8.000","location":"DE"'
 
 curl -s "http://$hq_address/rest/eu?file=/folder1/file1.1.dat" | grep -C50 $($ap5/print_address) | grep $($ap6/print_address)
 curl -s "http://$hq_address/rest/na?file=/folder1/file1.1.dat" | grep -C50 $($ap3/print_address) | grep $($ap4/print_address)
