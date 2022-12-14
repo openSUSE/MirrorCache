@@ -23,6 +23,7 @@ sub register {
 }
 
 my $DELAY = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
+my $MCDEBUG = $ENV{MCDEBUG_TASK_FOLDER_SYNC_SCHEDULE_FROM_MISSES} // $ENV{MCDEBUG_ALL} // 0;
 
 sub _run {
     my ($app, $job, $prev_stat_id) = @_;
@@ -30,8 +31,8 @@ sub _run {
     my $pref = "[schedule_from_misses $job_id]";
     my $id_in_notes = $job->info->{notes}{stat_id};
     $prev_stat_id = $id_in_notes if $id_in_notes;
-    print(STDERR "$pref read id from notes: $id_in_notes\n") if $id_in_notes;
-    print(STDERR "$pref use id from param: $prev_stat_id\n") if $prev_stat_id && (!$id_in_notes || $prev_stat_id != $id_in_notes);
+    print(STDERR "$pref read id from notes: $id_in_notes\n") if $MCDEBUG && $id_in_notes;
+    print(STDERR "$pref use id from param: $prev_stat_id\n") if $MCDEBUG && $prev_stat_id && (!$id_in_notes || $prev_stat_id != $id_in_notes);
 
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
@@ -49,11 +50,13 @@ sub _run {
     $common_guard = undef;
     my $rs = $schema->resultset('Folder');
     my $last_run = 0;
+    print STDERR $app->dumper($pref, $folders, $stat_id, $prev_stat_id) if $MCDEBUG;
     while (scalar(@$folders)) {
         my $cnt = 0;
         $prev_stat_id = $stat_id;
         print(STDERR "$pref read id from stat up to: $stat_id\n");
         for my $path (@$folders) {
+            print STDERR $pref . $path . "\n" if $MCDEBUG;
             my $folder = $rs->find({ path => $path });
             if (!$folder) {
                 if (!$app->mc->root->is_dir($path)) {
@@ -64,6 +67,7 @@ sub _run {
             $folder = $rs->find({ path => $path }) unless $folder;
 
             $cnt = $cnt + 1;
+            print STDERR $pref . $path . "\n\n" if $MCDEBUG;
             $rs->request_sync($path);
             if ($folder && $folder->id) {
                 $rs->request_scan($folder->id);
@@ -93,7 +97,7 @@ sub _run {
     }
 
     $prev_stat_id = 0 unless $prev_stat_id;
-    print(STDERR "$pref will retry with id: $prev_stat_id\n");
+    print(STDERR "$pref will retry with id: $prev_stat_id\n") if $MCDEBUG;
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
     $job->note(stat_id => $prev_stat_id, total => $total, last_run => $last_run);

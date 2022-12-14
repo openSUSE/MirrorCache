@@ -22,6 +22,7 @@ sub register {
 }
 
 my $DELAY   = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
+my $MCDEBUG = $ENV{MCDEBUG_TASK_MIRROR_SCAN_SCHEDULE_FROM_PATH_ERRORS} // $ENV{MCDEBUG_ALL} // 0;
 
 sub _run {
     my ($app, $job, $prev_event_log_id) = @_;
@@ -29,8 +30,8 @@ sub _run {
     my $pref = "[scan_from_path_errors $job_id]";
     my $id_in_notes = $job->info->{notes}{event_log_id};
     $prev_event_log_id = $id_in_notes if $id_in_notes;
-    print(STDERR "$pref read id from notes: $id_in_notes\n") if $id_in_notes;
-    print(STDERR "$pref use id from param: $prev_event_log_id\n") if $prev_event_log_id && (!$id_in_notes || $prev_event_log_id != $id_in_notes);
+    print(STDERR "$pref read id from notes: $id_in_notes\n") if $MCDEBUG && $id_in_notes;
+    print(STDERR "$pref use id from param: $prev_event_log_id\n") if $MCDEBUG && $prev_event_log_id && (!$id_in_notes || $prev_event_log_id != $id_in_notes);
 
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
@@ -45,7 +46,7 @@ sub _run {
     while ($resync_ids || $rescan_ids) {
         my $cnt = 0;
         $prev_event_log_id = $event_log_id;
-        print(STDERR "$pref read id from event log up to: $event_log_id\n");
+        print(STDERR "$pref read id from event log up to: $event_log_id\n") if $MCDEBUG;
         if ($resync_ids) {
             $rs->request_sync_array(@$resync_ids);
             $cnt += @$resync_ids;
@@ -78,7 +79,7 @@ sub _run {
     }
 
     $prev_event_log_id = 0 unless $prev_event_log_id;
-    print(STDERR "$pref will retry with id: $prev_event_log_id\n");
+    print(STDERR "$pref will retry with id: $prev_event_log_id\n") if $MCDEBUG;
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
     $job->note(event_log_id => $prev_event_log_id, total => $total, last_run => $last_run);
