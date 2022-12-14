@@ -1,4 +1,4 @@
-# Copyright (C) 2020,2021 SUSE LLC
+# Copyright (C) 2020-2022 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,14 +24,16 @@ sub register {
 
 my $DELAY   = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 5);
 
+my $MCDEBUG = $ENV{MCDEBUG_TASK_MIRROR_SCAN_SCHEDULE_FROM_MISSES} // $ENV{MCDEBUG_ALL} // 0;
+
 sub _run {
     my ($app, $job, $prev_stat_id) = @_;
     my $job_id = $job->id;
     my $pref = "[scan_from_misses $job_id]";
     my $id_in_notes = $job->info->{notes}{stat_id};
     $prev_stat_id = $id_in_notes if $id_in_notes;
-    print(STDERR "$pref read id from notes: $id_in_notes\n") if $id_in_notes;
-    print(STDERR "$pref use id from param: $prev_stat_id\n") if $prev_stat_id && (!$id_in_notes || $prev_stat_id != $id_in_notes);
+    print(STDERR "$pref read id from notes: $id_in_notes\n") if $MCDEBUG && $id_in_notes;
+    print(STDERR "$pref use id from param: $prev_stat_id\n") if $MCDEBUG && $prev_stat_id && (!$id_in_notes || $prev_stat_id != $id_in_notes);
 
     my $minion = $app->minion;
     # prevent multiple scheduling tasks to run in parallel
@@ -52,7 +54,7 @@ sub _run {
     while (scalar(@$folder_ids)) {
         my $cnt = 0;
         $prev_stat_id = $stat_id;
-        print(STDERR "$pref read id from stat up to: $stat_id\n");
+        print(STDERR "$pref read id from stat up to: $stat_id\n") if $MCDEBUG;
         for my $folder_id (@$folder_ids) {
             $cnt = $cnt + 1;
             $rs->request_scan($folder_id);
@@ -81,7 +83,7 @@ sub _run {
     }
 
     $prev_stat_id = 0 unless $prev_stat_id;
-    print(STDERR "$pref will retry with id: $prev_stat_id\n");
+    print(STDERR "$pref will retry with id: $prev_stat_id\n") if $MCDEBUG;
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
     $job->note(stat_id => $prev_stat_id, total => $total, last_run => $last_run);

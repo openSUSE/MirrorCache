@@ -280,6 +280,8 @@ sub _local_render {
     return 1;
 }
 
+my $MCDEBUG = $ENV{MCDEBUG_DIR} // $ENV{MCDEBUG_ALL} // 0;
+
 sub _render_from_db {
     my $dm = shift;
     my $c = $dm->c;
@@ -291,17 +293,21 @@ sub _render_from_db {
         my $f = Mojo::File->new($path);
         my $dirname = $root->realpath($f->dirname);
         $dirname = $dm->root_subtree . $f->dirname unless $dirname;
+        $c->log->error($c->dumper('dirname:', $dirname)) if $MCDEBUG;
         if (my $parent_folder = $rsFolder->find({path => $dirname})) {
-            if ($dirname eq $dm->root_subtree . $f->dirname) {
-                $dm->folder_id($parent_folder->id);
+            if ($dirname eq $root->realpath($dm->root_subtree . $f->dirname)) {
+                $dm->folder_id($parent_folder->id) if $dirname eq $f->dirname;
             } else {
                 my $another_folder = $rsFolder->find({path => $dm->root_subtree . $f->dirname});
+                $c->log->error($c->dumper('another_folder:', $another_folder)) if $MCDEBUG;
                 return undef unless $another_folder; # nothing found, proceed to _guess_what_to_render
             }
             my $xtra = '';
             $xtra = '.zsync' if $dm->zsync && !$dm->accept_zsync;
             my $file;
-            $file = $schema->resultset('File')->find_with_hash($parent_folder->id, $f->basename, $xtra) if $parent_folder && !$trailing_slash;
+            $c->log->error($c->dumper('parent_folder:', $parent_folder)) if $MCDEBUG;
+            $file = $schema->resultset('File')->find_with_hash($parent_folder->id, $f->basename, $xtra) if $parent_folder;
+            $c->log->error($c->dumper('file:', $f->basename, $file)) if $MCDEBUG;
 
             # folders are stored with trailing slash in file table, so they will not be selected here
             if ($file) {
@@ -405,6 +411,7 @@ sub _guess_what_to_render {
 
 sub _by_filename {
    $b->{dir} cmp $a->{dir} ||
+   !$a->{name} || !$b->{name} ||
    versioncmp(lc($a->{name}), lc($b->{name}));
 }
 

@@ -1,4 +1,4 @@
-# Copyright (C) 2020,2021 SUSE LLC
+# Copyright (C) 2020-2022 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,8 @@ use Mojo::Date;
 use Mojo::Util;
 use Mojo::IOLoop::Subprocess;
 
+my $MCDEBUG = $ENV{MCDEBUG_RENDER_FILE_FROM_MIRROR} // $ENV{MC_DEBUG_ALL} // 0;
+
 sub register {
     my ($self, $app) = @_;
     $app->types->type(metalink => 'application/metalink+xml; charset=UTF-8');
@@ -36,6 +38,7 @@ sub register {
 
     $app->helper( 'mirrorcache.render_file' => sub {
         my ($c, $filepath, $dm, $file)= @_;
+        $c->log->error($c->dumper('RENDER START', $filepath)) if $MCDEBUG;
         my $root = $c->mc->root;
         my $f = Mojo::File->new($filepath);
         my $dirname = $f->dirname;
@@ -52,6 +55,7 @@ sub register {
         my $folder = $schema->resultset('Folder')->find({path => $subtree . $dirname});
         my $folder_id;
         if ($folder) {
+            $c->log->error($c->dumper('RENDER FOLDER', $folder->id, $subtree . $dirname)) if $MCDEBUG;
             $folder_id = $folder->id;
             $dm->folder_id($folder_id);
             $dm->folder_sync_last($folder->sync_last);
@@ -66,13 +70,15 @@ sub register {
             }
             $schema->resultset('Folder')->set_wanted($folder_id) if $need_update;
         }
-        my $realfolder_id;
+        my $realfolder_id = 0;
         if ($realdirname ne $dirname) {
             my $realfolder = $schema->resultset('Folder')->find({path => $realdirname});
             $realfolder_id = $realfolder->id if $realfolder;
+            $c->log->error($c->dumper('RENDER FOLDER REAL', $realfolder_id ? $realfolder_id : 'NULL')) if $MCDEBUG;
         }
-        if ($folder) {
+        if ($folder || $realfolder_id) {
             my $fldid = ($realfolder_id? $realfolder_id : $folder_id);
+            $folder_id = $fldid unless $folder_id;
 
             my $x = '';
             $x = '.zsync' if  ($dm->zsync && !$dm->accept_zsync);
@@ -91,20 +97,21 @@ sub register {
         }
         my $country = $dm->country;
         my $region  = $dm->region;
-        if (!$folder || !$file) {
+        if (!$file) {
             return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file && !$dm->accept_metalink); # file is unknown - cannot generate metalink
             return $root->render_file($dm, $filepath . '.meta4')     if ($dm->meta4    && !$file && !$dm->accept_meta4); # file is unknown - cannot generate meta4
             return $root->render_file($dm, $filepath)
               if !$dm->extra || $dm->accept_all; # TODO we still can check file on mirrors even if it is missing in DB
         }
 
-        if (!$folder || !$file) {
+        if (!$file) {
             return $c->render(status => 404, text => "File not found");
         }
+        $c->log->error($c->dumper('RENDER FILE_ID', $file->{id})) if $MCDEBUG;
         my $baseurl; # just hostname + eventual urldir (without folder and file)
         my $fullurl; # baseurl with path and filename
         if ($dm->metalink || $dm->meta4 || $dm->torrent || $dm->zsync || $dm->magnet) {
-	    $baseurl = $root->is_remote ? $root->location($dm) : $root->redirect($dm, $folder->path) # we must pass $path here because it potenially has impact
+	    $baseurl = $root->is_remote ? $root->location($dm) : $root->redirect($dm, $dirname) # we must pass $path here because it potenially has impact
         }
         if ($dm->torrent || $dm->zsync || $dm->magnet) {
             if ($baseurl) {
@@ -130,7 +137,7 @@ sub register {
         _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $folder_id);
 
         # add mirrors that have realpath
-        _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $realfolder_id) if $realfolder_id;
+        _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $realfolder_id) if $realfolder_id && $realfolder_id != $folder_id;
         my $mirror;
         $mirror = $mirrors_country[0] if @mirrors_country;
         $mirror = $mirrors_region[0]  if !$mirror && @mirrors_region;
@@ -166,14 +173,14 @@ sub register {
             my $xml;
             if ($dm->meta4) {
                 $xml = _build_meta4(
-                    $dm, $folder->path, $file, $country, $region, \@mirrors_country, \@mirrors_region,
+                    $dm, ($folder? $folder->path : $realdirname), $file, $country, $region, \@mirrors_country, \@mirrors_region,
                     \@mirrors_rest, $origin, 'MirrorCache', $baseurl);
                 $c->res->headers->content_disposition('attachment; filename="' .$basename. '.meta4"');
                 $c->render(data => $xml, format => 'meta4');
                 return 1;
             }
             $xml = _build_metalink(
-                $dm, $folder->path, $file, $country, $region, \@mirrors_country, \@mirrors_region,
+                $dm, ($folder? $folder->path : $realdirname), $file, $country, $region, \@mirrors_country, \@mirrors_region,
                 \@mirrors_rest, $origin, 'MirrorCache', $baseurl);
             $c->res->headers->content_disposition('attachment; filename="' .$basename. '.metalink"');
             $c->render(data => $xml, format => 'metalink');
@@ -243,7 +250,7 @@ sub register {
                 my $redirect = $root->redirect($dm, $filepath);
                 if ($redirect) {
                     $fileorigin = $redirect;
-                    $fileoriginpath = $folder->path . '/' . $file->{name};
+                    $fileoriginpath = ($folder? $folder->path : $realdirname) . '/' . $file->{name};
                 } else {
                     my $url = $c->req->url->to_abs;
                     $fileorigin = $dm->scheme . '://' . $url->host;
@@ -347,15 +354,15 @@ sub register {
                         my $scan_last = $dm->folder_scan_last;
                         if ($scan_last && $expected_mtime && $expected_mtime < Mojo::Date->new($result->headers->last_modified)->epoch) {
                             if ($dm->scan_last_ago() > 15*60) {
-                                $c->emit_event('mc_mirror_path_error', {e1 => $expected_mtime, e2 => Mojo::Date->new($result->headers->last_modified)->epoch, ago1 => $dm->scan_last_ago(), path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                                $c->emit_event('mc_mirror_path_error', {e1 => $expected_mtime, e2 => Mojo::Date->new($result->headers->last_modified)->epoch, ago1 => $dm->scan_last_ago(), path => $dirname, code => $code, url => $url, folder => $folder_id, country => $dm->country, id => $mirror->{mirror_id}});
                             }
                             return $root->render_file($dm, $filepath, 0); # file on mirror is newer than we have
                         } elsif ($scan_last) {
                             if ($dm->scan_last_ago() > 24*60*60) {
-                                $c->emit_event('mc_mirror_path_error', {ago2 => $dm->scan_last_ago(), path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                                $c->emit_event('mc_mirror_path_error', {ago2 => $dm->scan_last_ago(), path => $dirname, code => $code, url => $url, folder => $folder_id, country => $dm->country, id => $mirror->{mirror_id}});
                             }
                         } else {
-                                $c->emit_event('mc_debug', {message => 'path error', path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                                $c->emit_event('mc_debug', {message => 'path error', path => $dirname, code => $code, url => $url, folder => $folder_id, country => $dm->country, id => $mirror->{mirror_id}});
                         }
                         $code = 409;
                         return undef;
@@ -365,13 +372,13 @@ sub register {
                     return 1;
                 }
                 if ($dm->sync_last_ago() > 4*60*60) {
-                    $c->emit_event('mc_mirror_path_error', {path => $dirname, code => 200, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                    $c->emit_event('mc_mirror_path_error', {path => $dirname, code => 200, url => $url, folder => $folder_id, country => $dm->country, id => $mirror->{mirror_id}});
                 }
                 if ($dm->scan_last_ago() > 4*60*60) {
-                    $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder->id, country => $dm->country, id => $mirror->{mirror_id}});
+                    $c->emit_event('mc_mirror_path_error', {path => $dirname, code => $code, url => $url, folder => $folder_id, country => $dm->country, id => $mirror->{mirror_id}});
                 }
             })->catch(sub {
-                $c->emit_event('mc_mirror_error', {path => $dirname, error => shift, url => $url, folder => $folder->id, id => $mirror->{mirror_id}});
+                $c->emit_event('mc_mirror_error', {path => $dirname, error => shift, url => $url, folder => $folder_id, id => $mirror->{mirror_id}});
             })->finally(sub {
                 return $recurs1->($code);
                 my $reftx = $tx;

@@ -154,6 +154,7 @@ END_SQL
     return $dbh->selectrow_array($prep);
 };
 
+# this should return recent requests for unknown yet files or folders
 sub path_misses {
     my ($self, $prev_stat_id, $limit) = @_;
 
@@ -165,9 +166,12 @@ sub path_misses {
 select * from (
 select stat.id, stat.path, stat.folder_id, trim(country)
 from stat left join folder on folder.id = stat.folder_id
-where mirror_id < 1
-and ( mirror_id in (0,-1) or mirrorlist )
-and file_id is null
+where
+(
+	(( mirror_id in (0,-1) or mirrorlist ) and ( file_id is null )) -- unknown file
+or
+	( folder_id is null and mirror_id > -2 ) -- file may be known, but requested folder is unknown - happens when realpath shows to a different folder
+)
 and stat.path !~ '.*\/(repodata\/repomd.xml[^\/]*|media\.1\/(media|products)|content|.*\.sha256(\.asc)|Release(.key|.gpg)?|InRelease|Packages(.gz)?|Sources(.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other).xml.gz|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz)|gpg-pubkey.*\.asc|CHECKSUMS)$'
 and lower(stat.agent) NOT LIKE '%bot%'
 and lower(stat.agent) NOT LIKE '%rclone%'

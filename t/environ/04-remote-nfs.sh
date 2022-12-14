@@ -8,11 +8,15 @@ ap9=$(environ ap9)
 
 FAKEURL="notexists${RANDOM}.com"
 
+MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=3
+
 $mc1/gen_env \
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL \
     MIRRORCACHE_REDIRECT=$FAKEURL
 
 $mc2/gen_env \
     MIRRORCACHE_ROOT=http://$($ap9/print_address) \
+    MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL \
     MIRRORCACHE_ROOT_NFS=$mc2/dt
 
 rm -r $mc2/db
@@ -24,6 +28,12 @@ ap7=$(environ ap7)
 for x in $ap7 $ap8 $ap9 $mc1 $mc2; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+
+    mkdir -p $x/dt/updates/tool
+    (
+        cd $x/dt/updates/tool/
+        ln -s ../../folder1 latest
+    )
 done
 
 for x in $ap7 $ap8 $ap9; do
@@ -61,5 +71,15 @@ $mc1/curl -I /download/folder1/file1.1.dat | grep -C30 '302 Found' | grep $($ap7
 
 echo Now the scan happened despite the folder is missing in ROOT_NFS
 $mc1/curl -I /download/folder2/file1.1.dat | grep -C30 '302 Found' | grep $($ap7/print_address)
+
+$mc1/curl /download/updates/tool/latest/file1.1.dat.meta4 | grep $($ap7/print_address)/folder1/file1.1.dat
+
+sleep $MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
+
+$mc2/backstage/shoot
+
+echo now we learned about all 3 folders
+mc1/sql_test 3 == 'select count(*) from folder'
+
 
 echo success
