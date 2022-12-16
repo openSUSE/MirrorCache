@@ -295,7 +295,8 @@ sub _render_from_db {
         $dirname = $dm->root_subtree . $f->dirname unless $dirname;
         $c->log->error($c->dumper('dirname:', $dirname)) if $MCDEBUG;
         if (my $parent_folder = $rsFolder->find({path => $dirname})) {
-            if ($dirname eq $root->realpath($dm->root_subtree . $f->dirname)) {
+            my $realpath_subtree = $root->realpath($dm->root_subtree . $f->dirname) // '';
+            if ($dirname eq $realpath_subtree) {
                 $dm->folder_id($parent_folder->id) if $dirname eq $f->dirname;
             } else {
                 my $another_folder = $rsFolder->find({path => $dm->root_subtree . $f->dirname});

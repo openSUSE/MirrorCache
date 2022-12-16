@@ -60,6 +60,18 @@ sub is_remote {
 }
 
 sub realpath {
+    return undef unless $nfs;
+
+    my ($self, $path) = @_;
+    return undef unless $path;
+
+    my $localpath = $nfs . $path;
+    my $realpathlocal = Cwd::realpath($localpath);
+
+    if ($realpathlocal && (0 == rindex($realpathlocal, $nfs, 0))) {
+        my $realpath = substr($realpathlocal, length($nfs));
+        return $realpath if $realpath ne $path;
+    }
     return undef;
 }
 

@@ -9,7 +9,7 @@
         <a class="list-inline-item" href="https://github.com/openSUSE/MirrorCache">Source code</a>
         <a class="list-inline-item" href="https://bugzilla.opensuse.org/">Report issue</a>
         % if (my $ver = eval '$current_version') {
-        <a>Version <%= $ver %></a>
+        <a>MirrorCache <%= $ver %></a>
         % }
       </div>
       % if (my $msg = eval '$custom_footer_message') {
