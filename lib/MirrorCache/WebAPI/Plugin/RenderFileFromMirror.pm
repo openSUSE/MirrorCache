@@ -28,7 +28,7 @@ use Mojo::Date;
 use Mojo::Util;
 use Mojo::IOLoop::Subprocess;
 
-my $MCDEBUG = $ENV{MCDEBUG_RENDER_FILE_FROM_MIRROR} // $ENV{MC_DEBUG_ALL} // 0;
+my $MCDEBUG = $ENV{MCDEBUG_RENDER_FILE_FROM_MIRROR} // $ENV{MCDEBUG_ALL} // 0;
 
 sub register {
     my ($self, $app) = @_;
