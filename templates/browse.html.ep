@@ -8,6 +8,25 @@
 % my $bc_last = pop @breadcrumbs;
 %= include 'layouts/info'
 
+% content_for 'head' => begin
+
+<style type='text/css'>
+
+a {
+  display: flex;
+}
+
+a::after{
+  content: var(--desc);
+  color: grey;
+  margin-left: auto;
+}
+
+@media (max-width: 700px) { a:after { display: none; } }
+
+</style>
+% end
+
 <div class="container-download">
   <div id="breadcrumbs">
     <ol class="breadcrumb break-long-content">

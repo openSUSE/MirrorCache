@@ -53,6 +53,8 @@ sub register {
 
     $app->helper(mcconfig    => sub { $app->mcconfig });
     $app->helper('mc.config' => sub { $app->mcconfig });
+    $app->helper(mcbranding    => sub { $BRANDING });
+    $app->helper('mc.branding' => sub { $BRANDING });
 
     $app->helper(
         # emit_event helper, adds user to events

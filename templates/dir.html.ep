@@ -17,6 +17,25 @@
 %= include_branding 'dir_details'
 % }
 
+% content_for 'head' => begin
+
+<style type='text/css'>
+
+a {
+  display: flex;
+}
+
+a::after{
+  content: var(--desc);
+  color: grey;
+  margin-left: auto;
+}
+
+@media (max-width: 700px) { a:after { display: none; } }
+
+</style>
+% end
+
 <div class="container-download">
   <div id="breadcrumbs">
     <ol class="breadcrumb break-long-content">
@@ -39,39 +58,77 @@
   </div>
 
   <table class="admintable table table-striped">
+    % # size is shown if any regular file has size
+    % # mtime is shown if file or dir has mtime
+    % # metadata is shown if at least one regular file present
+    % my $show_mtime    = 0;
+    % my $show_metadata = 0;
+    % my $show_size     = 0;
+    % for my $file (@$files) {
+    %     $show_mtime = 1    if $file->{mtime};
+    %     $show_metadata = 1 if !$file->{dir};
+    %     $show_size = 1     if !$file->{dir} && $file->{size};
+    %     last if $show_mtime && $show_size && $show_metadata;
+    % }
+    % my $cols = 1;
+    % $cols++ if $show_size;
+    % $cols++ if $show_mtime;
+    % $cols++ if $show_metadata;
     <thead>
       <tr>
-      % if ($files && @$files && $files->[-1]->{mtime}) {
-        <th>Name</th><th>Last Modified</th><th>Size</th><th>Metadata</th>
-      % } else {
-        <th colspan="3">Name</th><th>Metadata</th>
+        <th>Name</th>
+      % if ($show_mtime) {
+        <th>Last Modified</th>
+      % }
+      % if ($show_size) {
+        <th>Size</th>
+      % }
+      % if ($show_metadata) {
+        <th>Metadata</th>
       % }
       </tr>
     </thead>
     <tbody>
       % if ($cur_path ne '/') {
-      <tr><td colspan="4"><a href="../">Parent Directory</a></td></tr>
+      <tr><td colspan="<%=$cols%>"><a href="../">Parent Directory</a></td></tr>
       % }
       % for my $file (@$files) {
       <tr>
-      %   if (defined $file->{size}) {
-      %     my $colspan = $file->{dir} ? 'colspan=2 ' : '';
-        <td class="name"><a href="<%= $file->{url} %>"><%== $file->{name} %></a></td>
-        <td <%= $colspan %>class="mtime"><%= $file->{mtime} %></td>
-        <td class="size"><%= $file->{dir} ? '' : $file->{size} %></td>
-      %   } else {
-      %     my $colspan = $file->{dir} ? 4 : 3;
-        <td colspan="<%= $colspan %>" class="name"><a href="<%= $file->{url} %>"><%== $file->{name} %></a></td>
+      %   my $span = 1;
+      %   my $colspan = '';
+      %   if ($show_mtime && !defined $file->{mtime}) {
+      %       $span++;
+      %       if ($show_size  && (!defined $file->{size} || $file->{dir})) {
+      %           $span++;
+      %           if ($show_metadata && $file->{dir}) {
+      %               $span++;
+      %           }
+      %       }
+      %       $colspan = "colspan=$span";
       %   }
-      %   if (!$file->{dir}) {
-        <td class="mirrors"><a href="<%= $file->{url} %>.mirrorlist">Details</a></td>
+      %   if(my $desc = $file->{desc}) {
+        <td <%= $colspan %> class="name"><a style="--desc: '<%= $desc %>'" href="<%= $file->{url} %>"><%== $file->{name} %></a></td>
+      %   } else {
+        <td <%= $colspan %> class="name"><a href="<%= $file->{url} %>"><%== $file->{name} %></a></td>
+      %   }
+      %   if ($show_mtime && defined $file->{mtime}) {
+        <td class="mtime"><%= $file->{mtime} %></td>
+      %   }
+      %   if ($show_size && (defined $file->{mtime} || (defined $file->{size} && !$file->{dir} )) ) {
+        <td class="size"><%= defined $file->{size} && !$file->{dir} ? $file->{size} : '' %></td>
+      %   }
+      %   if ($show_metadata) {
+        <td class="mirrors">
+      %       if (!$file->{dir}) {
+        <a href="<%= $file->{url} %>.mirrorlist">Details</a>
+      %       }
+        </td>
       %   }
       </tr>
       % }
       % if (!$files || @$files == 0) {
-      <tr><td colspan="4">Directory is empty</td></tr>
+      <tr><td colspan="<%=$cols%>">Directory is empty</td></tr>
       % }
     </tbody>
   </table>
-
 </div>

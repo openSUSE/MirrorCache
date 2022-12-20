@@ -10,7 +10,12 @@ function setupBrowseTable(path) {
         defaultContent: "",
         render: function (data, type, row, meta) {
             if(type === 'display'){
-                data = '<a href="' + path + data + '">' + data + '</a>';
+                var d = row['desc'];
+                if (d) {
+                    data = '<a style="--desc: \'' + d + '\'" href="' + path + data + '">' + data + '</a>';
+                } else {
+                    data = '<a href="' + path + data + '">' + data + '</a>';
+                }
             }
             if(type === 'sort'){
                 if(data.slice(-1) != '/') {
@@ -28,7 +33,7 @@ function setupBrowseTable(path) {
         defaultContent: "",
         render: function (data, type, row, meta) {
             if(type === 'display' && data > 0){
-                data = new Date(data * 1000).toLocaleString().replace(/.\d+$/g, "");;
+                data = new Date(data * 1000).toLocaleString().replace(/.\d+$/, "").replace(/:\d\d (AM|PM)$/, " $1");
             }
             return data;
         }

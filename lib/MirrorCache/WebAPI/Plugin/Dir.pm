@@ -266,11 +266,9 @@ sub _local_render {
     my $accept = shift;
     return undef if $dm->extra && (!$accept || !$dm->accept_all);
     my ($path, $trailing_slash) = $dm->path;
-    if ($root->is_remote) {
-        # we can just render top folders
-        return _render_top_folders($dm) if $ENV{MIRRORCACHE_TOP_FOLDERS} && $path eq '/';
-        return $root->render_file_if_nfs($dm, $path);
-    }
+    # we can just render top folders
+    return _render_top_folders($dm) if $ENV{MIRRORCACHE_TOP_FOLDERS} && $path eq '/';
+    return $root->render_file_if_nfs($dm, $path) if $root->is_remote;
 
     if ($root->is_dir($path)) {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
@@ -416,6 +414,22 @@ sub _by_filename {
    versioncmp(lc($a->{name}), lc($b->{name}));
 }
 
+my %folderDesc = (
+    "openSUSE" => {
+        "/" => {
+            "debug/"        => "debugging packages for openSUSE distributions",
+            "distribution/" => "Leap packages, sources and images",
+            "factory/"      => "Link to tumbleweed/",
+            "history/"      => "former releases of Tumbleweed packages",
+            "ports/"        => "openSUSE distributions for different architectures",
+            "repositories/" => "packages and images created with the Open Build Service",
+            "source/"       => "source packages of openSUSE distributions",
+            "tumbleweed/"   => "Tumbleweed packages, sources and images",
+            "update/"       => "updates for packages in openSUSE distributions",
+        },
+    },
+);
+
 sub _render_top_folders {
     my $dm  = shift;
     my $dir = '/';
@@ -428,6 +442,7 @@ sub _render_top_folders {
         if ($json) {
             push @files, {
                 name  => $basename2,
+                desc  => $folderDesc{$c->mcbranding}{$dir}{$basename2},
             };
             next;
         }
@@ -437,6 +452,7 @@ sub _render_top_folders {
             url   => $encoded,
             name  => $basename2,
             dir   => 1,
+            desc  => $folderDesc{$c->mcbranding}{$dir}{$basename2},
         };
     }
     my @items = sort _by_filename @files;
@@ -467,11 +483,12 @@ sub _render_dir_from_db {
                 name  => $basename,
                 size  => $size,
                 mtime => $mtime,
+                desc  => $folderDesc{$c->mcbranding}{$dir}{$basename},
             };
             next;
         }
         $size        = MirrorCache::Utils::human_readable_size($size) if $size;
-        $mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
+        $mtime       = strftime("%d-%b-%Y %H:%M", gmtime($mtime)) if $mtime;
 
         my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
         my $encoded   = Encode::decode_utf8( './' . $basename );
@@ -484,6 +501,7 @@ sub _render_dir_from_db {
             type  => $mime_type,
             mtime => $mtime,
             dir   => $is_dir,
+            desc  => $folderDesc{$c->mcbranding}{$dir}{$basename},
         };
     }
     my @items = sort _by_filename @files;
@@ -517,12 +535,13 @@ sub _render_dir_local {
                 name  => $basename,
                 size  => $size,
                 mtime => $mtime,
+                desc  => $folderDesc{$c->mcbranding}{$dir}{$basename},
             };
             next;
         }
 
         $size        = MirrorCache::Utils::human_readable_size($size) if $size;
-        $mtime       = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
+        $mtime       = strftime("%d-%b-%Y %H:%M", gmtime($mtime)) if $mtime;
 
         my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
         my $encoded   = Encode::decode_utf8( './' . $basename );
@@ -535,6 +554,7 @@ sub _render_dir_local {
             type  => $mime_type,
             mtime => $mtime,
             dir   => $is_dir,
+            desc  => $folderDesc{$c->mcbranding}{$dir}{$basename},
         };
     }
     my @items = sort _by_filename @files;
