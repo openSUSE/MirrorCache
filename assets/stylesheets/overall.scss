@@ -195,9 +195,19 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 }
 
 .name {
-    width: 100%;
+    width: 70%;
+    min-width: 40%;
 }
-.mtime, .size {
+
+.mtime {
+    text-align: right;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    white-space: unset !important;
+    min-width: 15%;
+}
+
+.size {
     text-align: right;
 }
 
