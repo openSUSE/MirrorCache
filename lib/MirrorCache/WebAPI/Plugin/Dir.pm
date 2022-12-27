@@ -471,7 +471,7 @@ sub _render_dir_from_db {
     return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $id ) if !$json && $dm->browse;
 
     my @files;
-    my $childrenfiles = $c->schema->resultset('File')->find_with_hash($id);
+    my $childrenfiles = $c->schema->resultset('File')->find_with_regex($id, $dm->glob_regex, $dm->regex);
 
     for my $file_id ( keys %$childrenfiles ) {
         my $child = $childrenfiles->{$file_id};
@@ -522,7 +522,7 @@ sub _render_dir_local {
 
     my $realpath = $root->realpath($dir);
     $realpath =  $dm->root_subtree . $dir unless $realpath;
-    my $files = $root->list_files($realpath);
+    my $files = $root->list_files($realpath, $dm->glob_regex, $dm->regex);
 
     for my $f ( @$files ) {
         my $basename = $f->basename;

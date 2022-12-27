@@ -20,6 +20,66 @@ use warnings;
 
 use base 'DBIx::Class::ResultSet';
 
+sub find_with_regex {
+    my ($self, $folder_id, $glob_regex, $regex) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql;
+    my $sql_regex;
+
+if ($dbh->{Driver}->{Name} eq 'Pg') {
+    $sql = <<'END_SQL';
+select file.id, file.folder_id, file.name,
+case when coalesce(file.size, 0::bigint)  = 0::bigint and coalesce(hash.size, 0::bigint)  != 0::bigint then hash.size else file.size end size,
+case when coalesce(file.mtime, 0::bigint) = 0::bigint and coalesce(hash.mtime, 0::bigint) != 0::bigint then hash.mtime else file.mtime end mtime,
+coalesce(hash.target, file.target) target,
+file.dt
+from file
+left join hash on file_id = id and
+(
+  (file.size = hash.size and abs(file.mtime - hash.mtime) < 61)
+  or
+  (coalesce(file.size, 0::bigint) = 0::bigint and coalesce(hash.size, 0::bigint) != 0::bigint and file.dt <= hash.dt)
+)
+where file.folder_id = ?
+END_SQL
+
+    $sql_regex = ' and file.name ~ ?';
+} else {
+    $sql = <<'END_SQL';
+select file.id, file.folder_id, file.name,
+case when coalesce(file.size, 0)  = 0 and coalesce(hash.size, 0)  != 0 then hash.size else file.size end size,
+case when coalesce(file.mtime, 0) = 0 and coalesce(hash.mtime, 0) != 0 then hash.mtime else file.mtime end mtime,
+coalesce(hash.target, file.target) target,
+file.dt
+from file
+left join hash on file_id = id and
+(
+  (file.size = hash.size and abs(file.mtime - hash.mtime) < 61)
+  or
+  (coalesce(file.size, 0) = 0 and coalesce(hash.size, 0) != 0 and file.dt <= hash.dt)
+)
+where file.folder_id = ?
+END_SQL
+
+    $sql_regex = ' and file.name REGEXP ?';
+}
+    return $dbh->selectall_hashref($sql, 'id', {}, $folder_id) unless $glob_regex || $regex;
+
+    my $prep;
+    if ($glob_regex && $regex) {
+        $prep = $dbh->prepare($sql . $sql_regex . $sql_regex);
+        $prep->execute($folder_id, $glob_regex, $regex);
+    } else {
+        $prep = $dbh->prepare($sql . $sql_regex);
+        $prep->execute($folder_id, $glob_regex || $regex);
+    }
+    return $prep->fetchall_hashref('id');
+}
+
 sub find_with_hash {
     my ($self, $folder_id, $name, $xtra) = @_;
 

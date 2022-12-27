@@ -25,7 +25,7 @@ use MirrorCache::Events;
 my $AUTH_METHOD;
 my $AUTH_URL;
 
-my $BRANDING = $ENV{MIRRORCACHE_BRANDING};
+my $BRANDING = $ENV{MIRRORCACHE_BRANDING} // '';
 
 sub register {
 

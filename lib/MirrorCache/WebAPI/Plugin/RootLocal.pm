@@ -180,10 +180,12 @@ sub foreach_filename {
     my $self = shift;
     my $dir  = shift;
     my $sub  = shift;
+    my $P    = shift;
     for my $root (@roots) {
         next unless -d $root->[dir] . $dir;
         Mojo::File->new($root->[dir] . $dir)->list({dir => 1})->each(sub {
             my $f = shift;
+            next if $P && $f->basename !~ $P;
             my $stat = $f->stat;
             if ($stat) {
                 if (($dir eq '/' || $dir eq $root_subtree) && $TOP_FOLDERS) {
@@ -204,12 +206,16 @@ sub foreach_filename {
 sub list_files {
     my $self = shift;
     my $dir  = shift;
+    my $re1  = shift;
+    my $re2  = shift;
 
     my @files;
     for my $root (@roots) {
         next unless -d $root->[dir] . $dir;
         Mojo::File->new($root->[dir] . $dir)->list({dir => 1})->each(sub {
             my $f = shift;
+            return undef if $re1 && $f->basename !~ /$re1/;
+            return undef if $re2 && $f->basename !~ /$re2/;
             if (($dir eq '/' || $dir eq $root_subtree) && $TOP_FOLDERS) {
                 if (-d $f) {
                     return undef unless $TOP_FOLDERS{$f->basename};
