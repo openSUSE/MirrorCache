@@ -31,4 +31,7 @@ for x in $mc1 $mc2; do
   done
 done
 
+mc2/curl "/download/folder1/?GLOB=*2.1*&mirrorlist"     | grep '<li>Filename: file2.1.dat</li>'
+mc2/curl "/download/folder1/?REGEX=.*2\.1.*&mirrorlist" | grep '<li>Filename: file2.1.dat</li>'
+
 echo success

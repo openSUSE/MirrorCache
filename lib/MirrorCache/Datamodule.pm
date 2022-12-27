@@ -250,6 +250,15 @@ sub regex($self) {
     return $self->_regex;
 }
 
+sub re_pattern($self) {
+    my ($regex, $glob) = ($self->regex, $self->glob);
+
+    my $res = '';
+    $res = "&REGEX=$regex" if $regex;
+    $res = "$res&P=$glob"  if $glob;
+    return $res;
+}
+
 sub our_path($self, $path) {
     for my $r (@ROUTES) {
         next unless 0 eq rindex($path, $r, 0);
@@ -447,7 +456,7 @@ sub _init_path($self) {
     }
     my ($pedantic, $glob, $glob_regex, $regex);
     my $query = $url->query;
-    if (my $query_string = $url->query->to_string) {
+    if (my $query_string = $query->to_string) {
         $self->_query($query);
         $self->_query1('?' . $query_string);
         $self->mirrorlist(1) if defined $query->param('mirrorlist');
@@ -459,14 +468,19 @@ sub _init_path($self) {
         $self->json(1)       if defined $query->param('jsontable');
         $self->jsontable(1)  if defined $query->param('jsontable');
         $pedantic = $query->param('PEDANTIC');
-        for my $p ($query->pairs) {
-            if ($p->[0] eq 'REGEX') {
-                $regex = $p->[1] if eval { m/$p->[1]/; 1; };
-            }
-            if ($p->[0] eq 'P' || $p->[0] eq 'GLOB') {
-                my $x = _glob2re($p->[1]);
+        my $pairs = $query->pairs;
+        my @pairs = @$pairs;
+        while (@pairs) {
+            my $k = shift @pairs;
+            last unless defined $k;
+            my $v = shift @pairs;
+            next unless $v;
+            if ($k eq 'REGEX') {
+                $regex = $v if eval { m/$v/; 1; };
+            } elsif ($k eq 'P' || $k eq 'GLOB') {
+                my $x = _glob2re($v);
                 next unless eval { m/$x/; 1; };
-                $glob  = $p->[1];
+                $glob  = $v;
                 $glob_regex = $x;
             }
         }

@@ -80,7 +80,7 @@ sub indx {
 
     if ($dm->agent =~ qr/$PACKAGE_MANAGER_PATTERN/) {
         my ($path, $trailing_slash) = $dm->path;
-        return $root->render_file($dm, $path . $trailing_slash);
+        return $root->render_file($dm, $path) unless $trailing_slash;
     }
 
     my $tx = $c->render_later->tx;
@@ -137,24 +137,24 @@ sub _render_dir {
     my $dm     = shift;
     my $dir    = shift;
     my $rsFolder = shift;
-    my $folder;
     my $c = $dm->c;
 
-    $rsFolder  = $c->app->schema->resultset('Folder') unless $rsFolder;
-
-    $folder    = $rsFolder->find({path => $dm->root_subtree . $dir});
-    my $folder_id;
-    if ($folder) {
-        $folder_id = $folder->id;
-        $dm->folder_id($folder_id);
-        $dm->file_id(-1);
+    my $folder_id = $dm->folder_id;
+    unless ($folder_id) {
+        $rsFolder  = $c->app->schema->resultset('Folder') unless $rsFolder;
+        if (my $folder = $rsFolder->find({path => $dm->root_subtree . $dir})) {
+            $folder_id = $folder->id;
+            $dm->folder_id($folder_id);
+            $dm->folder_sync_last($folder->sync_last);
+            $dm->file_id(-1);
+        }
     }
-    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $folder_id ) if !$dm->json && $dm->browse;
+    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $folder_id, re_pattern => $dm->re_pattern ) if !$dm->json && $dm->browse;
 
     return _render_dir_local($dm, $folder_id, $dir) unless $root->is_remote; # just render files if we have them locally
 
-    $c->stat->redirect_to_root($dm, 0) unless $folder_id && $folder->sync_last;
-    return _render_dir_from_db($dm, $folder_id, $dir) if $folder && $folder->sync_last;
+    $c->stat->redirect_to_root($dm, 0) unless $folder_id && $dm->folder_sync_last;
+    return _render_dir_from_db($dm, $folder_id, $dir) if $folder_id && $dm->folder_sync_last;
 
     my $pos = $rsFolder->get_sync_queue_position($dir);
     return $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
@@ -287,15 +287,21 @@ sub _render_from_db {
     my ($path, $trailing_slash) = $dm->path;
     my $rsFolder = $schema->resultset('Folder');
 
-    if (!$trailing_slash && $path ne '/') {
+    my $file_pattern_in_folder = $trailing_slash && ($dm->regex || $dm->glob) && ($dm->metalink || $dm->meta4 || $dm->mirrorlist);
+    $c->log->error($c->dumper('$file_pattern_in_folder', $file_pattern_in_folder)) if $MCDEBUG;
+    if ( (!$trailing_slash && $path ne '/') || $file_pattern_in_folder ) {
         my $f = Mojo::File->new($path);
-        my $dirname = $root->realpath($f->dirname);
-        $dirname = $dm->root_subtree . $f->dirname unless $dirname;
+        my $dirname = $root->realpath($file_pattern_in_folder? $path : $f->dirname);
+        $dirname = $dm->root_subtree . ($file_pattern_in_folder? $path : $f->dirname) unless $dirname;
         $c->log->error($c->dumper('dirname:', $dirname)) if $MCDEBUG;
         if (my $parent_folder = $rsFolder->find({path => $dirname})) {
-            my $realpath_subtree = $root->realpath($dm->root_subtree . $f->dirname) // '';
+            my $realpath_subtree = $root->realpath($dm->root_subtree . ($file_pattern_in_folder? $path : $f->dirname)) // $dirname;
             if ($dirname eq $realpath_subtree) {
-                $dm->folder_id($parent_folder->id) if $dirname eq $f->dirname;
+                if ($dirname eq $f->dirname || $file_pattern_in_folder) {
+                    $dm->folder_id($parent_folder->id);
+                    $dm->folder_sync_last($parent_folder->sync_last);
+                    $dm->folder_scan_last($parent_folder->scan_last);
+                }
             } else {
                 my $another_folder = $rsFolder->find({path => $dm->root_subtree . $f->dirname});
                 $c->log->error($c->dumper('another_folder:', $another_folder)) if $MCDEBUG;
@@ -305,7 +311,7 @@ sub _render_from_db {
             $xtra = '.zsync' if $dm->zsync && !$dm->accept_zsync;
             my $file;
             $c->log->error($c->dumper('parent_folder:', $parent_folder)) if $MCDEBUG;
-            $file = $schema->resultset('File')->find_with_hash($parent_folder->id, $f->basename, $xtra) if $parent_folder;
+            $file = $schema->resultset('File')->find_with_hash($parent_folder->id, $f->basename, $xtra, $dm->regex, $dm->glob_regex) if $parent_folder;
             $c->log->error($c->dumper('file:', $f->basename, $file)) if $MCDEBUG;
 
             # folders are stored with trailing slash in file table, so they will not be selected here
@@ -319,7 +325,7 @@ sub _render_from_db {
                 }
                 if ($file->{target}) {
                     # redirect to the symlink
-                    $dm->redirect($dm->route . $f->dirname . '/' . $file->{target});
+                    $dm->redirect($dm->route . $dirname . '/' . $file->{target});
                 } else {
                     $dm->file_id($file->{id});
                     # find a mirror for it
@@ -331,10 +337,11 @@ sub _render_from_db {
     } elsif (my $folder = $rsFolder->find_folder_or_redirect($dm->root_subtree . $path)) {
         return $dm->redirect($folder->{pathto}) if $folder->{pathto};
         # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
-        return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
         $dm->folder_id($folder->{id});
+        $dm->folder_sync_last($folder->{sync_last});
+        $dm->folder_scan_last($folder->{scan_last});
         $dm->file_id(-1);
-        return _render_dir($dm, $path, $rsFolder) if ($folder->{sync_last});
+        return _render_dir($dm, $path, $rsFolder, $folder) if ($folder->{sync_last});
     }
     return undef;
 }
@@ -346,7 +353,7 @@ sub _guess_what_to_render {
     my ($path, $trailing_slash) = $dm->path;
 
     if ($dm->extra) {
-        return $root->render_file($dm, $path) if $dm->accept_all;
+        return $root->render_file($dm, $path) if $dm->accept_all && !$trailing_slash;
         # the file is unknown, we cannot show generate meither mirrorlist or metalink
         my $res = $c->render(status => 425, text => "The file is unknown, retry later");
         # log miss here even thoough we haven't rendered anything
@@ -409,7 +416,7 @@ sub _guess_what_to_render {
 }
 
 sub _by_filename {
-   $b->{dir} cmp $a->{dir} ||
+   (($b->{dir} && $a->{dir}) && $b->{dir} cmp $a->{dir}) ||
    !$a->{name} || !$b->{name} ||
    versioncmp(lc($a->{name}), lc($b->{name}));
 }
@@ -468,7 +475,7 @@ sub _render_dir_from_db {
     my $c   = $dm->c;
     my $json = $dm->json;
 
-    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $id ) if !$json && $dm->browse;
+    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $id, re_pattern => $dm->re_pattern ) if !$json && $dm->browse;
 
     my @files;
     my $childrenfiles = $c->schema->resultset('File')->find_with_regex($id, $dm->glob_regex, $dm->regex);
@@ -516,7 +523,7 @@ sub _render_dir_local {
     my $dir = shift;
     my $c   = $dm->c;
     my $json = $dm->json;
-    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $id ) if !$json && $dm->browse;
+    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $id, re_pattern => $dm->re_pattern ) if !$json && $dm->browse;
 
     my @files;
 
