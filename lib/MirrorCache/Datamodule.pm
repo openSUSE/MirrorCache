@@ -17,6 +17,7 @@
 package MirrorCache::Datamodule;
 use Mojo::Base -base, -signatures;
 use Mojo::URL;
+use Mojo::Util qw(url_unescape);
 use Time::HiRes qw(time);
 use Digest::SHA qw(sha1_hex);
 use Mojolicious::Types;
@@ -577,7 +578,7 @@ sub _init_path($self) {
     my $mime = '';
     $mime = $TYPES->type($ext) // '' if $ext;
     $self->_mime($mime);
-    $self->_path($path);
+    $self->_path(url_unescape($path));
     $self->_trailing_slash($trailing_slash);
 }
 

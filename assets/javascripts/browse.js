@@ -10,11 +10,17 @@ function setupBrowseTable(path) {
         defaultContent: "",
         render: function (data, type, row, meta) {
             if(type === 'display'){
-                var d = row['desc'];
-                if (d) {
-                    data = '<a style="--desc: \'' + d + '\'" href="' + path + data + '">' + data + '</a>';
+                var d = data;
+                var t = '';
+                if(row['name'].slice(-1) === '/') {
+                    d = data.slice(0,-1);
+                    t = '/';
+                }
+                var desc = row['desc'];
+                if (desc) {
+                    data = '<a style="--desc: \'' + desc + '\'" href="' + path + encodeURIComponent(d) + t + '">' + data + '</a>';
                 } else {
-                    data = '<a href="' + path + data + '">' + data + '</a>';
+                    data = '<a href="' + path + encodeURIComponent(d) + t + '">' + data + '</a>';
                 }
             }
             if(type === 'sort'){
@@ -34,6 +40,11 @@ function setupBrowseTable(path) {
         render: function (data, type, row, meta) {
             if(type === 'display' && data > 0){
                 data = new Date(data * 1000).toLocaleString().replace(/.\d+$/, "").replace(/:\d\d (AM|PM)$/, " $1");
+                if(row['name'].slice(-1) != '/') {
+                    data = '<a href="' + path + encodeURIComponent(row['name']) + '.mirrorlist">' + data + '</a>';
+                } else {
+                    data = '<a href="' + path + encodeURIComponent(row['name'].slice(0,-1)) + '/">' + data + '</a>';
+                }
             }
             return data;
         }
@@ -43,36 +54,23 @@ function setupBrowseTable(path) {
         className: 'size',
         defaultContent: "",
         render: function (data, type, row, meta) {
-            if(type === 'display' && data > 0){
+            if(type === 'display') {
                 if(row['name'].slice(-1) == '/') {
                     return '';
                 }
-                if (Math.abs(data) < 1024) {
-                    return data;
-                }
-                const units = ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-                let u = -1;
+                if (data === null) {
+                    data = '...';
+                } else if (Math.abs(data) > 1024) {
+                    const units = ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+                    let u = -1;
 
-                do {
-                    data /= 1024;
-                    ++u;
-                } while (Math.round(Math.abs(data) * 10) >= 1024 && u < units.length - 1);
-                return data.toFixed(1) + ' ' + units[u];
-            }
-            return data;
-        }
-    });
-    columns.push({
-        data: 'name',
-        defaultContent: "",
-        render: function (data, type, row, meta) {
-            if(type === 'display'){
-                if(data.slice(-1) == '/') {
-                    return '';
+                    do {
+                        data /= 1024;
+                        ++u;
+                    } while (Math.round(Math.abs(data) * 10) >= 1024 && u < units.length - 1);
+                    data = data.toFixed(1) + ' ' + units[u];
                 }
-                if(type === 'display'){
-                    data = '<a href="' + path + data + '.mirrorlist">Details</a>';
-                }
+                data = '<a href="' + path + encodeURIComponent(row['name']) + '.mirrorlist">' + data + '</a>';
             }
             return data;
         }

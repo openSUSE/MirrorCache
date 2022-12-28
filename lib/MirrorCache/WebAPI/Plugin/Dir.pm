@@ -416,9 +416,8 @@ sub _guess_what_to_render {
 }
 
 sub _by_filename {
-   (($b->{dir} && $a->{dir}) && $b->{dir} cmp $a->{dir}) ||
-   !$a->{name} || !$b->{name} ||
-   versioncmp(lc($a->{name}), lc($b->{name}));
+   (($b->{dir} // 0) cmp ($a->{dir} // 0)) ||
+   versioncmp(lc($a->{name} // ''), lc($b->{name} // ''));
 }
 
 my %folderDesc = (

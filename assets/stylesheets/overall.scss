@@ -204,11 +204,17 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     overflow-wrap: break-word;
     word-wrap: break-word;
     white-space: unset !important;
-    min-width: 15%;
 }
 
 .size {
     text-align: right;
+}
+
+.mtime.a, .size.a {
+    display: block;
+    text-align: right;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }
 
 .breadcrumb {
