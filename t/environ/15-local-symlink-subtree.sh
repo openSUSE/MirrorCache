@@ -62,7 +62,7 @@ $mcsub/curl -I /tool/v1/file1.1.dat?COUNTRY=de | grep $($ap8/print_address)/upda
 $mcsub/curl /tool/v1/file1.1.dat.mirrorlist | grep -C 20 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
 $mcsub/curl /tool/v1/file1.1.dat.metalink   | grep -C 10 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
 
-$mcsub/curl -I /tool/v2/file1.1.dat.metalink   | grep 425
+$mcsub/curl /tool/v2/file1.1.dat.metalink   | grep $($ap7/print_address)/folder2/file1.1.dat
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule

@@ -20,8 +20,68 @@ use warnings;
 
 use base 'DBIx::Class::ResultSet';
 
+sub find_with_regex {
+    my ($self, $folder_id, $glob_regex, $regex) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql;
+    my $sql_regex;
+
+if ($dbh->{Driver}->{Name} eq 'Pg') {
+    $sql = <<'END_SQL';
+select file.id, file.folder_id, file.name,
+case when coalesce(file.size, 0::bigint)  = 0::bigint and coalesce(hash.size, 0::bigint)  != 0::bigint then hash.size else file.size end size,
+case when coalesce(file.mtime, 0::bigint) = 0::bigint and coalesce(hash.mtime, 0::bigint) != 0::bigint then hash.mtime else file.mtime end mtime,
+coalesce(hash.target, file.target) target,
+file.dt
+from file
+left join hash on file_id = id and
+(
+  (file.size = hash.size and abs(file.mtime - hash.mtime) < 61)
+  or
+  (coalesce(file.size, 0::bigint) = 0::bigint and coalesce(hash.size, 0::bigint) != 0::bigint and file.dt <= hash.dt)
+)
+where file.folder_id = ?
+END_SQL
+
+    $sql_regex = ' and file.name ~ ?';
+} else {
+    $sql = <<'END_SQL';
+select file.id, file.folder_id, file.name,
+case when coalesce(file.size, 0)  = 0 and coalesce(hash.size, 0)  != 0 then hash.size else file.size end size,
+case when coalesce(file.mtime, 0) = 0 and coalesce(hash.mtime, 0) != 0 then hash.mtime else file.mtime end mtime,
+coalesce(hash.target, file.target) target,
+file.dt
+from file
+left join hash on file_id = id and
+(
+  (file.size = hash.size and abs(file.mtime - hash.mtime) < 61)
+  or
+  (coalesce(file.size, 0) = 0 and coalesce(hash.size, 0) != 0 and file.dt <= hash.dt)
+)
+where file.folder_id = ?
+END_SQL
+
+    $sql_regex = ' and file.name REGEXP ?';
+}
+    return $dbh->selectall_hashref($sql, 'id', {}, $folder_id) unless $glob_regex || $regex;
+
+    my $prep;
+    if ($glob_regex && $regex) {
+        $prep = $dbh->prepare($sql . $sql_regex . $sql_regex);
+        $prep->execute($folder_id, $glob_regex, $regex);
+    } else {
+        $prep = $dbh->prepare($sql . $sql_regex);
+        $prep->execute($folder_id, $glob_regex || $regex);
+    }
+    return $prep->fetchall_hashref('id');
+}
+
 sub find_with_hash {
-    my ($self, $folder_id, $name, $xtra) = @_;
+    my ($self, $folder_id, $name, $xtra, $glob_regex, $regex) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
@@ -29,6 +89,7 @@ sub find_with_hash {
 
     # html parser may loose seconds from file.mtime, so we allow hash.mtime differ for up to 1 min for now
     my $sql;
+    my $sql_regex;
 if ($dbh->{Driver}->{Name} eq 'Pg') {
     $sql = <<'END_SQL';
 select file.id, file.folder_id, file.name,
@@ -50,6 +111,8 @@ left join hash on file_id = id and
 where file.folder_id = ?
 END_SQL
 
+    $sql_regex = ' and file.name ~ ?';
+
 } else {
     $sql = <<'END_SQL';
 select file.id, file.folder_id, file.name,
@@ -67,8 +130,10 @@ left join hash on file_id = id and
 )
 where file.folder_id = ?
 END_SQL
+
+    $sql_regex = ' and file.name REGEXP ?';
 }
-    return $dbh->selectall_hashref($sql, 'id', {}, $folder_id) unless $name;
+    return $dbh->selectall_hashref($sql, 'id', {}, $folder_id) unless $name || $glob_regex || $regex;
 
     my $prep;
 
@@ -76,10 +141,18 @@ END_SQL
         $sql = $sql . " and file.name like ? and (file.name = ? or file.name = ?) order by file.name desc";
         $prep = $dbh->prepare($sql);
         $prep->execute($folder_id, "$name%", $name, $name . $xtra);
-    } else {
+    } elsif (!$regex && !$glob_regex)  {
         $sql = $sql . " and file.name = ?";
         $prep = $dbh->prepare($sql);
         $prep->execute($folder_id, $name);
+    } elsif ($regex && $glob_regex)  {
+        $sql = $sql . $sql_regex . $sql_regex . " order by mtime desc, dt desc limit 1";
+        $prep = $dbh->prepare($sql);
+        $prep->execute($folder_id, $regex, $glob_regex);
+    } else {
+        $sql = $sql . $sql_regex . " order by mtime desc, dt desc limit 1";
+        $prep = $dbh->prepare($sql);
+        $prep->execute($folder_id, $regex || $glob_regex);
     }
     return $dbh->selectrow_hashref($prep);
 }

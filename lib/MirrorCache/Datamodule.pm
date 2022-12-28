@@ -31,6 +31,9 @@ has [ 'metalink', 'meta4', 'zsync', 'accept_all', 'accept_metalink', 'accept_met
 has [ '_ip', '_country', '_region', '_lat', '_lng', '_vpn' ];
 has [ '_avoid_countries' ];
 has [ '_pedantic' ];
+has [ '_glob' ];           # glob pattern from url for folder rendering, e.g. "file*.iso"
+has [ '_glob_regex' ];     # generated regex for _glob, i.e. "^file.*\.iso$"
+has [ '_regex' ];          # regex from url for folder rendering, e.g. "file.*iso"
 has [ '_scheme', '_path', '_trailing_slash' ];
 has [ '_query', '_query1' ];
 has '_original_path';
@@ -223,6 +226,39 @@ sub mime($self) {
     return $self->_mime;
 }
 
+sub glob($self) {
+    my $p = $self->_glob;
+    return $p if defined $p;
+
+    $self->_init_path;
+    return $self->_glob;
+}
+
+sub glob_regex($self) {
+    my $p = $self->_glob_regex;
+    return $p if defined $p;
+
+    $self->_init_path;
+    return $self->_glob_regex;
+}
+
+sub regex($self) {
+    my $p = $self->_regex;
+    return $p if defined $p;
+
+    $self->_init_path;
+    return $self->_regex;
+}
+
+sub re_pattern($self) {
+    my ($regex, $glob) = ($self->regex, $self->glob);
+
+    my $res = '';
+    $res = "&REGEX=$regex" if $regex;
+    $res = "$res&P=$glob"  if $glob;
+    return $res;
+}
+
 sub our_path($self, $path) {
     for my $r (@ROUTES) {
         next unless 0 eq rindex($path, $r, 0);
@@ -400,15 +436,27 @@ sub _init_location($self) {
     $self->_region($region // '');
 }
 
+sub _glob2re {
+    my $globstr = shift;
+    my %patmap = (
+        '*' => '.*',
+        '?' => '.',
+        '[' => '[',
+        ']' => ']',
+    );
+    $globstr =~ s{(.)} { $patmap{$1} || "\Q$1" }ge;
+    return '^' . $globstr . '$';
+}
+
 sub _init_path($self) {
     my $url = $self->c->req->url->to_abs;
     $self->_scheme($url->scheme);
     if ($self->c->req->is_secure) {
         $self->_scheme('https');
     }
-    my $pedantic;
+    my ($pedantic, $glob, $glob_regex, $regex);
     my $query = $url->query;
-    if (my $query_string = $url->query->to_string) {
+    if (my $query_string = $query->to_string) {
         $self->_query($query);
         $self->_query1('?' . $query_string);
         $self->mirrorlist(1) if defined $query->param('mirrorlist');
@@ -420,10 +468,31 @@ sub _init_path($self) {
         $self->json(1)       if defined $query->param('jsontable');
         $self->jsontable(1)  if defined $query->param('jsontable');
         $pedantic = $query->param('PEDANTIC');
+        my $pairs = $query->pairs;
+        my @pairs = @$pairs;
+        while (@pairs) {
+            my $k = shift @pairs;
+            last unless defined $k;
+            my $v = shift @pairs;
+            next unless $v;
+            if ($k eq 'REGEX') {
+                $regex = $v if eval { m/$v/; 1; };
+            } elsif ($k eq 'P' || $k eq 'GLOB') {
+                my $x = _glob2re($v);
+                next unless eval { m/$x/; 1; };
+                $glob  = $v;
+                $glob_regex = $x;
+            }
+        }
+
     } else {
         $self->_query('');
         $self->_query1('');
     }
+
+    $self->_regex     ($regex // '');
+    $self->_glob      ($glob // '');
+    $self->_glob_regex($glob_regex // '');
 
     my $reqpath = $url->path;
     my $path = Mojo::Util::url_unescape(substr($reqpath, $self->route_len));

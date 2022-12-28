@@ -82,3 +82,4 @@ $mc/backstage/shoot
 $mc/sql "select * from folder"
 
 $mc/sql_test requested == "select case when scan_scheduled < scan_requested then 'requested' else 'nope' end from folder where id = 1"
+echo success

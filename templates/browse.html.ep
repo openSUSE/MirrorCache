@@ -69,7 +69,7 @@ a::after{
             <tbody>
             </tbody>
         </table>
-        <input type="hidden" id="browse_api_url" value="/download<%= $cur_path %>/?jsontable"/>
+        <input type="hidden" id="browse_api_url" value="/download<%= $cur_path %>/?jsontable<%==$re_pattern%>"/>
     </div>
 </div>
 </form>

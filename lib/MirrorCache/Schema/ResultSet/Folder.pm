@@ -171,11 +171,11 @@ sub find_folder_or_redirect {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select id, sync_last, '' as pathto
+select id, sync_last, scan_last, '' as pathto
 from folder
 where path = ?
 union
-select id, NULL, pathto
+select id, NULL, NULL, pathto
 from redirect
 where pathfrom = ?
 limit 1

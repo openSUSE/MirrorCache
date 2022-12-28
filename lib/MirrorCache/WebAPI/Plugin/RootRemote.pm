@@ -183,6 +183,7 @@ sub foreach_filename {
     my $self = shift;
     my $dir  = shift;
     my $sub  = shift;
+    my $P    = shift;
     if ($dir eq '/' && $ENV{MIRRORCACHE_TOP_FOLDERS}) {
         for (split ' ', $ENV{MIRRORCACHE_TOP_FOLDERS}) {
             $sub->($_ . '/');
@@ -220,13 +221,13 @@ sub foreach_filename {
         $href20 = substr($href,0,20) if $href && !$href20;
 
         if ($t && ($href20 eq substr($t,0,20))) {
-            if ($desc{name}) {
+            if ($desc{name} && (!$P || $desc{name} =~ $P)) {
                 my $target = _detect_ln($dir, $desc{name});
                 $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
                 %desc = ();
             }
             $desc{name} = $href;
-        } elsif ($desc{name}) {
+        } elsif ($desc{name} && (!$P || $desc{name} =~ $P)) {
             my @fields = split /(\d{2}-[A-Z][a-z]{2}-\d{4} \d{2}\:\d{2})\s+(-|\d+)/, $t;
             if (3 == @fields) {
                 eval {
@@ -261,7 +262,7 @@ sub foreach_filename {
         $offset += $l;
         $p->parse($chunk);
     }
-    if ($desc{name}) {
+    if ($desc{name} && (!$P || $desc{name} =~ $P)) {
         my $target = detect_ln($dir, $desc{name});
         $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
         %desc = ();
