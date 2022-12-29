@@ -723,7 +723,7 @@ sub _collect_mirrors {
         }
     }
     for $m (@$mirrors_country, @$mirrors_region, @$mirrors_rest) {
-        $m->{url} = $m->{scheme} . '://' . $m->{hostname} . $m->{uri};
+        $m->{url} = $m->{scheme} . '://' . $m->{hostname} . Mojo::Util::url_escape($m->{uri}, '^A-Za-z0-9\-._~/');
     }
     return $found_count;
 }

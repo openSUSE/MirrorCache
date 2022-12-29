@@ -176,6 +176,7 @@ $mc/curl -I /download/folder1/file:4.dat | grep -E "$($ng8/print_address)|$(ng7*
 ##################################
 
 f=0123456789012345678901234567890123456789.\(\#@~\)abcdefghijklmnoprst.dat
+e=0123456789012345678901234567890123456789.%28%23%40~%29abcdefghijklmnoprst.dat
 
 for x in $ng9 $ng7 $ng8; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
@@ -196,3 +197,6 @@ $mc/backstage/job -e folder_sync -a '["/folder1"]'
 $mc/backstage/shoot
 
 $mc/curl /download/folder1/ | grep -B2 ln-Media.iso | grep '10 Byte'
+
+$mc/curl -IL /download/folder1/$e | grep '200 OK'
+$mc/curl -I  /download/folder1/$e | grep -C20 '302 Found' | grep -E "$($ng7/print_address)|$($ng8/print_address)" | grep "/folder1/$e"

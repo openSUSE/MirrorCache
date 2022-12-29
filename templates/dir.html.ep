@@ -73,7 +73,6 @@ a::after{
     % my $cols = 1;
     % $cols++ if $show_size;
     % $cols++ if $show_mtime;
-    % $cols++ if $show_metadata;
     <thead>
       <tr>
         <th>Name</th>
@@ -82,9 +81,6 @@ a::after{
       % }
       % if ($show_size) {
         <th>Size</th>
-      % }
-      % if ($show_metadata) {
-        <th>Metadata</th>
       % }
       </tr>
     </thead>
@@ -100,9 +96,6 @@ a::after{
       %       $span++;
       %       if ($show_size  && (!defined $file->{size} || $file->{dir})) {
       %           $span++;
-      %           if ($show_metadata && $file->{dir}) {
-      %               $span++;
-      %           }
       %       }
       %       $colspan = "colspan=$span";
       %   }
@@ -112,17 +105,18 @@ a::after{
         <td <%= $colspan %> class="name"><a href="<%= $file->{url} %>"><%== $file->{name} %></a></td>
       %   }
       %   if ($show_mtime && defined $file->{mtime}) {
+      %     if ($show_metadata) {
+        <td class="mtime"><a href="<%= $file->{url} %>.mirrorlist"><%= $file->{mtime} %></a></td>
+      %     } else {
         <td class="mtime"><%= $file->{mtime} %></td>
+      %     }
       %   }
       %   if ($show_size && (defined $file->{mtime} || (defined $file->{size} && !$file->{dir} )) ) {
-        <td class="size"><%= defined $file->{size} && !$file->{dir} ? $file->{size} : '' %></td>
-      %   }
-      %   if ($show_metadata) {
-        <td class="mirrors">
-      %       if (!$file->{dir}) {
-        <a href="<%= $file->{url} %>.mirrorlist">Details</a>
-      %       }
-        </td>
+      %     if ($show_metadata && defined $file->{size} && !$file->{dir}) {
+        <td class="size"><a href="<%= $file->{url} %>.mirrorlist"><%= $file->{size} %></a></td>
+      %     } else {
+        <td class="size"></td>
+      %     }
       %   }
       </tr>
       % }
