@@ -39,11 +39,13 @@ sub _sync {
     my $root   = $app->mc->root;
     $job->note($path => 1);
 
-    my $realpath = $root->realpath($path);
+    my $realpath = $root->realpath($path, 1);
     $realpath = $path unless $realpath;
     if ($realpath ne $path) {
         $job->note(realpath => $realpath);
         $job->note($realpath => 1);
+
+        $schema->resultset('Folder')->add_redirect($path, $realpath);
     }
 
     my $folder = $schema->resultset('Folder')->find({path => $realpath});

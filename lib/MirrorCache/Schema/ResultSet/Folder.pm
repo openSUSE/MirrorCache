@@ -375,4 +375,31 @@ sub delete_diff {
     $self->delete_cascade($id, 1);
 }
 
+sub add_redirect {
+    my ($self, $pathfrom, $pathto) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql;
+if ($dbh->{Driver}->{Name} eq 'Pg') {
+    $sql = <<'END_SQL';
+insert into redirect(pathfrom, pathto)
+values (?, ?)
+on conflict(pathfrom) do update set
+pathto = ?
+END_SQL
+} else {
+    $sql = <<'END_SQL';
+insert into redirect(pathfrom, pathto)
+values (?, ?)
+on duplicate key update
+pathto = ?
+END_SQL
+}
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($pathfrom, $pathto, $pathto);
+}
+
 1;

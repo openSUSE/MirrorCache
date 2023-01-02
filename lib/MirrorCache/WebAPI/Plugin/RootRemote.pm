@@ -60,17 +60,39 @@ sub is_remote {
 }
 
 sub realpath {
-    return undef unless $nfs;
-
-    my ($self, $path) = @_;
+    my ($self, $path, $deep) = @_;
     return undef unless $path;
 
-    my $localpath = $nfs . $path;
-    my $realpathlocal = Cwd::realpath($localpath);
+    if ($nfs) {
+        my $localpath = $nfs . $path;
+        my $realpathlocal = Cwd::realpath($localpath);
 
-    if ($realpathlocal && (0 == rindex($realpathlocal, $nfs, 0))) {
-        my $realpath = substr($realpathlocal, length($nfs));
-        return $realpath if $realpath ne $path;
+        if ($realpathlocal && (0 == rindex($realpathlocal, $nfs, 0))) {
+            my $realpath = substr($realpathlocal, length($nfs));
+            return $realpath if $realpath ne $path;
+        }
+    } elsif ($deep) {
+        my $path1 = $path . '/';
+        my $rootlocation = $self->rooturl;
+        my $url = $rootlocation . $path1;
+        my $ua = Mojo::UserAgent->new->max_redirects(0)->request_timeout(1);
+        my $tx = $ua->head($url, {'User-Agent' => 'MirrorCache/detect_redirect'});
+        my $res = $tx->res;
+
+        # redirect on oneself
+        if ($res->is_redirect && $res->headers) {
+            my $location1 = $res->headers->location;
+            if ($location1 && $path1 ne substr($location1, -length($path1))) {
+                my $i = rindex($location1, $rootlocation, 0);
+                if ($i ne -1) {
+                    # remove trailing slash we added earlier
+                    my $location = substr($location1, 0, -1);
+                    if ($rootlocation eq substr($location, 0, length($rootlocation))) {
+                        return substr($location, length($rootlocation));
+                    }
+                }
+            }
+        }
     }
     return undef;
 }

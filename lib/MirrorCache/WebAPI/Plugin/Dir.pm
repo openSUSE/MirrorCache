@@ -29,6 +29,8 @@ use MirrorCache::Datamodule;
 my $root;
 my @top_folders;
 
+my $MCDEBUG = $ENV{MCDEBUG_DIR} // $ENV{MCDEBUG_ALL} // 0;
+
 sub register {
     my $self = shift;
     my $app = shift;
@@ -167,16 +169,19 @@ sub _redirect_project_ln_geo {
 
     my $c = $dm->c;
     # each project may have a redirect defined in DB, so all requests are redirected for it
-    my $redirect = $c->mcproject->redirect($path, $dm->region);
-    if ($redirect) {
-        $dm->redirect($dm->scheme . '://' . $redirect . $path);
-        $c->stat->redirect_to_region($dm);
-        return 1;
+    unless ($trailing_slash) {
+        my $redirect = $c->mcproject->redirect($path, $dm->region);
+        if ($redirect) {
+            $dm->redirect($dm->scheme . '://' . $redirect . $path);
+            $c->stat->redirect_to_region($dm);
+            return 1;
+        }
     }
 
     my $ln = $root->detect_ln($path);
     if ($ln) {
         # redirect to the symlink
+        $c->log->error('redirect detected: ' . $ln) if $MCDEBUG;
         $dm->redirect($dm->route . $ln);
         $c->stat->redirect_to_region($dm);
         return 1;
@@ -278,8 +283,6 @@ sub _local_render {
     return 1;
 }
 
-my $MCDEBUG = $ENV{MCDEBUG_DIR} // $ENV{MCDEBUG_ALL} // 0;
-
 sub _render_from_db {
     my $dm = shift;
     my $c = $dm->c;
@@ -291,7 +294,8 @@ sub _render_from_db {
     $c->log->error($c->dumper('$file_pattern_in_folder', $file_pattern_in_folder)) if $MCDEBUG;
     if ( (!$trailing_slash && $path ne '/') || $file_pattern_in_folder ) {
         my $f = Mojo::File->new($path);
-        my $dirname = $root->realpath($file_pattern_in_folder? $path : $f->dirname);
+        my $dirname = ($file_pattern_in_folder? $path : $f->dirname);
+        $dirname = $root->realpath($dirname);
         $dirname = $dm->root_subtree . ($file_pattern_in_folder? $path : $f->dirname) unless $dirname;
         $c->log->error($c->dumper('dirname:', $dirname)) if $MCDEBUG;
         if (my $parent_folder = $rsFolder->find({path => $dirname})) {
@@ -335,6 +339,7 @@ sub _render_from_db {
             }
         }
     } elsif (my $folder = $rsFolder->find_folder_or_redirect($dm->root_subtree . $path)) {
+        $c->log->error('found redirect : ', $folder->{pathto}) if $MCDEBUG && $folder->{pathto};
         return $dm->redirect($folder->{pathto}) if $folder->{pathto};
         # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
         $dm->folder_id($folder->{id});
@@ -353,6 +358,7 @@ sub _guess_what_to_render {
     my ($path, $trailing_slash) = $dm->path;
 
     if ($dm->extra) {
+        $c->log->error('guess what to render extra : ', $dm->extra) if $MCDEBUG;
         return $root->render_file($dm, $path) if $dm->accept_all && !$trailing_slash;
         # the file is unknown, we cannot show generate meither mirrorlist or metalink
         my $res = $c->render(status => 425, text => "The file is unknown, retry later");
@@ -373,6 +379,7 @@ sub _guess_what_to_render {
     # - redirected to another route => we must redirect it as well
     my $path1 = $path . '/';
     my $url1  = $url  . '/'; # let's check if it is a folder
+    my $redirect;
     $ua->head_p($url1, {'User-Agent' => 'MirrorCache/guess_what_to_render'})->then(sub {
         my $res = shift->res;
 
@@ -394,7 +401,9 @@ sub _guess_what_to_render {
                         if ($rootlocation eq substr($location, 0, length($rootlocation))) {
                             $location = substr($location, length($rootlocation));
                         }
-                        return $dm->redirect($dm->route . $location . $trailing_slash)
+                        $c->log->error('redirect guessed: ' . $location . $trailing_slash) if $MCDEBUG;
+                        $redirect = 1;
+                        return $dm->redirect($dm->route . $location . $trailing_slash);
                     }
                 }
             }
@@ -412,7 +421,9 @@ sub _guess_what_to_render {
         $c->app->log->fatal($msg); # it is not fatal, but needed in production log
         my $reftx = $tx;
         my $refua = $ua;
-    })->timeout(2)->wait;
+    })->timeout(5)->then(sub {
+        $c->backstage->enqueue_unless_scheduled_with_parameter_or_limit('folder_sync', $path) if $redirect;
+    })->wait;
 }
 
 sub _by_filename {
