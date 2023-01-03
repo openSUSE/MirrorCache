@@ -18,6 +18,7 @@ package MirrorCache::WebAPI::Plugin::RootRemote;
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::Util ('trim');
 use Encode ();
+use Mojo::JSON qw(decode_json);
 use URI::Escape ('uri_unescape');
 use File::Basename;
 use HTML::Parser;
@@ -213,10 +214,23 @@ sub foreach_filename {
         return 1;
     }
     my $ua   = Mojo::UserAgent->new;
-    my $tx   = $ua->get($self->rooturl . $dir . '/?F=1');
+    my $tx   = $ua->get($self->rooturl . $dir . '/?F=1&json');
     return 0 unless $tx->result->code == 200;
-    # we cannot use mojo dom here because it takes too much RAM for huge html
-    # my $dom = $tx->result->dom;
+
+    return $self->_foreach_filename_json($dir, $sub, $P, $ua, $tx) if -1 < index($tx->result->headers->content_type, 'json');
+
+    return $self->_foreach_filename_html($dir, $sub, $P, $ua, $tx);
+}
+
+# we cannot use mojo dom here because it takes too much RAM for huge html
+# my $dom = $tx->result->dom;
+sub _foreach_filename_html {
+    my $self = shift;
+    my $dir  = shift;
+    my $sub  = shift;
+    my $P    = shift;
+    my $ua   = shift;
+    my $tx   = shift;
 
     my $href = '';
     my $href20 = '';
@@ -291,6 +305,34 @@ sub foreach_filename {
     }
     $p->eof;
     return 1;
+}
+
+sub _foreach_filename_json {
+    my $self = shift;
+    my $dir  = shift;
+    my $sub  = shift;
+    my $P    = shift;
+    my $ua   = shift;
+    my $tx   = shift;
+
+    my $cnt = 0;
+
+    my $value = decode_json $tx->result->body;
+    die "JSON top level is not array" unless ref($value) eq 'ARRAY';
+
+    for my $hashref (@{$value}) {
+        my $n = $hashref->{name} // $hashref->{n};
+        $n = $n . '/' if $hashref->{type} // '' eq 'directory' && '/' ne substr $n, -1;
+        next unless $n;
+        $sub->(
+            $n,
+            $hashref->{size}  // $hashref->{s},
+            undef,
+            $hashref->{mtime} // $hashref->{m},
+        ) if $sub;
+        $cnt++;
+    }
+    return $cnt;
 }
 
 1;

@@ -427,7 +427,9 @@ sub _guess_what_to_render {
 }
 
 sub _by_filename {
-   (($b->{dir} // 0) cmp ($a->{dir} // 0)) ||
+   delete $b->{desc} unless $b->{desc};
+   delete $a->{desc} unless $a->{desc};
+   versioncmp(lc($b->{dir} // ''),  lc($a->{dir} // '')) ||
    versioncmp(lc($a->{name} // ''), lc($b->{name} // ''));
 }
 
