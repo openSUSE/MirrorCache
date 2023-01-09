@@ -3,6 +3,7 @@ set -ex
 
 mc=$(environ mc $(pwd))
 
+# we name it the same way as in test 04-remote-nginx.sh to simplify diff
 ng9=$(environ mc2 $(pwd))
 
 MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
@@ -200,3 +201,23 @@ $mc/curl /download/folder1/ | grep -B2 ln-Media.iso | grep '10 Byte'
 
 $mc/curl -IL /download/folder1/$e | grep '200 OK'
 $mc/curl -I  /download/folder1/$e | grep -C20 '302 Found' | grep -E "$($ng7/print_address)|$($ng8/print_address)" | grep "/folder1/$e"
+
+
+for x in $mc $ng9; do
+  for pattern in 'P=*2.1*' 'GLOB=*2.1*' 'REGEX=.*2\.1.*'; do
+    for extra in '' '&json' '&jsontable'; do
+        echo $x $pattern $extra
+        $x/curl /download/folder1/?$pattern$extra | grep -o file2.1.dat
+        rc=0
+        $x/curl /download/folder1/?$pattern$extra | grep -o file1.1.dat || rc=$?
+        test $rc -gt 0
+    done
+  done
+done
+
+$mc/curl "/download/folder1/?GLOB=*2.1*&mirrorlist"     | grep '<li>Filename: file2.1.dat</li>'
+$mc/curl "/download/folder1/?REGEX=.*2\.1.*&mirrorlist" | grep '<li>Filename: file2.1.dat</li>'
+
+
+echo success
+
