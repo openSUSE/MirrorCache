@@ -171,10 +171,28 @@ sub looks_like_file {
     return 1;
 };
 
-sub _detect_ln {
-    return undef unless $nfs;
-    my ($dir, $file) = @_;
-    return undef unless $file && $file =~ m/.*(Media|Current)\.iso(\.sha256)?/;
+sub _detect_ln_in_the_same_folder {
+    my ($self, $dir, $file) = @_;
+
+    unless ($nfs) {
+        my $dir1 = $dir . '/';
+        my $rootlocation = $self->rooturl;
+        my $url = $rootlocation . $dir1 . $file;
+        my $ua = Mojo::UserAgent->new->max_redirects(0)->request_timeout(2);
+        my $tx = $ua->head($url, {'User-Agent' => 'MirrorCache/detect_redirect'});
+        my $res = $tx->res;
+
+        # redirect on oneself
+        if ($res->is_redirect && $res->headers) {
+            my $location = $res->headers->location;
+            my $url1 = $rootlocation . $dir1;
+            if ($location && $url1 eq substr($location, 0, length($url1))) {
+                my $ln = substr($location, length($url1));
+                return $ln if -1 == index($ln, '/');
+            }
+        }
+        return undef;
+    }
 
     my $dest;
     eval {
@@ -191,11 +209,11 @@ sub _detect_ln {
     return $res;
 }
 
-sub detect_ln {
-    return undef unless $nfs;
+# this is simillar to self->realpath, just detects symlinks in current folder
+sub detect_ln_in_the_same_folder {
     my ($self, $path) = @_;
     my $f = Mojo::File->new($path);
-    my $res = _detect_ln($f->dirname, $f->basename);
+    my $res = $self->_detect_ln_in_the_same_folder($f->dirname, $f->basename);
     return undef unless $res;
     return $f->dirname . '/' . $res;
 }
@@ -258,7 +276,7 @@ sub _foreach_filename_html {
 
         if ($t && ($href20 eq substr($t,0,20))) {
             if ($desc{name} && (!$P || $desc{name} =~ $P)) {
-                my $target = _detect_ln($dir, $desc{name});
+                my $target = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
                 $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
                 %desc = ();
             }
@@ -299,7 +317,7 @@ sub _foreach_filename_html {
         $p->parse($chunk);
     }
     if ($desc{name} && (!$P || $desc{name} =~ $P)) {
-        my $target = detect_ln($dir, $desc{name});
+        my $target = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
         $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
         %desc = ();
     }

@@ -149,7 +149,7 @@ if ($TOP_FOLDERS) {
     }
 }
 
-sub _detect_ln {
+sub _detect_ln_in_the_same_folder {
     my ($dir, $file) = @_;
     return undef unless $file && $file =~ m/.*(Media|Current)\.iso(\.sha256)?/;
 
@@ -167,10 +167,10 @@ sub _detect_ln {
     return undef;
 }
 
-sub detect_ln {
+sub detect_ln_in_the_same_folder {
     my ($self, $path) = @_;
     my $f = Mojo::File->new($path);
-    my $res = _detect_ln($f->dirname, $f->basename);
+    my $res = _detect_ln_in_the_same_folder($f->dirname, $f->basename);
     return undef unless $res;
     return $f->dirname . '/' . $res;
 }

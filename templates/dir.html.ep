@@ -5,7 +5,7 @@
 % my $full_path = $cur_path;
 % $full_path = $route . $cur_path unless $route eq '/';
 % my @breadcrumbs = split '/', $full_path;
-% my $bc_last = pop @breadcrumbs;
+% my $bc_last = pop @breadcrumbs // '';
 %= include 'layouts/info'
 
 % my $mc_branding = eval '$branding' // '';
@@ -21,11 +21,11 @@
 
 <style type='text/css'>
 
-a {
+tr.td.a {
   display: flex;
 }
 
-a::after{
+tr.td.a::after{
   content: var(--desc);
   color: grey;
   margin-left: auto;

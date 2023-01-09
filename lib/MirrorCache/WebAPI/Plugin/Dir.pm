@@ -176,15 +176,18 @@ sub _redirect_project_ln_geo {
             $c->stat->redirect_to_region($dm);
             return 1;
         }
-    }
 
-    my $ln = $root->detect_ln($path);
-    if ($ln) {
-        # redirect to the symlink
-        $c->log->error('redirect detected: ' . $ln) if $MCDEBUG;
-        $dm->redirect($dm->route . $ln);
-        $c->stat->redirect_to_region($dm);
-        return 1;
+        $c->log->error('pedantic: ' . $dm->pedantic) if $MCDEBUG;
+        if ($path =~ m/.*(Media|Current)\.iso(\.sha256(\.asc)?)?/ && $dm->pedantic) {
+            my $ln = $root->detect_ln_in_the_same_folder($path);
+            $c->log->error("ln for $path : " . ($ln // 'null')) if $MCDEBUG;
+            if ($ln) {
+                # redirect to the symlink
+                $c->log->error('redirect detected: ' . $ln) if $MCDEBUG;
+                $dm->redirect($dm->route . $ln);
+                return 1;
+            }
+        }
     }
     return undef if $trailing_slash || $path eq '/' || $dm->mirrorlist;
     return undef if $dm->must_render_from_root;
@@ -314,7 +317,7 @@ sub _render_from_db {
             my $xtra = '';
             $xtra = '.zsync' if $dm->zsync && !$dm->accept_zsync;
             my $file;
-            $c->log->error($c->dumper('parent_folder:', $parent_folder)) if $MCDEBUG;
+            $c->log->error($c->dumper('parent_folder:', $parent_folder->path)) if $MCDEBUG;
             $file = $schema->resultset('File')->find_with_hash($parent_folder->id, $f->basename, $xtra, $dm->regex, $dm->glob_regex) if $parent_folder;
             $c->log->error($c->dumper('file:', $f->basename, $file)) if $MCDEBUG;
 
@@ -427,8 +430,6 @@ sub _guess_what_to_render {
 }
 
 sub _by_filename {
-   delete $b->{desc} unless $b->{desc};
-   delete $a->{desc} unless $a->{desc};
    versioncmp(lc($b->{dir} // ''),  lc($a->{dir} // '')) ||
    versioncmp(lc($a->{name} // ''), lc($b->{name} // ''));
 }
@@ -497,31 +498,31 @@ sub _render_dir_from_db {
         my $basename = $child->{name};
         my $size     = $child->{size};
         my $mtime    = $child->{mtime};
+        my $desc     = $folderDesc{$c->mcbranding}{$dir}{$basename};
         if ($json) {
             push @files, {
                 name  => $basename,
                 size  => $size,
                 mtime => $mtime,
-                desc  => $folderDesc{$c->mcbranding}{$dir}{$basename},
             };
-            next;
+        } else {
+            $size        = MirrorCache::Utils::human_readable_size($size) if $size;
+            $mtime       = strftime("%d-%b-%Y %H:%M", gmtime($mtime)) if $mtime;
+
+            my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
+            my $encoded   = Encode::decode_utf8( './' . $basename );
+            my $mime_type = $dm->mime || 'text/plain';
+
+            push @files, {
+                url   => $encoded,
+                name  => $basename,
+                size  => $size,
+                type  => $mime_type,
+                mtime => $mtime,
+                dir   => $is_dir,
+            };
         }
-        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
-        $mtime       = strftime("%d-%b-%Y %H:%M", gmtime($mtime)) if $mtime;
-
-        my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
-        my $encoded   = Encode::decode_utf8( './' . $basename );
-        my $mime_type = $dm->mime || 'text/plain';
-
-        push @files, {
-            url   => $encoded,
-            name  => $basename,
-            size  => $size,
-            type  => $mime_type,
-            mtime => $mtime,
-            dir   => $is_dir,
-            desc  => $folderDesc{$c->mcbranding}{$dir}{$basename},
-        };
+        $files[-1]->{desc} = $desc if $desc;
     }
     my @items = sort _by_filename @files;
     return $c->render( json => { data => \@items } ) if $dm->jsontable;
@@ -549,32 +550,31 @@ sub _render_dir_local {
         $basename = $basename . '/' if $stat && -d $stat;
         my $size     = $stat->size if $stat;
         my $mtime    = $stat->mtime if $stat;
+        my $desc     = $folderDesc{$c->mcbranding}{$dir}{$basename};
         if ($json) {
             push @files, {
                 name  => $basename,
                 size  => $size,
                 mtime => $mtime,
-                desc  => $folderDesc{$c->mcbranding}{$dir}{$basename},
             };
-            next;
+        } else {
+            $size        = MirrorCache::Utils::human_readable_size($size) if $size;
+            $mtime       = strftime("%d-%b-%Y %H:%M", gmtime($mtime)) if $mtime;
+
+            my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
+            my $encoded   = Encode::decode_utf8( './' . $basename );
+            my $mime_type = $dm->mime || 'text/plain';
+
+            push @files, {
+                url   => $encoded,
+                name  => $basename,
+                size  => $size,
+                type  => $mime_type,
+                mtime => $mtime,
+                dir   => $is_dir,
+            };
         }
-
-        $size        = MirrorCache::Utils::human_readable_size($size) if $size;
-        $mtime       = strftime("%d-%b-%Y %H:%M", gmtime($mtime)) if $mtime;
-
-        my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
-        my $encoded   = Encode::decode_utf8( './' . $basename );
-        my $mime_type = $dm->mime || 'text/plain';
-
-        push @files, {
-            url   => $encoded,
-            name  => $basename,
-            size  => $size,
-            type  => $mime_type,
-            mtime => $mtime,
-            dir   => $is_dir,
-            desc  => $folderDesc{$c->mcbranding}{$dir}{$basename},
-        };
+        $files[-1]->{desc} = $desc if $desc;
     }
     my @items = sort _by_filename @files;
     return $c->render( json => { data => \@items } ) if $dm->jsontable;
