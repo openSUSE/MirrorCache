@@ -52,7 +52,7 @@ curl --interface $na_interface -Is http://$hq_address/download/folder1/file1.1.d
 
 # do requests and check that both na instances are being used and instance 2 is used more frequently
 out=$(
-counter=30
+counter=180
 
 while test $counter -gt 0
 do

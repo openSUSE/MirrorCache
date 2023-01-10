@@ -8,6 +8,7 @@ function setupBrowseTable(path) {
         data: 'name',
         className: 'name',
         defaultContent: "",
+        type: "version-string",
         render: function (data, type, row, meta) {
             if(type === 'display'){
                 var d = data;
@@ -75,6 +76,16 @@ function setupBrowseTable(path) {
             return data;
         }
     });
+
+    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
+        "version-string-asc" : function (a, b) {
+            return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+        },
+        "version-string-desc" : function (a, b) {
+            return b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' });
+        }
+    });
+
 
     var url = $("#browse_api_url").val();
     var table = $('.browsetable');
