@@ -1,0 +1,6 @@
+mkdocs
+mkdocs-material
+mkdocs-material-extensions
+mkdocs-minify-plugin
+mkdocs-markdownextradata-plugin
+mkdocs-git-revision-date-localized-plugin
