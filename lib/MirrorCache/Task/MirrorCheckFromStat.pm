@@ -45,6 +45,8 @@ sub _run {
 
     my $schema = $app->schema;
 
+    $prev_stat_id = $schema->resultset('Stat')->secure_max_id($prev_stat_id);
+
     my ($stat_id, $mirror_id, $country, $url, $folder, $folder_id) = $schema->resultset('Stat')->latest_hit($prev_stat_id);
     my $last_run = 0;
     while ($stat_id && $stat_id > $prev_stat_id) {

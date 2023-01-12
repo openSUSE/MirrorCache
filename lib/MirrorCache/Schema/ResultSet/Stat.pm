@@ -254,4 +254,13 @@ END_SQL
     return ($id, \@folder_ids, \@country_list);
 }
 
+sub secure_max_id {
+    my ($self, $prev_stat_id) = @_;
+    my $max_id = $self->get_column("id")->max;
+
+    $prev_stat_id = $max_id - 100000 if !$prev_stat_id || $max_id - $prev_stat_id > 10000 || $prev_stat_id > $max_id;
+    $prev_stat_id = 0 if $prev_stat_id < 0;
+    return $prev_stat_id;
+}
+
 1;
