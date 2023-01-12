@@ -34,8 +34,22 @@ sub _run {
     my $schema = $app->schema;
     $minion->enqueue('mirror_probe_projects');
 
-    # purge unreferenced folder_diff
+    # detect stalled backstage jobs
     my $sql;
+    if ($schema->pg) {
+$sql = <<'END_SQL';
+update minion_jobs set state = 'failed', result = concat("killed; old result: ", result) where state = 'active' and started < now() - interval '1 hour'
+END_SQL
+    } else {
+$sql = <<'END_SQL';
+update minion_jobs set state = 'failed', result = concat_ws("", "killed; old result: ", result) where state = 'active' and started < now() - interval 2 hour
+END_SQL
+}
+    eval {
+        $schema->storage->dbh->prepare($sql)->execute();
+        1;
+    } or $job->note(last_warning_0 => $@, at_0 => datetime_now());
+
     if ($schema->pg) {
 $sql = <<'END_SQL';
 with DiffToDelete as (
@@ -65,7 +79,7 @@ END_SQL
     eval {
         $schema->storage->dbh->prepare($sql)->execute();
         1;
-    } or $job->note(last_warning => $@, at => datetime_now());
+    } or $job->note(last_warning_1 => $@, at_1 => datetime_now());
 
     # delete rows from server_capability_check to avoid overload
     my $sqlservercap;
@@ -84,7 +98,7 @@ END_SQL
     eval {
         $schema->storage->dbh->prepare($sqlservercap)->execute();
         1;
-    } or $job->note(last_warning => $@, at => datetime_now());
+    } or $job->note(last_warning_2 => $@, at_2 => datetime_now());
 
     # delete rows from audit_event
     my $fail_count;
@@ -92,7 +106,7 @@ END_SQL
     eval {
         ($fail_count, $last_warning) = $schema->resultset('AuditEvent')->cleanup_audit_events($app);
         $fail_count ? 0 : 1;
-    } or $job->note(last_warning => $last_warning, delete_fail_count => $fail_count, at => datetime_now());
+    } or $job->note(last_warning_3 => $last_warning, delete_fail_count => $fail_count, at_3 => datetime_now());
 
     # delete rows from stat
     my $sqlstat;
@@ -111,7 +125,7 @@ END_SQL
     eval {
         $schema->storage->dbh->prepare($sqlservercap)->execute();
         1;
-    } or $job->note(last_warning => $@, at => datetime_now());
+    } or $job->note(last_warning_4 => $@, at_4 => datetime_now());
 
 
     return $job->retry({delay => $DELAY});
