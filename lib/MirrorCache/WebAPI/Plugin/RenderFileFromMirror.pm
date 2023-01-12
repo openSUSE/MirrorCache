@@ -29,6 +29,7 @@ use Mojo::Util;
 use Mojo::IOLoop::Subprocess;
 
 my $MCDEBUG = $ENV{MCDEBUG_RENDER_FILE_FROM_MIRROR} // $ENV{MCDEBUG_ALL} // 0;
+my $mc_config;
 
 sub register {
     my ($self, $app) = @_;
@@ -39,6 +40,7 @@ sub register {
     $app->helper( 'mirrorcache.render_file' => sub {
         my ($c, $filepath, $dm, $file)= @_;
         $c->log->error($c->dumper('RENDER START', $filepath)) if $MCDEBUG;
+        $mc_config = $app->mc->config;
         my $root = $c->mc->root;
         my $f = Mojo::File->new($filepath);
         my $dirname = $f->dirname;
@@ -111,7 +113,13 @@ sub register {
         my $baseurl; # just hostname + eventual urldir (without folder and file)
         my $fullurl; # baseurl with path and filename
         if ($dm->metalink || $dm->meta4 || $dm->torrent || $dm->zsync || $dm->magnet) {
-	    $baseurl = $root->is_remote ? $root->location($dm) : $root->redirect($dm, $dirname) # we must pass $path here because it potenially has impact
+	    if (!$root->is_remote) {
+                $baseurl = $root->redirect($dm, $dirname); # we must pass $path here because it potenially has impact
+            } elsif ($file->{size} && $mc_config->redirect_huge && $mc_config->huge_file_size <= $file->{size}) {
+                $baseurl = $dm->scheme . '://' . $mc_config->redirect_huge . $filepath;
+            } else {
+                $baseurl = $root->location($dm);
+            }
         }
         if ($dm->torrent || $dm->zsync || $dm->magnet) {
             if ($baseurl) {
@@ -245,7 +253,11 @@ sub register {
                 $fileorigin = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL};
                 $fileorigin = $dm->scheme . "://" . $fileorigin unless $fileorigin =~ m/^http/;
             } elsif ($root->is_remote) {
-                $fileorigin = $root->location($dm);
+                if ($file->{size} && $mc_config->redirect_huge && $mc_config->huge_file_size <= $file->{size}) {
+                    $fileorigin = $dm->scheme . '://' . $mc_config->redirect_huge;
+                } else {
+                    $fileorigin = $root->location($dm);
+                }
             } else {
                 my $redirect = $root->redirect($dm, $filepath);
                 if ($redirect) {
@@ -590,7 +602,7 @@ sub _build_metalink() {
                 return if $root_included and !$print;
 
                 $writer->comment("File origin location: ") if $print;
-                if ($METALINK_GREEDY && $METALINK_GREEDY <= (100 - $preference)) {
+                if ($METALINK_GREEDY && $METALINK_GREEDY <= (100 - $preference) || $root_included) {
                     $writer->comment($rooturl . $fullname);
                 } else {
                     $writer->startTag('url', type => substr($rooturl,0,$colon), location => uc($dm->root_country), preference => $preference);

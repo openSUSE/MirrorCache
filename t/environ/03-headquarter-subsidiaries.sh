@@ -8,17 +8,21 @@ set -ex
 # 8 - ASIA subsidiary
 
 SMALL_FILE_SIZE=3
+HUGE_FILE_SIZE=9
+FAKEURL="notexists${RANDOM}.com"
 
 for i in 6 7 8 9; do
     x=$(environ mc$i $(pwd))
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo -n 1234 > $x/dt/folder1/filebig1.1.dat
     echo -n 123  > $x/dt/folder1/filesmall1.1.dat
+    echo -n 123456789 > $x/dt/folder1/filehuge1.1.dat
     echo '[]'    > $x/dt/folder1/file.json
     eval mc$i=$x
 done
 
 hq_address=$($mc9/print_address)
+hq_interface=127.0.0.10
 na_address=$($mc6/print_address)
 na_interface=127.0.0.2
 eu_address=$($mc7/print_address)
@@ -28,6 +32,8 @@ as_interface=127.0.0.4
 
 # deploy db
 $mc9/gen_env MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3' \
+             MIRRORCACHE_HUGE_FILE_SIZE=$HUGE_FILE_SIZE \
+             MIRRORCACHE_REDIRECT_HUGE=$FAKEURL \
              MIRRORCACHE_SMALL_FILE_SIZE=$SMALL_FILE_SIZE
 
 $mc9/backstage/shoot
@@ -75,6 +81,9 @@ echo check small files are not redirected
 curl --interface $na_interface -Is http://$hq_address/download/folder1/filebig1.1.dat | grep "Location: http://$na_address/download/folder1/filebig1.1.dat"
 curl --interface $na_interface -Is http://$hq_address/download/folder1/filesmall1.1.dat | grep "200 OK"
 
+echo check huge files are redirected to FAKEURL
+curl --interface $hq_interface -Is http://$hq_address/download/folder1/filehuge1.1.dat | grep "Location: http://$FAKEURL/folder1/filehuge1.1.dat"
+
 ct=$($mc9/curl -I /download/folder1/file.json | grep Content-Type)
 [[ "$ct" =~ application/json ]]
 ct=$($mc9/curl -I /folder1/file.json | grep Content-Type)
@@ -95,5 +104,12 @@ test $rc -gt 0
 
 echo unless /download is asked explicitly
 $mc9/curl -H 'User-Agent: Chromium/xyz' /download/folder1/ | grep file.json
+
+echo check metalink/mirrorlist for huge files reference FAKEURL, but need to scan them first
+$mc9/backstage/job -e folder_sync_schedule_from_misses
+$mc9/backstage/job -e folder_sync_schedule
+$mc9/backstage/shoot
+curl --interface $hq_interface -s http://$hq_address/download/folder1/filehuge1.1.dat.metalink   | grep "http://$FAKEURL/folder1/filehuge1.1.dat"
+curl --interface $hq_interface -s http://$hq_address/download/folder1/filehuge1.1.dat.mirrorlist | grep "http://$FAKEURL/folder1/filehuge1.1.dat"
 
 echo success

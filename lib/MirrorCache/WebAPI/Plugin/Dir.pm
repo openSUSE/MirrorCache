@@ -27,6 +27,7 @@ use MirrorCache::Utils;
 use MirrorCache::Datamodule;
 
 my $root;
+my $mc_config;
 my @top_folders;
 
 my $MCDEBUG = $ENV{MCDEBUG_DIR} // $ENV{MCDEBUG_ALL} // 0;
@@ -36,6 +37,7 @@ sub register {
     my $app = shift;
 
     $root = $app->mc->root;
+    $mc_config = $app->mc->config;
 
     if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
         @top_folders = split /[:,\s]+/, $ENV{MIRRORCACHE_TOP_FOLDERS};
@@ -177,7 +179,7 @@ sub _redirect_project_ln_geo {
             return 1;
         }
 
-        $c->log->error('pedantic: ' . $dm->pedantic) if $MCDEBUG;
+        $c->log->error('pedantic: ' . ($dm->pedantic // 'undef')) if $MCDEBUG;
         if ($path =~ m/.*(Media|Current)\.iso(\.sha256(\.asc)?)?/ && $dm->pedantic) {
             my $ln = $root->detect_ln_in_the_same_folder($path);
             $c->log->error("ln for $path : " . ($ln // 'null')) if $MCDEBUG;
@@ -329,6 +331,12 @@ sub _render_from_db {
                     $dm->accept_all(1);
                     $dm->_path($dm->path . '.zsync');
                     $path = $path . '.zsync';
+                }
+
+                $c->log->error($c->dumper('file_size: ', $file->{size} // 'undef', 'huge_file_size: ', $mc_config->huge_file_size)) if $MCDEBUG;
+                if ($root->is_remote && !$dm->extra && $file->{size} && $mc_config->redirect_huge && $mc_config->huge_file_size <= $file->{size}) {
+                    $dm->redirect($dm->scheme . '://' . $mc_config->redirect_huge . $path);
+                    return 1;
                 }
                 if ($file->{target}) {
                     # redirect to the symlink
