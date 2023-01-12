@@ -34,6 +34,9 @@ has dsn_replica  => $ENV{MIRRORCACHE_DSN_REPLICA};
 has redirect     => $ENV{MIRRORCACHE_REDIRECT};
 has redirect_vpn => $ENV{MIRRORCACHE_REDIRECT_VPN};
 
+has redirect_huge  => $ENV{MIRRORCACHE_REDIRECT_HUGE};
+has huge_file_size => int($ENV{MIRRORCACHE_HUGE_FILE_SIZE} // 0) || 40*1024*1024;
+
 has plugin_status => $ENV{MIRRORCACHE_PLUGIN_STATUS};
 
 has db_provider           => undef;

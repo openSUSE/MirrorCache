@@ -31,6 +31,8 @@ my $app;
 my $root_subtree = $ENV{MIRRORCACHE_SUBTREE} // "";
 
 has 'urlredirect';
+has 'urlredirect_huge';
+has 'huge_file_size';
 
 sub register {
     (my $self, $app) = @_;
@@ -42,6 +44,9 @@ sub register {
     }
 
     $self->urlredirect($app->mcconfig->redirect);
+    $self->urlredirect_huge($app->mcconfig->redirect_huge);
+    $self->huge_file_size($app->mcconfig->huge_file_size);
+
     $app->helper( 'mc.root' => sub { $self; });
 }
 
@@ -106,10 +111,15 @@ sub redirect {
     $filepath = "" unless $filepath;
     for my $root (@roots) {
         next unless ( -e $root->[dir] . $root_subtree . $filepath || ( $root_subtree && ( -e $root->[dir] . $filepath  ) ) );
+        if ($self->urlredirect_huge) {
+            my $size = -s $root->[dir] . $filepath;
+            return $dm->scheme . "://" . $self->urlredirect_huge if (($size // 0) >= $self->huge_file_size);
+        }
+
         return $dm->scheme . "://" . $root->[host_vpn] if ($dm->vpn && $root->[host_vpn]);
         return $dm->scheme . "://" . $root->[host] if ($root->[host]);
         return $dm->scheme . "://" . $self->urlredirect if ($self->urlredirect);
-        return undef;
+        last;
     }
     return undef;
 }
