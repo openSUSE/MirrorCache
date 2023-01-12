@@ -93,7 +93,8 @@ done
 # first request will miss
 $mc/curl -I /download/folder1/file3.1.dat | grep 200
 
-$mc/backstage/job folder_sync_schedule_from_misses
+# pass too big value for prev_stat_id and make sure it is automatically adjusted
+$mc/backstage/job -e folder_sync_schedule_from_misses -a '["1000000"]'
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule

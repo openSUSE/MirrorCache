@@ -46,6 +46,9 @@ sub _run {
     my $schema = $app->schema;
     my $limit = 10000;
 
+    $prev_stat_id = $schema->resultset('Stat')->secure_max_id($prev_stat_id);
+    print(STDERR "$pref id after adjust: $prev_stat_id\n") if $MCDEBUG;
+
     my ($stat_id, $folders, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
     $common_guard = undef;
     my $rs = $schema->resultset('Folder');

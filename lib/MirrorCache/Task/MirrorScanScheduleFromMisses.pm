@@ -47,6 +47,8 @@ sub _run {
     my $schema = $app->schema;
     my $limit = $prev_stat_id ? 1000 : 10;
 
+    $prev_stat_id = $schema->resultset('Stat')->secure_max_id($prev_stat_id);
+
     my ($stat_id, $folder_ids, $country_list) = $schema->resultset('Stat')->mirror_misses($prev_stat_id, $limit);
     $common_guard = undef;
     my $rs = $schema->resultset('Folder');
