@@ -8,6 +8,13 @@
 <div class="row">
     <div class="col-sm-12">
         <h2><%= title %></h2>
+        <div id="regionspanelparent" class="card">
+        <div id="regionspanel" style="display: none">
+            <span style="float: left">Regions</span>
+            <ul id="regionspanelul" style="float: left">
+            </ul>
+        </div>
+        </div>
 
         %= include 'layouts/info'
 
@@ -20,6 +27,7 @@
                     <th class="col_value">Hostname</th>
                     <th class="col_value">Urldir</th>
                     <th class="col_value">Region</th>
+                    <th class="col_value">Extra Regions</th>
                     <th class="col_value">Country</th>
                     <th class="col_value">Comment</th>
                     <th class="col_value">Public Notes</th>

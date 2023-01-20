@@ -38,11 +38,11 @@ sub _run {
     my $sql;
     if ($schema->pg) {
 $sql = <<'END_SQL';
-update minion_jobs set state = 'failed', result = concat("killed; old result: ", result) where state = 'active' and started < now() - interval '1 hour'
+update minion_jobs set state = 'failed', result = '"killed"' where state = 'active' and started < now() - interval '1 hour'
 END_SQL
     } else {
 $sql = <<'END_SQL';
-update minion_jobs set state = 'failed', result = concat_ws("", "killed; old result: ", result) where state = 'active' and started < now() - interval 2 hour
+update minion_jobs set state = 'failed', result = '"killed"' where state = 'active' and started < now() - interval 1 hour
 END_SQL
 }
     eval {

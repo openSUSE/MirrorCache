@@ -173,6 +173,8 @@ sub _setup_webui {
     my $rest = $r->any('/rest');
     my $rest_r    = $rest->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
     $rest_r->get('/server')->name('rest_server')->to('table#list', table => 'Server');
+    $rest_r->get('/server_location')->name('rest_server_location')->to('server_location#list');
+    $rest_r->get('/server/location')                              ->to('server_location#list');
     $rest_r->get('/server/:id')->to('table#list', table => 'Server');
     $rest_r->get('/project')->to('project#list');
     $rest_r->get('/project/:name')->to('project#show');

@@ -36,4 +36,21 @@ sub update_location {
     );
 }
 
+sub list {
+    my ($self) = @_;
+
+    my $region = $self->param("region");
+
+    return $self->render(code => 501, text => 'Expected parameter "region"') unless $region;
+
+    my $sql = "select * from server where region = ? or exists( select 1 from server_capability_declaration where server_id = server.id and capability = 'region' and concat(',', extra, ',') like concat('%',?::text,'%'));";
+
+    $sql =~ s/::text//g unless $self->schema->pg;
+
+
+    my $res = $self->schema->storage->dbh->selectall_arrayref($sql, {Columns => {}}, $region, $region);
+
+    return $self->render(json => $res);
+}
+
 1;

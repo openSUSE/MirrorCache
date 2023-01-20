@@ -396,7 +396,7 @@ function setupAdminTable(editable) {
     });
 
     // setup admin table
-    var url = $("#admintable_api_url").val();
+    var url = $("#admintable_api_url").val() + window.location.search;
     var table = $('.admintable');
     var dataTable = table.DataTable({
         order: [
@@ -418,6 +418,58 @@ function setupAdminTable(editable) {
         columnDefs: columnDefs,
         search: {
             regex: true,
+        },
+        fnInitComplete: function(oSettings, json) {
+            if (url === "/rest/server" || url == "/rest/myserver") {
+                // 1. aggregate regions
+                // 2. show panel
+                // 3. create elements
+                var servers = json.Server;
+                if (!servers)
+                    servers = json.MyServer;
+                if (!servers)
+                    return;
+
+                var regions = {};
+                for (const server of servers) {
+                    var region = server.region;
+                    if (region) {
+                        if(!regions[region]) regions[region] = 1
+                        else regions[region] += 1;
+                    }
+                    var extra = server[ "extra regions" ];
+                    if (extra) {
+                        for (const x of extra.split(",")) {
+                            if (x && (!region || region != x)) {
+                                if(!regions[x]) regions[x] = 1
+                                else regions[x] += 1;
+                            }
+                        }
+                    }
+                }
+                if (Object.keys(regions).length < 2) return;
+
+                var panel = document.getElementById("regionspanel");
+                if (!panel) return;
+                var ul = document.getElementById("regionspanelul");
+                if (!ul) return;
+                Object.keys(regions).forEach(function(key) {
+                    var li = document.createElement("li");
+                    // li.className = 'inline-block';
+                    li.style.float = 'left';
+                    li.style.margin = '0 15px';
+                    var a = document.createElement("a");
+                    a.textContent = key + " (" + regions[key] + ")";
+                    if (url == "/rest/myserver") {
+                        a.setAttribute("href", "/app/myserver?region=" + key);
+                    } else {
+                        a.setAttribute("href", "/app/server?region=" + key);
+                    }
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                });
+                panel.style.display = "block";
+            }
         },
     });
     dataTable.rowData = [];

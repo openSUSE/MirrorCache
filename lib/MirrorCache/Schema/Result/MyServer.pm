@@ -44,6 +44,11 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->set_primary_key("id");
 
-# __PACKAGE__->has_many('id' => 'MirrorCache::Schema::Result::ServerAdmin');
+__PACKAGE__->has_many(
+  "server_capability_declaration",
+  "MirrorCache::Schema::Result::ServerCapabilityDeclaration",
+  { "foreign.server_id" => "self.id" },
+  { cascade_copy => 0, cascade_delete => 0, join_type => 'left' },
+);
 
 1;
