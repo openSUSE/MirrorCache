@@ -40,7 +40,7 @@ __PACKAGE__->add_columns(
         "prefix",
       ],
     },
-    is_nullable => 1,
+    is_nullable => 0,
   },
   enabled => {
       data_type     => 'integer',
@@ -51,5 +51,7 @@ __PACKAGE__->add_columns(
   "extra",
   { data_type => "varchar", is_nullable => 1, size => 256 },
 );
+
+__PACKAGE__->set_primary_key("server_id", "capability");
 
 1;

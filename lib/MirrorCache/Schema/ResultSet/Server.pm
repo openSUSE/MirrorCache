@@ -323,4 +323,34 @@ END_SQL
     return $server_arrayref;
 }
 
+sub check_sync {
+    my ($self, $h) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = 'select * from server where id = ?';
+    my $exist = $dbh->selectrow_hashref($sql, undef, $h->{id});
+
+    unless ($exist) {
+        $sql = 'insert into server(id, hostname, urldir, enabled, region, country, score, lat, lng) select ?, ?, ?, ?, ?, ?, ?, ?, ?';
+        $dbh->prepare($sql)->execute($h->{id}, $h->{hostname}, $h->{urldir}, $h->{enabled}, $h->{region}, $h->{country}, $h->{score}, $h->{lat}, $h->{lng});
+        return 2;
+    }
+
+    return 0 if $exist->{hostname} ne $h->{hostname};
+
+    my $eq = 1;
+    for my $key (qw(urldir enabled region country score lat lng)) {
+        next if ($exist->{$key} // '') eq ($h->{$key} // '');
+        $eq = 0;
+        last;
+    }
+    return 1 if $eq;
+    $sql = 'update server set urldir = ?, enabled = ?, region = ?, country = ?, score = ?, lat = ?, lng = ? where id = ? and hostname = ?';
+    $dbh->prepare($sql)->execute($h->{urldir}, $h->{enabled}, $h->{region}, $h->{country}, $h->{score}, $h->{lat}, $h->{lng}, $h->{id}, $h->{hostname});
+    return 3;
+}
+
 1;

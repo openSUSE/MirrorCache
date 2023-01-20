@@ -47,6 +47,7 @@ sub register_tasks {
         qw(MirrorCache::Task::MirrorScan),
         qw(MirrorCache::Task::MirrorLocation),
         qw(MirrorCache::Task::MirrorProbe),
+        qw(MirrorCache::Task::MirrorProviderSync),
         qw(MirrorCache::Task::FolderHashesCreate),
         qw(MirrorCache::Task::FolderHashesImport),
         qw(MirrorCache::Task::FolderSyncScheduleFromMisses),
@@ -59,6 +60,9 @@ sub register_tasks {
       );
     if (defined $ENV{MIRRORCACHE_PERMANENT_JOBS}) {
         @permanent_jobs = split /[:,\s]+/, $ENV{MIRRORCACHE_PERMANENT_JOBS};
+    }
+    if ($app->mcconfig->mirror_provider) {
+        push @permanent_jobs, 'mirror_provider_sync';
     }
 }
 

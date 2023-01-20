@@ -39,6 +39,8 @@ has huge_file_size => int($ENV{MIRRORCACHE_HUGE_FILE_SIZE} // 0) || 40*1024*1024
 
 has plugin_status => $ENV{MIRRORCACHE_PLUGIN_STATUS};
 
+has mirror_provider       => $ENV{MIRRORCACHE_MIRROR_PROVIDER};
+
 has db_provider           => undef;
 has custom_footer_message => $ENV{MIRRORCACHE_CUSTOM_FOOTER_MESSAGE};
 
@@ -50,7 +52,7 @@ sub init($self, $cfgfile) {
     my $cfg;
     $cfg = Config::IniFiles->new(-file => $cfgfile, -fallback => 'default') if $cfgfile;
     if ($cfg) {
-        for my $k (qw/root redirect browser_agent_mask/) {
+        for my $k (qw/root redirect mirror_provider browser_agent_mask/) {
             if (my $v = $cfg->val('default', $k)) {
                 $self->$k($v);
             }
