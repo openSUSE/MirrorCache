@@ -114,7 +114,7 @@ sub register {
         my $fullurl; # baseurl with path and filename
         if ($dm->metalink || $dm->meta4 || $dm->torrent || $dm->zsync || $dm->magnet) {
 	    if (!$root->is_remote) {
-                $baseurl = $root->redirect($dm, $dirname); # we must pass $path here because it potenially has impact
+                $baseurl = $root->redirect($dm, $filepath); # we must pass $path here because it potenially has impact
             } elsif ($file->{size} && $mc_config->redirect_huge && $mc_config->huge_file_size <= $file->{size}) {
                 $baseurl = $dm->scheme . '://' . $mc_config->redirect_huge . $filepath;
             } else {
