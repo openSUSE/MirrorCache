@@ -1,3 +1,11 @@
+
+function encodeComponentExceptColon(str) {
+  return (
+    encodeURIComponent(str)
+      .replace(/%3A/g, (str, hex) => ':')
+  );
+}
+
 function setupBrowseTable(path) {
     // read columns from empty HTML table rendered by the server
     var columns = [];
@@ -19,9 +27,9 @@ function setupBrowseTable(path) {
                 }
                 var desc = row['desc'];
                 if (desc) {
-                    data = '<a style="--desc: \'' + desc + '\'" href="' + path + encodeURIComponent(d) + t + '">' + data + '</a>';
+                    data = '<a style="--desc: \'' + desc + '\'" href="' + path + encodeComponentExceptColon(d) + t + '">' + data + '</a>';
                 } else {
-                    data = '<a href="' + path + encodeURIComponent(d) + t + '">' + data + '</a>';
+                    data = '<a href="' + path + encodeComponentExceptColon(d) + t + '">' + data + '</a>';
                 }
             }
             if(type === 'sort'){
@@ -42,9 +50,9 @@ function setupBrowseTable(path) {
             if(type === 'display' && data > 0){
                 data = new Date(data * 1000).toLocaleString().replace(/.\d+$/, "").replace(/:\d\d (AM|PM)$/, " $1");
                 if(row['name'].slice(-1) != '/') {
-                    data = '<a href="' + path + encodeURIComponent(row['name']) + '.mirrorlist">' + data + '</a>';
+                    data = '<a href="' + path + encodeComponentExceptColon(row['name']) + '.mirrorlist">' + data + '</a>';
                 } else {
-                    data = '<a href="' + path + encodeURIComponent(row['name'].slice(0,-1)) + '/">' + data + '</a>';
+                    data = '<a href="' + path + encodeComponentExceptColon(row['name'].slice(0,-1)) + '/">' + data + '</a>';
                 }
             }
             return data;
@@ -71,7 +79,7 @@ function setupBrowseTable(path) {
                     } while (Math.round(Math.abs(data) * 10) >= 1024 && u < units.length - 1);
                     data = data.toFixed(1) + ' ' + units[u];
                 }
-                data = '<a href="' + path + encodeURIComponent(row['name']) + '.mirrorlist">' + data + '</a>';
+                data = '<a href="' + path + encodeComponentExceptColon(row['name']) + '.mirrorlist">' + data + '</a>';
             }
             return data;
         }
