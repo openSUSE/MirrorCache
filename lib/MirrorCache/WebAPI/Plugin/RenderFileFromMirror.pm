@@ -309,6 +309,11 @@ sub register {
         }
 
         unless ($mirror) {
+            if ($root->is_remote && $file->{size} && $mc_config->redirect_huge && $mc_config->huge_file_size <= $file->{size}) {
+                $dm->redirect($dm->scheme . '://' . $mc_config->redirect_huge . $filepath);
+                return 1;
+            }
+
             $root->render_file($dm, $filepath);
             return 1;
         }
