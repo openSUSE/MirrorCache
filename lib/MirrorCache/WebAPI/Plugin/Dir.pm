@@ -333,11 +333,6 @@ sub _render_from_db {
                     $path = $path . '.zsync';
                 }
 
-                $c->log->error($c->dumper('file_size: ', $file->{size} // 'undef', 'huge_file_size: ', $mc_config->huge_file_size)) if $MCDEBUG;
-                if ($root->is_remote && !$dm->extra && $file->{size} && $mc_config->redirect_huge && $mc_config->huge_file_size <= $file->{size}) {
-                    $dm->redirect($dm->scheme . '://' . $mc_config->redirect_huge . $path);
-                    return 1;
-                }
                 if ($file->{target}) {
                     # redirect to the symlink
                     $dm->redirect($dm->route . $dirname . '/' . $file->{target});

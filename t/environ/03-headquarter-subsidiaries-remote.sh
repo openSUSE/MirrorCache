@@ -2,6 +2,7 @@
 set -ex
 
 # root : ng9
+# a mirror in headquarter : ng8
 
 # mc environ by number:
 # 9 - headquarter
@@ -9,6 +10,7 @@ set -ex
 # 7 - EU subsidiary
 
 root=$(environ ng9)
+mirror=$(environ ng8)
 
 mkdir -p $root/dt/{folder1,folder2,folder3}
 echo $root/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
@@ -18,12 +20,20 @@ SMALL_FILE_SIZE=3
 HUGE_FILE_SIZE=9
 FAKEURL="notexists${RANDOM}.com"
 echo -n 1234 > $root/dt/folder1/repodata/filebig1.1.dat
+echo -n 1234 > $root/dt/folder1/repodata/filebig2.1.dat
 echo -n 123  > $root/dt/folder1/repodata/filesmall1.1.dat
 echo -n 123456789 > $root/dt/folder1/repodata/filehuge1.1.dat
+echo -n 123456789 > $root/dt/folder1/repodata/filehuge2.1.dat
 echo repomdcontent > $root/dt/folder1/repodata/repomd.xml
 touch $root/dt/folder1/repodata/repomd.xml.asc
 
 $root/start
+
+$mirror/start
+cp -r $root/dt/* $mirror/dt/
+rm $mirror/dt/folder1/repodata/filebig1.1.dat
+rm $mirror/dt/folder1/repodata/filehuge1.1.dat
+
 
 mc9=$(environ mc9 $(pwd))
 $mc9/gen_env "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'" \
@@ -39,6 +49,9 @@ $mc9/backstage/shoot
 
 $mc9/sql "insert into subsidiary(hostname,region) select 'naaddress.com','na'"
 $mc9/sql "insert into subsidiary(hostname,region) select 'euaddress.net','eu'"
+
+$mc9/sql "insert into server(hostname,urldir,country,region,enabled) select '$($mirror/print_address)','','cn','as','t'"
+
 $mc9/start
 
 $mc9/backstage/job -e folder_sync -a '["/folder1/repodata"]'
@@ -71,10 +84,14 @@ $mc9/curl -I --interface $eu_interface /folder1/repodata/filesmall1.1.dat | grep
 
 echo check huge files are redirected to FAKEURL, but we need to scan folder first
 $mc9/curl -I --interface $hq_interface /download/folder1/repodata/filehuge1.1.dat | grep "Location: http://$FAKEURL/folder1/repodata/filehuge1.1.dat"
-$mc9/curl -I --interface $hq_interface /download/folder1/repodata/filebig1.1.dat | grep "Location: " | grep $($root/print_address)
+$mc9/curl -I --interface $hq_interface /download/folder1/repodata/filebig1.1.dat | grep "Location: " | grep $($root/print_address)   # we removed it from mirror
+$mc9/curl -I --interface $hq_interface /download/folder1/repodata/filebig2.1.dat | grep "Location: " | grep $($mirror/print_address) # this is on mirror
 
 $mc9/curl --interface $hq_interface /download/folder1/repodata/filehuge1.1.dat.meta4 | grep "http://$FAKEURL/folder1/repodata/filehuge1.1.dat"
-$mc9/curl --interface $hq_interface /download/folder1/repodata/filehuge1.1.dat.mirrorlist | grep "http://$FAKEURL/folder1/repodata/filehuge1.1.dat"
+$mc9/curl --interface $hq_interface /download/folder1/repodata/filehuge1.1.dat.mirrorlist | grep "http://$FAKEURL/folder1/repodata/filehuge1.1.dat" # we removed it from mirror
+
+$mc9/curl -I --interface $hq_interface /download/folder1/repodata/filehuge1.1.dat | grep "http://$FAKEURL/folder1/repodata/filehuge1.1.dat"         # we removed it from mirror
+$mc9/curl -I --interface $hq_interface /download/folder1/repodata/filehuge2.1.dat | grep $($mirror/print_address)/folder1/repodata/filehuge2.1.dat  # this is on mirror
 
 echo success
 
