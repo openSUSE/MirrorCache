@@ -121,6 +121,7 @@ unless ($hasall) {
             my $sid = $folder_on_mirror->{server_id};
             if ($tx->result->code > 399 ) {
                 my $sql = 'delete from folder_diff_server where server_id = ? and folder_diff_id in (select id from folder_diff where folder_id = ?)';
+                $sql = 'delete folder_diff_server from folder_diff_server join folder_diff on folder_diff_id = id where server_id = ? and folder_id = ?' unless $schema->pg; # otherwise mariadb is bad at execution plan
                 eval {
                     $schema->storage->dbh->prepare($sql)->execute($sid, $folder_id);
                     1;
