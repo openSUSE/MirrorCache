@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2022 SUSE LLC
+# Copyright (C) 2020-2023 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,7 +44,11 @@ sub register {
         my $root = $c->mc->root;
         my $f = Mojo::File->new($filepath);
         my $dirname = $f->dirname;
-        my $realdirname = $root->realpath($f->dirname);
+        my $realfolder_id = $dm->real_folder_id;
+        my $realdirname;
+        unless ($realfolder_id) {
+            $realdirname = $root->realpath($f->dirname);
+        }
         $realdirname = $dirname unless $realdirname;
         my $basename = $f->basename;
         $basename = $file->{name} if $file;
@@ -72,8 +76,7 @@ sub register {
             }
             $schema->resultset('Folder')->set_wanted($folder_id) if $need_update;
         }
-        my $realfolder_id = 0;
-        if ($realdirname ne $dirname) {
+        if (!$realfolder_id && $realdirname ne $dirname) {
             my $realfolder = $schema->resultset('Folder')->find({path => $realdirname});
             $realfolder_id = $realfolder->id if $realfolder;
             $c->log->error($c->dumper('RENDER FOLDER REAL', $realfolder_id ? $realfolder_id : 'NULL')) if $MCDEBUG;

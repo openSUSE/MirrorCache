@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020-2023 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -171,13 +171,14 @@ sub find_folder_or_redirect {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select id, sync_last, scan_last, '' as pathto
+select id, sync_last, scan_last, '' as pathto, path
 from folder
 where path = ?
 union
-select id, NULL, NULL, pathto
-from redirect
+select folder.id, NULL, NULL, pathto, path
+from redirect left join folder on pathto = path
 where pathfrom = ?
+order by pathto desc
 limit 1
 END_SQL
     my $prep = $dbh->prepare($sql);

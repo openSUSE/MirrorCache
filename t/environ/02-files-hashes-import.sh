@@ -8,45 +8,46 @@ set -ex
 # hq mirros: ap1 ap2
 # na mirros: ap3 ap4
 
-for i in 9 6; do
+for i in 6 9; do
     x=$(environ mc$i $(pwd))
-    mkdir -p $x/dt/{folder1,folder2,folder3,folder4}
-    echo $x/dt/{folder1,folder2,folder3,folder4}/{file1.1,file2.1}.dat | xargs -n 1 touch
-    echo 1111111111 > $x/dt/folder1/file1.1.dat
-    echo 1111111112 > $x/dt/folder2/file1.1.dat
     eval mc$i=$x
 done
 
 for i in 1 2 3 4; do
     x=$(environ ap$i)
+    $x/start
+    eval ap$i=$x
+done
+
+for x in mc9 ap1 ap2 ap3 ap4; do
     mkdir -p $x/dt/{folder1,folder2,folder3,folder4}
     echo $x/dt/{folder1,folder2,folder3,folder4}/{file1.1,file2.1}.dat | xargs -n 1 touch
     echo 1111111111 > $x/dt/folder1/file1.1.dat
     echo 1111111112 > $x/dt/folder2/file1.1.dat
-    eval ap$i=$x
-    $x/start
+    ( cd $x/dt ; ln -s folder1 link1 )
 done
 
+
 # set the same modification time for file1.1.dat
-touch -d "$(date -R -r $mc9/dt/folder1/file1.1.dat)" {$mc6,$ap1,$ap2,$ap3,$ap4}/dt/folder1/file1.1.dat
+touch -d "$(date -R -r $mc9/dt/folder1/file1.1.dat)" {$ap1,$ap2,$ap3,$ap4}/dt/folder1/file1.1.dat
 
 hq_address=$($mc9/print_address)
 na_address=$($mc6/print_address)
 na_interface=127.0.0.2
 
 # deploy db
-$mc9/gen_env MIRRORCACHE_HASHES_COLLECT=1 MIRRORCACHE_HASHES_PIECES_MIN_SIZE=5 "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3 folder4'" MIRRORCACHE_BRANDING=SUSE MIRRORCACHE_WORKERS=4 MIRRORCACHE_DAEMON=1
+$mc9/gen_env MIRRORCACHE_HASHES_COLLECT=1 MIRRORCACHE_HASHES_PIECES_MIN_SIZE=5 "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3 folder4 link1'" MIRRORCACHE_BRANDING=SUSE MIRRORCACHE_WORKERS=4 MIRRORCACHE_DAEMON=1
 $mc9/backstage/shoot
 
-$mc9/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
+$mc9/sql "insert into subsidiary(hostname,region) select '$na_address','eu'"
 $mc9/start
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap1/print_address)','','t','jp','as'"
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap2/print_address)','','t','jp','as'"
 
-$mc6/gen_env MIRRORCACHE_REGION=na MIRRORCACHE_HEADQUARTER=$hq_address "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3'" MIRRORCACHE_HASHES_IMPORT=1
+$mc6/gen_env MIRRORCACHE_REGION=na MIRRORCACHE_HEADQUARTER=$hq_address "MIRRORCACHE_TOP_FOLDERS='folder1 folder2 folder3 link1'" MIRRORCACHE_HASHES_IMPORT=1 MIRRORCACHE_ROOT=http://$($mc9/print_address)
 $mc6/start
-$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','t','us','na'"
-$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','ca','na'"
+$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','t','de','eu'"
+$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','dk','eu'"
 
 for i in 9 6; do
     mc$i/backstage/job -e folder_sync -a '["/folder1"]'
@@ -133,5 +134,43 @@ test e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 == $(mc9/s
 test e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 == $(mc6/sql 'select sha256 from hash where file_id=8')
 
 test -n "$(mc6/sql 'select hash_last_import from folder where id=3')"
+
+
+echo check how symlink work
+cnt=$(mc6/sql 'select count(*) from file')
+
+mc9/curl -I /link1/file1.1.dat
+mc6/curl -I /link1/file1.1.dat
+
+mc9/backstage/job folder_sync_schedule_from_misses
+mc9/backstage/job folder_sync_schedule
+mc9/backstage/job mirror_scan_schedule
+mc9/backstage/shoot
+mc9/backstage/shoot -q hashes
+
+mc9/curl -I /link1/file1.1.dat | grep -E "$($ap1/print_address)|$($ap2/print_address)"
+
+mc6/backstage/job folder_sync_schedule_from_misses
+mc6/backstage/job folder_sync_schedule
+mc6/backstage/job mirror_scan_schedule
+mc6/backstage/shoot
+mc6/backstage/shoot -q hashes
+
+echo number of files shouldnt increase because we were rendering links
+
+mc6/sql_test $cnt == 'select count(*) from file'
+# mc6/sql_test /link1 == 'select pathfrom from redirect'
+
+mc6/sql_test /link1 == "select path from folder where path = '/link1'"
+
+mc6/sql_test 0 -lt "select count(*) from folder_diff join folder on folder_id = folder.id where path ='/link1'"
+
+mc6/curl -I /link1/file1.1.dat | grep -E "$($ap4/print_address)|$($ap3/print_address)"
+
+mc6/curl /link1/file1.1.dat.meta4 \
+    | grep -C20 $($ap3/print_address)/link1/file1.1.dat \
+    | grep -C20 $($ap3/print_address)/folder1/file1.1.dat \
+    | grep -C20 $($ap4/print_address)/link1/file1.1.dat \
+    | grep      $($ap4/print_address)/folder1/file1.1.dat
 
 echo success

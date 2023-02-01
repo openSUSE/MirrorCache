@@ -75,7 +75,7 @@ sub realpath {
     } elsif ($deep) {
         my $path1 = $path . '/';
         my $rootlocation = $self->rooturl;
-        my $url = $rootlocation . $path1;
+        my $url = $rootlocation . $path1 . '?realpath';
         my $ua = Mojo::UserAgent->new->max_redirects(0)->request_timeout(1);
         my $tx = $ua->head($url, {'User-Agent' => 'MirrorCache/detect_redirect'});
         my $res = $tx->res;
@@ -83,6 +83,8 @@ sub realpath {
         # redirect on oneself
         if ($res->is_redirect && $res->headers) {
             my $location1 = $res->headers->location;
+            $location1 =~ s/\?realpath=?$//;
+            return substr($location1,0,-1) if '/' eq substr($location1,0,1);
             if ($location1 && $path1 ne substr($location1, -length($path1))) {
                 my $i = rindex($location1, $rootlocation, 0);
                 if ($i ne -1) {

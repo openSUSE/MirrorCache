@@ -280,6 +280,11 @@ sub _local_render {
     return _render_top_folders($dm) if $ENV{MIRRORCACHE_TOP_FOLDERS} && $path eq '/';
     return $root->render_file_if_nfs($dm, $path) if $root->is_remote;
 
+    # root is only local now
+    if (defined($dm->c->param('realpath'))) {
+        my $realpath = $root->realpath($path);
+        return $dm->redirect($dm->route . $realpath . '/') if $realpath;
+    }
     if ($root->is_dir($path)) {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
         return _render_dir($dm, $path);
@@ -303,24 +308,34 @@ sub _render_from_db {
         $dirname = $root->realpath($dirname);
         $dirname = $dm->root_subtree . ($file_pattern_in_folder? $path : $f->dirname) unless $dirname;
         $c->log->error($c->dumper('dirname:', $dirname)) if $MCDEBUG;
-        if (my $parent_folder = $rsFolder->find({path => $dirname})) {
-            my $realpath_subtree = $root->realpath($dm->root_subtree . ($file_pattern_in_folder? $path : $f->dirname)) // $dirname;
+        if (my $parent_folder = $rsFolder->find_folder_or_redirect($dirname)) {
+            my $realpath_subtree;
+            if ($root->is_remote && $parent_folder && $parent_folder->{path} ne $dirname) {
+                $realpath_subtree = $parent_folder->{path};
+            } else {
+                $realpath_subtree = $root->realpath($dm->root_subtree . ($file_pattern_in_folder? $path : $f->dirname)) // $dirname;
+            }
             if ($dirname eq $realpath_subtree) {
                 if ($dirname eq $f->dirname || $file_pattern_in_folder) {
-                    $dm->folder_id($parent_folder->id);
-                    $dm->folder_sync_last($parent_folder->sync_last);
-                    $dm->folder_scan_last($parent_folder->scan_last);
+                    $dm->folder_id($parent_folder->{id});
+                    $dm->folder_sync_last($parent_folder->{sync_last});
+                    $dm->folder_scan_last($parent_folder->{scan_last});
                 }
             } else {
                 my $another_folder = $rsFolder->find({path => $dm->root_subtree . $f->dirname});
-                $c->log->error($c->dumper('another_folder:', $another_folder)) if $MCDEBUG;
+                $c->log->error($c->dumper('another_folder:', $another_folder->{id})) if $MCDEBUG;
                 return undef unless $another_folder; # nothing found, proceed to _guess_what_to_render
+                if ($parent_folder) {
+                    $dm->real_folder_id($parent_folder->{id});
+                    # $dm->folder_sync_last($parent_folder->{sync_last});
+                    # $dm->folder_scan_last($parent_folder->{scan_last});
+                }
             }
             my $xtra = '';
             $xtra = '.zsync' if $dm->zsync && !$dm->accept_zsync;
             my $file;
-            $c->log->error($c->dumper('parent_folder:', $parent_folder->path)) if $MCDEBUG;
-            $file = $schema->resultset('File')->find_with_hash($parent_folder->id, $f->basename, $xtra, $dm->regex, $dm->glob_regex) if $parent_folder;
+            $c->log->error($c->dumper('parent_folder:', $parent_folder->{path})) if $MCDEBUG && $parent_folder;
+            $file = $schema->resultset('File')->find_with_hash($parent_folder->{id}, $f->basename, $xtra, $dm->regex, $dm->glob_regex) if $parent_folder;
             $c->log->error($c->dumper('file:', $f->basename, $file)) if $MCDEBUG;
 
             # folders are stored with trailing slash in file table, so they will not be selected here
@@ -346,7 +361,7 @@ sub _render_from_db {
         }
     } elsif (my $folder = $rsFolder->find_folder_or_redirect($dm->root_subtree . $path)) {
         $c->log->error('found redirect : ', $folder->{pathto}) if $MCDEBUG && $folder->{pathto};
-        return $dm->redirect($folder->{pathto}) if $folder->{pathto};
+        return $dm->redirect($folder->{pathto} . $trailing_slash) if $folder->{pathto};
         # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
         $dm->folder_id($folder->{id});
         $dm->folder_sync_last($folder->{sync_last});
