@@ -18,7 +18,7 @@ use DBIx::Class::Timestamps;
 
 =cut
 
-__PACKAGE__->table("folder");
+__PACKAGE__->table("redirect");
 
 =head1 ACCESSORS
 

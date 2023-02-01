@@ -46,6 +46,7 @@ has 'mirrorlist';
 has [ 'torrent', 'magnet', 'btih' ];
 has [ 'json', 'jsontable' ];
 has [ 'folder_id', 'file_id', 'file_age', 'folder_sync_last', 'folder_scan_last' ]; # shortcut to requested folder and file, if known
+has [ 'real_folder_id' ];
 
 has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
 has '_root_region';

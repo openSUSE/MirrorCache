@@ -153,7 +153,7 @@ sub _sync {
         if ($dbfileids{$file}) {
             my $id = delete $dbfileidstodelete{$file};
             if (
-                (defined $size && defined $mtime) && ($size != $dbfilesizes{$file} || $mtime != $dbfilemtimes{$file})
+                (defined $size && defined $mtime) && ($size != ($dbfilesizes{$file} // -1) || $mtime != ($dbfilemtimes{$file} // -1))
                 ||
                 (defined $target && $target ne ($dbfiletargets{$file} // ''))
             ) {

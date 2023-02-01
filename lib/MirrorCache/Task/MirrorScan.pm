@@ -52,7 +52,7 @@ sub _scan {
         return $job->finish('folder sync job is still active')
             unless my $guard_r = $minion->guard('folder_sync' . $path, 360);
 
-        ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) 
+        ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes)
             = _dbfiles($app, $job, $path);
     }
     return undef unless $dbfiles;
@@ -68,7 +68,13 @@ sub _dbfiles {
     my $schema = $app->schema;
     my $folder = $schema->resultset('Folder')->find({path => $path});
     return undef unless $folder && $folder->id; # folder is not added to db yet
-    my $realpath = $app->mc->root->realpath($path);
+    my $realpath;
+    if ($app->mc->root->is_remote && !$ENV{MIRRORCACHE_ROOT_NFS}) {
+        my $redirect = $schema->resultset('Redirect')->find({pathfrom => $path});
+        $realpath = $redirect->pathto if $redirect;
+    } else {
+        $realpath = $app->mc->root->realpath($path);
+    }
     my $realfolder = $schema->resultset('Folder')->find({path => $realpath}) if $realpath;
     # we collect max(dt) here to avoid race with new files added to DB
     my $latestdt = $schema->resultset('File')->find({folder_id => $realfolder? $realfolder->id : $folder->id}, {
