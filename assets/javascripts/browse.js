@@ -2,7 +2,7 @@
 function encodeComponentExceptColon(str) {
   return (
     encodeURIComponent(str)
-      .replace(/%3A/g, (str, hex) => ':')
+      .replace(/%(3A|2B)/g, (str, hex) => String.fromCharCode(parseInt(hex, 16)))
   );
 }
 
