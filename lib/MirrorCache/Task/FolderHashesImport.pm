@@ -73,7 +73,7 @@ sub _run {
         eval {
             $rsHash = $schema->resultset('Hash') unless $rsHash;
             $rsHash->store($file->id, $hash->{mtime}, $hash->{size}, $hash->{md5},
-                $hash->{sha1}, $hash->{sha256}, $hash->{piece_size}, $hash->{pieces}, undef, undef, undef, $hash->{target});
+                $hash->{sha1}, $hash->{sha256}, $hash->{sha512}, $hash->{piece_size}, $hash->{pieces}, undef, undef, undef, $hash->{target});
             if (my $hdt = $hash->{dt}) {
                 my $hDt = Mojo::Date->new($hdt);
                 $last_import = $hDt if !$last_import || ( $hdt && $last_import->epoch < $hDt->epoch);

@@ -91,13 +91,14 @@ sub calcMetalink {
             $target = $dest->basename if $dest->dirname eq '.' || $dest->dirname eq "$indir$path";
         }
     };
-    return $schema->resultset('Hash')->store($file_id, undef, 0, undef, undef, undef, undef, undef, undef, undef, undef, $target) if $target;
+    return $schema->resultset('Hash')->store($file_id, undef, 0, undef, undef, undef, undef, undef, undef, undef, undef, undef, $target) if $target;
 
     open my $fh, "<", $f or die "Unable to open $f!";
     my $stat = stat($fh);
     my $mtime = $stat->mtime;
     my $d1   = Digest::SHA->new(1);
     my $d256 = Digest::SHA->new(256);
+    my $d512 = Digest::SHA->new(512);
     my $dmd5 = Digest::MD5->new;
     my @pieces;
     my $data;
@@ -117,6 +118,7 @@ sub calcMetalink {
 
         $d1->add($data);
         $d256->add($data);
+        $d512->add($data);
         $dmd5->add($data);
     }
     close $fh;
@@ -127,7 +129,7 @@ sub calcMetalink {
         $zsync_block_size = $zsync->block_size;
         $zsync_hashes     = $zsync->digest;
     }
-    $schema->resultset('Hash')->store($file_id, $mtime, $size, $dmd5->hexdigest, $d1->hexdigest, $d256->hexdigest, $block_size, $pieceshex, $zsync_lengths, $zsync_block_size, $zsync_hashes);
+    $schema->resultset('Hash')->store($file_id, $mtime, $size, $dmd5->hexdigest, $d1->hexdigest, $d256->hexdigest, $d512->hexdigest, $block_size, $pieceshex, $zsync_lengths, $zsync_block_size, $zsync_hashes);
 }
 
 1;

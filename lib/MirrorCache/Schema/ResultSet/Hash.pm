@@ -22,7 +22,7 @@ use base 'DBIx::Class::ResultSet';
 use DBI qw(:sql_types);
 
 sub store {
-    my ($self, $file_id, $mtime, $size, $md5hex, $sha1hex, $sha256hex, $block_size, $pieceshex, $zlengths, $zblock_size, $zhashes, $target) = @_;
+    my ($self, $file_id, $mtime, $size, $md5hex, $sha1hex, $sha256hex, $sha512hex, $block_size, $pieceshex, $zlengths, $zblock_size, $zhashes, $target) = @_;
 
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
@@ -31,14 +31,15 @@ sub store {
     my $sql;
 if ($dbh->{Driver}->{Name} eq 'Pg') {
     $sql = <<'END_SQL';
-insert into hash(file_id, mtime, size, md5, sha1, sha256, piece_size, pieces, zlengths, zblock_size, zhashes, target, dt)
-values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+insert into hash(file_id, mtime, size, md5, sha1, sha256, sha512, piece_size, pieces, zlengths, zblock_size, zhashes, target, dt)
+values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
 ON CONFLICT (file_id) DO UPDATE
   SET size   = excluded.size,
       mtime  = excluded.mtime,
       md5    = excluded.md5,
       sha1   = excluded.sha1,
       sha256 = excluded.sha256,
+      sha512 = excluded.sha512,
       piece_size  = excluded.piece_size,
       pieces      = excluded.pieces,
       zlengths    = excluded.zlengths,
@@ -49,14 +50,15 @@ ON CONFLICT (file_id) DO UPDATE
 END_SQL
 } else {
     $sql = <<'END_SQL';
-insert into hash(file_id, mtime, size, md5, sha1, sha256, piece_size, pieces, zlengths, zblock_size, zhashes, target, dt)
-values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3))
+insert into hash(file_id, mtime, size, md5, sha1, sha256, sha512, piece_size, pieces, zlengths, zblock_size, zhashes, target, dt)
+values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(3))
 ON DUPLICATE KEY UPDATE
       size   = values(size),
       mtime  = values(mtime),
       md5    = values(md5),
       sha1   = values(sha1),
       sha256 = values(sha256),
+      sha512 = values(sha512),
       piece_size  = values(piece_size),
       pieces      = values(pieces),
       zlengths    = values(zlengths),
@@ -73,12 +75,13 @@ END_SQL
     $prep->bind_param( 4, $md5hex,      SQL_CHAR);
     $prep->bind_param( 5, $sha1hex,     SQL_CHAR);
     $prep->bind_param( 6, $sha256hex,   SQL_CHAR);
-    $prep->bind_param( 7, $block_size,  SQL_INTEGER);
-    $prep->bind_param( 8, $pieceshex,   SQL_VARCHAR);
-    $prep->bind_param( 9, $zlengths,    SQL_VARCHAR);
-    $prep->bind_param(10, $zblock_size, SQL_INTEGER);
-    $prep->bind_param(11, $zhashes,     SQL_VARBINARY); # we must force varbinary, otherwise driver will corrupt hashes trying to handle unicode
-    $prep->bind_param(12, $target,      SQL_VARCHAR);
+    $prep->bind_param( 7, $sha512hex,   SQL_CHAR);
+    $prep->bind_param( 8, $block_size,  SQL_INTEGER);
+    $prep->bind_param( 9, $pieceshex,   SQL_VARCHAR);
+    $prep->bind_param(10, $zlengths,    SQL_VARCHAR);
+    $prep->bind_param(11, $zblock_size, SQL_INTEGER);
+    $prep->bind_param(12, $zhashes,     SQL_VARBINARY); # we must force varbinary, otherwise driver will corrupt hashes trying to handle unicode
+    $prep->bind_param(13, $target,      SQL_VARCHAR);
     $prep->execute();
 }
 
@@ -97,7 +100,7 @@ sub hashes_since {
     }
 
     my $sql = <<"END_SQL";
-select file.name, hash.mtime, hash.size, md5, sha1, sha256, piece_size, pieces, hash.target, hash.dt
+select file.name, hash.mtime, hash.size, md5, sha1, sha256, sha512, piece_size, pieces, hash.target, hash.dt
 from hash left join file on file_id = id
 where file_id in ( select id from file where folder_id = ? )
 $time_constraint_condition limit 100000

@@ -370,3 +370,5 @@ create table agg_download (
 );
 -- 28
 -- do nothing
+-- 29
+alter table hash add column if not exists sha512 varchar(128);

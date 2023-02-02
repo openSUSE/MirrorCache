@@ -284,6 +284,7 @@ sub register {
                 md5    => $file->{md5},
                 sha1   => $file->{sha1},
                 sha256 => $file->{sha256},
+                sha512 => $file->{sha512},
             };
 
             my @regions = $c->subsidiary->regions($region, $country);
@@ -456,6 +457,11 @@ sub _build_meta4() {
         $writer->characters($sha256);
         $writer->endTag('hash');
     }
+    if (my $sha512 = $file->{sha512}) {
+        $writer->startTag('hash', type => 'sha-512');
+        $writer->characters($sha512);
+        $writer->endTag('hash');
+    }
     if (my $piece_size = $file->{piece_size}) {
         $writer->startTag('pieces', length => $piece_size, type => 'sha-1');
         for my $piece (grep {$_} split /(.{40})/, $file->{pieces}) {
@@ -568,7 +574,8 @@ sub _build_metalink() {
         my $md5 = $file->{md5};
         my $sha1 = $file->{sha1};
         my $sha256 = $file->{sha256};
-        if ($md5 || $sha1 || $sha256) {
+        my $sha512 = $file->{sha512};
+        if ($md5 || $sha1 || $sha256 || $sha512) {
             $writer->startTag('verification');
             if ($md5) {
                 $writer->startTag('hash', type => 'md5');
@@ -583,6 +590,11 @@ sub _build_metalink() {
             if ($sha256) {
                 $writer->startTag('hash', type => 'sha-256');
                 $writer->characters($sha256);
+                $writer->endTag('hash');
+            }
+            if ($sha512) {
+                $writer->startTag('hash', type => 'sha-512');
+                $writer->characters($sha512);
                 $writer->endTag('hash');
             }
             if (my $piece_size = $file->{piece_size}) {

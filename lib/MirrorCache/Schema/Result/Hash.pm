@@ -26,6 +26,8 @@ __PACKAGE__->add_columns(
   { data_type => "char", size => 40 },
   "sha256",
   { data_type => "char", size => 64 },
+  "sha512",
+  { data_type => "char", size => 128 },
   "piece_size",
   { data_type => "int" },
   "pieces",
