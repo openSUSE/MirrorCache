@@ -65,6 +65,9 @@ var lng = <%= $lng %>;
       % if ($file->{mtime}) {
       <li>Last modified: <%= $file->{hmtime} %> (Unix timestamp: <%= $file->{mtime} %>)</li>
       % }
+      % if ($file->{sha512}) {
+      <li>SHA-512 Hash: <%= $file->{sha512} %></li>
+      % }
       % if ($file->{sha256}) {
       <li>SHA-256 Hash: <%= $file->{sha256} %></li>
       % }

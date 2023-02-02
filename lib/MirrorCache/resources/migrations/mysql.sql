@@ -371,3 +371,5 @@ update popular_os set version = '\\5.\\7' where version = '\5.\7';
 update popular_os set version = '\\1' where version = '\1';
 update popular_os set version = '\\2' where version = '\2';
 update popular_os set version = '\\3' where version = '\3';
+-- 29 up
+alter table hash add column if not exists sha512 varchar(128);
