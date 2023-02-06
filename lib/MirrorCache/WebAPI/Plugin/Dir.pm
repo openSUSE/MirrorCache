@@ -143,7 +143,8 @@ sub _render_dir {
     my $rsFolder = shift;
     my $c = $dm->c;
 
-    my $folder_id = $dm->folder_id;
+    my $folder_id = $dm->real_folder_id;
+    $folder_id = $dm->folder_id unless $folder_id;
     unless ($folder_id) {
         $rsFolder  = $c->app->schema->resultset('Folder') unless $rsFolder;
         if (my $folder = $rsFolder->find({path => $dm->root_subtree . $dir})) {
@@ -302,21 +303,23 @@ sub _render_from_db {
 
     my $file_pattern_in_folder = $trailing_slash && ($dm->regex || $dm->glob) && ($dm->metalink || $dm->meta4 || $dm->mirrorlist);
     $c->log->error($c->dumper('$file_pattern_in_folder', $file_pattern_in_folder)) if $MCDEBUG;
-    if ( (!$trailing_slash && $path ne '/') || $file_pattern_in_folder ) {
+    my $it_must_be_folder = ( $trailing_slash || $path eq '/');
+    my $folder_or_pattern = $it_must_be_folder || $file_pattern_in_folder;
+    { # this bracked to simplify diff
         my $f = Mojo::File->new($path);
-        my $dirname = ($file_pattern_in_folder? $path : $f->dirname);
+        my $dirname = ($folder_or_pattern? $path : $f->dirname);
         $dirname = $root->realpath($dirname);
-        $dirname = $dm->root_subtree . ($file_pattern_in_folder? $path : $f->dirname) unless $dirname;
-        $c->log->error($c->dumper('dirname:', $dirname)) if $MCDEBUG;
+        $dirname = $dm->root_subtree . ($folder_or_pattern? $path : $f->dirname) unless $dirname;
+        $c->log->error($c->dumper('dirname:', $dirname, 'path:', $path, 'trail:', $trailing_slash)) if $MCDEBUG;
         if (my $parent_folder = $rsFolder->find_folder_or_redirect($dirname)) {
             my $realpath_subtree;
             if ($root->is_remote && $parent_folder && $parent_folder->{path} ne $dirname) {
                 $realpath_subtree = $parent_folder->{path};
             } else {
-                $realpath_subtree = $root->realpath($dm->root_subtree . ($file_pattern_in_folder? $path : $f->dirname)) // $dirname;
+                $realpath_subtree = $root->realpath($dm->root_subtree . ($folder_or_pattern? $path : $f->dirname)) // $dirname;
             }
             if ($dirname eq $realpath_subtree) {
-                if ($dirname eq $f->dirname || $file_pattern_in_folder) {
+                if ($dirname eq $f->dirname || $folder_or_pattern) {
                     $dm->folder_id($parent_folder->{id});
                     $dm->folder_sync_last($parent_folder->{sync_last});
                     $dm->folder_scan_last($parent_folder->{scan_last});
@@ -324,12 +327,17 @@ sub _render_from_db {
             } else {
                 my $another_folder = $rsFolder->find({path => $dm->root_subtree . $f->dirname});
                 $c->log->error($c->dumper('another_folder:', $another_folder->{id})) if $MCDEBUG;
-                return undef unless $another_folder; # nothing found, proceed to _guess_what_to_render
+                return undef unless $another_folder || $it_must_be_folder; # nothing found, proceed to _guess_what_to_render
                 if ($parent_folder) {
                     $dm->real_folder_id($parent_folder->{id});
-                    # $dm->folder_sync_last($parent_folder->{sync_last});
-                    # $dm->folder_scan_last($parent_folder->{scan_last});
+                    $dm->folder_id($another_folder->{id}) if $another_folder;
+                    $dm->folder_sync_last($parent_folder->{sync_last});
+                    $dm->folder_scan_last($parent_folder->{scan_last});
                 }
+            }
+            if ($it_must_be_folder && !$file_pattern_in_folder) {
+                $dm->real_folder_id($parent_folder->{id});
+                return _render_dir($dm, $path, $rsFolder);
             }
             my $xtra = '';
             $xtra = '.zsync' if $dm->zsync && !$dm->accept_zsync;
@@ -359,16 +367,7 @@ sub _render_from_db {
                 return 1;
             }
         }
-    } elsif (my $folder = $rsFolder->find_folder_or_redirect($dm->root_subtree . $path)) {
-        $c->log->error('found redirect : ', $folder->{pathto}) if $MCDEBUG && $folder->{pathto};
-        return $dm->redirect($folder->{pathto} . $trailing_slash) if $folder->{pathto};
-        # folder must have trailing slash, otherwise it will be a challenge to render links on webpage
-        $dm->folder_id($folder->{id});
-        $dm->folder_sync_last($folder->{sync_last});
-        $dm->folder_scan_last($folder->{scan_last});
-        $dm->file_id(-1);
-        return _render_dir($dm, $path, $rsFolder, $folder) if ($folder->{sync_last});
-    }
+    } # bracked to simplify diff
     return undef;
 }
 

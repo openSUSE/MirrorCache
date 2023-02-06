@@ -175,7 +175,7 @@ select id, sync_last, scan_last, '' as pathto, path
 from folder
 where path = ?
 union
-select folder.id, NULL, NULL, pathto, path
+select folder.id, sync_last, scan_last, pathto, path
 from redirect left join folder on pathto = path
 where pathfrom = ?
 order by pathto desc
