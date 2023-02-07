@@ -85,7 +85,7 @@ sub render_file {
     } else {
         my $rootpath = $self->rootpath($filepath);
         return !!$c->render(status => 404, text => "File $filepath not found") unless $rootpath;
-        $res = !!$c->render_file(filepath => $rootpath . $root_subtree . $filepath, content_type => $dm->mime);
+        $res = !!$c->render_file(filepath => $rootpath . $root_subtree . $filepath, content_type => $dm->mime, content_disposition => 'inline');
     }
     $c->stat->redirect_to_root($dm, $not_miss);
     return $res;
@@ -102,7 +102,7 @@ sub render_file_if_small {
     eval { $size = -s $full if -f $full; };
     return undef unless ((defined $size) && $size <= $max_size);
     my $c = $dm->c;
-    $c->render_file(filepath => $full, content_type => $dm->mime);
+    $c->render_file(filepath => $full, content_type => $dm->mime, content_disposition => 'inline');
     return 1;
 }
 
