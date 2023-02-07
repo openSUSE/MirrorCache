@@ -161,7 +161,7 @@ if ($TOP_FOLDERS) {
 
 sub _detect_ln_in_the_same_folder {
     my ($dir, $file) = @_;
-    return undef unless $file && $file =~ m/.*(Media|Current)\.iso(\.sha256)?/;
+    return undef unless $file && $file =~ m/(GNOME_.*|.*(Media|Current|Next))\.iso(\.sha256(\.asc)?)?/;
 
     my $dest;
     for my $root (@roots) {
