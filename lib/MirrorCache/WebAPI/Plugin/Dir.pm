@@ -181,7 +181,7 @@ sub _redirect_project_ln_geo {
         }
 
         $c->log->error('pedantic: ' . ($dm->pedantic // 'undef')) if $MCDEBUG;
-        if ($path =~ m/.*(Media|Current)\.iso(\.sha256(\.asc)?)?/ && $dm->pedantic) {
+        if ($path =~ m/(GNOME_.*|.*(Media|Current|Next))\.iso(\.sha256(\.asc)?)?/ && $dm->pedantic) {
             my $ln = $root->detect_ln_in_the_same_folder($path);
             $c->log->error("ln for $path : " . ($ln // 'null')) if $MCDEBUG;
             if ($ln) {
