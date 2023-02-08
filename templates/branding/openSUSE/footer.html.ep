@@ -7,7 +7,7 @@
       <div class="list-inline">
         <a class="list-inline-item" href="https://en.opensuse.org/Imprint">Legal notice</a>
         <a class="list-inline-item" href="https://github.com/openSUSE/MirrorCache">Source code</a>
-        <a class="list-inline-item" href="https://bugzilla.opensuse.org/">Report issue</a>
+        <a class="list-inline-item" href="https://github.com/openSUSE/MirrorCache/issues/new">Report issue</a>
         % if (my $ver = eval '$current_version') {
         <a>MirrorCache <%= $ver %></a>
         % }
