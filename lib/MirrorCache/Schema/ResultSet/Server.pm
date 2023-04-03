@@ -1,4 +1,4 @@
-# Copyright (C) 2020,2021 SUSE LLC
+# Copyright (C) 2020-2023 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,9 +25,9 @@ my $MIRRORCACHE_MAX_PATH = int($ENV{MIRRORCACHE_MAX_PATH} // 512);
 
 sub mirrors_query {
     my (
-        $self, $country, $region, $folder_id,       $file_id, $capability,
-        $ipv,  $lat,     $lng,    $avoid_countries, $limit,   $avoid_region,
-        $schemastrict, $ipvstrict, $vpn
+        $self, $country, $region, $folder_id, $file_id, $project_id,
+        $capability, $ipv,  $lat,     $lng,    $avoid_countries,
+        $limit,   $avoid_region, $schemastrict, $ipvstrict, $vpn
     ) = @_;
     $country    = ''     unless $country;
     $region     = ''     unless $region;
@@ -93,6 +93,13 @@ sub mirrors_query {
     my $limit1 = 10;
     $limit1 = $limit + $limit if $limit > 10;
 
+    my $join_server_project = "";
+    my $condition_server_project = "";
+    if ($project_id) {
+        $join_server_project = "left join server_project sp on (project_id,sp.server_id) = ($project_id,s.id) and state < 1";
+        $condition_server_project = "and sp.server_id IS NULL";
+    }
+
     my $sql = <<"END_SQL";
 select * from (
 select x.id as mirror_id,
@@ -128,11 +135,10 @@ from (
     join folder_diff_server fds on fd.id = fds.folder_diff_id and date_trunc('second', fl.dt) <= fds.dt
     join server s on fds.server_id = s.id and s.enabled  $country_condition
     left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
-    where fd.folder_id = ? and fdf.file_id is NULL
+    $join_server_project
+    where fd.folder_id = ? and fdf.file_id is NULL $condition_server_project
 ) s
 join folder f on f.id = ?
-left join project p                          on f.path like concat(p.path, '%')
-left join server_project   sp                on (sp.server_id, sp.project_id) = (s.id, p.id)
 left join server_capability_declaration scd  on s.id = scd.server_id and scd.capability = '$capability' and NOT scd.enabled
 left join server_capability_force scf        on s.id = scf.server_id and scf.capability = '$capability'
 left join server_capability_declaration scd2 on s.id = scd2.server_id and scd.capability = '$ipv' and NOT scd.enabled
@@ -141,7 +147,6 @@ left join server_stability stability_scheme  on s.id = stability_scheme.server_i
 left join server_stability stability_schemex on s.id = stability_schemex.server_id and stability_schemex.capability = '$capabilityx'
 left join server_stability stability_ipv     on s.id = stability_ipv.server_id     and stability_ipv.capability = '$ipv'
 left join server_stability stability_ipvx    on s.id = stability_ipvx.server_id    and stability_ipvx.capability = '$ipvx'
-where sp.state is NULL or sp.state > 0
 ) x
 WHERE not_disabled $extra
 order by rating_country desc, (dist/100)::int, support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, score, random()

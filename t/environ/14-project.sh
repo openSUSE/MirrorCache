@@ -72,4 +72,14 @@ $mc/curl -s /rest/project/proj1/mirror_summary | grep -E '"current":"?2' | grep 
 
 $mc/curl -s /rest/project/proj1/mirror_list | grep -E '{"current":"?1"?,"server_id":"?1"?,"url":"127.0.0.1:1294"},{"current":"?1"?,"server_id":"?3"?,"url":"127.0.0.1:1314"},{"current":"?0"?,"server_id":"?4"?,"url":"127.0.0.1:1284"},{"current":"?0"?,"server_id":"?2"?,"url":"127.0.0.1:1304"}'
 
+echo request from jp should be redirected to ap4
+$mc/curl -I /download/project2/folder1/file1.1.dat?COUNTRY=jp | grep $($ap4/print_address)
+
+echo now disable proj 2 on ap4 - redirect should change
+$mc/sql 'insert into server_project(server_id, project_id, state) select 5, 2, 0';
+echo request from jp shouldnt be redirected to ap4 anymore, because we have disabled /project2 on it
+rc=0
+$mc/curl -I /download/project2/folder1/file1.1.dat?COUNTRY=jp | grep $($ap4/print_address) || rc=$?
+test $rc -gt 0
+
 echo success

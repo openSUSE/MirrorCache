@@ -29,6 +29,7 @@ sub register {
     my ($self, $app) = @_;
 
     $app->helper('mcproject.list' => \&_list);
+    $app->helper('mcproject.get_id' => \&_get_id);
     $app->helper('mcproject.list_full' => \&_list_full);
     $app->helper('mcproject.redirect' => \&_redirect);
     return $self;
@@ -44,13 +45,15 @@ sub _init_if_needed {
     } or $c->log->error(Dumper("Cannot load projects", $@));
 
     for my $p (@projects) {
-        my $name = $p->name;
+        my $name  = $p->name;
+        my $id    = $p->id;
         my $alias = $name;
         $alias =~ tr/ //ds;  # remove spaces
         $alias =~ tr/\.//ds; # remove dots
         $alias = "c$alias" if $alias =~ /^\d/;
         $alias = lc($alias);
         $projects_path{$name} = $p->path;
+        $projects_path{$id}   = $p->path;
         $projects_alias{$name} = $alias;
         my $redirect = $p->redirect;
         next unless $redirect;
@@ -110,5 +113,16 @@ sub _redirect {
     return '';
 }
 
+sub _get_id {
+    my ($c, $path) = @_;
+    _init_if_needed($c);
+
+    for my $p (@projects) {
+        my $id = $p->id;
+        my $ppath  = $projects_path{$id};
+        return $id if (0 == rindex($path, $ppath, 0));
+    }
+    return '';
+}
 
 1;
