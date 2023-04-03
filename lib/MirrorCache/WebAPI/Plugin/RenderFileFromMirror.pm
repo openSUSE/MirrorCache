@@ -144,11 +144,14 @@ sub register {
         }
 
         my (@mirrors_country, @mirrors_region, @mirrors_rest);
-
-        _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $folder_id);
+        my $project_id = $c->mcproject->get_id($dirname);
+        _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $folder_id, $project_id);
 
         # add mirrors that have realpath
-        _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $realfolder_id) if $realfolder_id && $realfolder_id != $folder_id;
+        if ($realfolder_id && $realfolder_id != $folder_id) {
+            my $realproject_id = $c->mcproject->get_id($realdirname);
+            _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $realfolder_id, $realproject_id);
+        }
         my $mirror;
         $mirror = $mirrors_country[0] if @mirrors_country;
         $mirror = $mirrors_region[0]  if !$mirror && @mirrors_region;
@@ -695,7 +698,7 @@ sub _build_metalink() {
 }
 
 sub _collect_mirrors {
-    my ($dm, $mirrors_country, $mirrors_region, $mirrors_rest, $file_id, $folder_id) = @_;
+    my ($dm, $mirrors_country, $mirrors_region, $mirrors_rest, $file_id, $folder_id, $project_id) = @_;
 
     my $country = $dm->country;
     my $region  = $dm->region;
@@ -712,8 +715,8 @@ sub _collect_mirrors {
 
     my $m;
     $m = $rs->mirrors_query(
-            $country, $region,  $folder_id, $file_id,        $scheme,
-            $ipv,     $lat, $lng,    $avoid_countries, $limit,      0,
+            $country, $region, $folder_id, $file_id, $project_id,
+            $scheme, $ipv, $lat, $lng, $avoid_countries, $limit, 0,
             !$mirrorlist, $ipvstrict, $vpn
     ) if $country;
 
@@ -725,8 +728,8 @@ sub _collect_mirrors {
         push @avoid_countries, @$avoid_countries if $avoid_countries && scalar(@$avoid_countries);
         push @avoid_countries, $country if ($country and !(grep { $country eq $_ } @avoid_countries));
         $m = $rs->mirrors_query(
-            $country, $region,  $folder_id, $file_id,       $scheme,
-            $ipv,     $lat, $lng,    \@avoid_countries, $limit,     0,
+            $country, $region, $folder_id, $file_id, $project_id,
+            $scheme, $ipv, $lat, $lng, \@avoid_countries, $limit, 0,
             !$mirrorlist, $ipvstrict, $vpn
         );
         my $found_more;
@@ -743,8 +746,8 @@ sub _collect_mirrors {
         $mirrorlist
     ) {
         $m = $rs->mirrors_query(
-            $country, $region,  $folder_id, $file_id,          $scheme,
-            $ipv,  $lat, $lng,    $avoid_countries, $limit,  1,
+            $country, $region,  $folder_id, $file_id, $project_id,
+            $scheme, $ipv,  $lat, $lng, $avoid_countries, $limit, 1,
             !$mirrorlist, $ipvstrict, $vpn
         );
         my $found_more;
