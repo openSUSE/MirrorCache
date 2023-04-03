@@ -1,11 +1,11 @@
-FROM registry.opensuse.org/opensuse/leap:15.3
+FROM registry.opensuse.org/opensuse/leap:15.4
 ENV container docker
 
 ENV LANG en_US.UTF-8
 
 RUN sed -i 's,http://download.opensuse.org,https://mirrorcache.opensuse.org/download,g' /etc/zypp/repos.d/*repo
-RUN zypper ar -f https://mirrorcache.opensuse.org/repositories/openSUSE:infrastructure:MirrorCache/openSUSE_Leap_15.3 mc
-RUN zypper ar -f https://download.opensuse.org/repositories/devel:/languages:/perl/openSUSE_Leap_15.3 perl
+RUN zypper ar -f https://mirrorcache.opensuse.org/repositories/openSUSE:infrastructure:MirrorCache/15.4 mc
+RUN zypper ar -f https://download.opensuse.org/repositories/devel:/languages:/perl/15.4 perl
 RUN zypper --gpg-auto-import-keys ref
 
 # install MirrorCache here to fetch all dependencies
