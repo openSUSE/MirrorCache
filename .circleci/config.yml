@@ -5,10 +5,14 @@ jobs:
     parameters:
       db:
         type: string
+      experimental:
+        type: string
+        default: ""
     machine:
       image: ubuntu-2004:202008-01
     environment:
       MIRRORCACHE_DB_PROVIDER: << parameters.db >>
+      T_EXPERIMENTAL: << parameters.db >>
     working_directory: ~/project
     steps:
       - checkout:
@@ -36,11 +40,20 @@ workflows:
     jobs:
       - environ:
           db: postgresql
+          name: "t: psql"
           filters:
             branches:
               ignore: gh-pages
       - environ:
           db: mariadb
+          name: "t: mariadb"
+          filters:
+            branches:
+              ignore: gh-pages
+      - environ:
+          db: mariadb
+          experimental: "1"
+          name: "t: mariadb experimental"
           filters:
             branches:
               ignore: gh-pages

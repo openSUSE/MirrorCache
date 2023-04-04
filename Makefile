@@ -15,6 +15,9 @@ test_docker:
 test_docker_mariadb:
 	( cd t/environ; for f in *.sh; do MIRRORCACHE_DB_PROVIDER=mariadb ./$$f && continue; echo FAIL $$f; exit 1 ; done )
 
+test_docker_mariadb_experimental:
+	( cd t/environ; for f in *.sh; do MIRRORCACHE_DB_PROVIDER=mariadb T_EXPERIMENTAL=1 ./$$f && continue; echo FAIL $$f; exit 1 ; done )
+
 test_systemd:
 	( cd t/systemd; for f in *.sh; do ./$$f && continue; echo FAIL $$f; exit 1 ; done )
 
