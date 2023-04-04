@@ -37,7 +37,7 @@ thisdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 basename=$(basename "$testcase")
 basename=${basename,,}
 basename=${basename//:/_}
-ident=mc.envtest$dbprovider
+ident=mc.envtest$dbprovider${T_EXPERIMENTAL:-""}
 containername="$ident.${basename,,}"
 
 docker_info="$(docker info >/dev/null 2>&1)" || {
@@ -45,7 +45,12 @@ docker_info="$(docker info >/dev/null 2>&1)" || {
     (exit 1)
 }
 
-docker build -t $ident.image -f $thisdir/Dockerfile.environ.$dbprovider $thisdir
+dockerfile=$thisdir/Dockerfile.environ.$dbprovider
+
+test "${T_EXPERIMENTAL:-''}" != 1 || dockerfile=$dockerfile.experimental
+
+
+docker build -t $ident.image -f $dockerfile $thisdir
 
 docker rm -f "$containername" >&/dev/null || :
 
