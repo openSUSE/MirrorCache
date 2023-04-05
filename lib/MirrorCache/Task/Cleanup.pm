@@ -50,7 +50,8 @@ END_SQL
         1;
     } or $job->note(last_warning_0 => $@, at_0 => datetime_now());
 
-    if ($schema->pg) {
+    eval {
+        if ($schema->pg) {
 $sql = <<'END_SQL';
 with DiffToDelete as (
    select fd.id
@@ -67,20 +68,27 @@ FilesDeleted as (
 delete from folder_diff where id in
    (select * from DiffToDelete)
 END_SQL
-    } else {
+            $schema->storage->dbh->prepare($sql)->execute();
+            1;
+        } else {
+        # delete query with will lock a lot of rows, so we split it into select + deletes
 $sql = <<'END_SQL';
-delete fd from folder_diff fd
+select fd.id from folder_diff fd
 left join folder_diff_server fds on fds.folder_diff_id = fd.id
 where
 fds.folder_diff_id is null
 and fd.dt < date_sub(CURRENT_TIMESTAMP(3), interval 2 day)
+limit 1000
 END_SQL
-}
-    eval {
-        $schema->storage->dbh->prepare($sql)->execute();
-        1;
+            my $ids_to_delete = $schema->storage->dbh->prepare($sql);
+            $ids_to_delete->execute();
+            my $delete = $schema->storage->dbh->prepare('delete from folder_diff where id = ?');
+            while (my @row = $ids_to_delete->fetchrow_array()) {
+                my ($id) = @row;
+                $delete->execute($id) if $id;
+            }
+        }
     } or $job->note(last_warning_1 => $@, at_1 => datetime_now());
-
     # delete rows from server_capability_check to avoid overload
     my $sqlservercap;
     if ($schema->pg) {
