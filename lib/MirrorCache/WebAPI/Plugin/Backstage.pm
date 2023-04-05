@@ -84,6 +84,7 @@ sub register {
     }
 
     $app->plugin( Minion => { $db => $conn } );
+    $app->minion->backend->no_txn(1) if $db eq 'mysql';
     $self->register_tasks;
 
     # Enable the Minion Admin interface under /minion
