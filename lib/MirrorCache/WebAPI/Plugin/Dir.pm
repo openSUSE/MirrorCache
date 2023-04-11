@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2022 SUSE LLC
+# Copyright (C) 2020-2023 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -305,45 +305,51 @@ sub _render_from_db {
     $c->log->error($c->dumper('$file_pattern_in_folder', $file_pattern_in_folder)) if $MCDEBUG;
     my $it_must_be_folder = ( $trailing_slash || $path eq '/');
     my $folder_or_pattern = $it_must_be_folder || $file_pattern_in_folder;
-    { # this bracked to simplify diff
+
+    { # this bracket is here to simplify diff
         my $f = Mojo::File->new($path);
         my $dirname = ($folder_or_pattern? $path : $f->dirname);
         $dirname = $root->realpath($dirname);
         $dirname = $dm->root_subtree . ($folder_or_pattern? $path : $f->dirname) unless $dirname;
         $c->log->error($c->dumper('dirname:', $dirname, 'path:', $path, 'trail:', $trailing_slash)) if $MCDEBUG;
-        if (my $parent_folder = $rsFolder->find_folder_or_redirect($dirname)) {
-            my $realpath_subtree;
-            if ($root->is_remote && $parent_folder && $parent_folder->{path} ne $dirname) {
-                $realpath_subtree = $parent_folder->{path};
+        if (my $folder = $rsFolder->find_folder_or_redirect($dirname)) {
+            $c->log->error('found redirect : ', $folder->{pathto}) if $MCDEBUG && $folder->{pathto};
+            # return $dm->redirect($folder->{pathto} . $trailing_slash) if $folder->{pathto};
+            my $folder_path = $folder->{pathto} ? $folder->{pathto} : $folder->{path};
+	    return $c->render(status => 404, text => "path {$path} not found!!") unless $folder_path;
+            my $realpath_subtree = '';
+            if ($root->is_remote && $folder_path ne $dirname) {
+                $realpath_subtree = $folder_path;
             } else {
                 $realpath_subtree = $root->realpath($dm->root_subtree . ($folder_or_pattern? $path : $f->dirname)) // $dirname;
             }
             if ($dirname eq $realpath_subtree) {
                 if ($dirname eq $f->dirname || $folder_or_pattern) {
-                    $dm->folder_id($parent_folder->{id});
-                    $dm->folder_sync_last($parent_folder->{sync_last});
-                    $dm->folder_scan_last($parent_folder->{scan_last});
+                    $dm->folder_id($folder->{id});
+                    $dm->folder_sync_last($folder->{sync_last});
+                    $dm->folder_scan_last($folder->{scan_last});
                 }
             } else {
-                my $another_folder = $rsFolder->find({path => $dm->root_subtree . $f->dirname});
+                my $another_folder = $rsFolder->find({path => $realpath_subtree});
                 $c->log->error($c->dumper('another_folder:', $another_folder->{id})) if $MCDEBUG;
                 return undef unless $another_folder || $it_must_be_folder; # nothing found, proceed to _guess_what_to_render
-                if ($parent_folder) {
-                    $dm->real_folder_id($parent_folder->{id});
-                    $dm->folder_id($another_folder->{id}) if $another_folder;
-                    $dm->folder_sync_last($parent_folder->{sync_last});
-                    $dm->folder_scan_last($parent_folder->{scan_last});
+                $dm->folder_id($another_folder->{id}) if $another_folder;
+                if ($folder->{id}) {
+                    $dm->real_folder_id($folder->{id});
+                    $dm->folder_sync_last($folder->{sync_last});
+                    $dm->folder_scan_last($folder->{scan_last});
                 }
             }
             if ($it_must_be_folder && !$file_pattern_in_folder) {
-                $dm->real_folder_id($parent_folder->{id});
+                $dm->real_folder_id($folder->{id}) if $folder->{id};
+                # return $c->mirrorcache->render_dir_mirrorlist($path, $dm) if $dm->mirrorlist;
                 return _render_dir($dm, $path, $rsFolder);
             }
             my $xtra = '';
             $xtra = '.zsync' if $dm->zsync && !$dm->accept_zsync;
             my $file;
-            $c->log->error($c->dumper('parent_folder:', $parent_folder->{path})) if $MCDEBUG && $parent_folder;
-            $file = $schema->resultset('File')->find_with_hash($parent_folder->{id}, $f->basename, $xtra, $dm->regex, $dm->glob_regex) if $parent_folder;
+            $c->log->error($c->dumper('parent_folder:', $folder->{path})) if $MCDEBUG && $folder && $folder->{path};
+            $file = $schema->resultset('File')->find_with_hash($folder->{id}, $f->basename, $xtra, $dm->regex, $dm->glob_regex) if $folder && $folder->{id};
             $c->log->error($c->dumper('file:', $f->basename, $file)) if $MCDEBUG;
 
             # folders are stored with trailing slash in file table, so they will not be selected here
