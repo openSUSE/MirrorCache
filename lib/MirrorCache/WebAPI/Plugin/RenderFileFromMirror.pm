@@ -113,6 +113,7 @@ sub register {
             return $c->render(status => 404, text => "File not found");
         }
         $c->log->error($c->dumper('RENDER FILE_ID', $file->{id})) if $MCDEBUG;
+        $c->res->headers->vary('Accept, COUNTRY');
         my $baseurl; # just hostname + eventual urldir (without folder and file)
         my $fullurl; # baseurl with path and filename
         if ($dm->metalink || $dm->meta4 || $dm->torrent || $dm->zsync || $dm->magnet) {
