@@ -342,7 +342,7 @@ sub _render_from_db {
             }
             if ($it_must_be_folder && !$file_pattern_in_folder) {
                 $dm->real_folder_id($folder->{id}) if $folder->{id};
-                # return $c->mirrorcache->render_dir_mirrorlist($path, $dm) if $dm->mirrorlist;
+                return $c->mirrorcache->render_dir_mirrorlist($path, $dm) if $dm->mirrorlist;
                 return _render_dir($dm, $path, $rsFolder);
             }
             my $xtra = '';
