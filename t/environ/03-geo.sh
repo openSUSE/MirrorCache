@@ -53,7 +53,7 @@ $mc/curl --interface 127.0.0.4 -Is /download/folder1/file1.1.dat?COUNTRY=ca | gr
 $mc/curl --interface 127.0.0.3 -Is /download/folder1/file1.1.dat?COUNTRY=ca | grep 1304
 $mc/curl --interface 127.0.0.2 -Is /download/folder1/file1.1.dat?COUNTRY=ca | grep 1304
 
-# Further we test that servers are listed only once in metalink output
+echo Further we test that servers are listed only once in metalink output
 $mc/curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 /download/folder1/file1.1.dat
 
 duplicates=$($mc/curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 /download/folder1/file1.1.dat | grep location | grep -E -o 'https?[^"s][^\<]*' | sort | uniq -cd | wc -l)
@@ -61,12 +61,17 @@ test 0 == "$duplicates"
 
 $mc/curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s /download/folder1/file1.1.dat | grep -B20 127.0.0.2 |  grep -i 'this country (us)'
 
-# test get parameter COUNTRY
+echo test get parameter COUNTRY
 $mc/curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s /download/folder1/file1.1.dat?COUNTRY=DE | grep -B20 127.0.0.3 | grep -i 'this country (de)'
 
-# test get parameter AVOID_COUNTRY
+echo test get parameter AVOID_COUNTRY
 $mc/curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s /download/folder1/file1.1.dat?AVOID_COUNTRY=DE,US | grep 127.0.0.4
 
-# check continent
+echo check continent
 $mc/curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s /download/folder1/file1.1.dat?COUNTRY=fr | grep -B20 127.0.0.3
 $mc/curl -H "Accept: */*, application/metalink4+xml" --interface 127.0.0.2 -s /download/folder1/file1.1.dat?COUNTRY=fr | grep -B20 127.0.0.3
+
+echo check metalink for folder
+$mc/curl -i /download/folder1/?mirrorlist | grep -F '"url":"http:\/\/127.0.0.2:1304\/folder1\/"' | grep -F '"url":"http:\/\/127.0.0.3:1314\/folder1\/"'
+
+

@@ -100,12 +100,23 @@ sub mirrors_query {
         $condition_server_project = "and sp.server_id IS NULL";
     }
 
+    my $join_file_cond = "fl.folder_id = fd.folder_id";
+    my $file_dt = ", max(case when fdf.file_id is null and fl.name ~ '[0-9]' and fl.name not like '%license.tar.gz' and fl.name not like '%info.xml.gz' then fl.mtime else null end) as mtime";
+    my $group_by = "group by s.id, s.hostname, s.hostname_vpn, s.urldir, s.region, s.country, s.lat, s.lng, s.score";
+
+    if ($file_id) {
+        $join_file_cond = "fl.id = ?";
+        $file_dt = ", fl.mtime as mtime";
+        $group_by = "";
+    }
+
     my $sql = <<"END_SQL";
 select * from (
 select x.id as mirror_id,
 case when support_scheme > 0 then '$capability' else '$capabilityx' end as scheme,
 hostname,
-uri,
+urldir,
+mtime,
 dist,
 case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end rating_country,
 score, country, region, lat, lng,
@@ -115,7 +126,8 @@ support_ipv,
 rating_ipv
 from (
 select s.id, $hostname as hostname,
-    left(concat(s.urldir,f.path,'/',s.name),$MIRRORCACHE_MAX_PATH) as uri,
+    left(concat(s.urldir,f.path),$MIRRORCACHE_MAX_PATH) as urldir,
+s.mtime,
 s.lat as lat,
 s.lng as lng,
 case when $lat=0 and $lng=0 then 0
@@ -129,14 +141,15 @@ CASE WHEN COALESCE(stability_scheme.rating, 0) > 0 THEN stability_scheme.rating 
 CASE WHEN COALESCE(stability_ipv.rating, 0)    > 0 THEN 1 ELSE 0 END AS support_ipv,
 CASE WHEN COALESCE(stability_ipv.rating, 0)    > 0 THEN stability_ipv.rating    WHEN COALESCE(stability_ipvx.rating, 0)    > 0 THEN stability_ipvx.rating    ELSE 0 END AS rating_ipv
 from (
-    select s.id, s.hostname, s.hostname_vpn, s.urldir, s.region, s.country, s.lat, s.lng, s.score, fl.name
+    select s.id, s.hostname, s.hostname_vpn, s.urldir, s.region, s.country, s.lat, s.lng, s.score $file_dt
     from folder_diff fd
-    join file fl on fl.id = ?
+    join file fl on $join_file_cond
     join folder_diff_server fds on fd.id = fds.folder_diff_id and date_trunc('second', fl.dt) <= fds.dt
     join server s on fds.server_id = s.id and s.enabled  $country_condition
     left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
     $join_server_project
     where fd.folder_id = ? and fdf.file_id is NULL $condition_server_project
+    $group_by
 ) s
 join folder f on f.id = ?
 left join server_capability_declaration scd  on s.id = scd.server_id and scd.capability = '$capability' and NOT scd.enabled
@@ -159,10 +172,15 @@ END_SQL
     $sql =~ s/::int//g                                                unless ($dbh->{Driver}->{Name} eq 'Pg');
     $sql =~ s/random/rand/g                                           unless ($dbh->{Driver}->{Name} eq 'Pg');
     $sql =~ s/date_trunc\('second', fl.dt\)/cast(fl.dt as DATETIME)/g unless ($dbh->{Driver}->{Name} eq 'Pg');
+    $sql =~ s/fl.name \~ /fl.name REGEXP /g                           unless ($dbh->{Driver}->{Name} eq 'Pg');
 
     my $prep = $dbh->prepare($sql);
 
-    $prep->execute($file_id, @country_params, $folder_id, $folder_id);
+    if ($file_id) {
+        $prep->execute($file_id, @country_params, $folder_id, $folder_id);
+    } else {
+        $prep->execute(@country_params, $folder_id, $folder_id);
+    }
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
 }

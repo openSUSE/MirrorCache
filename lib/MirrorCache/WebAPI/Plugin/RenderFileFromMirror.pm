@@ -37,6 +37,38 @@ sub register {
     $app->types->type(meta4    => 'application/metalink4+xml; charset=UTF-8');
     $app->types->type(zsync    => 'application/x-zsync');
 
+    $app->helper( 'mirrorcache.render_dir_mirrorlist' => sub {
+        my ($c, $path, $dm)= @_;
+        my $folder_id = $dm->folder_id;
+        unless ($folder_id) {
+            return $c->render(status => 404, text => "Folder not found");
+            return 1;
+        }
+        my (@mirrors_country, @mirrors_region, @mirrors_rest);
+        my $project_id = $c->mcproject->get_id($path);
+        my $cnt = _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, undef, undef, $folder_id, $project_id);
+
+        return $c->render(status => 204, text => 'No mirrors found') unless $cnt;
+        my @mirrors;
+        my $prio = 0;
+        for my $m (@mirrors_country, @mirrors_region, @mirrors_rest) {
+            my %h;
+            $h{url}   = $m->{url};
+            $h{prio}  = $prio++;
+            if (my $mtime = $m->{mtime}) {
+                $h{mtime} = $mtime;
+                eval {
+                    my $dt = strftime("%Y-%m-%d %H:%M:%S", localtime($mtime));
+                    $h{time} = $dt;
+                };
+            };
+
+            push @mirrors, \%h;
+        }
+
+        return $c->render(json => \@mirrors);
+    });
+
     $app->helper( 'mirrorcache.render_file' => sub {
         my ($c, $filepath, $dm, $file)= @_;
         $c->log->error($c->dumper('RENDER START', $filepath)) if $MCDEBUG;
@@ -146,12 +178,12 @@ sub register {
 
         my (@mirrors_country, @mirrors_region, @mirrors_rest);
         my $project_id = $c->mcproject->get_id($dirname);
-        _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $folder_id, $project_id);
+        _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $file->{name}, $folder_id, $project_id);
 
         # add mirrors that have realpath
         if ($realfolder_id && $realfolder_id != $folder_id) {
             my $realproject_id = $c->mcproject->get_id($realdirname);
-            _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $realfolder_id, $realproject_id);
+            _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $file->{name}, $realfolder_id, $realproject_id);
         }
         my $mirror;
         $mirror = $mirrors_country[0] if @mirrors_country;
@@ -188,14 +220,14 @@ sub register {
             my $xml;
             if ($dm->meta4) {
                 $xml = _build_meta4(
-                    $dm, ($folder? $folder->path : $realdirname), $file, $country, $region, \@mirrors_country, \@mirrors_region,
+                    $dm, (($folder && $folder->path)? $folder->path : $realdirname), $file, $country, $region, \@mirrors_country, \@mirrors_region,
                     \@mirrors_rest, $origin, 'MirrorCache', $baseurl);
                 $c->res->headers->content_disposition('attachment; filename="' .$basename. '.meta4"');
                 $c->render(data => $xml, format => 'meta4');
                 return 1;
             }
             $xml = _build_metalink(
-                $dm, ($folder? $folder->path : $realdirname), $file, $country, $region, \@mirrors_country, \@mirrors_region,
+                $dm, (($folder && $folder->path)? $folder->path : $realdirname), $file, $country, $region, \@mirrors_country, \@mirrors_region,
                 \@mirrors_rest, $origin, 'MirrorCache', $baseurl);
             $c->res->headers->content_disposition('attachment; filename="' .$basename. '.metalink"');
             $c->render(data => $xml, format => 'metalink');
@@ -699,7 +731,7 @@ sub _build_metalink() {
 }
 
 sub _collect_mirrors {
-    my ($dm, $mirrors_country, $mirrors_region, $mirrors_rest, $file_id, $folder_id, $project_id) = @_;
+    my ($dm, $mirrors_country, $mirrors_region, $mirrors_rest, $file_id, $file_name, $folder_id, $project_id) = @_;
 
     my $country = $dm->country;
     my $region  = $dm->region;
@@ -759,7 +791,7 @@ sub _collect_mirrors {
         }
     }
     for $m (@$mirrors_country, @$mirrors_region, @$mirrors_rest) {
-        $m->{url} = $m->{scheme} . '://' . $m->{hostname} . Mojo::Util::url_escape($m->{uri}, '^A-Za-z0-9\-._~/');
+        $m->{url} = $m->{scheme} . '://' . $m->{hostname} . Mojo::Util::url_escape($m->{urldir} . '/' . $file_name, '^A-Za-z0-9\-._~/');
     }
     return $found_count;
 }
