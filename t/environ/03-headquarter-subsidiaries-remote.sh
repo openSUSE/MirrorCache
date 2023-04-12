@@ -82,6 +82,18 @@ $mc9/curl -I --interface $eu_interface /folder1/repodata/filebig1.1.dat | grep '
 echo filesmall is served right away
 $mc9/curl -I --interface $eu_interface /folder1/repodata/filesmall1.1.dat | grep '200 OK'
 
+echo check VARY header except in small files
+rc=?
+$mc9/curl -I --interface $eu_interface /folder1/repodata/filesmall1.1.dat | grep -i vary: || rc=$?
+test $rc -gt 0
+rc=?
+$mc9/curl -I --interface $hq_interface /folder1/repodata/filesmall1.1.dat | grep -i vary: || rc=$?
+test $rc -gt 0
+
+$mc9/curl -I --interface $hq_interface /folder1/repodata/filebig1.1.dat            | grep -i vary: | grep 'Accept, COUNTRY'
+$mc9/curl -I --interface $hq_interface /folder1/repodata/filebig1.1.dat.metalink   | grep -i vary: | grep 'Accept, COUNTRY'
+
+
 echo check huge files are redirected to FAKEURL, but we need to scan folder first
 $mc9/curl -I --interface $hq_interface /download/folder1/repodata/filehuge1.1.dat | grep "Location: http://$FAKEURL/folder1/repodata/filehuge1.1.dat"
 $mc9/curl -I --interface $hq_interface /download/folder1/repodata/filebig1.1.dat | grep "Location: " | grep $($root/print_address)   # we removed it from mirror
@@ -94,4 +106,3 @@ $mc9/curl -I --interface $hq_interface /download/folder1/repodata/filehuge1.1.da
 $mc9/curl -I --interface $hq_interface /download/folder1/repodata/filehuge2.1.dat | grep $($mirror/print_address)/folder1/repodata/filehuge2.1.dat  # this is on mirror
 
 echo success
-
