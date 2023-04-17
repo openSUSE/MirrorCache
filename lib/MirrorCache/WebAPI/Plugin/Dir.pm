@@ -313,7 +313,7 @@ sub _render_from_db {
         $dirname = $dm->root_subtree . ($folder_or_pattern? $path : $f->dirname) unless $dirname;
         $c->log->error($c->dumper('dirname:', $dirname, 'path:', $path, 'trail:', $trailing_slash)) if $MCDEBUG;
         if (my $folder = $rsFolder->find_folder_or_redirect($dirname)) {
-            $c->log->error('found redirect : ', $folder->{pathto}) if $MCDEBUG && $folder->{pathto};
+            $c->log->error("found redirect : $dirname -> ", $folder->{pathto}) if $MCDEBUG && $folder->{pathto};
             # return $dm->redirect($folder->{pathto} . $trailing_slash) if $folder->{pathto};
             my $folder_path = $folder->{pathto} ? $folder->{pathto} : $folder->{path};
 	    return $c->render(status => 404, text => "path {$path} not found!!") unless $folder_path;
@@ -323,6 +323,7 @@ sub _render_from_db {
             } else {
                 $realpath_subtree = $root->realpath($dm->root_subtree . ($folder_or_pattern? $path : $f->dirname)) // $dirname;
             }
+            $c->log->error('RENDER - REALPATH_SUBTREE : ', $realpath_subtree) if $MCDEBUG;
             if ($dirname eq $realpath_subtree) {
                 if ($dirname eq $f->dirname || $folder_or_pattern) {
                     $dm->folder_id($folder->{id});
@@ -331,17 +332,17 @@ sub _render_from_db {
                 }
             } else {
                 my $another_folder = $rsFolder->find({path => $realpath_subtree});
-                $c->log->error($c->dumper('another_folder:', $another_folder->{id})) if $MCDEBUG;
+                $c->log->error($c->dumper('RENDER - another_folder:', $another_folder->id)) if $MCDEBUG;
                 return undef unless $another_folder || $it_must_be_folder; # nothing found, proceed to _guess_what_to_render
-                $dm->folder_id($another_folder->{id}) if $another_folder;
+                $dm->real_folder_id($another_folder->id) if $another_folder;
                 if ($folder->{id}) {
-                    $dm->real_folder_id($folder->{id});
+                    $dm->folder_id($folder->{id});
                     $dm->folder_sync_last($folder->{sync_last});
                     $dm->folder_scan_last($folder->{scan_last});
                 }
             }
             if ($it_must_be_folder && !$file_pattern_in_folder) {
-                $dm->real_folder_id($folder->{id}) if $folder->{id};
+                $dm->folder_id($folder->{id}) if $folder->{id};
                 return $c->mirrorcache->render_dir_mirrorlist($path, $dm) if $dm->mirrorlist;
                 return _render_dir($dm, $path, $rsFolder);
             }

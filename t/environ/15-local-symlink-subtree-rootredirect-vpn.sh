@@ -59,7 +59,7 @@ $mc/backstage/shoot
 $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
-$mcsub/curl /tool/v1/file1.1.dat.metalink   | grep -C10 notexists.mirror1.cc/folder1/file1.1.dat | grep -C10 notexists.mirror2.cc/updates/tool/v1/file1.1.dat | grep testhost.com/updates/tool/v1/file1.1.dat
+$mcsub/curl /tool/v1/file1.1.dat.metalink   | grep -C10 notexists.mirror1.cc/folder1/file1.1.dat | grep -C10 notexists.mirror2.cc/updates/tool/v1/file1.1.dat | grep testhost.com/folder1/file1.1.dat
 
 rc=0
 $mcsub/curl /tool/v1/file1.1.dat.metalink   | grep $($ap7/print_address) || rc=$?
@@ -68,10 +68,10 @@ rc=0
 $mcsub/curl /tool/v1/file1.1.dat.metalink   | grep $($ap8/print_address) || rc=$?
 test $rc -gt 0
 
-$mcsub/curl /tool/v2/file1.1.dat.metalink | grep -C20 notexists.mirror2.cc/updates/tool/v2/file1.1.dat | grep testhost.com/updates/tool/v2/file1.1.dat
+$mcsub/curl /tool/v2/file1.1.dat.metalink | grep -C20 notexists.mirror2.cc/updates/tool/v2/file1.1.dat | grep testhost.com/folder2/file1.1.dat
 
 
-$mcsub/curl /tool/v1/file1.1.dat.mirrorlist   | grep -C30 notexists.mirror1.cc/folder1/file1.1.dat | grep -C30 notexists.mirror2.cc/updates/tool/v1/file1.1.dat | grep testhost.com/updates/tool/v1/file1.1.dat
+$mcsub/curl /tool/v1/file1.1.dat.mirrorlist   | grep -C30 notexists.mirror1.cc/folder1/file1.1.dat | grep -C30 notexists.mirror2.cc/updates/tool/v1/file1.1.dat | grep testhost.com/folder1/file1.1.dat
 
 rc=0
 $mcsub/curl /tool/v1/file1.1.dat.mirrorlist   | grep $($ap7/print_address) || rc=$?
@@ -80,7 +80,7 @@ rc=0
 $mcsub/curl /tool/v1/file1.1.dat.mirrorlist   | grep $($ap8/print_address) || rc=$?
 test $rc -gt 0
 
-$mcsub/curl /tool/v2/file1.1.dat.mirrorlist | grep -C30 notexists.mirror2.cc/updates/tool/v2/file1.1.dat | grep testhost.com/updates/tool/v2/file1.1.dat
+$mcsub/curl /tool/v2/file1.1.dat.mirrorlist | grep -C30 notexists.mirror2.cc/updates/tool/v2/file1.1.dat | grep testhost.com/folder2/file1.1.dat
 
 # test request from ROOT_COUNTRY is just served
 $mc/curl -i /download/folder1/file1.1.dat?COUNTRY=us | grep '200 OK'

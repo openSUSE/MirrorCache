@@ -192,5 +192,6 @@ mc6/curl -I /link1/child1/child1.1.dat | grep -E "$($ap4/print_address)|$($ap3/p
 mc6/curl /link1/child1/child1.1.dat.meta4 \
     | grep -C20 $($ap3/print_address)/link1/child1/child1.1.dat \
     | grep -C20 $($ap3/print_address)/folder1/child1/child1.1.dat \
+    | grep -C20 $($mc9/print_address)/folder1/child1/child1.1.dat \
 
 echo success
