@@ -77,11 +77,12 @@ sub register {
         my $f = Mojo::File->new($filepath);
         my $dirname = $f->dirname;
         my $realfolder_id = $dm->real_folder_id;
+        $c->log->error($c->dumper('RENDER REAL ID: ', $realfolder_id)) if $MCDEBUG && $realfolder_id;
         my $realdirname;
         unless ($realfolder_id) {
             $realdirname = $root->realpath($f->dirname);
+            $realdirname = $dirname unless $realdirname;
         }
-        $realdirname = $dirname unless $realdirname;
         my $basename = $f->basename;
         $basename = $file->{name} if $file;
 
@@ -108,11 +109,14 @@ sub register {
             }
             $schema->resultset('Folder')->set_wanted($folder_id) if $need_update;
         }
-        if (!$realfolder_id && $realdirname ne $dirname) {
+        if ($realfolder_id) {
+            my $realfolder = $schema->resultset('Folder')->find({id => $realfolder_id});
+            $realdirname   = $realfolder->path if $realfolder;
+        } elsif (($realdirname // $dirname) ne $dirname) {
             my $realfolder = $schema->resultset('Folder')->find({path => $realdirname});
             $realfolder_id = $realfolder->id if $realfolder;
-            $c->log->error($c->dumper('RENDER FOLDER REAL', $realfolder_id ? $realfolder_id : 'NULL')) if $MCDEBUG;
         }
+        $c->log->error($c->dumper('RENDER FOLDER REAL', $realfolder_id ? $realfolder_id : 'NULL')) if $MCDEBUG;
         if ($folder || $realfolder_id) {
             my $fldid = ($realfolder_id? $realfolder_id : $folder_id);
             $folder_id = $fldid unless $folder_id;
@@ -159,7 +163,7 @@ sub register {
         }
         if ($dm->torrent || $dm->zsync || $dm->magnet) {
             if ($baseurl) {
-                $fullurl = $baseurl . '/' . $filepath;
+                $fullurl = $baseurl . '/' . (($folder && $folder->path)? $folder->path : $realdirname) . '/' . $basename;
             } else {
                 ($fullurl = $c->req->url->to_abs->to_string) =~ s/\.(torrent|zsync|magnet)$//;
             }
@@ -216,18 +220,18 @@ sub register {
                 $origin = $origin . ":" . $originurl->port if $originurl->port && $originurl->port != "80";
                 $origin = $origin . $dm->route;
             }
-            $origin = $origin . $filepath;
+            $origin = $origin . (($folder && $folder->path)? $folder->path : $realdirname) . '/' . $basename;
             my $xml;
             if ($dm->meta4) {
                 $xml = _build_meta4(
-                    $dm, (($folder && $folder->path)? $folder->path : $realdirname), $file, $country, $region, \@mirrors_country, \@mirrors_region,
+                    $dm, $realdirname, $file, $country, $region, \@mirrors_country, \@mirrors_region,
                     \@mirrors_rest, $origin, 'MirrorCache', $baseurl);
                 $c->res->headers->content_disposition('attachment; filename="' .$basename. '.meta4"');
                 $c->render(data => $xml, format => 'meta4');
                 return 1;
             }
             $xml = _build_metalink(
-                $dm, (($folder && $folder->path)? $folder->path : $realdirname), $file, $country, $region, \@mirrors_country, \@mirrors_region,
+                $dm, $realdirname, $file, $country, $region, \@mirrors_country, \@mirrors_region,
                 \@mirrors_rest, $origin, 'MirrorCache', $baseurl);
             $c->res->headers->content_disposition('attachment; filename="' .$basename. '.metalink"');
             $c->render(data => $xml, format => 'metalink');
@@ -241,7 +245,7 @@ sub register {
             if ($country and !$dm->avoid_countries || !(grep { $country eq $_ } $dm->avoid_countries)) {
                 for my $m (@mirrors_country) {
                     push @mirrordata,
-                      {
+                      {	
                         url      => $m->{url},
                         hostname => $m->{hostname},
                         location => uc($m->{country}),
@@ -301,7 +305,7 @@ sub register {
                 my $redirect = $root->redirect($dm, $filepath);
                 if ($redirect) {
                     $fileorigin = $redirect;
-                    $fileoriginpath = ($folder? $folder->path : $realdirname) . '/' . $file->{name};
+                    $fileoriginpath = $realdirname . '/' . $file->{name};
                 } else {
                     my $url = $c->req->url->to_abs;
                     $fileorigin = $dm->scheme . '://' . $url->host;
