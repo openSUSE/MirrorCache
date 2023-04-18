@@ -101,6 +101,7 @@ my %_region = (
  de => 'eu',
  dk => 'eu',
  ee => 'eu',
+ es => 'eu',
  fi => 'eu',
  fr => 'eu',
  gb => 'eu',
@@ -120,6 +121,7 @@ my %_region = (
  sk => 'eu',
  tr => 'eu',
  ua => 'eu',
+ uk => 'eu',
 
  ca => 'na',
  cr => 'na',

@@ -245,7 +245,7 @@ sub register {
             if ($country and !$dm->avoid_countries || !(grep { $country eq $_ } $dm->avoid_countries)) {
                 for my $m (@mirrors_country) {
                     push @mirrordata,
-                      {	
+                      {
                         url      => $m->{url},
                         hostname => $m->{hostname},
                         location => uc($m->{country}),

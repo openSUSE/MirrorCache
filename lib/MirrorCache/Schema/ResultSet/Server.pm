@@ -146,9 +146,19 @@ from (
     join file fl on $join_file_cond
     join folder_diff_server fds on fd.id = fds.folder_diff_id and date_trunc('second', fl.dt) <= fds.dt
     join server s on fds.server_id = s.id and s.enabled  $country_condition
+    left join server_capability_declaration scd on s.id = scd.server_id and scd.capability = 'country'
     left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
     $join_server_project
     where fd.folder_id = ? and fdf.file_id is NULL $condition_server_project
+    and ( -- here mirrors may be declared to handle only specific countries
+        scd.server_id is null
+        or
+        length(coalesce(?)) > 0 and (
+            ( scd.enabled and ? ~ scd.extra )
+            or
+            ( not scd.enabled and not ? ~ scd.extra)
+        )
+    )
     $group_by
 ) s
 join folder f on f.id = ?
@@ -172,14 +182,14 @@ END_SQL
     $sql =~ s/::int//g                                                unless ($dbh->{Driver}->{Name} eq 'Pg');
     $sql =~ s/random/rand/g                                           unless ($dbh->{Driver}->{Name} eq 'Pg');
     $sql =~ s/date_trunc\('second', fl.dt\)/cast(fl.dt as DATETIME)/g unless ($dbh->{Driver}->{Name} eq 'Pg');
-    $sql =~ s/fl.name \~ /fl.name REGEXP /g                           unless ($dbh->{Driver}->{Name} eq 'Pg');
+    $sql =~ s/ \~ / REGEXP /g                           unless ($dbh->{Driver}->{Name} eq 'Pg');
 
     my $prep = $dbh->prepare($sql);
 
     if ($file_id) {
-        $prep->execute($file_id, @country_params, $folder_id, $folder_id);
+        $prep->execute($file_id, @country_params, $folder_id, $country, $country, $country, $folder_id);
     } else {
-        $prep->execute(@country_params, $folder_id, $folder_id);
+        $prep->execute(@country_params, $folder_id, $country, $country, $country, $folder_id);
     }
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
