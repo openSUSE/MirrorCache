@@ -1,16 +1,12 @@
 thisdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-set -e
+set -ex
 
 imagetag=mirrorcachesalted
 containername=$imagetag
 
-test "${PRIVILEGED_TESTS}" == 1 || {
-   echo PRIVILEGED_TESTS is not set to 1
-   (exit 1)
-}
-docker_info="$(docker info >/dev/null 2>&1)" || {
-    echo "Docker doesn't seem to be running"
+podman_info="$(podman info >/dev/null 2>&1)" || {
+    echo "Podman doesn't seem to be available"
     (exit 1)
 }
 
@@ -20,16 +16,18 @@ if test "$MIRRORCACHE_OPTIMIZED_BUILD" == 1; then
 else
     cat "$thisdir"/Dockerfile
 fi
-) | docker build -t $imagetag -f - "$thisdir"/..
+) | podman build -t $imagetag -f - "$thisdir"/..
 
-if docker ps | grep $containername ; then
+if podman ps | grep $containername ; then
     echo Stopping running container $container...
-    docker stop -t0 $containername
+    podman stop -t0 $containername
     sleep 1
 fi
 
-docker run --privileged --rm --name $containername -d -v /sys/fs/cgroup:/sys/fs/cgroup:ro -p 3000:3000 $imagetag
-docker exec $containername mkdir -p /var/lib/GeoIP/
-docker cp $thisdir/../../../t/data/city.mmdb $containername:/var/lib/GeoIP/GeoLite2-City.mmdb
-docker exec -t $containername salt-call --local state.apply -l debug 'profile/mirrorcache/init' || echo EXIT CODE=$?
-docker exec -t $containername sudo -u mirrorcache psql -f /srv/salt/profile/mirrorcache/files/usr/share/mirrorcache/sql/mirrors-eu.sql
+podman run --rm --name $containername -d -p 3000:3000 $imagetag
+podman exec $containername mkdir -p /var/lib/GeoIP/
+podman cp $thisdir/../../../t/data/city.mmdb $containername:/var/lib/GeoIP/GeoLite2-City.mmdb
+podman exec -t $containername salt-call --local state.apply -l debug mirrorcache.postgres
+podman exec -t $containername salt-call --local state.apply -l debug mirrorcache.webui
+podman exec -t $containername salt-call --local state.apply -l debug mirrorcache.backstage
+podman exec -t $containername sudo -u postgres psql -a -f /opt/mirrors-eu.sql -d mirrorcache

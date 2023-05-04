@@ -7,8 +7,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: "Test salt"
         run: |
-          PRIVILEGED_TESTS=1 bash -x dist/salt/test/start-container.sh || echo "return code=$?"
-          docker exec -t mirrorcachesalted rcmirrorcache status
+          bash -x dist/salt/test/start-container.sh || echo "return code=$?"
+          podman exec -t mirrorcachesalted rcmirrorcache-hypnotoad status
       - uses: juliangruber/sleep-action@v1
         with:
           time: 20s
@@ -21,14 +21,11 @@ jobs:
       - name: "Check download"
         run: |
           # we started EU geocluster node and 127.0.0.3 is defined from EU
-          docker exec -t mirrorcachesalted curl --interface 127.0.0.3 -s 127.0.0.1:3000/download | grep repositories
+          podman exec -t mirrorcachesalted curl --interface 127.0.0.3 -s 127.0.0.1:3000/download | grep repositories
       - name: "Check repositories"
         run: |
-          docker exec -t mirrorcachesalted curl --interface 127.0.0.3 -sL 127.0.0.1:3000/repositories | grep '<tr>'
+          podman exec -t mirrorcachesalted curl --interface 127.0.0.3 -sL 127.0.0.1:3000/repositories | grep '<tr>'
       - name: "Check logs"
         if: ${{ always() }}
         run: |
-          docker exec -t mirrorcachesalted journalctl -xn200 --no-pager -u mirrorcache
-      - name: "Apply state once again"
-        run: |
-          docker exec -t mirrorcachesalted salt-call --local state.apply -l debug 'profile/mirrorcache/services'
+          podman exec -t mirrorcachesalted journalctl -xn200 --no-pager -u mirrorcache-hypnotoad
