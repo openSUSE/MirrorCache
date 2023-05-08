@@ -1,11 +1,14 @@
 [Unit]
 Description=MirrorCache subtree webApp
+Before=apache2.service
+After=postgresql.service mariadb.service nss-lookup.target
 
 [Service]
 User=mirrorcache
 Group=mirrorcache
-ExecStart=/usr/share/mirrorcache/script/mirrorcache-daemon
+EnvironmentFile=-/etc/mirrorcache/conf.env
 EnvironmentFile=/etc/mirrorcache/conf-subtree.env
+ExecStart=/usr/share/mirrorcache/script/mirrorcache-daemon
 
 [Install]
 WantedBy=multi-user.target
