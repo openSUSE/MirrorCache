@@ -8,7 +8,7 @@ jobs:
       - name: "Test salt"
         run: |
           bash -x dist/salt/test/start-container.sh || echo "return code=$?"
-          podman exec -t mirrorcachesalted rcmirrorcache-hypnotoad status
+          podman exec mirrorcachesalted rcmirrorcache-hypnotoad status
       - uses: juliangruber/sleep-action@v1
         with:
           time: 20s
@@ -21,11 +21,11 @@ jobs:
       - name: "Check download"
         run: |
           # we started EU geocluster node and 127.0.0.3 is defined from EU
-          podman exec -t mirrorcachesalted curl --interface 127.0.0.3 -s 127.0.0.1:3000/download | grep repositories
+          podman exec mirrorcachesalted curl --interface 127.0.0.3 -s 127.0.0.1:3000/download | grep repositories
       - name: "Check repositories"
         run: |
-          podman exec -t mirrorcachesalted curl --interface 127.0.0.3 -sL 127.0.0.1:3000/repositories | grep '<tr>'
+          podman exec mirrorcachesalted curl --interface 127.0.0.3 -sL 127.0.0.1:3000/repositories | grep '<tr>'
       - name: "Check logs"
         if: ${{ always() }}
         run: |
-          podman exec -t mirrorcachesalted journalctl -xn200 --no-pager -u mirrorcache-hypnotoad
+          podman exec mirrorcachesalted journalctl -xn200 --no-pager -u mirrorcache-hypnotoad
