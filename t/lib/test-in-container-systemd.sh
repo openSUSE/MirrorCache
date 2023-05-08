@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020,2023 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -41,35 +41,33 @@ basename=${basename,,}
 basename=${basename//:/_}
 ident=mc.systemdtest
 containername="$ident.${basename,,}"
-
-test "${PRIVILEGED_TESTS}" == 1 || {
-   echo PRIVILEGED_TESTS is not set to 1
-   (exit 1)
-}
-docker_info="$(docker info >/dev/null 2>&1)" || {
-    echo "Docker doesn't seem to be running"
+PODMAN=podman
+podman_info="$($PODMAN info >/dev/null 2>&1)" || {
+    echo "{$PODMAN} info returned error ($?)"
     (exit 1)
 }
 
 mkdir -p $thisdir/src
 cp $thisdir/../data/city.mmdb $thisdir/src/
 
-docker build -t $ident.image -f $thisdir/Dockerfile.systemd.$MIRRORCACHE_DB_PROVIDER $thisdir
+$PODMAN build -t $ident.image -f $thisdir/Dockerfile.systemd.$MIRRORCACHE_DB_PROVIDER $thisdir
 
 map_port=""
 [ -z "$EXPOSE_PORT" ] || map_port="-p $EXPOSE_PORT:80"
-docker run --privileged $map_port --rm --name "$containername" -d -v /sys/fs/cgroup:/sys/fs/cgroup:ro -v"$thisdir/../..":/opt/project -e MIRRORCACHE_DB_PROVIDER=$MIRRORCACHE_DB_PROVIDER -- $ident.image
+$PODMAN run --privileged $map_port --rm --name "$containername" -d -v"$thisdir/../..":/opt/project -e MIRRORCACHE_DB_PROVIDER=$MIRRORCACHE_DB_PROVIDER -- $ident.image
 
 in_cleanup=0
+
+ret=111
 
 function cleanup {
     [ "$in_cleanup" != 1 ] || return
     in_cleanup=1
-    if [ "$ret" != 0 ] && [ -n "$PAUSE_ON_FAILURE" ]; then
+    if [ "$ret" != 0 ] && [ -n "${T_PAUSE_ON_FAILURE-}" ]; then
         read -rsn1 -p"Test failed, press any key to finish";echo
     fi
     [ "$ret" == 0 ] || echo FAIL $basename
-    docker stop -t 0 "$containername" >&/dev/null || :
+    $PODMAN stop -t 0 "$containername" >&/dev/null || :
 }
 
 trap cleanup INT TERM EXIT
@@ -78,16 +76,16 @@ counter=1
 # wait container start
 until [ $counter -gt 10 ]; do
   sleep 0.5
-  docker exec "$containername" pwd >& /dev/null && break
+  $PODMAN exec "$containername" pwd >& /dev/null && break
   ((counter++))
 done
 
-docker exec "$containername" pwd >& /dev/null || (echo Cannot start container; exit 1 ) >&2
+$PODMAN exec "$containername" pwd >& /dev/null || (echo Cannot start container; exit 1 ) >&2
 
 echo "$*"
-[ -z $initscript ] || echo "bash -xe /opt/project/t/docker/$initscript" | docker exec -i "$containername" bash -x
+# [ -z $initscript ] || echo "bash -xe /opt/project/t/docker/$initscript" | $PODMAN exec -i "$containername" bash -x
 
 set +e
-docker exec -e TESTCASE="$testcase"  -i "$containername" bash < "$testcase"
+$PODMAN exec -e TESTCASE="$testcase"  -i "$containername" bash < "$testcase"
 ret=$?
 ( exit $ret )
