@@ -119,7 +119,7 @@ sum(case when mirror_id = -1 then hit_count else 0 end) as miss,
 sum(case when mirror_id < -1 and mirror_id != -100 then hit_count else 0 end) as geo,
 sum(case when mirror_id = -100 then hit_count else 0 end) as bot
 from stat_agg
-where period = '$period'::stat_period_t and dt = (select max(dt) from stat_agg where period = '$period'::stat_period_t)
+where period = '$period'::stat_period_t and dt = (select dt from stat_agg where period = '$period'::stat_period_t order by dt desc limit 1)
 group by dt;
 END_SQL
     $sql =~ s/::stat_period_t//g unless $dbh->{Driver}->{Name} eq 'Pg';
