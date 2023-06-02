@@ -49,13 +49,29 @@ sum(case when                    dt > date_trunc('hour', CURRENT_TIMESTAMP(3))  
 sum(case when mirror_id >= 0                                                     and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as hit_day,
 sum(case when mirror_id = -1                                                     and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as miss_day,
 sum(case when mirror_id < -1                                                     and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as geo_day,
-sum(case when                                                                             lower(agent) ~ '$BOT_MASK'  then 1 else 0 end)  as bot_day
+sum(case when                                                                             lower(agent) ~ '$BOT_MASK'  then 1 else 0 end) as bot_day
 from stat
 where dt > date_trunc('day', CURRENT_TIMESTAMP(3))
 END_SQL
 
 
+# it is too expensive to aggregate over stat for whole day, so we try add hour stats from stat_agg (pg might use the same optimization as well)
 my $SQLCURR_MARIADB = <<"END_SQL";
+select
+hit_minute,
+miss_minute,
+geo_minute,
+bot_minute,
+hit_hour,
+miss_hour,
+geo_hour,
+bot_hour,
+agg_hour.hit_day  + coalesce(hit,0)  as hit_day,
+agg_hour.miss_day + coalesce(miss,0) as miss_day,
+agg_hour.geo_day  + coalesce(geo,0)  as geo_day,
+agg_hour.bot_day  + coalesce(bot,0)  as bot_day
+from
+(
 select
 sum(case when mirror_id >= 0  and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 minute) and not (lower(agent) regexp '$BOT_MASK') then 1 else 0 end) as hit_minute,
 sum(case when mirror_id = -1  and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 minute) and not (lower(agent) regexp '$BOT_MASK') then 1 else 0 end) as miss_minute,
@@ -69,10 +85,24 @@ sum(case when mirror_id >= 0                                                    
 sum(case when mirror_id = -1                                                             and not (lower(agent) regexp '$BOT_MASK') then 1 else 0 end) as miss_day,
 sum(case when mirror_id < -1                                                             and not (lower(agent) regexp '$BOT_MASK') then 1 else 0 end) as geo_day,
 sum(case when                                                                                    (lower(agent) regexp '$BOT_MASK') then 1 else 0 end) as bot_day
-from stat
-where dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 day)
+from (
+select lastdt from (select dt as lastdt from stat_agg where period = 'hour' order by dt desc limit 1) x union select date_sub(CURRENT_TIMESTAMP(3), interval 1 hour) limit 1
+) lastagg join stat on dt > lastdt
+) agg_hour
+left join
+(
+select
+sum(case when mirror_id >= 0 then hit_count else 0 end) as hit,
+sum(case when mirror_id = -1 then hit_count else 0 end) as miss,
+sum(case when mirror_id < -1 and mirror_id != -100 then hit_count else 0 end) as geo,
+sum(case when mirror_id = -100 then hit_count else 0 end) as bot
+from stat_agg
+where
+period = 'hour'
+and dt <= (select dt from stat_agg where period = 'hour' order by dt desc limit 1)
+and dt > date_sub(CURRENT_TIMESTAMP(3), interval 1 day)
+) agg_day on 1=1
 END_SQL
-
 
 
 sub curr {
@@ -89,24 +119,6 @@ sub curr {
     $prep->execute();
     return $dbh->selectrow_hashref($prep);
 }
-
-sub mycurr {
-    my ($self, $ip_sha1) = @_;
-    my $dbh = $self->result_source->schema->storage->dbh;
-
-    my $sql;
-    if ($dbh->{Driver}->{Name} eq 'Pg') {
-        $sql = $SQLCURR_PG;
-    } else {
-        $sql = $SQLCURR_MARIADB;
-    }
-    $sql = $sql . ' and ip_sha1 = ?';
-
-    my $prep = $dbh->prepare($sql);
-    $prep->execute($ip_sha1);
-    return $dbh->selectrow_hashref($prep);
-}
-
 
 sub _prev_period {
     my ($self, $period) = @_;

@@ -116,7 +116,6 @@ $mc/curl /download/folder3/file1.1.dat.mirrorlist | grep 'http://127.0.0.1:1304/
 $mc/curl -A mybot-1.0 /download/folder3/file1.1.dat.mirrorlist | grep 'http://127.0.0.1:1304/folder3/file1.1.dat'
 
 $mc/curl /rest/stat | grep '"bot":1,"hit":12,"miss":4'
-$mc/curl /rest/mystat | grep '"bot":1,"hit":12,"miss":4'
 
 $mc/sql "insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, head, mirrorlist, pid, execution_time) select ip_sha1, agent, path, country, dt - interval '1 hour', mirror_id, folder_id, file_id, secure, ipv4, metalink, head, mirrorlist, pid, execution_time from stat"
 $mc/sql "insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, head, mirrorlist, pid, execution_time) select ip_sha1, agent, path, country, dt - interval '1 day', mirror_id, folder_id, file_id, secure, ipv4, metalink, head, mirrorlist, pid, execution_time from stat"

@@ -208,7 +208,6 @@ sub _setup_webui {
     $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show') if $self->_geodb;
 
     $rest_r->get('/stat')->name('rest_stat')->to('stat#list');
-    $rest_r->get('/mystat')->name('rest_mystat')->to('stat#mylist');
 
     my $report_r = $r->any('/report')->to(namespace => 'MirrorCache::WebAPI::Controller::Report');
     $report_r->get('/mirror')->name('report_mirror')->to('mirror#index');
