@@ -19,10 +19,12 @@ $mc/status
 ap8=$(environ ap8)
 ap7=$(environ ap7)
 
-for x in $mc $ap7 $ap8 $ap9; do
+for x in $ap7 $ap8 $ap9; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
 done
+# this file doesnt exist on mirrors
+touch $ap9/dt/folder1/file3.1.dat
 
 $ap9/start
 $ap9/curl /folder1/ | grep file1.1.dat
@@ -62,5 +64,9 @@ $mc/curl /download/folder1/file1.1.dat.metalink | grep -A1 'File origin' | grep 
 
 echo for file2 REDIRECT still appears in metalink from folder2, because mirror count doesnt exceed value of METALINK_GREEDY
 $mc/curl /download/folder1/file2.1.dat.metalink | grep -A1 'File origin' | grep '<url type="http" location="" preference="98">http://'${FAKEURL2}'/folder1/file2.1.dat</url>'
+
+$mc/curl /download/folder1/file2.1.dat.meta4 | grep -A1 'File origin' | grep '<url location="" priority="3">http://'${FAKEURL2}'/folder1/file2.1.dat</url>'
+
+$mc/curl /download/folder1/file3.1.dat.meta4 | grep -A1 'File origin' | grep '<url location="" priority="2">http://'${FAKEURL2}'/folder1/file3.1.dat</url>'
 
 echo success

@@ -520,7 +520,7 @@ sub _build_meta4() {
         return if $root_included and !$print;
 
         $writer->comment("File origin location: ") if $print;
-        if ($METALINK_GREEDY && $METALINK_GREEDY <= $priority) {
+        if ($METALINK_GREEDY && $METALINK_GREEDY < $priority) {
             $writer->comment($rooturl . $fullname);
         } else {
             $writer->startTag('url', location => uc($dm->root_country), priority => $priority);
