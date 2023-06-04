@@ -1,26 +1,22 @@
 #!lib/test-in-container-environ.sh
 set -ex
 
-mc=$(environ mc $(pwd))
+mc1=$(environ mc1 $(pwd))
+mc2=$(environ mc2 $(pwd))
 
-ap8=$(environ ap8)
-ap7=$(environ ap7)
-
-
-$mc/gen_env \
-    MIRRORCACHE_REDIRECT=$($ap7/print_address) \
-    MIRRORCACHE_REDIRECT_HUGE=$($ap7/print_address) \
-    MIRRORCACHE_SMALL_FILE_SIZE=5 \
-    MIRRORCACHE_HUGE_FILE_SIZE=8
+mc=$mc1
 
 $mc/start
 $mc/status
+
+ap8=$(environ ap8)
+ap7=$(environ ap7)
 
 mkdir -p $mc/dt/folder1
 echo 123456     > $mc/dt/folder1/file1.1.dat
 echo 12         > $mc/dt/folder1/file2.1.dat
 echo 1234567890 > $mc/dt/folder1/file3.1.dat
-echo 1234567890 > $mc/dt/folder1/content
+touch $mc/dt/folder1/content
 
 mkdir -p $mc/dt/updates/tool
 (
@@ -42,9 +38,25 @@ $ap7/curl /folder1/ | grep file1.1.dat
 $ap8/start
 $ap8/curl /updates/tool/v1/ | grep file1.1.dat
 
+$mc/backstage/start
+mc=$mc2
+
+$mc/gen_env \
+    MIRRORCACHE_ROOT=http://$($mc1/print_address)/download \
+    MIRRORCACHE_REDIRECT=$($ap7/print_address) \
+    MIRRORCACHE_REDIRECT_HUGE=$($ap7/print_address) \
+    MIRRORCACHE_SMALL_FILE_SIZE=5 \
+    MIRRORCACHE_HUGE_FILE_SIZE=8
+
+
+$mc/start
 
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
+
+$mc/sql "insert into project(name,path,etalon) select 'updates','/updates', 1"
+# restart to refresh info about projects
+$mc/stop && $mc/start
 
 $mc/curl -I /download/updates/tool/v1/file1.1.dat.mirrorlist
 
@@ -53,13 +65,25 @@ $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot
 
 echo redirect is to symlinked folder
+$mc/curl -I /download/updates/tool/v1/file1.1.dat
 $mc/curl -I /download/updates/tool/v1/file1.1.dat | grep $($ap7/print_address)/folder1/file1.1.dat
 echo redirect of small and huge files is also to symlinked folder
-$mc/curl -I /download/updates/tool/v1/file2.1.dat | grep '200 OK'
+$mc/curl -I /download/updates/tool/v1/file2.1.dat | grep $($ap7/print_address)/folder1/file2.1.dat
 $mc/curl -I /download/updates/tool/v1/file3.1.dat | grep $($ap7/print_address)/folder1/file3.1.dat
-$mc/curl -I /download/updates/tool/v1/content
+$mc/curl -I /download/updates/tool/v1/content     | grep $($ap7/print_address)/folder1/content
+
+echo now tests the same with nfs
+
+echo MIRRORCACHE_ROOT_NFS=$mc1/dt >> $mc/env.conf
+$mc/stop && $mc/start
+$mc/curl -I /download/updates/tool/v1/file1.1.dat | grep $($ap7/print_address)/folder1/file1.1.dat
+echo redirect of small and huge files is also to symlinked folder
+$mc/curl -I /download/updates/tool/v1/file2.1.dat | grep $($ap7/print_address)/folder1/file2.1.dat
+$mc/curl -I /download/updates/tool/v1/file3.1.dat | grep $($ap7/print_address)/folder1/file3.1.dat
+$mc/curl -I /download/updates/tool/v1/content     | grep $($ap7/print_address)/folder1/content
 
 $mc/backstage/job mirror_scan_schedule
+$mc/backstage/job mirror_probe_projects # fill server_project table
 $mc/backstage/shoot
 
 $mc/curl /download/updates/tool/v1/ | grep file1.1.dat
@@ -74,5 +98,6 @@ $mc/curl -I /download/updates/tool/v1/file1.1.dat?COUNTRY=de | grep $($ap8/print
 
 $mc/curl /download/updates/tool/v1/file1.1.dat.mirrorlist | grep -C 20 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
 $mc/curl /download/updates/tool/v1/file1.1.dat.metalink   | grep -C 10 $($ap7/print_address)/folder1/file1.1.dat | grep $($ap8/print_address)/updates/tool/v1/file1.1.dat
+
 
 echo success

@@ -77,6 +77,8 @@ sub is_dir {
 
 sub render_file {
     my ($self, $dm, $filepath, $not_miss) = @_;
+    my $realpath = $self->realpath($filepath) unless $root_subtree;
+    $filepath = $realpath if $realpath;
     my $c = $dm->c;
     my $redirect = $self->redirect($dm, $filepath);
     my $res;
