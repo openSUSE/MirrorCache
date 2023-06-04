@@ -28,6 +28,9 @@ use Time::Piece;
 # rooturlsredirect same as above just https
 has [ 'rooturl', 'rooturlredirect', 'rooturlredirects', 'rooturlredirectvpn', 'rooturlredirectvpns' ];
 
+# length of eventual path in rooturl after hostname
+has rooturidirlenght => 0;
+
 my $uaroot = Mojo::UserAgent->new->max_redirects(10)->request_timeout(1);
 
 my $nfs = $ENV{MIRRORCACHE_ROOT_NFS};
@@ -36,6 +39,13 @@ sub register {
     my ($self, $app) = @_;
     my $rooturl = $app->mc->rootlocation;
     $self->rooturl($rooturl);
+    {
+        my $i = index($rooturl, '://');
+        if ($i > 0) {
+            my $j = index($rooturl, '/', $i+4);
+            $self->rooturidirlenght(length($rooturl)-$j) if $j > 0;
+        }
+    }
 
     my $redirect = $rooturl;
     if ($redirect = $app->mcconfig->redirect) {
@@ -84,7 +94,7 @@ sub realpath {
         if ($res->is_redirect && $res->headers) {
             my $location1 = $res->headers->location;
             $location1 =~ s/\?realpath=?$//;
-            return substr($location1,0,-1) if '/' eq substr($location1,0,1);
+            return substr($location1,$self->rooturidirlenght(),-1) if '/' eq substr($location1,0,1);
             if ($location1 && $path1 ne substr($location1, -length($path1))) {
                 my $i = rindex($location1, $rootlocation, 0);
                 if ($i ne -1) {

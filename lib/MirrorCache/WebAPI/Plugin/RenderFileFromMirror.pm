@@ -88,7 +88,7 @@ sub register {
 
         my $dirname_basename = $dirname->basename;
         my $subtree = $dm->root_subtree;
-        return $root->render_file($dm, $filepath, 1) if $dm->must_render_from_root; # && $root->is_reachable;
+        return $root->render_file($dm, $filepath, 1) if !$root->is_remote && $dm->must_render_from_root; # && $root->is_reachable;
 
         my $schema = $c->schema;
         my $folder = $schema->resultset('Folder')->find({path => $subtree . $dirname});
@@ -117,6 +117,10 @@ sub register {
             $realfolder_id = $realfolder->id if $realfolder;
         }
         $c->log->error($c->dumper('RENDER FOLDER REAL', $realfolder_id ? $realfolder_id : 'NULL')) if $MCDEBUG;
+        my $fileoriginpath = $filepath;
+        $fileoriginpath = $realdirname . '/' . $basename if $realdirname ne $dirname;
+        return $root->render_file($dm, $fileoriginpath, 1) if $dm->must_render_from_root; # && $root->is_reachable;
+
         if ($folder || $realfolder_id) {
             my $fldid = ($realfolder_id? $realfolder_id : $folder_id);
             $folder_id = $fldid unless $folder_id;
@@ -220,7 +224,7 @@ sub register {
                 $origin = $origin . ":" . $originurl->port if $originurl->port && $originurl->port != "80";
                 $origin = $origin . $dm->route;
             }
-            $origin = $origin . (($folder && $folder->path)? $folder->path : $realdirname) . '/' . $basename;
+            $origin = $origin . $fileoriginpath;
             my $xml;
             if ($dm->meta4) {
                 $xml = _build_meta4(
@@ -289,8 +293,6 @@ sub register {
             my $mtime = $file->{mtime};
             my $hmtime = strftime("%d-%b-%Y %H:%M:%S", gmtime($mtime)) if $mtime;
             my $fileorigin;
-            my $fileoriginpath = $filepath;
-
 
             if ($ENV{MIRRORCACHE_METALINK_PUBLISHER_URL}) {
                 $fileorigin = $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL};
@@ -305,7 +307,6 @@ sub register {
                 my $redirect = $root->redirect($dm, $filepath);
                 if ($redirect) {
                     $fileorigin = $redirect;
-                    $fileoriginpath = $realdirname . '/' . $file->{name};
                 } else {
                     my $url = $c->req->url->to_abs;
                     $fileorigin = $dm->scheme . '://' . $url->host;
@@ -354,11 +355,11 @@ sub register {
 
         unless ($mirror) {
             if ($root->is_remote && $file->{size} && $mc_config->redirect_huge && $mc_config->huge_file_size <= $file->{size}) {
-                $dm->redirect($dm->scheme . '://' . $mc_config->redirect_huge . $filepath);
+                $dm->redirect($dm->scheme . '://' . $mc_config->redirect_huge . $fileoriginpath);
                 return 1;
             }
 
-            $root->render_file($dm, $filepath);
+            $root->render_file($dm, $fileoriginpath);
             return 1;
         }
 
