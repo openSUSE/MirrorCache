@@ -74,6 +74,7 @@ sub register {
     my $db = $schema->provider;
     $DBPROVIDER = lc($db);
 
+eval {
     my $conn = "Mojo::$db"->new;
     $conn->dsn( $schema->dsn );
     if (my $user = $app->mcconfig->dbuser) {
@@ -85,8 +86,9 @@ sub register {
 
     $app->plugin( Minion => { $db => $conn } );
     $app->minion->backend->no_txn(1) if $db eq 'mysql';
-    $self->register_tasks;
 
+    $self->register_tasks;
+};
     # Enable the Minion Admin interface under /minion
     my $auth =
       $app->routes->under('/minion')->to('session#ensure_operator');
@@ -121,6 +123,7 @@ sub register {
 }
 
 sub check_permanent_jobs {
+eval {
     my $app    = shift->app;
     my $minion = $app->minion;
     my $jobs   = $minion->jobs(
@@ -147,6 +150,7 @@ sub check_permanent_jobs {
         $app->log->warn("Haven't found running $task, starting it...");
         $minion->enqueue($task);
     }
+};
 }
 
 sub inactive_jobs_exceed_limit {

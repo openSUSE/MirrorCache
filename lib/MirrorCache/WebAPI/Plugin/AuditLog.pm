@@ -20,6 +20,7 @@ use Mojo::IOLoop;
 use Mojo::JSON 'to_json';
 use MirrorCache::Events;
 
+
 # reasons for mirror_scan_error and mirror_path_error and mirror_error are similar
 # mirror_scan_error means we were not able to find the file on the mirror, and we don't know if it ever existed
 # mirror_path_error means we know that the file did exist on the mirror, but are not able to access it anymore, getting a valid HTML response code
@@ -28,6 +29,8 @@ use MirrorCache::Events;
 my @error_events = qw(mirror_scan_error mirror_path_error mirror_error mirror_country_miss);
 my @other_events = qw(unknown_ip debug);
 my @user_events = qw(user_update user_delete server_create server_update server_delete myserver_create myserver_update myserver_delete);
+
+my $last_error;
 
 sub register {
     my ($self, $app) = @_;
@@ -42,8 +45,15 @@ sub register {
 
     # log restart
     my $schema = $app->schema;
-    $schema->resultset('AuditEvent')
-      ->create({user_id => -1, name => 'startup', event_data => "AuditLog registered $$"});
+    eval {
+        $schema->resultset('AuditEvent')
+          ->create({user_id => -1, name => 'startup', event_data => "AuditLog registered $$"});
+    } or do {
+        if (!$last_error || 600 < time() - $last_error) {
+            $app->log->error($app->dumper("Cannot register audit", $@));
+            $last_error = time();
+        }
+    };
 }
 
 sub on_event {
@@ -57,11 +67,18 @@ sub on_event {
 
     # no need to log mc_ prefix in mc log
     $event =~ s/^mc_//;
-    $app->schema->resultset('AuditEvent')->create({
+    eval {
+        $app->schema->resultset('AuditEvent')->create({
             user_id       => $user_id,
             tag           => $tag,
             name          => $event,
             event_data    => to_json($event_data)});
+    } or do {
+        if (!$last_error || 600 < time() - $last_error) {
+            $app->log->error(Dumper("Cannot log audit", $@));
+            $last_error = time();
+        }
+    };
 }
 
 1;

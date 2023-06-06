@@ -24,6 +24,7 @@ my %projects_path;
 my %projects_alias;
 my %projects_redirect;
 my %projects_region_redirect;
+my $last_init_warning;
 
 sub register {
     my ($self, $app) = @_;
@@ -38,11 +39,17 @@ sub register {
 sub _init_if_needed {
     return 1 if $initialized;
     my ($c) = @_;
-    $initialized = 1;
     eval { #the table may be missing - no big deal (only reports might be inaccurate if some other error occurred).
         @projects = $c->schema->resultset('Project')->search(undef, { order_by => { -desc => [qw/prio name/] } });
+        $initialized = 1;
         1;
-    } or $c->log->error(Dumper("Cannot load projects", $@));
+    } or do {
+        if (!$last_init_warning || 600 < time() - $last_init_warning) {
+            $c->log->error(Dumper("Cannot load projects", $@));
+            $last_init_warning = time();
+        }
+        return 0;
+    };
 
     for my $p (@projects) {
         my $name  = $p->name;

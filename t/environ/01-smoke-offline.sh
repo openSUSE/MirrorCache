@@ -44,6 +44,17 @@ $mc/curl /download/folder1/file1.1.dat.metalink | grep -C 10 "http://$($ap6/prin
 $mc/curl /download/folder1/file1.1.dat.meta4    | grep -C 10 "http://$($ap6/print_address)/folder1/file1.1.dat<" | grep "$($ap5/print_address)"
 
 $mc/curl /download/folder1/ | grep file1.1.dat
+
+echo try restart the service and check the same
+$mc/stop && ENVIRON_MC_DB_AUSTOSTART=0 $mc/start
+
+$mc/curl -I /download/folder1/file1.1.dat          | grep -E "$($ap6/print_address)|$($ap5/print_address)"/folder1/file1.1.dat
+$mc/curl /download/folder1/file1.1.dat.metalink | grep -C 10 "http://$($ap6/print_address)/folder1/file1.1.dat<" | grep "$($ap5/print_address)"
+$mc/curl /download/folder1/file1.1.dat.meta4    | grep -C 10 "http://$($ap6/print_address)/folder1/file1.1.dat<" | grep "$($ap5/print_address)"
+
+$mc/curl /download/folder1/ | grep file1.1.dat
+
+
 $mc/db/start
 
 $mc/curl -H "Accept: */*, application/metalink+xml" -s /download/folder1/file2.1.dat | grep '<url type="http" location="US" preference="100">http://127.0.0.1:1304/folder1/file2.1.dat</url>'
