@@ -34,6 +34,9 @@ has dsn_replica  => $ENV{MIRRORCACHE_DSN_REPLICA};
 has redirect     => $ENV{MIRRORCACHE_REDIRECT};
 has redirect_vpn => $ENV{MIRRORCACHE_REDIRECT_VPN};
 
+has 'offline_redirect'; # list of url to fallback if there was an error while serving from DB
+has 'offline_redirect_https'; # the same as above, just with https
+
 has redirect_huge  => $ENV{MIRRORCACHE_REDIRECT_HUGE};
 has huge_file_size => int($ENV{MIRRORCACHE_HUGE_FILE_SIZE} // 0) || 40*1024*1024;
 
@@ -108,6 +111,19 @@ sub init($self, $cfgfile) {
         $dsn_replica = "$dsn_replica;host=$host" if $host;
         $dsn_replica = "$dsn_replica;port=$port" if $port;
         $self->dsn_replica($dsn_replica);
+    }
+
+    my ($offline_redirect, @offline_redirect, @offline_redirect_https);
+    $offline_redirect = $cfg->val('default', 'offline_redirect') if $cfg;
+    $offline_redirect = $ENV{MIRRORCACHE_OFFLINE_REDIRECT} unless $offline_redirect;
+
+    if ($offline_redirect) {
+        for my $m (split /[\s]+/, $offline_redirect) {
+            push @offline_redirect,       'http://'  . $m;
+            push @offline_redirect_https, 'https://' . $m;
+        }
+        $self->offline_redirect(\@offline_redirect);
+        $self->offline_redirect_https(\@offline_redirect_https);
     }
 
     return 1;

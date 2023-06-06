@@ -23,6 +23,8 @@ use Sort::Versions;
 use Time::Piece;
 use Time::Seconds;
 use Time::ParseDate;
+use Digest::Metalink;
+use Digest::Meta4;
 use MirrorCache::Utils;
 use MirrorCache::Datamodule;
 
@@ -72,8 +74,11 @@ sub indx {
     return undef unless $top_folder || $dm->our_path($reqpath);
     $dm->reset($c, $top_folder);
 
-    return $c
-      if _render_hashes($dm)
+    my $success;
+    my $waserror = 1;
+    eval {
+      $success =
+         _render_hashes($dm)
       || _render_small($dm)
       || _redirect_project_ln_geo($dm)
       || _redirect_normalized($dm)
@@ -81,6 +86,42 @@ sub indx {
       || _local_render($dm, 0) # check if we should render local
       || _render_from_db($dm)
       || _local_render($dm, 1); # check if we should render local when metalink cannot be provided
+      $waserror = 0;
+    };
+    my $error = $@;
+    if ($waserror && $mc_config->offline_redirect) {
+        my @list;
+        if ($dm->is_secure) {
+            @list = @{$mc_config->offline_redirect_https};
+        } else {
+            @list = @{$mc_config->offline_redirect};
+        }
+        my ($path, $trailing_slash, $original_path) = $dm->path;
+        if (   ($dm->metalink || $dm->meta4)
+            && (@list || !$dm->accept_all)) {
+            my $f = Mojo::File->new($path);
+            my $xml;
+            my $format = 'metalink';
+            my @attrs = {
+                generator     => 'MirrorCache',
+                publisher     => $ENV{MIRRORCACHE_METALINK_PUBLISHER},
+                publisher_url => $ENV{MIRRORCACHE_METALINK_PUBLISHER_URL},
+            };
+            if ($dm->meta4) {
+               $xml = Digest::Meta4::build_meta4($f->dirname, $f->basename, \@list, @attrs);
+               $format = 'meta4';
+            } else {
+               $xml = Digest::Metalink::build_metalink($f->dirname, $f->basename, \@list, @attrs);
+            }
+            $c->res->headers->content_disposition('attachment; filename="' .$f->basename. '.' .$format);
+            return $c->render(data => $xml, format => $format);
+        } elsif ($dm->accept_all || !$dm->extra) {
+            my $pick = splice @list, int rand @list, 1;
+            return $c->redirect_to( $pick . $path . $trailing_slash ) if $pick;
+        }
+    }
+    die $error if $waserror;
+    return $c if $success;
 
     if ($dm->agent =~ qr/$PACKAGE_MANAGER_PATTERN/) {
         my ($path, $trailing_slash) = $dm->path;
@@ -144,16 +185,19 @@ sub _render_dir {
     my $c = $dm->c;
 
     my $folder_id = $dm->real_folder_id;
-    $folder_id = $dm->folder_id unless $folder_id;
-    unless ($folder_id) {
-        $rsFolder  = $c->app->schema->resultset('Folder') unless $rsFolder;
-        if (my $folder = $rsFolder->find({path => $dm->root_subtree . $dir})) {
-            $folder_id = $folder->id;
-            $dm->folder_id($folder_id);
-            $dm->folder_sync_last($folder->sync_last);
-            $dm->file_id(-1);
+    eval {
+        $folder_id = $dm->folder_id unless $folder_id;
+        unless ($folder_id) {
+            $rsFolder  = $c->app->schema->resultset('Folder') unless $rsFolder;
+            if (my $folder = $rsFolder->find({path => $dm->root_subtree . $dir})) {
+                $folder_id = $folder->id;
+                $dm->folder_id($folder_id);
+                $dm->folder_sync_last($folder->sync_last);
+                $dm->file_id(-1);
+            }
         }
-    }
+    }; # we must log eventual error, but first need to have a way to suppress flood of errors e.g. when DB is down
+
     return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $folder_id, re_pattern => $dm->re_pattern ) if !$dm->json && $dm->browse;
 
     return _render_dir_local($dm, $folder_id, $dir) unless $root->is_remote; # just render files if we have them locally
