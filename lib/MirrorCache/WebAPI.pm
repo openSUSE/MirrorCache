@@ -78,12 +78,12 @@ sub startup {
         MirrorCache::Schema->connect_db     ($mcconfig->db_provider, $mcconfig->dsn,         $mcconfig->dbuser, $mcconfig->dbpass);
         MirrorCache::Schema->connect_replica($mcconfig->db_provider, $mcconfig->dsn_replica, $mcconfig->dbuser, $mcconfig->dbpass) if $mcconfig->dsn_replica;
         1;
-    } or die("Database connect failed: $@");
+    } or warn("Database connect failed: $@");
 
     eval {
         MirrorCache::Schema->singleton->migrate($mcconfig->dbuser, $mcconfig->dbpass);
         1;
-    } or die("Automatic migration failed: $@\nFix table structure and insert into mojo_migrations select 'mirrorcache', version");
+    } or warn("Automatic migration failed: $@\nFix table structure and insert into mojo_migrations select 'mirrorcache', version");
 
     my $secret = random_string(16);
     $self->config->{hypnotoad}{listen}   = [$ENV{MOJO_LISTEN} // 'http://*:8080'];
