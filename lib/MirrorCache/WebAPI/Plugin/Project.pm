@@ -26,6 +26,9 @@ my %projects_redirect;
 my %projects_region_redirect;
 my $last_init_warning;
 
+my $caching   = 1;
+my $cache_dir = '.cache';
+
 sub register {
     my ($self, $app) = @_;
 
@@ -33,6 +36,11 @@ sub register {
     $app->helper('mcproject.get_id' => \&_get_id);
     $app->helper('mcproject.list_full' => \&_list_full);
     $app->helper('mcproject.redirect' => \&_redirect);
+    $app->helper('mcproject.caching' => \&_caching);
+    $app->helper('mcproject.cache_dir' => \&_cache_dir);
+
+    $caching = 0 unless -w $cache_dir;
+
     return $self;
 }
 
@@ -130,6 +138,14 @@ sub _get_id {
         return $id if (0 == rindex($path, $ppath, 0));
     }
     return '';
+}
+
+sub _caching {
+    $caching;
+}
+
+sub _cache_dir {
+    $cache_dir;
 }
 
 1;

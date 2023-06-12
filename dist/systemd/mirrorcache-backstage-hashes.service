@@ -10,6 +10,7 @@ Restart=on-failure
 RestartSec=10
 EnvironmentFile=/etc/mirrorcache/conf.env
 EnvironmentFile=-/etc/mirrorcache/conf-hashes.env
+WorkingDirectory=/var/lib/mirrorcache
 
 [Install]
 WantedBy=multi-user.target

@@ -28,13 +28,14 @@ my @regions;
 sub register {
     my ($self, $app) = @_;
     my @subsidiaries;
+    $app->helper('subsidiary.regions' => sub { @regions; });
     # having MIRRORCACHE_REGION means that we are Subsidiary
     if ($ENV{MIRRORCACHE_REGION}) {
         $subsidiary_region = lc($ENV{MIRRORCACHE_REGION});
         $app->helper('subsidiary.has'     => sub { return undef; });
         $app->helper('subsidiary.url'     => sub { return undef; });
-        $app->helper('subsidiary.local'   => sub { return undef; });
-        $app->helper('subsidiary.regions' => sub { return undef; });
+        $app->helper('subsidiary.is_local'   => sub { return undef; });
+        $app->helper('subsidiary.regions_for_country' => sub { return undef; });
     } else {
         eval { #the table may be missing - no big deal
             @subsidiaries = $app->schema->resultset('Subsidiary')->all;
@@ -103,8 +104,8 @@ sub register {
 
          $app->helper('subsidiary.has'     => \&_has_subsidiary);
          $app->helper('subsidiary.url'     => \&_url_for_region);
-         $app->helper('subsidiary.local'   => \&_is_region_local);
-         $app->helper('subsidiary.regions' => \&_regions);
+         $app->helper('subsidiary.is_local'   => \&_is_region_local);
+         $app->helper('subsidiary.regions_for_country' => \&_regions_for_country);
     }
     return $self;
 }
@@ -146,8 +147,8 @@ sub _is_region_local {
     return $subsidiary_local{$region};
 }
 
-# return url for all subsidiaries
-sub _regions {
+# return url for all subsidiaries for a country
+sub _regions_for_country {
     return undef unless keys %subsidiary_urls;
     my ($c, $region, $country) = @_;
     $region = $country if ($country && $subsidiary_country{$country});

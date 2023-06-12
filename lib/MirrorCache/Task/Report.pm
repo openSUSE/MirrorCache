@@ -128,8 +128,10 @@ group by cperiod, cdt, cpid, ccountry, cmirror_id, cft_id, cos_id, cos_version, 
         $sql =~ s/::stat_period_t//g;
         $sql =~ s/interval '6 hour'/interval 6 hour/g;
         $sql =~ s/interval '7 hour'/interval 7 hour/g;
-        $sql =~ s/date_trunc\('hour', stat.dt\)/(date(stat.dt) + interval hour(stat.dt) hour)/g;
-        $sql =~ s/date_trunc\('hour', now\(\)\)/(date(now()) + interval hour(now()) hour)/g;
+        $sql =~
+s/date_trunc\('hour', stat.dt\)/(date(stat.dt) + interval hour(stat.dt) hour)/g;
+        $sql =~
+s/date_trunc\('hour', now\(\)\)/(date(now()) + interval hour(now()) hour)/g;
         $sql =~ s/ ~ / RLIKE /g;
     }
 
@@ -141,13 +143,16 @@ sub _run_mirrors {
     my ($app, $schema) = @_;
 
     my $mirrors = $schema->resultset('Server')->report_mirrors;
+
     # this is just tmp structure we use for aggregation
     my %report;
     my %sponsor;
     for my $m (@$mirrors) {
-        $report{$m->{region}}{$m->{country}}{$m->{url}}{$m->{project}} = [$m->{score},$m->{victim}];
+        $report{ $m->{region} }{ $m->{country} }{ $m->{url} }{ $m->{project} }
+          = [ $m->{score}, $m->{victim} ];
         $sponsor{$m->{url}} = [$m->{sponsor},$m->{sponsor_url}];
     }
+
     # json expects array, so we collect array here
     my @report;
     for my $region (sort keys %report) {
@@ -183,29 +188,47 @@ sub _run_mirrors {
     }
 
     my @regions = $app->subsidiary->regions;
+    my %regions_res;
+    my $must_use_tag = 0;
     for my $region (@regions) {
         next unless $region;
-        next if $app->subsidiary->local($region);
+        next if $app->subsidiary->is_local($region);
+        $must_use_tag = 1;
         my $url = $app->subsidiary->url($region);
         eval {
-            my $res = Mojo::UserAgent->new->get($url . "/rest/repmirror")->res;
-            if ($res->code < 300 && $res->code > 199) {
-                my $json = $res->json('/report');
-                my @elements = $json->@*;
-                for my $item (@elements) {
-                    $item->{region} = $item->{region} . " ($url)";
-                }
-                push @report, @elements if @elements;
-            } else {
+            my $res =
+              Mojo::UserAgent->new->get( $url . "/rest/repmirror" )->res;
+            if (!$res->code) {
+                print STDERR "Error accessing {$url}:\n";
+            }
+            elsif ( $res->code < 300 && $res->code > 199 ) {
+                $regions_res{$region} = $res->json;
+            }
+            else {
                 print STDERR "Error code accessing {$url}:" . $res->code . "\n";
             }
             1;
         } or print STDERR "Error requesting {$url}:" . $@ . "\n";
     }
     my $json = encode_json(\@report);
-    my $sql = 'insert into report_body select 1, now(), ?';
+    unless ($must_use_tag) {
+        my $sql =
+          'insert into report_body(report_id, dt, body) select 1, now(), ?';
+        $schema->storage->dbh->prepare($sql)->execute($json);
+        return;
+    }
 
-    $schema->storage->dbh->prepare($sql)->execute($json);
+    my $sql = 'insert into report_body(report_id, dt, body, tag) select 1, now(), ?, ?';
+    $schema->storage->dbh->prepare($sql)->execute($json, 'local');
+    for my $region (@regions) {
+        next unless $region;
+        next if $app->subsidiary->is_local($region);
+        my $res = $regions_res{$region};
+        next unless $res;
+        $json = encode_json($res);
+        next unless $json;
+        $schema->storage->dbh->prepare($sql)->execute($json, $region);
+    }
 }
 
 1;

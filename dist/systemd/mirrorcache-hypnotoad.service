@@ -12,6 +12,7 @@ ExecStart=/usr/share/mirrorcache/script/mirrorcache-hypnotoad
 ExecReload=/usr/share/mirrorcache/script/mirrorcache-hypnotoad
 EnvironmentFile=/etc/mirrorcache/conf.env
 KillMode=process
+WorkingDirectory=/var/lib/mirrorcache
 
 [Install]
 WantedBy=multi-user.target

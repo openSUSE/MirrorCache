@@ -328,7 +328,7 @@ sub register {
                 sha512 => $file->{sha512},
             };
 
-            my @regions = $c->subsidiary->regions($region, $country);
+            my @regions = $c->subsidiary->regions_for_country($region, $country);
             $c->stash('nonavbar' => 1) if ($ENV{MIRRORCACHE_BRANDING});
             $c->stash('mirrorlist' => 1);
             my ($lat, $lng) = $dm->coord;

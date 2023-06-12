@@ -21,6 +21,8 @@ use Minion;
 use DBIx::Class::Timestamps 'now';
 use MirrorCache::Schema;
 
+use MirrorCache::Task::Report;
+
 has app => undef, weak => 1;
 
 my $DBPROVIDER;
@@ -38,6 +40,13 @@ sub register_tasks {
     my $self = shift;
 
     my $app = $self->app;
+    if (defined $ENV{MIRRORCACHE_PERMANENT_JOBS}) {
+        @permanent_jobs = split /[:,\s]+/, $ENV{MIRRORCACHE_PERMANENT_JOBS};
+    }
+    if ($app->mcconfig->mirror_provider) {
+        push @permanent_jobs, 'mirror_provider_sync';
+    }
+
     $app->plugin($_)
       for (
         qw(MirrorCache::Task::MirrorCheckFromStat),
@@ -58,12 +67,6 @@ sub register_tasks {
         qw(MirrorCache::Task::Report),
         qw(MirrorCache::Task::StatAggSchedule),
       );
-    if (defined $ENV{MIRRORCACHE_PERMANENT_JOBS}) {
-        @permanent_jobs = split /[:,\s]+/, $ENV{MIRRORCACHE_PERMANENT_JOBS};
-    }
-    if ($app->mcconfig->mirror_provider) {
-        push @permanent_jobs, 'mirror_provider_sync';
-    }
 }
 
 sub register {

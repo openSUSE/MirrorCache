@@ -8,6 +8,7 @@ User=mirrorcache
 Group=mirrorcache
 ExecStart=/usr/share/mirrorcache/script/mirrorcache-daemon
 EnvironmentFile=/etc/mirrorcache/conf.env
+WorkingDirectory=/var/lib/mirrorcache
 
 [Install]
 WantedBy=multi-user.target

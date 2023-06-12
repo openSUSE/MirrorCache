@@ -7,3 +7,11 @@ else
 fi
 
 __srcdir/tools/generate-packed-assets || __srcdir/tools/generate-packed-assets || __srcdir/tools/generate-packed-assets
+
+mkdir __workdir/cwd
+(
+cd __workdir/cwd
+ln -s ../../.sass-cache .
+mkdir .cache
+)
+

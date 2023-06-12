@@ -373,3 +373,5 @@ update popular_os set version = '\\2' where version = '\2';
 update popular_os set version = '\\3' where version = '\3';
 -- 29 up
 alter table hash add column if not exists sha512 varchar(128);
+-- 30
+alter table report_body add column if not exists tag varchar(16);
