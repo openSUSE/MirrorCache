@@ -372,3 +372,7 @@ create table agg_download (
 -- do nothing
 -- 29
 alter table hash add column if not exists sha512 varchar(128);
+-- 30
+alter table report_body add column if not exists tag varchar(16);
+
+

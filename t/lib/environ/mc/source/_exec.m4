@@ -5,6 +5,10 @@ source __workdir/conf.env
 set +a
 test 1 != "${ENVIRON_MC_DB_AUSTOSTART-1}" || __workdir/db/status >& /dev/null || __workdir/db/start "--transaction-isolation=read-committed"
 [ -e __workdir/db/sql_mc_test ] || __workdir/db/create_db mc_test
+
+(
+cd __workdir/cwd
+
 if test "${MIRRORCACHE_DAEMON:-}" == 1 ; then
     perl __srcdir/script/mirrorcache-daemon >> __workdir/.cout 2>> __workdir/.cerr &
     pid=$!
@@ -18,6 +22,7 @@ else
     pid=$!
     echo $pid > __workdir/.pid
 fi
+)
 sleep 0.1
 __workdir/status || sleep 0.1
 __workdir/status || sleep 0.2

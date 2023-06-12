@@ -112,4 +112,31 @@ $mc9/curl -s /rest/repmirror \
           | grep '"country":"jp"' \
           | grep -F '"region":"na (http:\/\/127.0.0.1:3160)"'
 
+echo collect report when one of instances is down
+$mc6/stop
 
+$mc9/backstage/job -e report -a '["once"]'
+$mc9/backstage/shoot
+
+$mc9/curl -s /rest/repmirror \
+          | grep '"country":"br"' \
+          | grep '"country":"de"' \
+          | grep '"country":"dk"' \
+          | grep '"country":"ca"' \
+          | grep '"country":"us"' \
+          | grep '"country":"jp"' \
+          | grep -F '"region":"na (http:\/\/127.0.0.1:3160)"'
+
+echo also when the main db is down
+$mc9/db/stop
+
+$mc9/curl -s /rest/repmirror \
+          | grep '"country":"br"' \
+          | grep '"country":"de"' \
+          | grep '"country":"dk"' \
+          | grep '"country":"ca"' \
+          | grep '"country":"us"' \
+          | grep '"country":"jp"' \
+          | grep -F '"region":"na (http:\/\/127.0.0.1:3160)"'
+
+echo success
