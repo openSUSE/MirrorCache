@@ -3,7 +3,7 @@ __workdir/gen_env
 set -a
 source __workdir/conf.env
 set +a
-test 1 != "${ENVIRON_MC_DB_AUSTOSTART-1}" || __workdir/db/status >& /dev/null || __workdir/db/start "--transaction-isolation=read-committed"
+test 1 != "${ENVIRON_MC_DB_AUTOSTART-1}" || __workdir/db/status >& /dev/null || __workdir/db/start "--transaction-isolation=read-committed"
 [ -e __workdir/db/sql_mc_test ] || __workdir/db/create_db mc_test
 
 (

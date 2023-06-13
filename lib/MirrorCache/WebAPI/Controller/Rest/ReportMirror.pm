@@ -91,7 +91,7 @@ sub list {
     return unless $self->mcproject->caching;
 
     if (!$last_cache_run || 60 < time() - $last_cache_run) {
-        my $wassaveerror = 1;
+        $last_cache_run = time();
         eval {
             my $f = Mojo::File->new( $self->mcproject->cache_dir . "/$cache_filename.json" );
             $f->spurt($body) if $body;
@@ -102,9 +102,8 @@ sub list {
                 $f = Mojo::File->new( $self->mcproject->cache_dir . "/$cache_filename$region.json" );
                 $f->spurt($x);
             }
-            $wassaveerror = 0;
             1;
-        } or $last_cache_run = time();
+        }
     }
 }
 
