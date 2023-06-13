@@ -45,9 +45,9 @@ $mc/backstage/job -e mirror_scan -a '["/project1/folder1"]'
 $mc/backstage/shoot
 
 
-$mc/curl -s /rest/project/proj1
-$mc/curl -s /rest/project/proj1/mirror_summary
-$mc/curl -s /rest/project/proj1/mirror_summary | grep -E '"current":"?4' | grep -E '"outdated":"?0'
+$mc/curl /rest/project/proj1
+$mc/curl /rest/project/proj1/mirror_summary
+$mc/curl /rest/project/proj1/mirror_summary | grep -E '"current":"?4' | grep -E '"outdated":"?0'
 
 $mc/backstage/job -e folder_sync -a '["/project1/folder2"]'
 $mc/backstage/job -e mirror_scan -a '["/project1/folder2"]'
@@ -61,21 +61,34 @@ $mc/backstage/job -e report -a '["once"]'
 $mc/backstage/shoot
 
 rc=0
-$mc/curl -s /rest/repmirror  | grep -F '"country":"jp","proj1score":"0","proj1victim":"","proj2score":"100","proj2victim":"","region":"as","url":"'$($ap4/print_address)'"' || rc=$?
+$mc/curl /rest/repmirror  | grep -F '"country":"jp","proj1score":"0","proj1victim":"","proj2score":"100","proj2victim":"","region":"as","url":"'$($ap4/print_address)'"' || rc=$?
 echo proj1 is not on ap4, so it shouldnt appear in repmirror at all
 test $rc -gt 0
 
-$mc/curl -s /rest/repmirror  | grep -F '{"country":"cn","proj1score":"50","proj1victim":"","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1284"},{"country":"jp","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1274"},{"country":"de","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"eu","url":"127.0.0.1:1314"},{"country":"us","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1294"},{"country":"us","proj1score":"50","proj1victim":"\/project1\/folder2","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1304"}'
+$mc/curl /rest/repmirror  | grep -F '{"country":"cn","proj1score":"50","proj1victim":"","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1284"},{"country":"jp","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1274"},{"country":"de","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"eu","url":"127.0.0.1:1314"},{"country":"us","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1294"},{"country":"us","proj1score":"50","proj1victim":"\/project1\/folder2","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1304"}'
+
+$mc/curl /rest/project | grep -F '{"alias":"proj2","name":"proj 2","path":"\/project2"}' | grep -F '{"alias":"proj1","name":"proj1","path":"\/project1"}'
 
 echo ceck the same when DB is offline
 $mc/db/stop
-$mc/curl -s /rest/repmirror  | grep -F '{"country":"cn","proj1score":"50","proj1victim":"","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1284"},{"country":"jp","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1274"},{"country":"de","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"eu","url":"127.0.0.1:1314"},{"country":"us","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1294"},{"country":"us","proj1score":"50","proj1victim":"\/project1\/folder2","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1304"}'
+$mc/curl /rest/repmirror  | grep -F '{"country":"cn","proj1score":"50","proj1victim":"","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1284"},{"country":"jp","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1274"},{"country":"de","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"eu","url":"127.0.0.1:1314"},{"country":"us","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1294"},{"country":"us","proj1score":"50","proj1victim":"\/project1\/folder2","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1304"}'
+
+$mc/curl /rest/project | grep -F '{"alias":"proj2","name":"proj 2","path":"\/project2"}' | grep -F '{"alias":"proj1","name":"proj1","path":"\/project1"}'
+
+echo now restart the service while DB is offline
+$mc/stop
+ENVIRON_MC_DB_AUTOSTART=0 $mc/start
+
+$mc/curl /rest/repmirror  | grep -F '{"country":"cn","proj1score":"50","proj1victim":"","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1284"},{"country":"jp","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1274"},{"country":"de","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"eu","url":"127.0.0.1:1314"},{"country":"us","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1294"},{"country":"us","proj1score":"50","proj1victim":"\/project1\/folder2","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1304"}'
+
+$mc/curl /rest/project | grep -F '{"alias":"proj2","name":"proj 2","path":"\/project2"}' | grep -F '{"alias":"proj1","name":"proj1","path":"\/project1"}'
+
 $mc/db/start
 
-$mc/curl -s /rest/project/proj1/mirror_summary
-$mc/curl -s /rest/project/proj1/mirror_summary | grep -E '"current":"?2' | grep -E '"outdated":"?2'
+$mc/curl /rest/project/proj1/mirror_summary
+$mc/curl /rest/project/proj1/mirror_summary | grep -E '"current":"?2' | grep -E '"outdated":"?2'
 
-$mc/curl -s /rest/project/proj1/mirror_list | grep -E '{"current":"?1"?,"server_id":"?1"?,"url":"127.0.0.1:1294"},{"current":"?1"?,"server_id":"?3"?,"url":"127.0.0.1:1314"},{"current":"?0"?,"server_id":"?4"?,"url":"127.0.0.1:1284"},{"current":"?0"?,"server_id":"?2"?,"url":"127.0.0.1:1304"}'
+$mc/curl /rest/project/proj1/mirror_list | grep -E '{"current":"?1"?,"server_id":"?1"?,"url":"127.0.0.1:1294"},{"current":"?1"?,"server_id":"?3"?,"url":"127.0.0.1:1314"},{"current":"?0"?,"server_id":"?4"?,"url":"127.0.0.1:1284"},{"current":"?0"?,"server_id":"?2"?,"url":"127.0.0.1:1304"}'
 
 echo request from jp should be redirected to ap4
 $mc/curl -I /download/project2/folder1/file1.1.dat?COUNTRY=jp | grep $($ap4/print_address)
