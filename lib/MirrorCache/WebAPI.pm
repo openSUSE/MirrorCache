@@ -111,6 +111,7 @@ sub startup {
     $self->plugin('Backstage');
     $self->plugin('AuditLog');
     $self->plugin('RenderFileFromMirror');
+    $self->plugin('ReportMirror');
     $self->plugin('HashedParams');
 
     if ($geodb_file && $geodb_file =~ /\.mmdb$/i) {
