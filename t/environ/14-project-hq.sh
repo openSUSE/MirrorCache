@@ -103,7 +103,7 @@ $mc8/curl -IL /download/project2/folder1/file1.1.dat | grep -E "$($ap3/print_add
 
 
 # all countries present in report
-$mc9/curl -s /rest/repmirror \
+$mc9/curl /rest/repmirror \
           | grep '"country":"br"' \
           | grep '"country":"de"' \
           | grep '"country":"dk"' \
@@ -112,13 +112,22 @@ $mc9/curl -s /rest/repmirror \
           | grep '"country":"jp"' \
           | grep -F '"region":"na (http:\/\/127.0.0.1:3160)"'
 
-echo collect report when one of instances is down
+allmirrorspattern="$(ap1/print_address)"
+for i in {2..8}; do
+    x=ap$i
+    allmirrorspattern="$allmirrorspattern|$($x/print_address)"
+done
+
+# all mirrors are mentioned in html report
+test 8 == $($mc9/curl -i /report/mirrors | grep -A500 '200 OK' | grep -Eo $allmirrorspattern | sort | uniq | wc -l)
+
+echo collect report when one of the instances is down
 $mc6/stop
 
 $mc9/backstage/job -e report -a '["once"]'
 $mc9/backstage/shoot
 
-$mc9/curl -s /rest/repmirror \
+$mc9/curl /rest/repmirror \
           | grep '"country":"br"' \
           | grep '"country":"de"' \
           | grep '"country":"dk"' \
@@ -126,11 +135,14 @@ $mc9/curl -s /rest/repmirror \
           | grep '"country":"us"' \
           | grep '"country":"jp"' \
           | grep -F '"region":"na (http:\/\/127.0.0.1:3160)"'
+
+# all mirrors are mentioned in html report
+test 8 == $($mc9/curl -i /report/mirrors | grep -A500 '200 OK' | grep -Eo $allmirrorspattern | sort | uniq | wc -l)
 
 echo also when the main db is down
 $mc9/db/stop
 
-$mc9/curl -s /rest/repmirror \
+$mc9/curl /rest/repmirror \
           | grep '"country":"br"' \
           | grep '"country":"de"' \
           | grep '"country":"dk"' \
@@ -138,5 +150,8 @@ $mc9/curl -s /rest/repmirror \
           | grep '"country":"us"' \
           | grep '"country":"jp"' \
           | grep -F '"region":"na (http:\/\/127.0.0.1:3160)"'
+
+# all mirrors are mentioned in html report
+test 8 == $($mc9/curl -i /report/mirrors | grep -A500 '200 OK' | grep -Eo $allmirrorspattern | sort | uniq | wc -l)
 
 echo success

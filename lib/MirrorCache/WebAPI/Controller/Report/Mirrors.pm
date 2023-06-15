@@ -1,4 +1,4 @@
-# Copyright (C) 2022 SUSE LLC
+# Copyright (C) 2022,2023 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,26 +34,16 @@ sub index {
         $projects = \@projects_new if scalar(@projects_new);
     }
 
-    my $sql = 'select dt, body from report_body where report_id = 1 order by dt desc limit 1';
+    my ($report, $dt) = $self->mc->reportmirror->list;
+    return $self->render(text => 'Report unavailable', status => 500) unless $report;
 
-    eval {
-        my @res = $self->schema->storage->dbh->selectrow_array($sql);
-        my $body = $res[1];
-        my $hash = decode_json($body);
-
-        $self->stash;
-        $self->render(
-            "report/mirrors/index",
-            mirrors     => $hash,
-            projects    => $projects,
-            allprojects => $allprojects
-        );
-    };
-    my $error = $@;
-    if ($error) {
-         print STDERR "RESPMIRRORSREPORT : " . $error . "\n";
-         return $self->render(json => {error => $error}, status => 404);
-    }
+    $self->stash;
+    return $self->render(
+        "report/mirrors/index",
+        mirrors     => $report,
+        projects    => $projects,
+        allprojects => $allprojects
+    );
 }
 
 1;

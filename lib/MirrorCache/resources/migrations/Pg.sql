@@ -368,11 +368,11 @@ create table agg_download (
     bytes      bigint,
     primary key(period, dt, project_id, country, mirror_id, file_type, os_id, os_version, arch_id, meta_id)
 );
--- 28
+-- 28 up
 -- do nothing
--- 29
+-- 29 up
 alter table hash add column if not exists sha512 varchar(128);
--- 30
+-- 30 up
 alter table report_body add column if not exists tag varchar(16);
 
 
