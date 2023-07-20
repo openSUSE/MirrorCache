@@ -26,14 +26,12 @@ use Time::Piece;
 
 # rooturlredirect as defined in mcconfig->redirect
 # rooturlsredirect same as above just https
-has [ 'rooturl', 'rooturlredirect', 'rooturlredirects', 'rooturlredirectvpn', 'rooturlredirectvpns' ];
+has [ 'rooturl', 'rooturlredirect', 'rooturlredirects', 'rooturlredirectvpn', 'rooturlredirectvpns', 'rootnfs', 'top_folders' ];
 
 # length of eventual path in rooturl after hostname
 has rooturidirlenght => 0;
 
 my $uaroot = Mojo::UserAgent->new->max_redirects(10)->request_timeout(1);
-
-my $nfs = $ENV{MIRRORCACHE_ROOT_NFS};
 
 sub register {
     my ($self, $app) = @_;
@@ -47,8 +45,13 @@ sub register {
         }
     }
 
+    my $mcconfig = $app->mcconfig;
+
+    $self->rootnfs($mcconfig->root_nfs);
+    $self->top_folders($mcconfig->top_folders);
+
     my $redirect = $rooturl;
-    if ($redirect = $app->mcconfig->redirect) {
+    if ($redirect = $mcconfig->redirect) {
         $redirect  = "http://$redirect" unless 'http://' eq substr($redirect, 0, length('http://'));
     } else {
         $redirect = $rooturl;
@@ -57,7 +60,7 @@ sub register {
     my $redirects = $redirect =~ s/http:/https:/r;
     $self->rooturlredirects($redirects);
 
-    if (my $redirectvpn = $app->mcconfig->redirect_vpn) {
+    if (my $redirectvpn = $mcconfig->redirect_vpn) {
         $redirectvpn = "http://$redirectvpn" unless 'http://' eq substr($redirectvpn, 0, length('http://'));
         $self->rooturlredirectvpn($redirectvpn);
         my $redirectvpns = $redirectvpn =~ s/http:/https:/r;
@@ -73,6 +76,7 @@ sub is_remote {
 sub realpath {
     my ($self, $path, $deep) = @_;
     return undef unless $path;
+    my $nfs = $self->rootnfs;
 
     if ($nfs) {
         my $localpath = $nfs . $path;
@@ -139,7 +143,7 @@ sub is_dir {
 sub render_file {
     my ($self, $dm, $filepath, $not_miss) = @_;
     my $c = $dm->c;
-
+    my $nfs = $self->rootnfs;
     if ($nfs && $dm->must_render_from_root && -f $nfs . $filepath) {
         $c->render_file(filepath => $nfs . $filepath, content_type => $dm->mime, content_disposition => 'inline');
         $c->stat->redirect_to_root($dm, $not_miss);
@@ -152,8 +156,9 @@ sub render_file {
 }
 
 sub render_file_if_nfs {
-    return undef unless $nfs;
     my ($self, $dm, $filepath) = @_;
+    my $nfs = $self->rootnfs;
+    return undef unless $nfs;
 
     my $c = $dm->c;
 
@@ -185,7 +190,7 @@ sub looks_like_file {
 
 sub _detect_ln_in_the_same_folder {
     my ($self, $dir, $file) = @_;
-
+    my $nfs = $self->rootnfs;
     unless ($nfs) {
         my $dir1 = $dir . '/';
         my $rootlocation = $self->rooturl;
@@ -237,8 +242,8 @@ sub foreach_filename {
     my $dir  = shift;
     my $sub  = shift;
     my $P    = shift;
-    if ($dir eq '/' && $ENV{MIRRORCACHE_TOP_FOLDERS}) {
-        for (split ' ', $ENV{MIRRORCACHE_TOP_FOLDERS}) {
+    if ($dir eq '/' && $self->top_folders) {
+        for (split ' ', $self->top_folders) {
             $sub->($_ . '/');
         }
         return 1;

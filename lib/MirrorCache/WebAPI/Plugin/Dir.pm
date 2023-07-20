@@ -40,9 +40,10 @@ sub register {
 
     $root = $app->mc->root;
     $mc_config = $app->mc->config;
+    my $top_folders = $mc_config->top_folders;
 
-    if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
-        @top_folders = split /[:,\s]+/, $ENV{MIRRORCACHE_TOP_FOLDERS};
+    if ($top_folders) {
+        @top_folders = split /[:,\s]+/, $top_folders;
     }
 
     $app->hook(
@@ -61,7 +62,7 @@ sub indx {
     my $reqpath = $c->req->url->path;
 
     my $top_folder;
-    if ($ENV{MIRRORCACHE_TOP_FOLDERS}) {
+    if (@top_folders) {
         if ($reqpath =~ /^\/+$/) {
             $top_folder = '/';
         } else {
@@ -322,7 +323,7 @@ sub _local_render {
     return undef if $dm->extra && (!$accept || !$dm->accept_all);
     my ($path, $trailing_slash) = $dm->path;
     # we can just render top folders
-    return _render_top_folders($dm) if $ENV{MIRRORCACHE_TOP_FOLDERS} && $path eq '/';
+    return _render_top_folders($dm) if @top_folders && $path eq '/';
     return $root->render_file_if_nfs($dm, $path) if $root->is_remote;
 
     # root is only local now
@@ -650,21 +651,20 @@ sub _render_dir_local {
     return $c->render( 'dir', files => \@items, route => $dm->route, cur_path => $dir, folder_id => $id );
 }
 
-my $SMALL_FILE_SIZE = int($ENV{MIRRORCACHE_SMALL_FILE_SIZE} // 0);
-my $ROOT_NFS = $ENV{MIRRORCACHE_ROOT_NFS};
-
 sub _render_small {
-    return undef unless $SMALL_FILE_SIZE && ($ROOT_NFS || !$root->is_remote );
     my $dm = shift;
+    my $root_nfs = $mc_config->root_nfs;
+    my $small_file_size = $mc_config->small_file_size;
+    return undef unless $small_file_size && ($root_nfs || !$root->is_remote );
     $dm->_init_path;
     return undef if ($dm->metalink && !$dm->accept_all) || ($dm->meta4 && !$dm->accept_all) || $dm->mirrorlist || $dm->zsync;
     my ($path, undef) = $dm->path;
     my $full;
-    return $root->render_file_if_small($dm, $path, $SMALL_FILE_SIZE) unless $ROOT_NFS;
-    $full = $ROOT_NFS . $path;
+    return $root->render_file_if_small($dm, $path, $small_file_size) unless $root_nfs;
+    $full = $root_nfs . $path;
     my $size;
     eval { $size = -s $full if -f $full; };
-    return undef unless (defined $size) && $size <= $SMALL_FILE_SIZE;
+    return undef unless (defined $size) && $size <= $small_file_size;
     my $c = $dm->c;
     $c->render_file(filepath => $full, content_type => $dm->mime);
     return 1;

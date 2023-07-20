@@ -67,7 +67,8 @@ sub startup {
     my $mcconfig = $self->mcconfig;
     my $root     = $mcconfig->root;
 
-    my $geodb_file = $ENV{MIRRORCACHE_CITY_MMDB} || $ENV{MIRRORCACHE_IP2LOCATION};
+    my $geodb_file = $mcconfig->city_mmdb;
+    $geodb_file = $mcconfig->ip2location unless $geodb_file;
 
     die("Geo IP location database is not a file ($geodb_file)\nPlease check MIRRORCACHE_CITY_MMDB or MIRRORCACHE_IP2LOCATION") if $geodb_file && ! -f $geodb_file;
     my $geodb;

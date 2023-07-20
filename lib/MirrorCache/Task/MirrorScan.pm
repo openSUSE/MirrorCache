@@ -69,7 +69,7 @@ sub _dbfiles {
     my $folder = $schema->resultset('Folder')->find({path => $path});
     return undef unless $folder && $folder->id; # folder is not added to db yet
     my $realpath;
-    if ($app->mc->root->is_remote && !$ENV{MIRRORCACHE_ROOT_NFS}) {
+    if ($app->mc->root->is_remote && !$app->mcconfig->root_nfs) {
         my $redirect = $schema->resultset('Redirect')->find({pathfrom => $path});
         $realpath = $redirect->pathto if $redirect;
     } else {
