@@ -24,6 +24,7 @@ use Config::IniFiles;
 # For those values which may change it is better to use config file (the rest may be moved here as well)
 
 has root         => $ENV{MIRRORCACHE_ROOT};
+has root_nfs     => $ENV{MIRRORCACHE_ROOT_NFS};
 has dbuser       => $ENV{MIRRORCACHE_DBUSER};
 has dbpass       => $ENV{MIRRORCACHE_DBPASS};
 has dbhost       => $ENV{MIRRORCACHE_DBHOST};
@@ -39,6 +40,11 @@ has 'offline_redirect_https'; # the same as above, just with https
 
 has redirect_huge  => $ENV{MIRRORCACHE_REDIRECT_HUGE};
 has huge_file_size => int($ENV{MIRRORCACHE_HUGE_FILE_SIZE} // 0) || 40*1024*1024;
+has small_file_size => int($ENV{MIRRORCACHE_SMALL_FILE_SIZE} // 0);
+
+has city_mmdb     => $ENV{MIRRORCACHE_CITY_MMDB};
+has ip2location   => $ENV{MIRRORCACHE_IP2LOCATION};
+has top_folders   => $ENV{MIRRORCACHE_TOP_FOLDERS};
 
 has plugin_status => $ENV{MIRRORCACHE_PLUGIN_STATUS};
 
@@ -55,7 +61,7 @@ sub init($self, $cfgfile) {
     my $cfg;
     $cfg = Config::IniFiles->new(-file => $cfgfile, -fallback => 'default') if $cfgfile;
     if ($cfg) {
-        for my $k (qw/root redirect mirror_provider browser_agent_mask/) {
+        for my $k (qw/root root_nfs redirect redirect_huge huge_file_size small_file_size city_mmdb ip2location top_folders mirror_provider browser_agent_mask custom_footer_message/) {
             if (my $v = $cfg->val('default', $k)) {
                 $self->$k($v);
             }

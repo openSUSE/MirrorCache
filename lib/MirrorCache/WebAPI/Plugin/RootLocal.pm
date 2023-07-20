@@ -33,6 +33,9 @@ my $root_subtree = $ENV{MIRRORCACHE_SUBTREE} // "";
 has 'urlredirect';
 has 'urlredirect_huge';
 has 'huge_file_size';
+has 'top_folders';
+
+my %TOP_FOLDERS;
 
 sub register {
     (my $self, $app) = @_;
@@ -46,6 +49,13 @@ sub register {
     $self->urlredirect($app->mcconfig->redirect);
     $self->urlredirect_huge($app->mcconfig->redirect_huge);
     $self->huge_file_size($app->mcconfig->huge_file_size);
+    $self->top_folders($app->mcconfig->top_folders);
+    my $top_folders=$app->mcconfig->top_folders;
+    if ($top_folders) {
+        for my $folder (split(' ', $top_folders)) {
+            $TOP_FOLDERS{$folder} = 1;
+        }
+    }
 
     $app->helper( 'mc.root' => sub { $self; });
 }
@@ -153,13 +163,6 @@ sub rootpath {
 }
 
 
-my $TOP_FOLDERS=$ENV{MIRRORCACHE_TOP_FOLDERS};
-my %TOP_FOLDERS;
-if ($TOP_FOLDERS) {
-    for my $folder (split(' ', $TOP_FOLDERS)) {
-        $TOP_FOLDERS{$folder} = 1;
-    }
-}
 
 sub _detect_ln_in_the_same_folder {
     my ($dir, $file) = @_;
@@ -200,7 +203,7 @@ sub foreach_filename {
             next if $P && $f->basename !~ $P;
             my $stat = $f->stat;
             if ($stat) {
-                if (($dir eq '/' || $dir eq $root_subtree) && $TOP_FOLDERS) {
+                if (($dir eq '/' || $dir eq $root_subtree) && %TOP_FOLDERS) {
                     if (-d $f) {
                         return undef unless $TOP_FOLDERS{$f->basename};
                     }
@@ -228,7 +231,7 @@ sub list_files {
             my $f = shift;
             return undef if $re1 && $f->basename !~ /$re1/;
             return undef if $re2 && $f->basename !~ /$re2/;
-            if (($dir eq '/' || $dir eq $root_subtree) && $TOP_FOLDERS) {
+            if (($dir eq '/' || $dir eq $root_subtree) && %TOP_FOLDERS) {
                 if (-d $f) {
                     return undef unless $TOP_FOLDERS{$f->basename};
                 }
