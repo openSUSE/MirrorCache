@@ -1,6 +1,7 @@
 function setupReportDownloadTable(column) {
     // read columns from empty HTML table rendered by the server
     var columns = [];
+    var keys = column.split(',');
     columns.push({
         data: 'dt',
         defaultContent: "",
@@ -9,7 +10,20 @@ function setupReportDownloadTable(column) {
             return date.toLocaleDateString();
         }
     });
-    columns.push({ data: column, defaultContent: "" });
+    columns.push({
+        data: column,
+        defaultContent: "",
+        render: function (data, type, row, meta) {
+            data = "";
+            for (let i = 0; i < keys.length; i++) {
+                if (data != "") {
+                    data = data + ',';
+                }
+                data = data + row[keys[i]];
+            }
+            return data;
+        }
+    });
     columns.push({ data: 'total_requests', defaultContent: "" });
     columns.push({ data: 'known_files_requested', defaultContent: "" });
     columns.push({ data: 'known_files_redirected', defaultContent: "" });
