@@ -50,8 +50,8 @@ sub list {
             next;
         }
         if ($p eq 'country') {
-            $tmp = $tmp . ', country';
-            $key       = $key . ", country";
+            $tmp = $tmp . ', agg_download.country';
+            $key       = $key . ", agg_download.country";
             next;
         }
         if ($p eq 'os') {

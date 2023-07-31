@@ -96,4 +96,6 @@ $mc/curl /rest/repdownload?group=mirror | grep -o '"mirror":"127.0.0.1:1304","to
 $mc/backstage/job -e report -a '["once"]'
 $mc/backstage/shoot
 
+$mc/curl /rest/repdownload?group=mirror,country | grep -o '{"bytes_redirected":"396","bytes_served":"0","bytes_total":"396","country":"de","dt":"2023-07-31 09:00:00","k":"2023-07-31 09:00:00127.0.0.1:1314de","known_files_no_mirrors":"0","known_files_redirected":"36","known_files_requested":"36","mirror":"127.0.0.1:1314","total_requests":"36"}'
+
 echo success
