@@ -29,6 +29,7 @@ my @ROUTES = ( '/browse', '/download' );
 has [ '_route', '_route_len' ]; # this is '/download' or '/browse'
 has [ 'route', 'route_len' ]; # this may be '/download' or '/browse' or empty if one of TOP_FOLDERS present
 has [ 'metalink', 'meta4', 'zsync', 'accept_all', 'accept_metalink', 'accept_meta4', 'accept_zsync' ];
+has [ 'metalink_limit' ];          # maximum mirrors to search for metalink
 has [ '_ip', '_country', '_region', '_lat', '_lng', '_vpn' ];
 has [ '_avoid_countries' ];
 has [ '_pedantic' ];
@@ -436,6 +437,12 @@ sub _init_location($self) {
 
     $self->_country($country);
     $self->_region($region // '');
+    if (my $p = $query->param('LIMIT')) {
+        # check numeric value
+        if (int($p) > 0)  {
+            $self->metalink_limit($p);
+        }
+    }
 }
 
 sub _glob2re {

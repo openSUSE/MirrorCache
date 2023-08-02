@@ -748,7 +748,9 @@ sub _collect_mirrors {
     my $mirrorlist = $dm->mirrorlist;
     my $ipvstrict  = $dm->ipvstrict;
     my $metalink   = $dm->metalink || $dm->meta4 || $dm->zsync;
-    my $limit = $mirrorlist ? 100 : (( $metalink || $dm->pedantic )? 10 : 1);
+    my $limit = $mirrorlist ? 200 : (( $metalink || $dm->pedantic )? 10 : 1);
+    my $hard_limit = $dm->metalink_limit;
+    $limit = $hard_limit if $hard_limit;
     my $rs = $dm->c->schemaR->resultset('Server');
 
     my $m;
@@ -758,10 +760,13 @@ sub _collect_mirrors {
             !$mirrorlist, $ipvstrict, $vpn
     ) if $country;
 
-    push @$mirrors_country, @$m if $m && scalar(@$m);
+    if ($m && scalar(@$m)) {
+        splice(@$m, $hard_limit) if $hard_limit && $hard_limit > scalar(@$m);
+        push @$mirrors_country, @$m;
+    }
     my $found_count = scalar(@$mirrors_country) + scalar(@$mirrors_region) + scalar(@$mirrors_rest);
 
-    if ($region && (($found_count < $limit))) {
+    if ($region && ($found_count < $limit) && (!$hard_limit || $found_count < $hard_limit)) {
         my @avoid_countries;
         push @avoid_countries, @$avoid_countries if $avoid_countries && scalar(@$avoid_countries);
         push @avoid_countries, $country if ($country and !(grep { $country eq $_ } @avoid_countries));
@@ -771,15 +776,20 @@ sub _collect_mirrors {
             !$mirrorlist, $ipvstrict, $vpn
         );
         my $found_more;
+
         $found_more = scalar(@$m) if $m;
         if ($found_more) {
+            if ($hard_limit && $found_count + $found_more > $hard_limit) {
+                $found_more = $hard_limit - $found_count;
+                splice @$m, $found_more;
+            }
             $found_count += $found_more;
             push @$mirrors_region, @$m;
         }
     }
 
     if (
-        ($found_count < $limit && !$dm->root_country) ||
+        ($found_count < $limit && !$dm->root_country && (!$hard_limit || $hard_limit > $found_count)) ||
         ($metalink && $found_count < 3) ||
         $mirrorlist
     ) {
@@ -791,6 +801,10 @@ sub _collect_mirrors {
         my $found_more;
         $found_more = scalar(@$m) if $m;
         if ($found_more) {
+            if ($hard_limit && $found_count + $found_more > $hard_limit) {
+                $found_more = $hard_limit - $found_count;
+                splice @$m, $found_more;
+            }
             $found_count += $found_more;
             push @$mirrors_rest, @$m;
         }
