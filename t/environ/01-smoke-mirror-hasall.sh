@@ -44,4 +44,16 @@ $mc/curl /download/folder1/file1.1.dat.metalink   | grep "${FAKEURL}"/folder1/fi
 rc=0
 $mc/curl -I /download/folder1/file1.1.dat?"COUNTRY=it&PEDANTIC=1" | grep "${FAKEURL}" || rc=$?
 test $rc -gt 0
+
+echo test LIMIT with meta4
+test 3 == $($mc/curl /download/folder1/file1.1.dat.meta4 | grep location | wc -l)
+test 2 == $($mc/curl /download/folder1/file1.1.dat.meta4?LIMIT=2 | grep location | wc -l)
+test 1 == $($mc/curl /download/folder1/file1.1.dat.meta4?LIMIT=1 | grep location | wc -l)
+
+
+echo test LIMIT with metalink
+test 3 == $($mc/curl /download/folder1/file1.1.dat.metalink | grep location | wc -l)
+test 2 == $($mc/curl /download/folder1/file1.1.dat.metalink?LIMIT=2 | grep location | wc -l)
+test 1 == $($mc/curl /download/folder1/file1.1.dat.metalink?LIMIT=1 | grep location | wc -l)
+
 echo success
