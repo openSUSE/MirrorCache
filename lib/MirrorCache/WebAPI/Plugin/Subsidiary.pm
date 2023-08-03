@@ -94,9 +94,12 @@ sub register {
 
             my $country = $dm->country;
             my $region  = $dm->region;
-            my $url = _has_subsidiary($c, $dm);
+            my $url = $c->mcconfig->geoip->{$region} if $region;
+            unless ($url) {
+                $url = _has_subsidiary($c, $dm);
+                $url = $url->to_abs if $url;
+            }
             return $c->render(status => 204, text => '') unless $url;
-            $url = $url->to_abs;
             $url =~ s/http(s)?:\/\///;
             $c->res->headers->content_disposition("attachment; filename=\"$basename\"");
             $c->render(data => "<geoip><region>$region</region><country>$country</country><host>$url</host></geoip>", format => 'xml');

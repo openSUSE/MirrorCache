@@ -2,7 +2,7 @@
   <div class="container">
     <div class="d-flex justify-content-between">
       <div class="footer-copyright">
-        &copy; 2021,2022 SUSE LLC., openSUSE contributors
+        &copy; 2021-2023 SUSE LLC., openSUSE contributors
       </div>
       <div class="list-inline">
         <a class="list-inline-item" href="https://en.opensuse.org/Imprint">Legal notice</a>
