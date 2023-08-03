@@ -1,4 +1,4 @@
-# Copyright (C) 2022 SUSE LLC
+# Copyright (C) 2022,2023 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -54,6 +54,8 @@ has db_provider           => undef;
 has custom_footer_message => $ENV{MIRRORCACHE_CUSTOM_FOOTER_MESSAGE};
 
 has browser_agent_mask => $ENV{MIRRORCACHE_BROWSER_AGENT_MASK} // '(?i)(firefox|msie|chrom|safari|seamonkey|opera|opr|trident).*';
+
+has geoip => undef;
 
 sub init($self, $cfgfile) {
     my $db_provider = $ENV{MIRRORCACHE_DB_PROVIDER};
@@ -132,6 +134,22 @@ sub init($self, $cfgfile) {
         $self->offline_redirect_https(\@offline_redirect_https);
     }
 
+    my %geoip;
+    foreach (sort keys %ENV) {
+        my (undef, $reg) = split /MIRRORCACHE_GEOIP_(.*)/, $_;
+        next unless $reg;
+        $geoip{lc($reg)} = $ENV{$_};
+    }
+    if ($cfg) {
+        my @param = $cfg->Parameters('default');
+        for my $k (@param) {
+            my (undef, $reg) = split /geoip_(.*)/, $k;
+            next unless $reg;
+            $geoip{lc($reg)} = $cfg->val('default', $k);
+        }
+    }
+
+    $self->geoip(\%geoip);
     return 1;
 }
 

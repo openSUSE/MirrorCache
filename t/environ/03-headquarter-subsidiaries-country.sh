@@ -67,3 +67,14 @@ curl --interface $cn_interface -Is http://$hq_address/rest/server | grep '200 OK
 curl --interface $cn_interface -Is http://$cn_address/rest/server | grep '200 OK'
 curl --interface $na_interface -Is http://$na_address/rest/server | grep '200 OK'
 curl --interface $eu_interface -Is http://$eu_address/rest/server | grep '200 OK'
+
+$mc9/stop
+echo "export MIRRORCACHE_INI=$mc9/conf.ini" >> $mc9/conf.env
+echo "export MIRRORCACHE_GEOIP_EU=test1.com" >> $mc9/conf.env
+echo "geoip_as=test2.com" >> $mc9/conf.ini
+$mc9/start
+
+curl -si --interface $eu_interface http://$hq_address/geoip     | grep -A 50 '200 OK' | grep "<host>test1.com</host>"
+curl -si --interface $cn_interface http://$hq_address/geoip     | grep -A 50 '200 OK' | grep "<host>test2.com</host>"
+
+echo success
