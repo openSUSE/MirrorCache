@@ -81,6 +81,7 @@ sub indx {
       $success =
          _render_hashes($dm)
       || _render_small($dm)
+      || _set_cache_control($dm)
       || _redirect_project_ln_geo($dm)
       || _redirect_normalized($dm)
       || _render_stats($dm)
@@ -668,6 +669,12 @@ sub _render_small {
     my $c = $dm->c;
     $c->render_file(filepath => $full, content_type => $dm->mime);
     return 1;
+}
+
+# if we don't render file directly - we set max-age to short value, because redirect or metalink may change
+sub _set_cache_control {
+    shift->c->res->headers->cache_control('public, max-age=300, must-revalidate');
+    return undef;
 }
 
 sub _render_hashes {
