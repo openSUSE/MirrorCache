@@ -84,11 +84,20 @@ curl --interface $na_interface -Is http://$hq_address/download/folder1/filesmall
 echo check huge files are redirected to FAKEURL
 curl --interface $hq_interface -Is http://$hq_address/download/folder1/filehuge1.1.dat | grep "Location: http://$FAKEURL/folder1/filehuge1.1.dat"
 
+echo test cache-control
+curl --interface $na_interface -Is http://$hq_address/download/folder1/filebig1.1.dat | grep -i 'cache-control'
+curl --interface $na_interface -Is http://$hq_address/download/folder1/filehuge1.1.dat | grep -i 'cache-control'
+rc=0
+curl --interface $na_interface -Is http://$hq_address/download/folder1/filesmall1.1.dat | grep -i 'cache-control' || rc=$?
+test $rc -gt 0
+
+echo check content-type
 ct=$($mc9/curl -I /download/folder1/file.json | grep Content-Type)
 [[ "$ct" =~ application/json ]]
 ct=$($mc9/curl -I /folder1/file.json | grep Content-Type)
 [[ "$ct" =~ application/json ]]
 
+echo check file listiing
 $mc9/curl /download/folder1/ | grep file.json
 $mc9/curl /folder1/ | grep file.json
 

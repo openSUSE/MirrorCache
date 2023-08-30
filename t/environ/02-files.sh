@@ -194,3 +194,11 @@ done
 # test case insensitive:
 $mc/curl -I /download/folder1/file1.1.dat | grep '302 Found'
 $mc/curl -I /download/Folder1/file1.1.DAT | grep '200 OK'
+
+echo check cache control
+$mc/curl -I -H "Accept: */*, application/metalink+xml" /download/Folder1/repodata/repomd.xml | grep Cache-Control
+$mc/curl -I /download/folder1/file1.1.dat | grep Cache-Control
+$mc/curl -I /download/Folder1/file1.1.DAT | grep Cache-Control
+
+
+
