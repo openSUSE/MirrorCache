@@ -127,21 +127,21 @@ sub extra($self) {
 }
 
 sub region($self) {
-    unless (defined $self->_region) {
+    unless (defined $self->_lat) {
         $self->_init_location;
     }
     return $self->_region;
 }
 
 sub country($self) {
-    unless (defined $self->_country) {
+    unless (defined $self->_lat) {
         $self->_init_location;
     }
     return $self->_country;
 }
 
 sub avoid_countries($self) {
-    unless (defined $self->_country) {
+    unless (defined $self->_lat) {
         $self->_init_location;
     }
     return $self->_avoid_countries;
@@ -355,6 +355,25 @@ sub _init_headers($self) {
             }
         }
     }
+    my ($region, $country);
+    for my $name (@{$headers->names}) {
+        next unless $name;
+        $name = lc($name);
+        if ($name eq 'region-code' || $name eq 'x-region-code' || $name eq 'x-geo-region-code') {
+            $region = $headers->header($name);
+            $region = lc(substr $region, 0, 2) if $region;
+        }
+        if ($name eq 'country-code' || $name eq 'x-country-code' || $name eq 'x-geo-country-code') {
+            $country = $headers->header($name);
+            if ($country) {
+                $country = lc(substr $country, 0, 2);
+                $region = region_for_country($country) unless $region;
+            }
+        }
+    }
+    $self->_country($country) if $country;
+    $self->_region($region)   if $region;
+
     return unless $headers->accept;
 
     $self->metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/;
@@ -435,8 +454,8 @@ sub _init_location($self) {
     }
     $self->_avoid_countries(\@avoid_countries);
 
-    $self->_country($country);
-    $self->_region($region // '');
+    $self->_country($country) unless $self->_country;
+    $self->_region($region // '') unless $self->_region;
     if (my $p = $query->param('LIMIT')) {
         # check numeric value
         if (int($p) > 0)  {

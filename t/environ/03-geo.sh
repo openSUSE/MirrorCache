@@ -53,6 +53,10 @@ $mc/curl --interface 127.0.0.4 -Is /download/folder1/file1.1.dat?COUNTRY=ca | gr
 $mc/curl --interface 127.0.0.3 -Is /download/folder1/file1.1.dat?COUNTRY=ca | grep 1304
 $mc/curl --interface 127.0.0.2 -Is /download/folder1/file1.1.dat?COUNTRY=ca | grep 1304
 
+$mc/curl --interface 127.0.0.4 -H 'x-country-code: JP' -Is /download/folder1/file1.1.dat | grep 1324
+$mc/curl --interface 127.0.0.3 -H 'X-Country-Code: JP' -Is /download/folder1/file1.1.dat | grep 1324
+$mc/curl --interface 127.0.0.2 -H 'x-country-code: JP' -Is /download/folder1/file1.1.dat | grep 1324
+
 echo Further we test that servers are listed only once in metalink output
 $mc/curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 /download/folder1/file1.1.dat
 
