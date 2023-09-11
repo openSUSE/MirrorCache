@@ -50,10 +50,13 @@ test 3 == $($mc/curl /download/folder1/file1.1.dat.meta4 | grep location | wc -l
 test 2 == $($mc/curl /download/folder1/file1.1.dat.meta4?LIMIT=2 | grep location | wc -l)
 test 1 == $($mc/curl /download/folder1/file1.1.dat.meta4?LIMIT=1 | grep location | wc -l)
 
-
 echo test LIMIT with metalink
 test 3 == $($mc/curl /download/folder1/file1.1.dat.metalink | grep location | wc -l)
 test 2 == $($mc/curl /download/folder1/file1.1.dat.metalink?LIMIT=2 | grep location | wc -l)
 test 1 == $($mc/curl /download/folder1/file1.1.dat.metalink?LIMIT=1 | grep location | wc -l)
+
+echo test x-metalink-limit
+test 2 == $($mc/curl -H 'x-metalink-limit: 2' /download/folder1/file1.1.dat.meta4 | grep location | wc -l)
+test 1 == $($mc/curl -H 'x-metalink-limit: 1' /download/folder1/file1.1.dat.meta4 | grep location | wc -l)
 
 echo success

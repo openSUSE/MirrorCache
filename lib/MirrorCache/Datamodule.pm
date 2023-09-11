@@ -355,7 +355,7 @@ sub _init_headers($self) {
             }
         }
     }
-    my ($region, $country);
+    my ($region, $country, $metalink_limit);
     for my $name (@{$headers->names}) {
         next unless $name;
         $name = lc($name);
@@ -369,6 +369,10 @@ sub _init_headers($self) {
                 $country = lc(substr $country, 0, 2);
                 $region = region_for_country($country) unless $region;
             }
+        }
+        if ($name eq 'x-metalink-limit') {
+            $metalink_limit = $headers->header($name);
+            $self->metalink_limit($metalink_limit) if int($metalink_limit) > 0;
         }
     }
     $self->_country($country) if $country;
