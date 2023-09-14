@@ -608,7 +608,7 @@ sub _init_path($self) {
         $self->must_render_from_root(1);
         my $time = ~time() & 0xff;
 
-        $self->c->res->headers->cache_control("public, max-age=$time, must-revalidate");
+        $self->c->res->headers->cache_control("public, max-age=$time");
     }
 
     my ($ext) = $path =~ /([^.]+)$/;

@@ -673,7 +673,7 @@ sub _render_small {
 
 # if we don't render file directly - we set max-age to short value, because redirect or metalink may change
 sub _set_cache_control {
-    shift->c->res->headers->cache_control('public, max-age=300, must-revalidate');
+    shift->c->res->headers->cache_control('public, max-age=300');
     return undef;
 }
 
