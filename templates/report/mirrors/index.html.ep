@@ -88,18 +88,6 @@ td.newregion, tr:hover td.newregion {
     padding: 1.5rem 0.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
-    td.newregion, tr:hover td.newregion {
-        background: #212529;
-    }
-    thead th {
-        background: linear-gradient(to top, #787878 0%, #363a3c 1px, #363a3c 100%);
-    }
-    thead th:nth-child(even), thead th:nth-child(1), thead th:nth-child(3) {
-        background: linear-gradient(to top, #787878 0%, #2f3236 1px, #2f3236 100%);
-    }
-}
-
 </style>
 % end
 
