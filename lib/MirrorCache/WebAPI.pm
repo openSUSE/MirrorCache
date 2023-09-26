@@ -178,6 +178,7 @@ sub _setup_webui {
     $rest_r->get('/server_location')->name('rest_server_location')->to('server_location#list');
     $rest_r->get('/server/location')                              ->to('server_location#list');
     $rest_r->get('/server/:id')->to('table#list', table => 'Server');
+    $rest_r->get('/server/check/:id')->name('rest_get_server_check')->to('server_note#list_incident');
     $rest_r->get('/project')->to('project#list');
     $rest_r->get('/project/:name')->to('project#show');
     $rest_r->get('/project/:name/mirror_summary')->to('project#mirror_summary');
@@ -190,6 +191,9 @@ sub _setup_webui {
     $rest_operator_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
     $rest_operator_r->delete('/server/:id')->to('table#destroy', table => 'Server');
     $rest_operator_r->put('/server/location/:id')->name('rest_put_server_location')->to('server_location#update_location');
+    $rest_operator_r->post('/server/note/#hostname')->name('rest_put_server_note')->to('server_note#ins');
+    $rest_operator_r->get('/server/note/#hostname')->name('rest_get_server_note')->to('server_note#list');
+    $rest_operator_r->get('/server/contact/#hostname')->name('rest_get_server_contact')->to('server_note#list_contact');
     $rest_operator_r->post('/sync_tree')->name('rest_post_sync_tree')->to('folder_jobs#sync_tree');
 
     $rest_r->get('/myserver')->name('rest_myserver')->to('table#list', table => 'MyServer');
@@ -221,6 +225,7 @@ sub _setup_webui {
     my $app_r = $r->any('/app')->to(namespace => 'MirrorCache::WebAPI::Controller::App');
 
     $app_r->get('/server')->name('server')->to('server#index');
+    $app_r->get('/server/#hostname')->name('server_show')->to('server#show');
     $app_r->get('/myserver')->name('myserver')->to('myserver#index');
     $app_r->get('/folder')->name('folder')->to('folder#index');
     $app_r->get('/folder/<id:num>')->name('folder_show')->to('folder#show');

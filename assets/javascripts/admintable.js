@@ -281,6 +281,29 @@ function renderAdminTableSettingsList(data, type, row, meta) {
     return result;
 }
 
+function renderAdminTableHostname(data, type, row, meta) {
+    if (type !== 'display') {
+        return data ? data : '';
+    }
+    if (isEditingAdminTableRow(meta)) {
+        return '<input type="text" value="' + htmlEscape(data) + '"/>';
+    }
+    return data? '<a href="/app/server/'+ htmlEscape(data) +'">' + htmlEscape(data) + '</>' : '';
+}
+
+function renderAdminTableLongText(data, type, row, meta) {
+    if (type !== 'display') {
+        return data ? data : '';
+    }
+    if (isEditingAdminTableRow(meta)) {
+        return '<input type="text" value="' + htmlEscape(data) + '"/>';
+    }
+    if (data && data.length > 25) {
+        return data.substring(0, 21) + '...';
+    }
+    return data ? data : '';
+}
+
 function renderAdminTableDescription(data, type, row, meta) {
     if (type !== 'display') {
         return data ? data : '';
@@ -374,7 +397,13 @@ function setupAdminTable(editable) {
             type: 'empty-string-last',
         };
         if (th.hasClass('col_value')) {
-            columnDef.render = renderAdminTableValue;
+            if (columnName == 'hostname') {
+                columnDef.render = renderAdminTableHostname;
+            } else if (columnName == 'public notes' || columnName == 'comment' || columnName == 'sponsor') {
+                columnDef.render = renderAdminTableLongText;
+            } else {
+                columnDef.render = renderAdminTableValue;
+            }
             emptyRow[columnName] = "";
         } else if (th.hasClass('col_settings')) {
             columnDef.render = renderAdminTableSettings;

@@ -375,3 +375,13 @@ update popular_os set version = '\\3' where version = '\3';
 alter table hash add column if not exists sha512 varchar(128);
 -- 30 up
 alter table report_body add column if not exists tag varchar(16);
+-- 31 up
+create table server_note (
+    hostname  varchar(128) NOT NULL,
+    dt        timestamp NOT NULL,
+    acc       varchar(32),
+    kind      varchar(16),
+    msg       varchar(512),
+    primary key(hostname, dt)
+);
+
