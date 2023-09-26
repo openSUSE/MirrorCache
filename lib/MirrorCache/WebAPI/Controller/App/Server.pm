@@ -38,4 +38,26 @@ sub update {
     $self->redirect_to($self->url_for('server'));
 }
 
+sub show {
+    my $self = shift;
+    my $hostname = $self->param('hostname');
+
+    my $f = $self->schema->resultset('Server')->find({hostname => $hostname})
+        or return $self->reply->not_found;
+
+    my $admin_email = '';
+    if ($self->is_operator) {
+        $admin_email = $self->schema->storage->dbh->selectrow_array("SELECT msg FROM server_note WHERE hostname = ? AND kind = 'Email' ORDER BY dt DESC LIMIT 1", undef, $hostname);
+    }
+
+    my $server = {
+        id           => $f->id,
+        hostname     => $f->hostname,
+        public_notes => $f->public_notes,
+        admin_email  => $admin_email,
+    };
+
+    return $self->render('app/server/show', server => $server);
+}
+
 1;

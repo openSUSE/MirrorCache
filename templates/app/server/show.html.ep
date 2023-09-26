@@ -1,0 +1,67 @@
+% layout 'bootstrap';
+% title "Server " . $server->{hostname};
+
+% content_for 'ready_function' => begin
+    is_operator = <%= (is_operator) ? 'true' : 'false' %>;
+    server_id = <%= $server->{id} %>;
+    if (is_operator) {
+        hostname = "<%= $server->{hostname} %>";
+        setupServerNote(hostname);
+    }
+    setupServerIncident(server_id);
+% end
+
+<div class="row">
+    <div class="col-sm-12">
+        <h2><%= title %></h2>
+
+    %= include 'layouts/info'
+
+    <div class="card">
+        <div class="card-body status-info">
+            <div><span>Host: </span><%= $server->{hostname} %></div>
+            <div><span>Id: </span><%= $server->{id} %></div>
+% if ($server->{public_notes}) {
+            <div><span>Public notes: </span><%= $server->{public_notes} %></div>
+% }
+            % # <div><span>Status: </span><%= include 'app/server/server_status' %></div>
+% if ($server->{admin_email}) {
+            <div><span>Email: </span><%= $server->{admin_email} %></div>
+% }
+        </div>
+    </div>
+
+% if (is_operator) {
+    <h3>Private notes</h3>
+    <table id="server_note" class="table table-striped">
+        <thead>
+            <th>Date</th>
+            <th>User</th>
+            <th>Kind</th>
+            <th>Message</th>
+        </thead>
+    </table>
+    <div class="text-center">
+        <label for="new-note-select">New </label>
+        <select name="select" id="new-note-select">
+            <option value="Note">Note</option>
+            <option value="Email">Email</option>
+            <option value="Rsync">Rsync</option>
+            <option value="Ftp">Ftp</option>
+        </select>
+        <input type="text" id="new-note-text" name="new-note-text" onkeyup="addServerNoteButtonStatus()">
+        <input value="add" id="new-note-submit" onclick="addServerNote(hostname, document.getElementById('new-note-select').value, document.getElementById('new-note-text').value);" type="button" class="btn btn-default" disabled/>
+    </div>
+% }
+
+    <h3>Checks last two weeks</h3>
+    <table id="server_incident" class="table table-striped">
+        <thead>
+            <th>Date</th>
+            <th>Capability</th>
+            <th>Error</th>
+        </thead>
+    </table>
+</div>
+
+</div>
