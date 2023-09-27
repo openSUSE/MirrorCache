@@ -147,10 +147,16 @@ sub _run_mirrors {
     # this is just tmp structure we use for aggregation
     my %report;
     my %sponsor;
+    my %capability;
+    my %url;
     for my $m (@$mirrors) {
-        $report{ $m->{region} }{ $m->{country} }{ $m->{url} }{ $m->{project} }
+        $report{ $m->{region} }{ $m->{country} }{ $m->{hostname} }{ $m->{project} }
           = [ $m->{score}, $m->{victim} ];
-        $sponsor{$m->{url}} = [$m->{sponsor},$m->{sponsor_url}];
+        $sponsor{$m->{hostname}} = [$m->{sponsor},$m->{sponsor_url}];
+        $url{$m->{hostname}} = $m->{url};
+        for my $capability (qw/http https ipv4 ipv6 ftp rsync/) {
+            $capability{$m->{hostname}}{$capability} = $m->{$capability . '_url'} if $m->{$capability . '_url'};
+        }
     }
 
     # json expects array, so we collect array here
@@ -159,18 +165,19 @@ sub _run_mirrors {
         my $by_region = $report{$region};
         for my $country (sort keys %$by_region) {
             my $by_country = $by_region->{$country};
-            for my $url (sort keys %$by_country) {
+            for my $hostname (sort keys %$by_country) {
                 my %row = (
-                    region  => $region,
-                    country => $country,
-                    url     => $url,
+                    region   => $region,
+                    country  => $country,
+                    hostname => $hostname,
+                    url      => $url{$hostname},
                 );
-                if (my $sponsor = $sponsor{$url}) {
+                if (my $sponsor = $sponsor{$hostname}) {
                     $row{'sponsor'} = $sponsor->[0] if $sponsor->[0];
                     $row{'sponsor_url'} = $sponsor->[1] if $sponsor->[1];
                 }
 
-                my $by_project = $by_country->{$url};
+                my $by_project = $by_country->{$hostname};
                 for my $project (sort keys %$by_project) {
                     my $p = $by_project->{$project};
                     my $score = $p->[0];
@@ -181,6 +188,12 @@ sub _run_mirrors {
                     $project = "c$project" if $project =~ /^\d/;
                     $row{$project . 'score'}  = $score;
                     $row{$project . 'victim'} = $victim;
+                }
+                # add capabilities
+                for my $capability (qw/http https ipv4 ipv6 ftp rsync/) {
+                    if (my $capability_url = $capability{$hostname}{$capability}) {
+                        $row{$capability . '_url'} = $capability_url;
+                    }
                 }
                 push @report, \%row;
             }
