@@ -54,6 +54,7 @@ has db_provider           => undef;
 has custom_footer_message => $ENV{MIRRORCACHE_CUSTOM_FOOTER_MESSAGE};
 
 has browser_agent_mask => $ENV{MIRRORCACHE_BROWSER_AGENT_MASK} // '(?i)(firefox|msie|chrom|safari|seamonkey|opera|opr|trident).*';
+has country_image_dir => $ENV{MIRRORCACHE_COUNTRY_IMAGE_DIR} // '/srv/www/htdocs/webalizer/flags/';
 
 has geoip => undef;
 
@@ -63,7 +64,7 @@ sub init($self, $cfgfile) {
     my $cfg;
     $cfg = Config::IniFiles->new(-file => $cfgfile, -fallback => 'default') if $cfgfile;
     if ($cfg) {
-        for my $k (qw/root root_nfs redirect redirect_huge huge_file_size small_file_size city_mmdb ip2location top_folders mirror_provider browser_agent_mask custom_footer_message/) {
+        for my $k (qw/root root_nfs redirect redirect_huge huge_file_size small_file_size city_mmdb ip2location top_folders mirror_provider browser_agent_mask custom_footer_message country_image_dir/) {
             if (my $v = $cfg->val('default', $k)) {
                 $self->$k($v);
             }
@@ -150,6 +151,10 @@ sub init($self, $cfgfile) {
     }
 
     $self->geoip(\%geoip);
+    if (my $country_image_dir = $self->country_image_dir) {
+        ( -d $country_image_dir && -r $country_image_dir ) or $self->country_image_dir('');
+    }
+
     return 1;
 }
 

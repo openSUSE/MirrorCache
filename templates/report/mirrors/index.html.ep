@@ -72,6 +72,14 @@ div.repo {
     max-width: 20pct;
 }
 
+div.country {
+    float: left;
+}
+
+div.flag {
+    float: right;
+}
+
 div.hostname {
     float: left;
     margin-left: 2px;
@@ -128,6 +136,7 @@ td.newregion, tr:hover td.newregion {
 %= include_branding 'report_mirrors_banner'
 % my $mc_branding = eval '$branding' // 'MirrorCache';
 % my $is_opensuse = $mc_branding eq 'openSUSE';
+% my $country_image_dir = eval('mcconfig->country_image_dir');
 
 <form>
 <div class="row">
@@ -174,8 +183,12 @@ td.newregion, tr:hover td.newregion {
                 <tr>
                 %     my $hostname = $m->{hostname};
                 %     my $url      = $m->{url};
-                    <td><%= $m->{country} %></td>
-                    <td><div class="hostname"><a class="hostname" href="http://<%= $hostname %>"><%=$hostname%></a></div>
+                    <td><div class="country"><%= $m->{country} %></div>
+                %     if ($country_image_dir) {
+                      <div class="flag"><img src="/<%= $m->{country} %>.png" width="20" class="img-fluid" alt="country flag"></div>
+                %     }
+                    </td>
+                    <td><div class="hostname"><a class="hostname" href="/app/server/<%= $hostname %>"><%=$hostname%></a></div>
                 %   for my $capability (qw/http https ftp rsync ipv4 ipv6/) {
                 %       my $capability_url = $m->{$capability . '_url'};
                 %       next unless $capability_url;
