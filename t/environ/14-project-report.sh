@@ -37,7 +37,7 @@ rm -r $ap5/dt/project2/folder2/
 rm -r $ap5/dt/project1/
 rm -r $ap4/dt/project2/
 
-$mc/sql "insert into server(hostname,sponsor,sponsor_url,urldir,enabled,country,region) select '$($ap6/print_address)','sponsor1','www.sponsor.org','','t','us','na'"
+$mc/sql "insert into server(hostname,sponsor,sponsor_url,urldir,enabled,country,region) select '$($ap6/print_address)','sponsor1 very long name inc Universitaties Subdivision','www.sponsor.org','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','cn','as'"
@@ -47,6 +47,13 @@ $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($a
 $mc/sql "insert into project(name,path,etalon) select '2.0 1','/project2/folder1', 3"
 $mc/sql "insert into project(name,path,etalon) select 'proj1','/project1', 3"
 $mc/sql "insert into project(name,path,etalon) select '2.0 2','/project2/folder2', 3"
+
+echo add extra info for the report
+$mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap7/print_address)','Ftp', 'ftp://ftp.ap7.com/opensuse'"
+$mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap7/print_address)','Rsync', 'rsync://rsync.ap7.com/opensuse'"
+$mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap6/print_address)','Ftp', 'ftp://ftp.ap6.com/opensuse'"
+$mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap6/print_address)','Rsync', 'rsync://rsync.ap6.com/opensuse'"
+
 
 $mc/backstage/job -e folder_sync -a '["/project1/folder1"]'
 $mc/backstage/job -e mirror_scan -a '["/project1/folder1"]'

@@ -67,7 +67,41 @@ a.repooutdated {
 
 div.repo {
     float: left;
+    margin-left: 2px;
     margin-right: 2px;
+    max-width: 20pct;
+}
+
+div.hostname {
+    float: left;
+    margin-left: 2px;
+    margin-right: 2px;
+    max-width: 20pct;
+}
+
+a.hostname {
+    font-size: larger;
+}
+
+div.url {
+    float: left;
+    margin-left: 2px;
+    margin-right: 2px;
+    max-width: 20pct;
+}
+
+a.url {
+    font-size: smaller;
+}
+
+div.sponsor {
+    float: right;
+    margin-left: 2px;
+    margin-right: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 10pct;
 }
 
 tr:nth-child(even) {
@@ -104,10 +138,11 @@ td.newregion, tr:hover td.newregion {
             <thead>
                 <tr>
                     <th class="col_value">Country</th>
+                    <th class="col_value"><div class="hostname">Hostname</div><div class="url">Urls</div>
                     % if ($is_opensuse) {
-                    <th class="col_value">Operator</th>
+                      <div class="sponsor">Operator</div>
                     % }
-                    <th class="col_value">Url</th>
+                    </th>
                     % $first_old = '';
                     % $first = '';
                     % for my $project (@$projects) {
@@ -137,16 +172,23 @@ td.newregion, tr:hover td.newregion {
                 %     }
                 %     $prev_region = $region;
                 <tr>
-                %     my $url = $m->{url};
+                %     my $hostname = $m->{hostname};
+                %     my $url      = $m->{url};
                     <td><%= $m->{country} %></td>
+                    <td><div class="hostname"><a class="hostname" href="http://<%= $hostname %>"><%=$hostname%></a></div>
+                %   for my $capability (qw/http https ftp rsync ipv4 ipv6/) {
+                %       my $capability_url = $m->{$capability . '_url'};
+                %       next unless $capability_url;
+                        <div class="url"><a class="url" href="<%= $capability_url %>"><%= $capability %></a></div>
+                %   }
                 %     if ($is_opensuse) {
                 %         my $sponsor     = $m->{sponsor};
                 %         my $sponsor_url = $m->{sponsor_url};
                 %         $sponsor = $sponsor_url unless $sponsor;
                 %         $sponsor_url = $sponsor unless $sponsor_url;
-                    <td><a href="https://<%= $sponsor_url %>"><%=$sponsor%></a></td>
+                    <div class="sponsor"><a class="sponsor" href="https://<%= $sponsor_url %>"><%= $sponsor %></a></div>
                 %     }
-                    <td><a href="http://<%= $url %>"><%=$url%></a></td>
+                    </td>
                 %     my $inner = '';
                 %     $first_old = '';
                     <td>
