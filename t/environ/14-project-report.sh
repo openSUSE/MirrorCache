@@ -50,8 +50,9 @@ $mc/sql "insert into project(name,path,etalon) select '2.0 2','/project2/folder2
 
 echo add extra info for the report
 $mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap7/print_address)','Ftp', 'ftp://ftp.ap7.com/opensuse'"
-$mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap7/print_address)','Rsync', 'rsync://rsync.ap7.com/opensuse'"
 $mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap6/print_address)','Ftp', 'ftp://ftp.ap6.com/opensuse'"
+sleep 1
+$mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap7/print_address)','Rsync', 'rsync://rsync.ap7.com/opensuse'"
 $mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap6/print_address)','Rsync', 'rsync://rsync.ap6.com/opensuse'"
 
 

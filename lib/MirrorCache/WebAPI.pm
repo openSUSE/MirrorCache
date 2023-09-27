@@ -255,6 +255,10 @@ sub _setup_webui {
     $self->asset->process;
     $self->plugin('Stat');
     $self->plugin('Dir');
+    if (my $country_image_dir = $self->mcconfig->country_image_dir) {
+        my $static = $self->static;
+        push @{$static->paths}, $country_image_dir;
+    }
     $self->log->info("server started:  $current_version");
 }
 
