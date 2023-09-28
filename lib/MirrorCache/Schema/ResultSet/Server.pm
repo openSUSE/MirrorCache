@@ -315,8 +315,8 @@ select s.id, s.region, s.country,
     s.sponsor, s.sponsor_url,
     s.hostname as hostname,
     concat(s.hostname, s.urldir) as url,
-    case when (select rating from server_stability where capability = 'http'  and server_id = s.id) > 0 then concat('http://',  s.hostname, '/', s.urldir, '/') else '' end as http_url,
-    case when (select rating from server_stability where capability = 'https' and server_id = s.id) > 0 then concat('https://', s.hostname, '/', s.urldir, '/') else '' end as https_url,
+    case when (select rating from server_stability where capability = 'http'  and server_id = s.id and server_stability.dt > now() - interval '1 day') > 0 then concat('http://',  s.hostname, '/', s.urldir, '/') else '' end as http_url,
+    case when (select rating from server_stability where capability = 'https' and server_id = s.id and server_stability.dt > now() - interval '1 day') > 0 then concat('https://', s.hostname, '/', s.urldir, '/') else '' end as https_url,
     ( select msg from server_note where kind = 'Ftp'   and server_note.hostname = s.hostname order by server_note.dt desc limit 1) as ftp_url,
     ( select msg from server_note where kind = 'Rsync' and server_note.hostname = s.hostname order by server_note.dt desc limit 1) as rsync_url,
     project,
@@ -347,6 +347,9 @@ join project_folder_count on project_folder_count.project_id = smry.project_id
 join server s on smry.server_id = s.id and s.enabled
 order by region, country, score, hostname, project;
 END_SQL
+
+    $sql =~ s/interval '1 day'/interval 1 day/g unless ($dbh->{Driver}->{Name} eq 'Pg');
+
     my $prep = $dbh->prepare($sql);
     if ($project && $region) {
         $prep->execute($project, $project, $region);
