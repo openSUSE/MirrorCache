@@ -112,6 +112,10 @@ div.sponsor {
     max-width: 10pct;
 }
 
+a.sponsor {
+    font-size: smaller;
+}
+
 tr:nth-child(even) {
     background-color: #88888822;
 }
@@ -181,8 +185,14 @@ td.newregion, tr:hover td.newregion {
                 %     }
                 %     $prev_region = $region;
                 <tr>
-                %     my $hostname = $m->{hostname};
-                %     my $url      = $m->{url};
+                %     my $hostname  = $m->{hostname};
+                %     my $url       = 'http://' . $m->{url};
+                %     my $url_https = $m->{https_url};
+                %     my $url_http  = $m->{http_url};
+                %     $url_http  =~ s/(\/)+$//g; # truncate trailing slashes
+                %     $url_https =~ s/(\/)+$//g; # truncate trailing slashes
+                %     $url = $url_http  if $url_http;
+                %     $url = $url_https if $url_https;
                     <td><div class="country"><%= $m->{country} %></div>
                 %     if ($country_image_dir) {
                       <div class="flag"><img src="/<%= $m->{country} %>.png" width="20" class="img-fluid" alt="country flag"></div>
@@ -232,7 +242,7 @@ td.newregion, tr:hover td.newregion {
                                title="diff in: <%=$victim%>"
                 %         }
                 %         $second = 'iso' if $second eq 'ISO' || $second eq 'ISOs';
-                               href="http://<%=$url . $path%>">
+                               href="<%=$url . $path%>">
                                 <%= $second %>
                             </a>
                         </div>

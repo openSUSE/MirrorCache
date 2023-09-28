@@ -55,6 +55,12 @@ sleep 1
 $mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap7/print_address)','Rsync', 'rsync://rsync.ap7.com/opensuse'"
 $mc/sql "insert into server_note(dt,hostname,kind,msg) select now(), '$($ap6/print_address)','Rsync', 'rsync://rsync.ap6.com/opensuse'"
 
+$mc/sql "insert into server_stability(dt,server_id,rating,capability) select now(), 1, 1000, 'https'"
+$mc/sql "insert into server_stability(dt,server_id,rating,capability) select now(), 1, 1000, 'http'"
+$mc/sql "insert into server_stability(dt,server_id,rating,capability) select now(), 1, 1000, 'ipv6'"
+$mc/sql "insert into server_stability(dt,server_id,rating,capability) select now(), 2, 0, 'https'"
+$mc/sql "insert into server_stability(dt,server_id,rating,capability) select now(), 2, 100, 'http'"
+
 
 $mc/backstage/job -e folder_sync -a '["/project1/folder1"]'
 $mc/backstage/job -e mirror_scan -a '["/project1/folder1"]'
