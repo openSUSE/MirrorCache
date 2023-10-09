@@ -48,6 +48,7 @@ has top_folders   => $ENV{MIRRORCACHE_TOP_FOLDERS};
 
 has plugin_status => $ENV{MIRRORCACHE_PLUGIN_STATUS};
 
+has regions               => $ENV{MIRRORCACHE_REGIONS};
 has mirror_provider       => $ENV{MIRRORCACHE_MIRROR_PROVIDER};
 
 has db_provider           => undef;
@@ -64,7 +65,7 @@ sub init($self, $cfgfile) {
     my $cfg;
     $cfg = Config::IniFiles->new(-file => $cfgfile, -fallback => 'default') if $cfgfile;
     if ($cfg) {
-        for my $k (qw/root root_nfs redirect redirect_huge huge_file_size small_file_size city_mmdb ip2location top_folders mirror_provider browser_agent_mask custom_footer_message country_image_dir/) {
+        for my $k (qw/root root_nfs redirect redirect_huge huge_file_size small_file_size city_mmdb ip2location top_folders regions mirror_provider browser_agent_mask custom_footer_message country_image_dir/) {
             if (my $v = $cfg->val('default', $k)) {
                 $self->$k($v);
             }

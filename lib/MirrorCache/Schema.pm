@@ -16,6 +16,8 @@ my $SINGLETONR;
 
 my $PROVIDER;
 
+my $OUR_REGIONS;
+
 sub pg {
     return 1 if $PROVIDER eq 'Pg';
     return 0;
@@ -26,7 +28,7 @@ sub provider {
 }
 
 sub connect_db {
-    my ($self, $provider, $dsn, $user, $pass) = @_;
+    my ($self, $provider, $dsn, $user, $pass, $our_regions) = @_;
 
     $PROVIDER = $provider;
 
@@ -38,6 +40,13 @@ sub connect_db {
         }
 
         $SINGLETON = __PACKAGE__->connect($dsn, $user, $pass);
+
+        if ($our_regions) {
+            my @regions = split ',', $our_regions;
+            my $in = join ', ', map "'$_'", @regions;
+
+            $OUR_REGIONS = "and (s.region in ($in) or (select enabled from server_capability_declaration where server_id = s.id and capability = 'region' and extra in ($in)))"
+        }
     }
 
     return $SINGLETON;
@@ -101,6 +110,12 @@ sub migrate {
     $conn->username($user) if $user;
     $conn->password($pass) if $pass;
     my $db = $conn->db; # this will do migration
+}
+
+sub condition_our_regions {
+    return '' unless $OUR_REGIONS;
+
+    return $OUR_REGIONS;
 }
 
 1;
