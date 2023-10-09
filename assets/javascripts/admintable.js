@@ -325,7 +325,11 @@ function renderAdminTableActions(data, type, row, meta) {
         return '';
     }
     var url = $("#admintable_api_url").val();
-    res = '<button type="submit" class="btn" alt="Edit" title="Edit" onclick="setEditingAdminTableRow(this.parentElement, true, false);"><i class="far fa-edit"></i></button>';
+    var noActions = document.getElementById("regionmirrorproviderpanel");
+    var res = '';
+    if (! noActions ) {
+        res = '<button type="submit" class="btn" alt="Edit" title="Edit" onclick="setEditingAdminTableRow(this.parentElement, true, false);"><i class="far fa-edit"></i></button>';
+    }
     if (url == '/rest/server' && data) {
         return res + '<button type="submit" class="btn" alt="UpdateLocation" title="Update Location" onclick="submitServerLocationRow(this.parentElement, ' + data + ');"><i class="far fa-bookmark"></i></button>';
     } else {

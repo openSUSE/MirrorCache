@@ -17,6 +17,11 @@
         </div>
 
         %= include 'layouts/info'
+        % if (eval ('$mirror_provider_url')) {
+        <div id="regionmirrorproviderpanel" class="card">
+          <span>This view is readonly, it is imported from <a href=<%= eval('$mirror_provider_url') %>>mirror provider</a></span>
+        </div>
+        % }
 
         <table id="servers" class="admintable table table-striped">
             <thead>
@@ -38,7 +43,7 @@
             <tbody>
             </tbody>
         </table>
-        % if (is_admin) {
+        % if (is_admin && !eval('$mirror_provider_url')) {
         <div class="text-center">
             <input value="New mirror" onclick="addAdminTableRow();" type="button" class="btn btn-default"/>
         </div>

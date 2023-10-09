@@ -17,7 +17,17 @@ package MirrorCache::WebAPI::Controller::App::Server;
 use Mojo::Base 'MirrorCache::WebAPI::Controller::App::Table';
 
 sub index {
-    shift->SUPER::admintable('server');
+    my $c = shift;
+    my $mirror_provider = $c->mcconfig->mirror_provider;
+    if (my $url = $c->mcconfig->mirror_provider) {
+        $url =~ s!^https?://(?:www\.)?!!i;
+        $url =~ s!/.*!!;
+        $url =~ s/[\?\#\:].*//;
+        my $mirror_provider_url = 'https://' . $url . '/app/server';
+        $c->stash( mirror_provider_url => $mirror_provider_url );
+    }
+
+    $c->SUPER::admintable('server');
 }
 
 sub update {
