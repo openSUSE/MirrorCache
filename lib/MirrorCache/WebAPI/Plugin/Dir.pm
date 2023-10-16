@@ -227,13 +227,18 @@ sub _redirect_project_ln_geo {
         }
 
         $c->log->error('pedantic: ' . ($dm->pedantic // 'undef')) if $MCDEBUG;
-        if ($path =~ m/(GNOME_.*|.*(Media|Current|Next))\.iso(\.sha256(\.asc)?)?/ && $dm->pedantic) {
-            my $ln = $root->detect_ln_in_the_same_folder($path);
+        if ($path =~ m/(GNOME_.*|.*(Media|[C|c]urrent|Next))\.iso(\.sha256(\.asc)?)?/ && $dm->pedantic) {
+            my $ln = $root->detect_ln_in_the_same_folder($dm->original_path);
+            my $extra = 1;
+            unless ($ln) {
+                $ln = $root->detect_ln_in_the_same_folder($path);
+                $extra = 0;
+            }
             $c->log->error("ln for $path : " . ($ln // 'null')) if $MCDEBUG;
             if ($ln) {
                 # redirect to the symlink
-                $c->log->error('redirect detected: ' . $ln) if $MCDEBUG;
-                $dm->redirect($dm->route . $ln);
+                $c->log->error('redirect detected: ' . $ln . ": " . $c->dumper($dm->accept_all, $dm->accept)) if $MCDEBUG;
+                $dm->redirect($dm->route . $ln, $extra && ($dm->accept_all || !$dm->accept));
                 return 1;
             }
         }
@@ -321,14 +326,21 @@ sub _render_stats_not_scanned {
 sub _local_render {
     my $dm     = shift;
     my $accept = shift;
-    return undef if $dm->extra && (!$accept || !$dm->accept_all);
+    my $c      = $dm->c;
+    $c->log->error($c->dumper('local_render : ', $dm->extra, $accept, $dm->accept_all)) if $MCDEBUG;
+    return undef if $dm->extra && (!$accept || $dm->accept);
+    $c->log->error($c->dumper('local_render2: ')) if $MCDEBUG;
     my ($path, $trailing_slash) = $dm->path;
     # we can just render top folders
     return _render_top_folders($dm) if @top_folders && $path eq '/';
-    return $root->render_file_if_nfs($dm, $path) if $root->is_remote;
+    my $original_path = $dm->original_path;
+
+    return $root->render_file_if_nfs($dm, $path) if $root->is_remote && ($original_path eq $path || (!$dm->extra && !$dm->accept));
+    return undef if $root->is_remote;
+    $c->log->error($c->dumper('local_render3: ')) if $MCDEBUG;
 
     # root is only local now
-    if (defined($dm->c->param('realpath'))) {
+    if (defined($c->param('realpath'))) {
         my $realpath = $root->realpath($path);
         return $dm->redirect($dm->route . $realpath . '/') if $realpath;
     }
@@ -336,8 +348,27 @@ sub _local_render {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
         return _render_dir($dm, $path);
     }
-    $dm->c->mirrorcache->render_file($path, $dm) if !$trailing_slash && $root->is_file($path);
-    return 1;
+    if (!$trailing_slash) {
+        if ($original_path ne $path && $root->is_file($original_path) && !$dm->accept) {
+            $c->log->error($c->dumper('local_render4 : ', $dm->extra)) if $MCDEBUG;
+            if ($accept) {
+                $root->render_file($dm, $original_path);
+            } else {
+                $c->mirrorcache->render_file($original_path, $dm);
+            }
+            return 1;
+        } elsif ($root->is_file($path) && !$dm->extra) {
+            $c->log->error($c->dumper('local_render5 : ', $dm->extra)) if $MCDEBUG;
+            if ($accept) {
+                $root->render_file($dm, $path);
+            } else {
+                $c->mirrorcache->render_file($path, $dm);
+            }
+            return 1;
+        }
+    }
+    $c->log->error($c->dumper('local_render6: ', $c->res->code)) if $MCDEBUG;
+    return $c->res->code;
 }
 
 sub _render_from_db {
@@ -359,7 +390,7 @@ sub _render_from_db {
         $dirname = $dm->root_subtree . ($folder_or_pattern? $path : $f->dirname) unless $dirname;
         $c->log->error($c->dumper('dirname:', $dirname, 'path:', $path, 'trail:', $trailing_slash)) if $MCDEBUG;
         if (my $folder = $rsFolder->find_folder_or_redirect($dirname)) {
-            $c->log->error("found redirect : $dirname -> ", $folder->{pathto}) if $MCDEBUG && $folder->{pathto};
+            $c->log->error($c->dumper("found redirect : $dirname -> ", $folder->{pathto})) if $MCDEBUG && $folder->{pathto};
             # return $dm->redirect($folder->{pathto} . $trailing_slash) if $folder->{pathto};
             my $folder_path = $folder->{pathto} ? $folder->{pathto} : $folder->{path};
 	    return $c->render(status => 404, text => "path {$path} not found!!") unless $folder_path;
@@ -369,7 +400,7 @@ sub _render_from_db {
             } else {
                 $realpath_subtree = $root->realpath($dm->root_subtree . ($folder_or_pattern? $path : $f->dirname)) // $dirname;
             }
-            $c->log->error('RENDER - REALPATH_SUBTREE : ', $realpath_subtree) if $MCDEBUG;
+            $c->log->error('RENDER - REALPATH_SUBTREE : ' . $realpath_subtree) if $MCDEBUG;
             if ($dirname eq $realpath_subtree) {
                 if ($dirname eq $f->dirname || $folder_or_pattern) {
                     $dm->folder_id($folder->{id});
@@ -404,14 +435,14 @@ sub _render_from_db {
                 my $filename = $file->{name} if $file;
                 if ($dm->zsync && !$dm->accept_zsync && $file && $filename && '.zsync' eq substr $filename, -length('.zsync')) {
                     $dm->zsync(0);
-                    $dm->accept_all(1);
+                    # $dm->accept_all(1);
                     $dm->_path($dm->path . '.zsync');
                     $path = $path . '.zsync';
                 }
 
                 if ($file->{target}) {
                     # redirect to the symlink
-                    $dm->redirect($dm->route . $dirname . '/' . $file->{target});
+                    $dm->redirect($dm->route . $dirname . '/' . $file->{target}, ($dm->accept_all || !$dm->accept));
                 } else {
                     $dm->file_id($file->{id});
                     # find a mirror for it
@@ -429,16 +460,21 @@ sub _guess_what_to_render {
     my $c    = $dm->c;
     my $tx   = $c->render_later->tx;
     my ($path, $trailing_slash) = $dm->path;
+    $c->log->error('guess what to render: ' . $path) if $MCDEBUG;
 
     if ($dm->extra) {
-        $c->log->error('guess what to render extra : ', $dm->extra) if $MCDEBUG;
-        return $root->render_file($dm, $path) if $dm->accept_all && !$trailing_slash;
+        $c->log->error($c->dumper('guess what to render extra : ', $dm->extra, $dm->accept_all)) if $MCDEBUG;
+        return $root->render_file($dm, $dm->original_path) if $dm->accept_all && !$trailing_slash && $dm->accept;
+        if (!$root->is_remote && !$dm->accept) { # for local we can check if it is the file we requested
+            return $root->render_file($dm, $dm->original_path) if $root->is_file($dm->original_path);
+        }
         # the file is unknown, we cannot show generate meither mirrorlist or metalink
         my $res = $c->render(status => 425, text => "The file is unknown, retry later");
         # log miss here even thoough we haven't rendered anything
         $c->stat->redirect_to_root($dm, 0);
         return $res;
     }
+    return $c->render(status => 404, text => "Not found") unless $root->is_remote;
 
     my $rootlocation = $root->location;
     my $url  = $rootlocation . $path;
@@ -656,19 +692,26 @@ sub _render_small {
     my $dm = shift;
     my $root_nfs = $mc_config->root_nfs;
     my $small_file_size = $mc_config->small_file_size;
-    return undef unless $small_file_size && ($root_nfs || !$root->is_remote );
+    my $c=$dm->c;
+    $c->log->error('DIR::render_small1') if $MCDEBUG;
+    return undef unless ($small_file_size && ($root_nfs || !$root->is_remote));
     $dm->_init_path;
-    return undef if ($dm->metalink && !$dm->accept_all) || ($dm->meta4 && !$dm->accept_all) || $dm->mirrorlist || $dm->zsync;
+    $c->log->error('DIR::render_small2') if $MCDEBUG;
+    return undef if ($dm->metalink && $dm->accept) || ($dm->meta4 && $dm->accept) || $dm->mirrorlist || $dm->zsync;
+    $c->log->error('DIR::render_small3') if $MCDEBUG;
     my ($path, undef) = $dm->path;
     my $full;
     return $root->render_file_if_small($dm, $path, $small_file_size) unless $root_nfs;
+    $c->log->error('DIR::render_small4') if $MCDEBUG;
+    my $original_path = $dm->path;
+    return undef if $original_path ne $path || $dm->extra;
+    $c->log->error($c->dumper('DIR::render_small5', $original_path, $path, $dm->extra)) if $MCDEBUG;
     $full = $root_nfs . $path;
     my $size;
     eval { $size = -s $full if -f $full; };
     return undef unless (defined $size) && $size <= $small_file_size;
-    my $c = $dm->c;
-    $c->render_file(filepath => $full, content_type => $dm->mime);
-    return 1;
+    $c->log->error('DIR::render_small6') if $MCDEBUG;
+    return $root->render_file($dm, $path, 1, 1);
 }
 
 # if we don't render file directly - we set max-age to short value, because redirect or metalink may change

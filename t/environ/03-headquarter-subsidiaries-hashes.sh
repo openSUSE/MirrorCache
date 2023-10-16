@@ -80,8 +80,12 @@ for i in 9 6 7 8; do
     mc$i/backstage/shoot
     mc$i/backstage/shoot -q hashes
     mc$i/sql_test file4.1.dat == "select hash.target from hash join file on id = file_id where name='file-Media.iso'"
-    for x in '' .metalink .mirrorlist; do
-        mc$i/curl -I /folder1/file-Media.iso$x | grep -C 10 302 | grep /folder1/file4.1.dat$x | grep -v /download/folder1/file4.1.dat$x
+    for x in '' metalink mirrorlist; do
+        ext=""
+        par=""
+        [ -z "$x"] || ext=.$x
+        [ -z "$x"] || par=?$x
+        mc$i/curl -I /folder1/file-Media.iso$ext | grep -C 10 302 | grep /folder1/file4.1.dat$par | grep -v /download/folder1/file4.1.dat
     done
 done
 

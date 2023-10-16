@@ -23,6 +23,8 @@ use Digest::SHA qw(sha1_hex);
 use Mojolicious::Types;
 use MirrorCache::Utils 'region_for_country';
 
+my $MCDEBUG = $ENV{MCDEBUG_DATAMODULE} // $ENV{MCDEBUG_ALL} // 0;
+
 has c => undef, weak => 1;
 
 my @ROUTES = ( '/browse', '/download' );
@@ -327,13 +329,18 @@ sub is_head($self) {
     return $self->_is_head;
 }
 
-sub redirect($self, $url) {
+sub redirect($self, $url, $skip_xtra = undef) {
     my $xtra = '';
-    if ($self->_original_path =~ m/(\.metalink|\.meta4|\.zsync|\.mirrorlist|\.torrent|\.magnet|\.btih)$/) {
-        $xtra = $1;
-    }
 
-    return $self->c->redirect_to($url . $xtra . $self->query1);
+    my $c = $self->c;
+    my $param = $c->req->params;
+    if (!$skip_xtra && $self->_original_path =~ m/(\.metalink|\.meta4|\.zsync|\.mirrorlist|\.torrent|\.magnet|\.btih)$/) {
+        $xtra = $1;
+        $xtra = substr($xtra, 1);
+        $param->append($xtra => 1);
+    }
+    return $c->redirect_to($url) unless $param->to_hash;
+    return $c->redirect_to($url . '?' . $param->to_string);
 }
 
 sub accept($self) {
@@ -344,6 +351,7 @@ sub _init_headers($self) {
     $self->_agent('');
     $self->_browser('');
     my $headers = $self->c->req->headers;
+    $self->c->log->error($self->c->dumper("DATAMODULE HEADERS", $headers)) if $MCDEBUG;
     return unless $headers;
     if (my $agent = $headers->user_agent) {
         $self->_agent($agent);
@@ -378,17 +386,18 @@ sub _init_headers($self) {
     $self->_country($country) if $country;
     $self->_region($region)   if $region;
 
+    $self->c->log->error($self->c->dumper("DATAMODULE HEADERS ACCEPT", $headers->accept)) if $MCDEBUG;
     return unless $headers->accept;
 
-    $self->metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/;
-    $self->meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/;
-    $self->zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/;
+    $self->metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/i;
+    $self->meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/i;
+    $self->zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/i;
 
-    $self->accept_metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/;
-    $self->accept_meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/;
-    $self->accept_zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/;
+    $self->accept_metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/i;
+    $self->accept_meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/i;
+    $self->accept_zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/i;
 
-    $self->accept_all(1) if $headers->accept =~ m/\*\/\*/ && ($self->_original_path !~ m/(\.metalink|\.meta4|\.zsync|\.mirrorlist|\.torrent|\.magnet|\.btih)$/);
+    $self->accept_all(1) if $headers->accept =~ m/\*\/\*/;
 }
 
 sub _init_req($self) {
@@ -492,6 +501,8 @@ sub _init_path($self) {
         $self->_query($query);
         $self->_query1('?' . $query_string);
         $self->mirrorlist(1) if defined $query->param('mirrorlist');
+        $self->meta4(1)      if defined $query->param('meta4');
+        $self->metalink(1)   if defined $query->param('metalink');
         $self->zsync(1)      if defined $query->param('zsync');
         $self->torrent(1)    if defined $query->param('torrent');
         $self->magnet(1)     if defined $query->param('magnet');

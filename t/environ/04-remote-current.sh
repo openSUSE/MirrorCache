@@ -18,8 +18,10 @@ for x in $ap7 $ap8 $ap9; do
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}-Media.iso | xargs -n 1 touch
     sha256sum $x/dt/folder1/file1.1-Media.iso > $x/dt/folder1/file1.1-Media.iso.sha256
     echo 111112 > $x/dt/folder1/file2.1-Media.iso
+    echo 111113 > $x/dt/folder1/file2.1-Media.iso.zsync
     sha256sum $x/dt/folder1/file2.1-Media.iso > $x/dt/folder1/file2.1-Media.iso.sha256
     ( cd $x/dt/folder1 && ln -s file1.1-Media.iso file-Media.iso && ln -s file1.1-Media.iso.sha256 file-Media.iso.sha256 )
+    ( cd $x/dt/folder1 && ln -s file2.1-Media.iso.zsync file-Media.iso.zsync )
 done
 
 for x in $ap7 $ap8 $ap9; do
@@ -44,6 +46,9 @@ $mc/sql_test "select count(*) from file where target is not null"
 $mc/curl -I /download/folder1/file-Media.iso        | grep -C 10 302 | grep /download/folder1/file1.1-Media.iso
 $mc/curl -I /download/folder1/file-Media.iso.sha256 | grep -C 10 302 | grep /download/folder1/file1.1-Media.iso.sha256
 $mc/curl -L /download/folder1/file-Media.iso.sha256 | grep -q "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  "
+
+$mc/curl -I /download/folder1/file2.1-Media.iso.zsync | grep --color=never -P 'Location: http://127.0.0.1:1324/folder1/file2.1-Media.iso.zsync\r$'
+$mc/curl -I /download/folder1/file-Media.iso.zsync    | grep --color=never -P 'file2.1-Media.iso.zsync\r$'
 
 echo now change the symlink and make sure redirect changes
 (

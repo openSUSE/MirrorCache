@@ -141,10 +141,10 @@ sub is_dir {
 }
 
 sub render_file {
-    my ($self, $dm, $filepath, $not_miss) = @_;
+    my ($self, $dm, $filepath, $not_miss, $from_nfs) = @_;
     my $c = $dm->c;
     my $nfs = $self->rootnfs;
-    if ($nfs && $dm->must_render_from_root && -f $nfs . $filepath) {
+    if ($nfs && ($dm->must_render_from_root || $from_nfs) && -f ($nfs . $filepath)) {
         $c->render_file(filepath => $nfs . $filepath, content_type => $dm->mime, content_disposition => 'inline');
         $c->stat->redirect_to_root($dm, $not_miss);
         return 1;
