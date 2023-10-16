@@ -8,9 +8,6 @@ mcnaeast=$(environ mc2 $(pwd))
 ap8=$(environ ap8)
 ap7=$(environ ap7)
 
-$mcmirror/gen_env MIRRORCACHE_MODE=mirror_provider
-
-
 $mcmirror/start
 
 $mcmirror/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"

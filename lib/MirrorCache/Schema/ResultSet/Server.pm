@@ -94,6 +94,7 @@ sub mirrors_query {
     $limit1 = $limit + $limit if $limit > 10;
 
     my $join_server_project = "";
+    my $condition_our_regions = $schema->condition_our_regions;
     my $condition_server_project = "";
     if ($project_id) {
         $join_server_project = "left join server_project sp on (project_id,sp.server_id) = ($project_id,s.id) and state < 1";
@@ -145,7 +146,7 @@ from (
     from folder_diff fd
     join file fl on $join_file_cond
     join folder_diff_server fds on fd.id = fds.folder_diff_id and date_trunc('second', fl.dt) <= fds.dt
-    join server s on fds.server_id = s.id and s.enabled  $country_condition
+    join server s on fds.server_id = s.id and s.enabled  $country_condition $condition_our_regions
     left join server_capability_declaration scd on s.id = scd.server_id and scd.capability = 'country'
     left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
     $join_server_project
@@ -200,8 +201,9 @@ sub folder {
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
+    my $condition_our_regions = $schema->condition_our_regions;
 
-    my $sql = <<'END_SQL';
+    my $sql = <<"END_SQL";
 select s.id as server_id,
 concat(
     case
@@ -227,6 +229,7 @@ where
 (fds.folder_diff_id IS NOT DISTINCT FROM fd.id OR fds.server_id is null)
 AND (cap_fhttp.server_id IS NULL or cap_fhttps.server_id IS NULL)
 AND (sp.server_id IS NULL)
+$condition_our_regions
 group by s.id, s.hostname, s.urldir, f.path, cap_http.server_id, cap_fhttp.server_id, cap_hasall.capability
 order by s.id
 END_SQL
@@ -246,8 +249,9 @@ sub server_projects {
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
+    my $condition_our_regions = $schema->condition_our_regions;
 
-    my $sql = <<'END_SQL';
+    my $sql = <<"END_SQL";
 select concat(s.id, '::', p.id) as _key,
         s.id as server_id,
         p.id as project_id,
@@ -258,7 +262,7 @@ from project p
     join server s on s.enabled
     left join server_project sp on sp.server_id = s.id and sp.project_id = p.id
 where
-    coalesce(sp.state,0) > -1
+    coalesce(sp.state,0) > -1 $condition_our_regions
 END_SQL
     return $dbh->selectall_hashref($sql, '_key', {});
 }

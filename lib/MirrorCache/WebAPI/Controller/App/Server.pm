@@ -17,7 +17,17 @@ package MirrorCache::WebAPI::Controller::App::Server;
 use Mojo::Base 'MirrorCache::WebAPI::Controller::App::Table';
 
 sub index {
-    shift->SUPER::admintable('server');
+    my $c = shift;
+    my $mirror_provider = $c->mcconfig->mirror_provider;
+    if (my $url = $c->mcconfig->mirror_provider) {
+        $url =~ s!^https?://(?:www\.)?!!i;
+        $url =~ s!/.*!!;
+        $url =~ s/[\?\#\:].*//;
+        my $mirror_provider_url = 'https://' . $url . '/app/server';
+        $c->stash( mirror_provider_url => $mirror_provider_url );
+    }
+
+    $c->SUPER::admintable('server');
 }
 
 sub update {
@@ -49,12 +59,26 @@ sub show {
     if ($self->is_operator) {
         $admin_email = $self->schema->storage->dbh->selectrow_array("SELECT msg FROM server_note WHERE hostname = ? AND kind = 'Email' ORDER BY dt DESC LIMIT 1", undef, $hostname);
     }
+    my $subsidiary;
+    if (my $regions = $self->mcconfig->regions) {
+        if ($f->region && -1 == CORE::index($regions, $f->region)) {
+            $subsidiary = $self->subsidiary->url($f->region);
+        }
+    }
+    my $provider;
+    if ($provider = $self->mcconfig->mirror_provider) {
+        $provider =~ s!^https?://(?:www\.)?!!i;
+        $provider =~ s!/.*!!;
+        $provider =~ s/[\?\#\:].*//;
+    }
 
     my $server = {
         id           => $f->id,
         hostname     => $f->hostname,
         public_notes => $f->public_notes,
         admin_email  => $admin_email,
+        subsidiary   => $subsidiary,
+        provider     => $provider,
     };
 
     return $self->render('app/server/show', server => $server);

@@ -3,12 +3,18 @@
 
 % content_for 'ready_function' => begin
     is_operator = <%= (is_operator) ? 'true' : 'false' %>;
-    server_id = <%= $server->{id} %>;
+    server_id   = <%= $server->{id} %>;
+    subsidiary  = "<%= $server->{subsidiary} %>";
+    provider    = "<%= $server->{provider} %>";
     if (is_operator) {
         hostname = "<%= $server->{hostname} %>";
-        setupServerNote(hostname);
+        if (!provider) {
+            setupServerNote(hostname);
+        }
     }
-    setupServerIncident(server_id);
+    if (!subsidiary) {
+        setupServerIncident(server_id);
+    }
 % end
 
 <div class="row">
@@ -33,6 +39,11 @@
 
 % if (is_operator) {
     <h3>Private notes</h3>
+%     if ($server->{provider}) {
+    <div>
+    Can be found at <a href="https://<%= $server->{provider} . "/app/server/" . $server->{hostname} %>"><%= $server->{provider} %></a>
+    </div>
+%     } else {
     <table id="server_note" class="table table-striped">
         <thead>
             <th>Date</th>
@@ -52,9 +63,15 @@
         <input type="text" id="new-note-text" name="new-note-text" onkeyup="addServerNoteButtonStatus()">
         <input value="add" id="new-note-submit" onclick="addServerNote(hostname, document.getElementById('new-note-select').value, document.getElementById('new-note-text').value);" type="button" class="btn btn-default" disabled/>
     </div>
+%     }
 % }
 
     <h3>Checks last two weeks</h3>
+%     if ($server->{subsidiary}) {
+    <div>
+    Can be found at <a href="<%= $server->{subsidiary} . "/app/server/" . $server->{hostname} %>"><%= $server->{subsidiary} %></a>
+    </div>
+%     } else {
     <table id="server_incident" class="table table-striped">
         <thead>
             <th>Date</th>
@@ -62,6 +79,7 @@
             <th>Error</th>
         </thead>
     </table>
+%     }
 </div>
 
 </div>

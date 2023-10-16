@@ -26,11 +26,14 @@ sub search_by_country {
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
 
-    my $sql = <<'END_SQL';
+    my $condition_our_regions = $schema->condition_our_regions;
+
+    my $sql = <<"END_SQL";
 select concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir,'/') as uri, CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END as hostname, s.id as id,
-    -- server has capability enabled when two conditions are true:
+    -- server has capability enabled when following conditions are true:
     -- 1. server_id is not mentioned in server_capability_force
     -- 2. there is no entry in server_capability_declaration which has enabled='F' for the server_id.
+    -- 3. additional string as provided by schema->condition_our_regions;
     COALESCE(fhttp.server_id  = 0, COALESCE(http.enabled,'t'))  as http,
     COALESCE(fhttps.server_id = 0, COALESCE(https.enabled,'t')) as https,
     COALESCE(fipv4.server_id  = 0, COALESCE(ipv4.enabled,'t'))  as ipv4,
@@ -71,7 +74,7 @@ select concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.host
     where
         (fhttp.server_id IS NULL or fhttps.server_id IS NULL) -- do not show servers which have both http and https force disabled
     AND (fipv4.server_id IS NULL or fipv6.server_id IS NULL)  -- do not show servers which have both ipv4 and ipv6 force disabled
-    AND s.enabled
+    AND s.enabled $condition_our_regions
 END_SQL
 
     unless ($dbh->{Driver}->{Name} eq 'Pg') {

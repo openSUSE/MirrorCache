@@ -2,11 +2,12 @@
 set -ex
 
 # environ by number:
-# 9 - headquarter
+# 9 - headquarter with REGIONS=eu,sa,af
 # 6 - NA subsidiary
 # 7 - EU subsidiary (same DB as hq)
 # 8 - ASIA subsidiary
 
+# all mirrors are centralized in hq and imported by subsidiaries with MIRROR_PROVIDER
 # hq mirrors: ap1 ap2
 # na mirrors: ap3 ap4
 # eu mirrors: ap5 ap6
@@ -36,6 +37,7 @@ as_address=$($mc8/print_address)
 as_interface=127.0.0.4
 
 # deploy db
+$mc9/gen_env MIRRORCACHE_REGIONS=eu,sa,af
 $mc9/backstage/shoot
 
 $mc9/sql "insert into subsidiary(hostname,region) select '$na_address','na'"
@@ -45,24 +47,35 @@ $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap2/print_address)','','t','br','sa'"
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','de','eu'"
 $mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','dk','eu'"
+$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','t','us','na'"
+$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','ca','na'"
+$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','jp','as'"
+$mc9/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','jp','as'"
 
 $mc9/start
 
+$mc6/gen_env MIRRORCACHE_MIRROR_PROVIDER=$($mc9/print_address)/rest/server_location?region=na
 $mc6/start
-$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','t','us','na'"
-$mc6/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','ca','na'"
+$mc6/backstage/shoot
+echo test mirrors imported to mc6
+$mc6/sql_test 2 == "select count(*) from server"
 
+$mc7/gen_env
 rm -r $mc7/db
 ln -s $mc9/db $mc7/db
 $mc7/start
 
+$mc8/gen_env MIRRORCACHE_MIRROR_PROVIDER=$($mc9/print_address)/rest/server_location?region=as
 $mc8/start
-$mc8/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','jp','as'"
-$mc8/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','jp','as'"
+$mc8/backstage/shoot
+echo test mirrors imported to mc8
+$mc8/sql_test 2 == "select count(*) from server"
+
+
 
 for i in 6 8 9; do
-    mc$i/sql "insert into project(name,path,etalon) select 'proj1','/project1', 1"
-    mc$i/sql "insert into project(name,path,etalon) select 'proj 2','/project2', 1"
+    mc$i/sql "insert into project(name,path,etalon) select 'proj1','/project1', min(id) from server"
+    mc$i/sql "insert into project(name,path,etalon) select 'proj 2','/project2', min(id) from server"
     mc$i/backstage/job -e folder_sync -a '["/project1/folder1"]'
     mc$i/backstage/job -e mirror_scan -a '["/project1/folder1"]'
     mc$i/backstage/job -e folder_sync -a '["/project1/folder2"]'
@@ -150,5 +163,7 @@ $mc9/curl /rest/repmirror \
 
 # all mirrors are mentioned in html report
 test 8 == $($mc9/curl -i /report/mirrors | grep -A500 '200 OK' | grep -Eo $allmirrorspattern | sort | uniq | wc -l)
+
+$mc9/db/start
 
 echo success
