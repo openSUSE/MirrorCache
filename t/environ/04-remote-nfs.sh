@@ -26,6 +26,9 @@ ap7=$(environ ap7)
 for x in $ap7 $ap8 $ap9 $mc1 $mc2; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    echo 111112 > $x/dt/folder1/file2.1-Media.iso
+    echo 111113 > $x/dt/folder1/file2.1-Media.iso.zsync
+    ( cd $x/dt/folder1 && ln -s file2.1-Media.iso.zsync file-Media.iso.zsync )
 
     mkdir -p $x/dt/updates/tool
     (
@@ -76,5 +79,14 @@ $mc2/backstage/shoot
 
 echo now we learned about all 3 folders
 $mc2/sql_test 3 == 'select count(*) from folder'
+
+$mc2/curl -H 'Accept: Application/x-zsync' -IL /download/folder1/file-Media.iso.zsync    | grep '404 Not Found'
+$mc2/curl -H 'Accept: Application/x-zsync' -I  /download/folder1/file2.1-Media.iso.zsync | grep '404 Not Found' # we don't have zhashes for this file
+$mc2/curl -H 'Accept: Application/x-zsync' -I  /download/folder1/file2.1-Media.iso | grep '404 Not Found' # we don't have zhashes for this file
+$mc2/curl -H 'Accept: Application/metalink+xml' -I /download/folder1/file2.1-Media.iso | grep '200 OK'
+$mc2/curl -H 'Accept: Application/metalink+xml, */*' -I /download/folder1/file2.1-Media.iso | grep '200 OK'
+$mc2/curl -H 'Accept: Application/metalink+xml, */*' -I /download/folder1/file-Media.iso.zsync | grep --color=never -P '/download/folder1/file2.1-Media.iso.zsync\r$'
+
+$mc2/curl -I /download/folder1/file-Media.iso.zsync | grep --color=never -P '/download/folder1/file2.1-Media.iso.zsync\r$'
 
 echo success

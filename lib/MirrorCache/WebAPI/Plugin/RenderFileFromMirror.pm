@@ -150,7 +150,7 @@ sub register {
         }
 
         if (!$file) {
-            return $c->render(status => 404, text => "File not found");
+            return undef;
         }
         $c->log->error($c->dumper('RENDER FILE_ID', $file->{id})) if $MCDEBUG;
         $c->res->headers->vary('Accept, COUNTRY');

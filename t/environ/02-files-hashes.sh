@@ -17,7 +17,17 @@ for x in $mc; do
     echo 1111111111 > $x/dt/folder1/file1.1.dat
     echo 1111111111 > $x/dt/folder1/file2.1.dat
     echo 2345 > $x/dt/folder1/file2.1.dat.zsync
+    echo 2345 > $x/dt/folder1/fileX.dat.zsync
 done
+
+$mc/curl -I /download/folder1/file2.1.dat.zsync | grep '200 OK'
+$mc/curl -I /download/folder1/fileX.dat.zsync   | grep '200 OK'
+$mc/curl -I /download/folder1/file2.1.dat.meta4 | grep '425'
+$mc/curl -H 'Accept: Application/x-zsync' -I /download/folder1/file2.1.dat | grep '425'
+$mc/curl -H 'Accept: Application/metalink+xml' -I /download/folder1/file2.1.dat | grep '425'
+$mc/curl -H 'Accept: Application/metalink+xml, */*' -I /download/folder1/file2.1.dat | grep '200 OK'
+$mc/curl -H 'Accept: Application/metalink+xml, Application/x-zsync' -I /download/folder1/file2.1.dat | grep '425'
+$mc/curl -H 'Accept: Application/metalink+xml, Application/x-zsync, */*' -I /download/folder1/file2.1.dat | grep '200 OK'
 
 # force scan
 $mc/backstage/job -e folder_sync -a '["/folder1"]'
