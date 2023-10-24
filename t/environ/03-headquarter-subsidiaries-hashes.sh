@@ -66,6 +66,7 @@ echo Step 2. Add more files to folder1 and make sure only new hashes are transfe
 for i in 9 6 7 8; do
     echo 1111111112 > mc$i/dt/folder1/file1.1.dat
     echo 1111111112 > mc$i/dt/folder1/file4.1.dat
+    echo 13         > mc$i/dt/folder1/file4.1.dat.zsync
     mc$i/backstage/job -e folder_sync -a '["/folder1"]'
     mc$i/backstage/shoot
     mc$i/backstage/shoot -q hashes
@@ -76,6 +77,8 @@ done
 echo Step 3. Add media symlinks and make sure they are imported properly
 for i in 9 6 7 8; do
     ( cd mc$i/dt/folder1/ && ln -s file4.1.dat file-Media.iso )
+    ( cd mc$i/dt/folder1/ && ln -s file4.1.dat xcurr.dat )
+    ( cd mc$i/dt/folder1/ && ln -s file4.1.dat.zsync xcurr.dat.zsync )
     mc$i/backstage/job -e folder_sync -a '["/folder1"]'
     mc$i/backstage/shoot
     mc$i/backstage/shoot -q hashes
@@ -101,21 +104,39 @@ for i in 6 7 8 9; do
     mc$i/backstage/shoot
     MIRRORCACHE_HASHES_IMPORT_RETRY_DELAY=$DELAY mc$i/backstage/shoot -q hashes
     if test $i != 9; then
-        test -z $(mc$i/sql "select md5 from hash where file_id=5")
-        test -z $(mc$i/sql "select md5 from hash where file_id=6")
+        test -z $(mc$i/sql "select md5 from hash where file_id=8")
+        test -z $(mc$i/sql "select md5 from hash where file_id=9")
     else
-        test $(mc$i/sql "select md5 from hash where file_id=5") == $(mc$i/sql 'select md5 from hash where file_id=6')
-        test $(mc$i/sql "select md5 from hash where file_id=3") != $(mc$i/sql 'select md5 from hash where file_id=6')
+        test $(mc$i/sql "select md5 from hash where file_id=8") == $(mc$i/sql 'select md5 from hash where file_id=9')
+        test $(mc$i/sql "select md5 from hash where file_id=3") != $(mc$i/sql 'select md5 from hash where file_id=8')
     fi
 done
 
 sleep $DELAY
 
+mc9/curl -I /download/folder1/file-Media.iso            | grep 'Location: /download/folder1/file4.1.dat'
+mc9/curl -I /download/folder1/file-Media.iso.metalink   | grep 'Location: /download/folder1/file4.1.dat?metalink=1'
+mc9/curl -I /download/folder1/file-Media.iso.mirrorlist | grep 'Location: /download/folder1/file4.1.dat?mirrorlist=1'
+
+mc9/curl -I /download/folder1/xcurr.dat            | grep "Location: http://$na_address/download/folder1/xcurr.dat"
+mc9/curl -I /download/folder1/xcurr.dat.metalink   | grep "Location: http://$na_address/download/folder1/xcurr.dat.metalink"
+mc9/curl -I /download/folder1/xcurr.dat?meta4      | grep "Location: http://$na_address/download/folder1/xcurr.dat.meta4"
+mc9/curl -I /download/folder1/xcurr.dat.mirrorlist | grep '200 OK'
+
+mc9/curl -I /download/folder1/xcurr.dat.zsync.mirrorlist | grep '200 OK'
+
+mc6/curl -IL /download/folder1/xcurr.dat            | grep "200 OK"
+mc6/curl -IL /download/folder1/xcurr.dat.metalink   | grep "200 OK"
+mc6/curl -IL /download/folder1/xcurr.dat?meta4      | grep "200 OK"
+mc6/curl -IL /download/folder1/xcurr.dat.mirrorlist | grep '200 OK'
+
+
+
 # now the hashes on subsidiaries should be retried and match the headquarter
 for i in 6 7 8; do
     mc$i/backstage/shoot -q hashes
-    test $(mc$i/sql "select md5 from hash where file_id=5") == $(mc9/sql 'select md5 from hash where file_id=6')
-    test $(mc$i/sql "select md5 from hash where file_id=6") == $(mc9/sql 'select md5 from hash where file_id=6')
+    test $(mc$i/sql "select md5 from hash where file_id=8") == $(mc9/sql 'select md5 from hash where file_id=9')
+    test $(mc$i/sql "select md5 from hash where file_id=3") != $(mc9/sql 'select md5 from hash where file_id=9')
 done
 
 echo success
