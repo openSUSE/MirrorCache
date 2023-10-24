@@ -260,12 +260,17 @@ sub _redirect_project_ln_geo {
 
 sub _redirect_normalized {
     my $dm = shift;
-    return undef if $dm->accept;
+    return undef if $dm->accept || $dm->btih || $dm->torrent || $dm->magnet;
     my ($path, $trailing_slash, $original_path) = $dm->path;
     return undef if $path eq '/';
-    $path = $path . '.metalink' if $dm->metalink;
-    $path = $path . '.meta4'    if $dm->meta4;
-    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path || ($dm->extra && !$dm->metalink && !$dm->meta4);
+    my $path1 = $path;
+    $path1 = $path1 . '.zsync'      if $dm->zsync;
+    $path1 = $path1 . '.metalink'   if $dm->metalink;
+    $path1 = $path1 . '.meta4'      if $dm->meta4;
+    $path1 = $path1 . '.mirrorlist' if $dm->mirrorlist;
+    $dm->c->log->error('DIR::redirect_normalized', $path, $path1, $original_path, $dm->original_path, $dm->_original_path) if $MCDEBUG;
+    return $dm->c->redirect_to($dm->route . $path . $trailing_slash . $dm->query1) unless $original_path eq $path || $original_path eq $path1 || ($dm->accept);
+    $dm->c->log->error('DIR::redirect_normalized2') if $MCDEBUG;
     return undef;
 }
 
@@ -465,7 +470,8 @@ sub _guess_what_to_render {
     if ($dm->extra) {
         $c->log->error($c->dumper('guess what to render extra : ', $dm->extra, $dm->accept_all)) if $MCDEBUG;
         return $root->render_file($dm, $dm->original_path) if $dm->accept_all && !$trailing_slash && $dm->accept;
-        if (!$root->is_remote && !$dm->accept) { # for local we can check if it is the file we requested
+
+        if (!$root->is_remote && $dm->accept_all) { # for local we can check if it is the file we requested
             return $root->render_file($dm, $dm->original_path) if $root->is_file($dm->original_path);
         }
         # the file is unknown, we cannot show generate meither mirrorlist or metalink
@@ -701,7 +707,7 @@ sub _render_small {
     $c->log->error('DIR::render_small3') if $MCDEBUG;
     my ($path, undef) = $dm->path;
     my $full;
-    return $root->render_file_if_small($dm, $path, $small_file_size) unless $root_nfs;
+    return $root->render_file_if_small($dm, $path, $small_file_size) unless $root->is_remote;
     $c->log->error('DIR::render_small4') if $MCDEBUG;
     my $original_path = $dm->path;
     return undef if $original_path ne $path || $dm->extra;

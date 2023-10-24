@@ -397,7 +397,7 @@ sub _init_headers($self) {
     $self->accept_meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/i;
     $self->accept_zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/i;
 
-    $self->accept_all(1) if $headers->accept =~ m/\*\/\*/;
+    $self->accept_all(1) if scalar($headers->accept =~ m/\*\/\*/) && scalar($headers->accept ne '*/*');
 }
 
 sub _init_req($self) {
