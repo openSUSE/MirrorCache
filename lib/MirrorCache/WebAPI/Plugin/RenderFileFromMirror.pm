@@ -153,7 +153,7 @@ sub register {
             return undef;
         }
         $c->log->error($c->dumper('RENDER FILE_ID', $file->{id})) if $MCDEBUG;
-        $c->res->headers->vary('Accept, COUNTRY, X-COUNTRY');
+        $c->res->headers->vary('Accept, COUNTRY, X-COUNTRY, Fastly-SSL');
         my $baseurl; # just hostname + eventual urldir (without folder and file)
         my $fullurl; # baseurl with path and filename
         if ($dm->metalink || $dm->meta4 || $dm->torrent || $dm->zsync || $dm->magnet) {
