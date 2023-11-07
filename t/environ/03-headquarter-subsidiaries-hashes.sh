@@ -86,8 +86,8 @@ for i in 9 6 7 8; do
     for x in '' metalink mirrorlist; do
         ext=""
         par=""
-        [ -z "$x"] || ext=.$x
-        [ -z "$x"] || par=?$x
+        [ -z "$x" ] || ext=.$x
+        [ -z "$x" ] || par=?$x
         mc$i/curl -I /folder1/file-Media.iso$ext | grep -C 10 302 | grep /folder1/file4.1.dat$par | grep -v /download/folder1/file4.1.dat
     done
 done
@@ -121,16 +121,17 @@ mc9/curl -I /download/folder1/file-Media.iso.mirrorlist | grep 'Location: /downl
 mc9/curl -I /download/folder1/xcurr.dat            | grep "Location: http://$na_address/download/folder1/xcurr.dat"
 mc9/curl -I /download/folder1/xcurr.dat.metalink   | grep "Location: http://$na_address/download/folder1/xcurr.dat.metalink"
 mc9/curl -I /download/folder1/xcurr.dat?meta4      | grep "Location: http://$na_address/download/folder1/xcurr.dat.meta4"
-mc9/curl -I /download/folder1/xcurr.dat.mirrorlist | grep '200 OK'
-
-mc9/curl -I /download/folder1/xcurr.dat.zsync.mirrorlist | grep '200 OK'
-
-mc6/curl -IL /download/folder1/xcurr.dat            | grep "200 OK"
-mc6/curl -IL /download/folder1/xcurr.dat.metalink   | grep "200 OK"
-mc6/curl -IL /download/folder1/xcurr.dat?meta4      | grep "200 OK"
-mc6/curl -IL /download/folder1/xcurr.dat.mirrorlist | grep '200 OK'
+mc9/curl -I /download/folder1/xcurr.dat.mirrorlist | grep '/folder1/file4.1.dat?mirrorlist=1'
 
 
+mc9/curl -I /download/folder1/xcurr.dat.zsync.mirrorlist | grep 'Location: /download/folder1/file4.1.dat.zsync?mirrorlist=1'
+
+mc6/sql_test file4.1.dat == "select target from file where name = 'xcurr.dat'"
+
+mc6/curl -IL /download/folder1/xcurr.dat           | grep '200 OK'
+mc6/curl -I /download/folder1/xcurr.dat.metalink   | grep '/folder1/file4.1.dat?metalink=1'
+mc6/curl -I /download/folder1/xcurr.dat?meta4      | grep '/folder1/file4.1.dat?meta4='
+mc6/curl -I /download/folder1/xcurr.dat.mirrorlist | grep '/folder1/file4.1.dat?mirrorlist=1'
 
 # now the hashes on subsidiaries should be retried and match the headquarter
 for i in 6 7 8; do

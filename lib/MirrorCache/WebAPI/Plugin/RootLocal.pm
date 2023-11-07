@@ -166,7 +166,7 @@ sub rootpath {
 
 sub _detect_ln_in_the_same_folder {
     my ($dir, $file) = @_;
-    return undef unless $file && $file =~ m/(GNOME_.*|.*(Media|Current|Next))\.iso(\.sha256(\.asc)?)?/;
+    return undef unless $file;
 
     my $dest;
     for my $root (@roots) {
@@ -208,7 +208,8 @@ sub foreach_filename {
                         return undef unless $TOP_FOLDERS{$f->basename};
                     }
                 }
-                $sub->($f->basename, $stat->size, $stat->mode, $stat->mtime);
+                my $target = _detect_ln_in_the_same_folder($dir, $f->basename);
+                $sub->($f->basename, $stat->size, $stat->mode, $stat->mtime, $target),
             } else {
                 $sub->($f->basename, undef, undef, undef);
             }
