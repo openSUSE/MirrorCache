@@ -447,7 +447,8 @@ sub _render_from_db {
 
                 if ($file->{target}) {
                     # redirect to the symlink
-                    $dm->redirect($dm->route . $dirname . '/' . $file->{target}, ($dm->accept_all || !$dm->accept));
+                    my $eq = ($file->{name} eq substr($dm->original_path, -length($file->{name})));
+                    $dm->redirect($dm->route . $dirname . '/' . $file->{target}, ($eq && ($dm->accept_all || !$dm->accept)));
                 } else {
                     $dm->file_id($file->{id});
                     # find a mirror for it
