@@ -184,7 +184,7 @@ where
 or
 	( folder_id is null and mirror_id > -2 ) -- file may be known, but requested folder is unknown - happens when realpath shows to a different folder
 )
-and stat.path !~ '\/(repodata\/repomd\.xml[^\/]*|media\.1\/(media|products)|content|.*\.sha256(\.asc)|Release(\.key|\.gpg)?|InRelease|Packages(\.gz)?|Sources(\.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other)\.xml\.gz|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz)|gpg-pubkey.*\.asc|CHECKSUMS(\.asc)?)$'
+and stat.path !~ '\/(repodata\/repomd\.xml[^\/]*|media\.1\/(media|products)|content|.*\.sha\d\d\d(\.asc)?|Release(\.key|\.gpg)?|InRelease|Packages(\.gz|\.zst)?|Sources(\.gz|\.zst)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?|tar\.zst(\.sig)?))?|(files|primary|other)\.xml\.(gz|zck|zst)|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz|zst)|gpg-pubkey.*\.asc|CHECKSUMS(\.asc)?)$'
 and lower(stat.agent) NOT LIKE '%bot%'
 and lower(stat.agent) NOT LIKE '%rclone%'
 and (

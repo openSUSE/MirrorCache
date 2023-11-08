@@ -604,7 +604,7 @@ sub _init_path($self) {
         if ( $path =~ m/.*\/([^\/]*-Current[^\/]*)$/ ) {
             $pedantic = 1;
         } else {
-            my $path_without_common_digit_patterns = $path =~ s/(Leap-\d\d\.\d|x86_64|s390x|ppc64|aarch64|E20|sha256(\.asc)?$)\b//gr;
+            my $path_without_common_digit_patterns = $path =~ s/(Leap-\d\d\.\d|x86_64|s390x|ppc64|aarch64|E20|sha\d\d\d(\.asc)?$)\b//gr;
             $pedantic = 1 if $path_without_common_digit_patterns !~ m/.*\/([^\/]*\d\.?\d[^\/]*)$/;
         }
     }
@@ -614,7 +614,7 @@ sub _init_path($self) {
     $self->agent; # parse headers
     if (
         ( $self->accept_all || !$self->extra )
-        && $path =~ m/\/(repodata\/repomd\.xml[^\/]*|media\.1\/(media|products)|content|.*\.sha256(\.asc)|Release(\.key|\.gpg)?|InRelease|Packages(\.gz)?|Sources(\.gz)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?))?|(files|primary|other)\.xml\.gz|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz)|gpg-pubkey.*\.asc|CHECKSUMS(\.asc)?)$/
+        && $path =~ m/\/(repodata\/repomd\.xml[^\/]*|media\.1\/(media|products)|content|.*\.sha\d\d\d(\.asc)?|Release(\.key|\.gpg)?|InRelease|Packages(\.gz|\.zst)?|Sources(\.gz|\.zst)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?|tar\.zst(\.sig)?))?|(files|primary|other)\.xml\.(gz|zck|zst)|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz|zst)|gpg-pubkey.*\.asc|CHECKSUMS(\.asc)?)$/
     ) {
         $self->must_render_from_root(1);
         my $time = ~time() & 0xff;
