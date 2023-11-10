@@ -4,7 +4,7 @@ ENV container podman
 ENV LANG en_US.UTF-8
 
 RUN zypper ar -f http://mirrorcache.opensuse.org/repositories/openSUSE:infrastructure:MirrorCache/15.5 mc
-RUN zypper --gpg-auto-import-keys ref
+RUN zypper --gpg-auto-import-keys ref || ( tail -n 250 /var/log/zypper.log ; exit 1 )
 
 RUN zypper -vvvn install systemd curl sudo iputils vi
 
