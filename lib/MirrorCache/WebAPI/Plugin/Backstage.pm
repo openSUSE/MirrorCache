@@ -50,6 +50,7 @@ sub register_tasks {
     $app->plugin($_)
       for (
         qw(MirrorCache::Task::MirrorCheckFromStat),
+        qw(MirrorCache::Task::MirrorFileCheck),
         qw(MirrorCache::Task::MirrorScanScheduleFromMisses),
         qw(MirrorCache::Task::MirrorScanScheduleFromPathErrors),
         qw(MirrorCache::Task::MirrorScanSchedule),
@@ -91,7 +92,8 @@ eval {
     $app->minion->backend->no_txn(1) if $db eq 'mysql';
 
     $self->register_tasks;
-};
+    1;
+} or $app->log->error($@);
     # Enable the Minion Admin interface under /minion
     my $auth =
       $app->routes->under('/minion')->to('session#ensure_operator');

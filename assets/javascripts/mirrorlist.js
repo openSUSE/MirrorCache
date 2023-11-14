@@ -191,3 +191,18 @@ function initMap(lat, lng, idx) {
     // setTimeout(function(){ marker.showPopup(); }, 500);
 }
 
+function checkFileOnMirrors(path) {
+    $.ajax({
+        url: '/rest/server/check_file?file=' + path,
+        type: "PUT",
+        dataType: 'json',
+        success: function(response) {
+            handleCheckFileOnMirror(response.job_id);
+        },
+        error: handleAdminTableApiError
+   });
+}
+
+function handleCheckFileOnMirror(job_id) {
+    $(location).attr('href', '/minion/jobs?id=' + job_id);
+}

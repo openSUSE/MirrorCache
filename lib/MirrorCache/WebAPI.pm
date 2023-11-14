@@ -191,6 +191,7 @@ sub _setup_webui {
     $rest_operator_r->post('/server/:id')->name('post_server')->to('table#update', table => 'Server');
     $rest_operator_r->delete('/server/:id')->to('table#destroy', table => 'Server');
     $rest_operator_r->put('/server/location/:id')->name('rest_put_server_location')->to('server_location#update_location');
+    $rest_operator_r->put('/server/check_file')->name('rest_put_server_check_file')->to('server_check_file#start');
     $rest_operator_r->post('/server/note/#hostname')->name('rest_put_server_note')->to('server_note#ins');
     $rest_operator_r->get('/server/note/#hostname')->name('rest_get_server_note')->to('server_note#list');
     $rest_operator_r->get('/server/contact/#hostname')->name('rest_get_server_contact')->to('server_note#list_contact');
