@@ -19,6 +19,7 @@ img.huechange1 { filter: hue-rotate(90deg) }
 
 
 <script>
+var is_operator = <%= (is_operator) ? 'true' : 'false' %>;
 var preferred_url = "<%= $preferred_url %>";
 var lat = <%= $lat %>;
 var lng = <%= $lng %>;
@@ -168,4 +169,8 @@ var lng = <%= $lng %>;
 
 <button onclick="toggleMap(<%=$lat%>,<%=$lng%>,3);">Toggle map</button>
 <div id="mapAll" style="width: 600px; height: 400px; display: none"></div>
+% if (is_operator) {
+<button onclick="checkFileOnMirrors('<%= $cur_path %>');">Check file on mirrors</button>
+% }
 </div>
+
