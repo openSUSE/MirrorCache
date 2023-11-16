@@ -126,7 +126,7 @@ sub calcMetalink {
     my ($zsync_lengths, $zsync_block_size, $zsync_hashes);
     if ($zsync) {
         $zsync_lengths    = $zsync->lengths;
-        $zsync_block_size = $zsync->block_size;
+        $zsync_block_size = $zsync->{block_size};
         $zsync_hashes     = $zsync->digest;
     }
     $schema->resultset('Hash')->store($file_id, $mtime, $size, $dmd5->hexdigest, $d1->hexdigest, $d256->hexdigest, $d512->hexdigest, $block_size, $pieceshex, $zsync_lengths, $zsync_block_size, $zsync_hashes);
