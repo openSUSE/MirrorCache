@@ -40,6 +40,7 @@ sub index {
     $self->stash;
     return $self->render(
         "report/mirrors/index",
+        dt          => $dt,
         mirrors     => $report,
         projects    => $projects,
         allprojects => $allprojects

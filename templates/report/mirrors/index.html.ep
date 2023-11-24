@@ -253,4 +253,10 @@ td.newregion, tr:hover td.newregion {
         </table>
     </div>
 </div>
+% my $generated_at = eval('$dt');
+% if ($generated_at) {
+<div>
+generated at: <%= $generated_at %>
+</div>
+% }
 </form>
