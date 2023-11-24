@@ -55,4 +55,6 @@ $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=dk | grep -C10 302 | grep "$($
 echo but ap8 still serves uk
 $mc/curl -I /download/folder1/file1.1.dat?COUNTRY=uk | grep -C10 302 | grep "$($ap8/print_address)"
 
+$mc/curl /rest/server | grep "$($ap8/print_address)"
+
 echo success
