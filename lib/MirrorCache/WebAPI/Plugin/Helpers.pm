@@ -49,7 +49,6 @@ sub register {
         });
 
     $app->helper(schema => sub { MirrorCache::Schema->singleton });
-    $app->helper(schemaR => sub { MirrorCache::Schema->singletonR });
 
     $app->helper(mcconfig    => sub { $app->mcconfig });
     $app->helper('mc.config' => sub { $app->mcconfig });

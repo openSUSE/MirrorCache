@@ -751,7 +751,7 @@ sub _collect_mirrors {
     my $limit = $mirrorlist ? 200 : (( $metalink || $dm->pedantic )? 10 : 1);
     my $hard_limit = $dm->metalink_limit;
     $limit = $hard_limit if $hard_limit;
-    my $rs = $dm->c->schemaR->resultset('Server');
+    my $rs = $dm->c->schema->resultset('Server');
 
     my $m;
     $m = $rs->mirrors_query(

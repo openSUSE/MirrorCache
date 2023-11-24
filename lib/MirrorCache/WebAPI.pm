@@ -77,7 +77,6 @@ sub startup {
 
     eval {
         MirrorCache::Schema->connect_db     ($mcconfig->db_provider, $mcconfig->dsn,         $mcconfig->dbuser, $mcconfig->dbpass, $mcconfig->regions);
-        MirrorCache::Schema->connect_replica($mcconfig->db_provider, $mcconfig->dsn_replica, $mcconfig->dbuser, $mcconfig->dbpass) if $mcconfig->dsn_replica;
         1;
     } or warn("Database connect failed: $@");
 
@@ -273,8 +272,6 @@ sub detect_current_version() {
 }
 
 sub schema { MirrorCache::Schema->singleton }
-
-sub schemaR { MirrorCache::Schema->singletonR }
 
 sub run { __PACKAGE__->new->start }
 
