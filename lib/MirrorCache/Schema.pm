@@ -12,7 +12,6 @@ use Mojo::File qw(path);
 __PACKAGE__->load_namespaces;
 
 my $SINGLETON;
-my $SINGLETONR;
 
 my $PROVIDER;
 
@@ -52,24 +51,10 @@ sub connect_db {
     return $SINGLETON;
 }
 
-sub connect_replica {
-    my ($self, $provider, $dsn, $user, $pass) = @_;
-
-    unless ($SINGLETONR) {
-        $SINGLETONR = __PACKAGE__->connect($dsn, $user, $pass);
-    }
-
-    return $SINGLETONR;
-}
-
 sub disconnect_db {
     if ($SINGLETON) {
         $SINGLETON->storage->disconnect;
         $SINGLETON = undef;
-    }
-    if ($SINGLETONR) {
-        $SINGLETONR->storage->disconnect;
-        $SINGLETONR = undef;
     }
 }
 
@@ -83,11 +68,6 @@ sub dsn {
 }
 
 sub singleton { $SINGLETON }
-
-sub singletonR {
-     return $SINGLETONR if $SINGLETONR;
-     return singleton();
-}
 
 sub has_table {
     my ($self,$table_name) = @_;

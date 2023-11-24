@@ -31,7 +31,6 @@ has dbhost       => $ENV{MIRRORCACHE_DBHOST};
 has dbport       => $ENV{MIRRORCACHE_DBPORT};
 has dbdb         => $ENV{MIRRORCACHE_DB} // 'mirrorcache';
 has dsn          => $ENV{MIRRORCACHE_DSN};
-has dsn_replica  => $ENV{MIRRORCACHE_DSN_REPLICA};
 has redirect     => $ENV{MIRRORCACHE_REDIRECT};
 has redirect_vpn => $ENV{MIRRORCACHE_REDIRECT_VPN};
 
@@ -113,15 +112,6 @@ sub init($self, $cfgfile) {
 
     $self->db_provider($db_provider);
     $self->dsn($dsn);
-
-    if ($ENV{MIRRORCACHE_DBREPLICA}) {
-        my $dsn_replica;
-        my $host = $ENV{MIRRORCACHE_DBREPLICA};
-        $dsn_replica = "DBI:$db_provider:dbname=$db";
-        $dsn_replica = "$dsn_replica;host=$host" if $host;
-        $dsn_replica = "$dsn_replica;port=$port" if $port;
-        $self->dsn_replica($dsn_replica);
-    }
 
     my ($offline_redirect, @offline_redirect, @offline_redirect_https);
     $offline_redirect = $cfg->val('default', 'offline_redirect') if $cfg;
