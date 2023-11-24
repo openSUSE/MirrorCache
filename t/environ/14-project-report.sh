@@ -89,4 +89,6 @@ rc=0
 $mc/curl /report/mirrors | grep $($ap3/print_address) || rc=$?
 test $rc -gt 0
 
+$mc/curl /report/mirrors | grep 'generated at'
+
 echo success
