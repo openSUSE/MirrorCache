@@ -12,7 +12,7 @@ RUN zypper --gpg-auto-import-keys ref
 RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-Plugin-ClientIP \
     vim mariadb mariadb-server curl sudo git-core wget tar m4 make rsync \
     apache2 perl-Digest-MD4 tidy nginx bbe perl-DBD-mysql perl-Mojo-mysql perl-Minion-Backend-mysql perl-DateTime-HiRes \
-    perl-Config-IniFiles
+    perl-Config-IniFiles environ
 
 # optional dependencies used in testing
 RUN zypper -vvv -n install perl-Geo-IP2Location perl-Digest-Zsync perl-DateTime-Format-MySQL libxml2-tools
@@ -22,11 +22,6 @@ RUN bbe -e 's,/var/log/nginx/error.log,/tmp/log_nginx_error.log,' /usr/sbin/ngin
 RUN mv /usr/sbin/nginx.hacked /usr/sbin/nginx
 RUN chmod +x /usr/sbin/nginx
 
-WORKDIR /opt
-RUN echo 2
-RUN git clone https://github.com/andrii-suse/environ
-WORKDIR /opt/environ
-RUN make install
 WORKDIR /opt/project
 ENV TZ UTC
 ENV MOJO_PUBSUB_EXPERIMENTAL 1
