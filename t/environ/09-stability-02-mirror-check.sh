@@ -1,7 +1,7 @@
 #!lib/test-in-container-environ.sh
 set -ex
 
-MIRROR_CHECK_DELAY=2
+MIRROR_CHECK_DELAY=3
 
 mc=$(environ mc $(pwd))
 $mc/gen_env MIRRORCACHE_RECKLESS=0 MIRRORCACHE_MIRROR_CHECK_DELAY=$MIRROR_CHECK_DELAY
