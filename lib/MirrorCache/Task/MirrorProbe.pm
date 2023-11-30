@@ -43,6 +43,7 @@ sub _probe {
 
     my $schema = $app->schema;
     my $rs = $schema->resultset('ServerCapabilityDeclaration');
+    $rs->adjust_stability();
     my $href = $rs->search_by_country($country);
 
     my @server_ids = sort keys %$href;

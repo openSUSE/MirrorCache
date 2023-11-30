@@ -69,10 +69,13 @@ $mc/sql "update server_capability_check set dt = dt - interval '1 hour' where (s
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
 $mc/sql_test 100 == "select rating from server_stability where (server_id, capability) = (1, 'http')"
+$mc/sql_test 0 == "select rating from server_stability where (server_id, capability) = (2, 'http')"
 
 $mc/sql "update server_capability_check set dt = dt - interval '24 hour' where (server_id, capability) = (1, 'http')"
+$mc/sql "insert into server_capability_force(server_id, capability, dt) select 2, 'http', now()"
 $mc/backstage/job -e mirror_probe -a '["us"]'
 $mc/backstage/shoot
 $mc/sql_test 1000 == "select rating from server_stability where (server_id, capability) = (1, 'http')"
+$mc/sql_test -1 == "select rating from server_stability where (server_id, capability) = (2, 'http')"
 
-
+echo success

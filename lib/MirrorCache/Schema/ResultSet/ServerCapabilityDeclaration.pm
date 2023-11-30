@@ -217,4 +217,17 @@ END_SQL
     $prep->execute($server_id, $capability);
 }
 
+sub adjust_stability {
+    my ($self, $h) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = 'update server_stability set rating = -1 where (server_id, capability) in (select server_id, capability from server_capability_force)';
+    $dbh->prepare($sql)->execute;
+    $sql = 'update server_stability set rating = -1 where (server_id, capability) in (select server_id, capability from server_capability_declaration where not enabled)';
+    $dbh->prepare($sql)->execute;
+}
+
 1;
