@@ -21,7 +21,8 @@ span.ratingbad {
 }
 
 span.ratingdisabled {
-    color: thistle
+    color: thistle;
+    text-decoration: line-through;
 }
 
 span.ratingunknown {
