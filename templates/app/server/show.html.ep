@@ -1,6 +1,36 @@
 % layout 'bootstrap';
 % title "Server " . $server->{hostname};
 
+% content_for 'head' => begin
+
+<style type='text/css'>
+span.ratinggood {
+    color: green
+}
+
+span.ratingquestinable {
+    color: olive
+}
+
+span.ratingpoor {
+    color: red
+}
+
+span.ratingbad {
+    color: red
+}
+
+span.ratingdisabled {
+    color: thistle
+}
+
+span.ratingunknown {
+    color: grey
+}
+
+</style>
+% end
+
 % content_for 'ready_function' => begin
     is_operator = <%= (is_operator) ? 'true' : 'false' %>;
     server_id   = <%= $server->{id} %>;
@@ -34,6 +64,21 @@
 % if ($server->{admin_email}) {
             <div><span>Email: </span><%= $server->{admin_email} %></div>
 % }
+            
+            % $server->{rating_http};
+            <div>
+                <span>Health:</span>
+            % for my $capability (qw/http https ipv4 ipv6/) {
+            %     my $style  = 'ratinggood';
+            %     my $rating = int($server->{ 'rating_' . $capability } // -2);
+            %     $style = 'ratingquestionable' if $rating < 1000;
+            %     $style = 'ratingpoor'         if $rating < 10;
+            %     $style = 'ratingbad'          if $rating < 1;
+            %     $style = 'ratingdisabled'     if $rating < 0;
+            %     $style = 'ratingunknown'      if $rating < -1;
+                <span class="<%=$style%>"><%= $capability %></span>
+            % }
+            </div>
         </div>
     </div>
 
