@@ -52,7 +52,7 @@ sub show {
     my $self = shift;
     my $hostname = $self->param('hostname');
 
-    my $f = $self->schema->resultset('Server')->find({hostname => $hostname})
+    my $f = $self->schema->resultset('Server')->find_with_stability($hostname)
         or return $self->reply->not_found;
 
     my $admin_email = '';
@@ -61,8 +61,8 @@ sub show {
     }
     my $subsidiary;
     if (my $regions = $self->mcconfig->regions) {
-        if ($f->region && -1 == CORE::index($regions, $f->region)) {
-            $subsidiary = $self->subsidiary->url($f->region);
+        if ($f->{region} && -1 == CORE::index($regions, $f->{region})) {
+            $subsidiary = $self->subsidiary->url($f->{region});
         }
     }
     my $provider;
@@ -73,12 +73,16 @@ sub show {
     }
 
     my $server = {
-        id           => $f->id,
-        hostname     => $f->hostname,
-        public_notes => $f->public_notes,
+        id           => $f->{id},
+        hostname     => $f->{hostname},
+        public_notes => $f->{public_notes},
         admin_email  => $admin_email,
         subsidiary   => $subsidiary,
         provider     => $provider,
+        rating_http  => $f->{rating_http},
+        rating_https => $f->{rating_https},
+        rating_ipv4  => $f->{rating_ipv4},
+        rating_ipv6  => $f->{rating_ipv6},
     };
 
     return $self->render('app/server/show', server => $server);

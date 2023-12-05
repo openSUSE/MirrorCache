@@ -398,4 +398,27 @@ sub check_sync {
     return 3;
 }
 
+sub find_with_stability {
+    my ($self, $hostname) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql;
+
+    $sql = <<'END_SQL';
+select s.id, s.hostname, s.public_notes, shttp.rating as rating_http, shttps.rating as rating_https, sipv4.rating as rating_ipv4, sipv6.rating as rating_ipv6
+from server s
+left join server_stability shttp  on s.id = shttp.server_id  and shttp.capability  = 'http'
+left join server_stability shttps on s.id = shttps.server_id and shttps.capability = 'https'
+left join server_stability sipv4  on s.id = sipv4.server_id  and sipv4.capability  = 'ipv4'
+left join server_stability sipv6  on s.id = sipv6.server_id  and sipv6.capability  = 'ipv6'
+where s.hostname = ?
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($hostname);
+    return $dbh->selectrow_hashref($prep);
+}
+
 1;

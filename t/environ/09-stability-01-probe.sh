@@ -78,4 +78,10 @@ $mc/backstage/shoot
 $mc/sql_test 1000 == "select rating from server_stability where (server_id, capability) = (1, 'http')"
 $mc/sql_test -1 == "select rating from server_stability where (server_id, capability) = (2, 'http')"
 
+$mc/curl /app/server/$($ap8/print_address) | grep -A4 Health \
+                                           | grep -A3 -F '<span class="ratingdisabled">http</span>' \
+                                           | grep -A2 -F '<span class="ratingbad">https</span>' \
+                                           | grep -A1 -F '<span class="ratinggood">ipv4</span>' \
+                                           | grep     -F '<span class="ratingbad">ipv6</span>'
+
 echo success
