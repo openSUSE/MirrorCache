@@ -102,7 +102,8 @@ sub mirrors_query {
     }
 
     my $join_file_cond = "fl.folder_id = fd.folder_id";
-    my $file_dt = ", max(case when fdf.file_id is null and fl.name ~ '[0-9]' and fl.name not like '%license.tar.gz' and fl.name not like '%info.xml.gz' then fl.mtime else null end) as mtime";
+    # license.tar* and info.xml* might be kept with the same name through updates, so timestamp on them is unreliable in mirrorlist for folders
+    my $file_dt = ", max(case when fdf.file_id is null and fl.name ~ '[0-9]' and fl.name not like '%license.tar.%' and fl.name not like '%info.xml.%' then fl.mtime else null end) as mtime";
     my $group_by = "group by s.id, s.hostname, s.hostname_vpn, s.urldir, s.region, s.country, s.lat, s.lng, s.score";
 
     if ($file_id) {
