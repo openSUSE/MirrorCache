@@ -54,7 +54,7 @@ sub _run {
     $hq_url = "http://" . $hq_url unless 'http' eq substr($hq_url, 0, 4);
 
     my $mojo_url = Mojo::URL->new($hq_url);
-    my $res      = Mojo::UserAgent->new->get($mojo_url, {'User-Agent' => 'MirrorCache/hashes_import'})->result;
+    my $res      = Mojo::UserAgent->new->request_timeout(180)->connect_timeout(3)->get($mojo_url, {'User-Agent' => 'MirrorCache/hashes_import'})->result;
     return $job->fail('Request to HEADQUARTER ' . $hq_url . ' failed, response code ' . $res->code)
       if $res->code > 299;
 
