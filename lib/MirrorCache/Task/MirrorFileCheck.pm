@@ -47,7 +47,7 @@ sub _check {
         $urldir = '/' unless $urldir;
         my $url = $m->hostname . $m->urldir . $path;
         # it looks that  defining $ua outside the loop greatly increases overal memory usage footprint for the task
-        my $ua = Mojo::UserAgent->new->request_timeout(4)->connect_timeout(4);
+        my $ua = Mojo::UserAgent->new->request_timeout(4)->connect_timeout(4)->max_redirects(6);
 
         my ($next, $then, $catch);
         my $started = time();
