@@ -17,6 +17,8 @@ package MirrorCache::Task::FolderSync;
 use Mojo::Base 'Mojolicious::Plugin';
 use MirrorCache::Utils 'datetime_now';
 
+use Directory::Scanner::OBSReleaseInfo;
+
 my $HASHES_COLLECT = $ENV{MIRRORCACHE_HASHES_COLLECT} // 0;
 my $HASHES_IMPORT  = $ENV{MIRRORCACHE_HASHES_IMPORT} // 0;
 my $HASHES_QUEUE   = $ENV{MIRRORCACHE_HASHES_QUEUE} // 'hashes';
@@ -47,6 +49,34 @@ sub _sync {
 
         $schema->resultset('Folder')->add_redirect($path, $realpath);
     }
+    my ($proj_id, $proj_name, $proj_path, $proj_type, $proj_prev_epc);
+    do {
+        # detect project to track rollout
+        my $prep = $schema->storage->dbh->prepare(
+"select id, name, path, max(epc) 
+from project left join project_rollout on id = project_id 
+where ? like concat(path, '/%')
+group by id, name, path"
+        );
+
+        $prep->execute($path);
+        my @proj = $schema->storage->dbh->selectrow_array($prep);
+        if (@proj) {
+            $proj_id   = $proj[0];
+            $proj_name = $proj[1];
+            $proj_path = $proj[2];
+            $proj_prev_epc = $proj[3] // 0;
+            if ($proj_name) {
+                if (index($proj_name, 'ISO') > -1) {
+                    $proj_type = 'iso';
+                } elsif (index($proj_name, 'repo') > -1) {
+                    $proj_type = 'repo' if $path eq $proj_path . '/repodata';
+                }
+            }
+        }
+        $job->note(proj_id => $proj_id, proj_name=> $proj_name, proj_prev_epc => $proj_prev_epc, proj_type => $proj_type) if $proj_type;
+    };
+    my $obsrelease = Directory::Scanner::OBSReleaseInfo->new($proj_type, $proj_prev_epc) if $proj_type;
 
     my $folder = $schema->resultset('Folder')->find({path => $realpath});
     unless ($root->is_dir($realpath)) {
@@ -100,6 +130,7 @@ sub _sync {
             $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
             $count = $count+1;
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime, target => $target});
+            $obsrelease->next_file($file, $mtime) if $obsrelease;
             return undef;
         };
         eval {
@@ -125,6 +156,7 @@ sub _sync {
             $minion->enqueue('folder_hashes_import' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_IMPORT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_import', $HASHES_QUEUE);
         }
         $schema->resultset('Folder')->request_scan($otherFolder->id) if $otherFolder && ($count || !$otherFolder->scan_requested);
+        $schema->resultset('Folder')->add_rollout($proj_id, $obsrelease->versionmtime, $obsrelease->version, $obsrelease->versionfilename) if $obsrelease && $obsrelease->versionfilename;
         return;
     };
     return $job->fail("Couldn't create folder $path in DB") unless $folder && $folder->id;
@@ -164,6 +196,7 @@ sub _sync {
             }
             return;
         }
+        $obsrelease->next_file($file, $mtime) if $obsrelease;
         $cnt = $cnt + 1;
         $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime, target => $target});
         return undef;
@@ -205,6 +238,7 @@ sub _sync {
     } else {
         $otherFolder->update({sync_last => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'}) if $otherFolder;
     }
+    $schema->resultset('Folder')->add_rollout($proj_id, $obsrelease->versionmtime, $obsrelease->version, $obsrelease->versionfilename) if $obsrelease && $obsrelease->versionfilename;
 }
 
 1;

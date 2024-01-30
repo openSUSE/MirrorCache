@@ -207,7 +207,8 @@ sub _render_dir {
     $c->stat->redirect_to_root($dm, 0) unless $folder_id && $dm->folder_sync_last;
     return _render_dir_from_db($dm, $folder_id, $dir) if $folder_id && $dm->folder_sync_last;
 
-    my $pos = $rsFolder->get_sync_queue_position($dir);
+    my $pos = -1;
+    eval { $pos = $rsFolder->get_sync_queue_position($dir)->[0]; };
     return $c->render(status => 425, text => "Waiting in queue, at " . strftime("%Y-%m-%d %H:%M:%S", gmtime time) . " position: $pos");
 }
 

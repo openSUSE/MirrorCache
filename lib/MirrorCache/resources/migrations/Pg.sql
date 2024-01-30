@@ -383,4 +383,12 @@ create table server_note (
     msg       varchar(512),
     primary key(hostname, dt)
 );
-
+-- 32 up
+create table project_rollout (
+    project_id bigint NOT NULL references project on delete cascade,
+    epc int NOT NULL,
+    dt timestamp,
+    version varchar(32),
+    filename varchar(256),
+    primary key(project_id, epc)
+);

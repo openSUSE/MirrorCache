@@ -384,4 +384,16 @@ create table server_note (
     msg       varchar(512),
     primary key(hostname, dt)
 );
+-- 32 up
+create table project_rollout (
+    project_id int NOT NULL,
+    epc int NOT NULL,
+    dt timestamp,
+    version varchar(32),
+    filename varchar(256),
+    primary key(project_id, epc)
+);
 
+create index if not exists i_project_rollout_project_id on project_rollout(project_id);
+
+alter table project_rollout add constraint `fk_project_rollout_project` FOREIGN KEY(project_id) references project(id) on delete cascade;
