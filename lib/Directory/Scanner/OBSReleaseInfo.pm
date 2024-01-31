@@ -23,7 +23,7 @@ sub next_file($self, $filename, $mtime) {
             return 1;
         }
     } elsif ($self->type eq 'repo') {
-        if ($filename =~ /.*primary.xml(.(gz|zst))$/) {
+        if ($filename =~ /.*primary.xml(\.(gz|zst))$/) {
             my $version = $mtime;
             $self->version($version);
             $self->versionfilename($filename);

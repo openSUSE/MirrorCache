@@ -42,7 +42,7 @@ $mc/sql_test 1 == 'select count(*) from project_rollout'
 $mc/sql_test 1.1 == 'select version from project_rollout'
 $mc/sql_test proj1-Build1.1-Media.iso == 'select filename from project_rollout'
 
-# $mc/sql_test 5 == 'select count(*) from project_rollout_server'
+$mc/sql_test 5 == 'select count(*) from project_rollout_server'
 
 $mc/backstage/job -e folder_sync -a '["/project2/iso"]'
 $mc/backstage/job -e mirror_scan -a '["/project2/iso"]'

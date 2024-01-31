@@ -392,3 +392,10 @@ create table project_rollout (
     filename varchar(256),
     primary key(project_id, epc)
 );
+create table project_rollout_server (
+    server_id  bigint NOT NULL references server  on delete cascade,
+    project_id bigint NOT NULL references project on delete cascade,
+    epc int NOT NULL,
+    dt timestamp,
+    primary key(server_id, project_id, epc)
+);
