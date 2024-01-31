@@ -33,7 +33,8 @@ where f.sync_requested < (select sync_requested from folder f1 where path = ?) a
 END_SQL
     my $prep = $dbh->prepare($sql);
     $prep->execute($path);
-    return $dbh->selectrow_array($prep);
+    my @res = $dbh->selectrow_array($prep);
+    return \@res;
 }
 
 sub set_wanted {
@@ -401,6 +402,22 @@ END_SQL
 }
     my $prep = $dbh->prepare($sql);
     $prep->execute($pathfrom, $pathto, $pathto);
+}
+
+sub add_rollout {
+    my ($self, $project_id, $epc, $version, $versionfile) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql;
+    $sql = <<'END_SQL';
+insert into project_rollout(project_id, epc, version, filename, dt)
+values (?, ?, ?, ?, now())
+END_SQL
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($project_id, $epc, $version, $versionfile);
 }
 
 1;
