@@ -404,20 +404,4 @@ END_SQL
     $prep->execute($pathfrom, $pathto, $pathto);
 }
 
-sub add_rollout {
-    my ($self, $project_id, $epc, $version, $versionfile) = @_;
-
-    my $rsource = $self->result_source;
-    my $schema  = $rsource->schema;
-    my $dbh     = $schema->storage->dbh;
-
-    my $sql;
-    $sql = <<'END_SQL';
-insert into project_rollout(project_id, epc, version, filename, dt)
-values (?, ?, ?, ?, now())
-END_SQL
-    my $prep = $dbh->prepare($sql);
-    $prep->execute($project_id, $epc, $version, $versionfile);
-}
-
 1;

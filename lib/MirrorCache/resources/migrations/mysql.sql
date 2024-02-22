@@ -385,30 +385,37 @@ create table server_note (
     primary key(hostname, dt)
 );
 -- 32 up
-create table project_rollout (
+-- create table project_rollout (
+-- create table project_rollout_server (
+-- 33 up
+drop table if exists project_rollout_server;
+drop table if exists project_rollout;
+
+create table rollout (
+    id bigint NOT NULL AUTO_INCREMENT primary key,
     project_id int NOT NULL,
     epc int NOT NULL,
     dt timestamp,
     version varchar(32),
     filename varchar(256),
-    primary key(project_id, epc)
+    prefix varchar(256),
+    unique(project_id, epc, prefix)
 );
 
-create index if not exists i_project_rollout_project_id on project_rollout(project_id);
+create index if not exists i_rollout_project_id on rollout(project_id);
 
-alter table project_rollout add constraint `fk_project_rollout_project` FOREIGN KEY(project_id) references project(id) on delete cascade;
+alter table rollout add constraint `fk_rollout_project` FOREIGN KEY(project_id) references project(id) on delete cascade;
 
-create table project_rollout_server (
+create table rollout_server (
+    rollout_id bigint NOT NULL,
     server_id  int NOT NULL,
-    project_id int NOT NULL,
-    epc int NOT NULL,
     dt timestamp,
-    primary key(server_id, project_id, epc)
+    primary key(rollout_id, server_id)
 );
 
-create index if not exists i_project_rollout_server_server_id on project_rollout_server(server_id);
-create index if not exists i_project_rollout_server_project_id on project_rollout_server(project_id);
-alter table project_rollout_server
-   add constraint `fk_project_rollout_server_server`  FOREIGN KEY(server_id)  references server(id)  on delete cascade,
-   add constraint `fk_project_rollout_server_project` FOREIGN KEY(project_id) references project(id) on delete cascade;
+create index if not exists i_rollout_server_server_id on rollout_server(server_id);
+create index if not exists i_rollout_server_rollout_id on rollout_server(rollout_id);
+alter table rollout_server
+   add constraint `fk_rollout_server_server`  FOREIGN KEY(server_id)  references server(id)  on delete cascade,
+   add constraint `fk_rollout_server_rollout` FOREIGN KEY(rollout_id) references rollout(id) on delete cascade;
 

@@ -384,18 +384,27 @@ create table server_note (
     primary key(hostname, dt)
 );
 -- 32 up
-create table project_rollout (
-    project_id bigint NOT NULL references project on delete cascade,
+-- create table project_rollout (
+-- create table project_rollout_server (
+-- 33 up
+drop table if exists project_rollout_server;
+drop table if exists project_rollout;
+
+create table rollout (
+    id bigserial primary key,
+    project_id int NOT NULL references project on delete cascade,
     epc int NOT NULL,
     dt timestamp,
     version varchar(32),
     filename varchar(256),
-    primary key(project_id, epc)
+    prefix varchar(256),
+    unique(project_id, epc, prefix)
 );
-create table project_rollout_server (
-    server_id  bigint NOT NULL references server  on delete cascade,
-    project_id bigint NOT NULL references project on delete cascade,
-    epc int NOT NULL,
+
+create table rollout_server (
+    rollout_id bigint NOT NULL references rollout on delete cascade,
+    server_id  int NOT NULL references server on delete cascade,
     dt timestamp,
-    primary key(server_id, project_id, epc)
+    primary key(rollout_id, server_id)
 );
+

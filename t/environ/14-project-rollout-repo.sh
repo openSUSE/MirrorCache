@@ -28,17 +28,17 @@ $mc/backstage/job -e folder_sync -a '["/project1/repodata"]'
 $mc/backstage/job -e mirror_scan -a '["/project1/repodata"]'
 $mc/backstage/shoot
 
-$mc/sql_test 1 == 'select count(*) from project_rollout'
-$mc/sql_test 100 -lt 'select version from project_rollout'
-$mc/sql_test 0001-primary.xml.gz == 'select filename from project_rollout'
+$mc/sql_test 1 == 'select count(*) from rollout'
+$mc/sql_test 100 -lt 'select version from rollout'
+$mc/sql_test 0001-primary.xml.gz == 'select filename from rollout'
 
-$mc/sql_test 2 == 'select count(*) from project_rollout_server'
+$mc/sql_test 2 == 'select count(*) from rollout_server'
 
 $mc/backstage/job -e folder_sync -a '["/project2/repodata"]'
 $mc/backstage/job -e mirror_scan -a '["/project2/repodata"]'
 $mc/backstage/shoot
 
-$mc/sql_test 2 == 'select count(*) from project_rollout'
-$mc/sql_test 100 -lt 'select version from project_rollout where project_id = 2'
+$mc/sql_test 2 == 'select count(*) from rollout'
+$mc/sql_test 100 -lt 'select version from rollout where project_id = 2'
 
 echo success
