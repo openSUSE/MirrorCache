@@ -111,9 +111,11 @@ sub _doscan {
     my $folder_on_mirrors = $schema->resultset('Server')->folder($folder_id);
     my $count = 0;
     my $perfect_count = 0;
-    my $proj = $schema->resultset('ProjectRollout')->rollout_file_for_folder($path);
+    my $proj = $schema->resultset('Rollout')->rollout_file_for_folder($path);
     my $proj_rollout_filename = '';
     $proj_rollout_filename = $proj->{filename} if $proj;
+    $job->note(rollout_filename => $proj_rollout_filename) if $proj_rollout_filename;
+    $job->note(rollout_id => ($proj->{rollout_id} // 'undef')) if $proj_rollout_filename;
     for my $folder_on_mirror (@$folder_on_mirrors) {
         my $server_id = $folder_on_mirror->{server_id};
         my $url = $folder_on_mirror->{url} . '/';
@@ -159,9 +161,10 @@ unless ($hasall) {
                     my $rollout_res = 0;
                     my $rollout_err;
                     eval {
-                        $rollout_res = $schema->resultset('ProjectRollout')->add_rollout_server($server_id, $proj->{id}, $proj->{epc});
+                        $rollout_res = $schema->resultset('Rollout')->add_rollout_server($proj->{rollout_id}, $server_id);
                     } or $rollout_err = $@ // 'no error';
-                    $job->note(rollout_res => $rollout_res, rollout_err => $rollout_err, at => datetime_now()) if $rollout_err;
+                    print STDERR "Rollout error: $rollout_err\n\n" if $rollout_err;
+                    $job->note(rollout_err => $rollout_err, at => datetime_now()) if $rollout_err;
                 }
             };
             my $end = sub {

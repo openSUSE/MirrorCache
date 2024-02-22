@@ -1,5 +1,5 @@
 use utf8;
-package MirrorCache::Schema::Result::ProjectRollout;
+package MirrorCache::Schema::Result::Rollout;
 
 use strict;
 use warnings;
@@ -7,11 +7,12 @@ use warnings;
 use base 'DBIx::Class::Core';
 use DBIx::Class::Timestamps;
 
-__PACKAGE__->table("project_rollout");
+__PACKAGE__->table("rollout");
 
 
 __PACKAGE__->load_components(qw(InflateColumn::DateTime DynamicDefault));
 __PACKAGE__->add_columns(
+  "id",
   "project_id",
   { data_type => "integer"},
   "epc",
@@ -22,6 +23,10 @@ __PACKAGE__->add_columns(
         is_nullable => 1
   },
   version => {
+        data_type   => 'varchar',
+        size => 32
+  },
+  prefix => {
         data_type   => 'varchar',
         size => 32
   },

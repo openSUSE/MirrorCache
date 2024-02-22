@@ -31,24 +31,24 @@ $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($a
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','cn','as'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','jp','as'"
 
-$mc/sql "insert into project(name,path,etalon) select 'proj1 ISO','/project1', 3"
-$mc/sql "insert into project(name,path,etalon) select 'proj 2 ISO','/project2', 3"
+$mc/sql "insert into project(name,path,etalon) select 'proj1 ISO','/project1/iso', 3"
+$mc/sql "insert into project(name,path,etalon) select 'proj 2 ISO','/project2/iso', 3"
 
 $mc/backstage/job -e folder_sync -a '["/project1/iso"]'
 $mc/backstage/job -e mirror_scan -a '["/project1/iso"]'
 $mc/backstage/shoot
 
-$mc/sql_test 1 == 'select count(*) from project_rollout'
-$mc/sql_test 1.1 == 'select version from project_rollout'
-$mc/sql_test proj1-Build1.1-Media.iso == 'select filename from project_rollout'
+$mc/sql_test 1 == 'select count(*) from rollout'
+$mc/sql_test 1.1 == 'select version from rollout'
+$mc/sql_test proj1-Build1.1-Media.iso == 'select filename from rollout'
 
-$mc/sql_test 5 == 'select count(*) from project_rollout_server'
+$mc/sql_test 5 == 'select count(*) from rollout_server'
 
 $mc/backstage/job -e folder_sync -a '["/project2/iso"]'
 $mc/backstage/job -e mirror_scan -a '["/project2/iso"]'
 $mc/backstage/shoot
 
-$mc/sql_test 2 == 'select count(*) from project_rollout'
-$mc/sql_test 240131 == 'select version from project_rollout where project_id = 2'
+$mc/sql_test 2 == 'select count(*) from rollout'
+$mc/sql_test 240131 == 'select version from rollout where project_id = 2'
 
 echo success
