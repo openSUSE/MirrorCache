@@ -291,6 +291,17 @@ function renderAdminTableHostname(data, type, row, meta) {
     return data? '<a href="/app/server/'+ htmlEscape(data) +'">' + htmlEscape(data) + '</>' : '';
 }
 
+function renderAdminTableProjectName(data, type, row, meta) {
+    if (type !== 'display') {
+        return data ? data : '';
+    }
+    if (isEditingAdminTableRow(meta)) {
+        return '<input type="text" value="' + htmlEscape(data) + '"/>';
+    }
+    return data? '<a href="/app/project/'+ row['id'] +'">' + htmlEscape(data) + '</>' : '';
+}
+
+
 function renderAdminTableLongText(data, type, row, meta) {
     if (type !== 'display') {
         return data ? data : '';
@@ -382,6 +393,8 @@ function setupAdminTable(editable) {
     var emptyRow = {};
     var columns = [];
     var columnDefs = [];
+    var url = $("#admintable_api_url").val() + window.location.search;
+
     var thElements = $('.admintable thead th').each(function() {
         var th = $(this);
 
@@ -403,6 +416,8 @@ function setupAdminTable(editable) {
         if (th.hasClass('col_value')) {
             if (columnName == 'hostname') {
                 columnDef.render = renderAdminTableHostname;
+            } else if (columnName == 'name' && url && url.startsWith('/rest/project')) {
+                columnDef.render = renderAdminTableProjectName;
             } else if (columnName == 'public notes' || columnName == 'comment' || columnName == 'sponsor') {
                 columnDef.render = renderAdminTableLongText;
             } else {
@@ -429,7 +444,6 @@ function setupAdminTable(editable) {
     });
 
     // setup admin table
-    var url = $("#admintable_api_url").val() + window.location.search;
     var table = $('.admintable');
     var dataTable = table.DataTable({
         order: [

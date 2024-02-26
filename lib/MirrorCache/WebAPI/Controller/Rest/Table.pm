@@ -38,6 +38,10 @@ my %tables = (
         keys     => [['id'], ['path'],],
         cols     => ['id', 'path', 'wanted', 'sync requested', 'sync scheduled', 'sync last', 'scan requested', 'scan scheduled', 'scan last'],
     },
+    Project => {
+        keys     => [['id'], ['name'],],
+        cols     => ['id', 'name', 'path'],
+    },
 );
 
 sub _myserver {
@@ -144,7 +148,10 @@ sub create {
 
     my $table  = $self->param("table");
 
-    my %entry  = %{$tables{$table}->{defaults}};
+    my %entry;
+    if (my $defaults = $tables{$table}->{defaults}) {
+        %entry  = %{$defaults};
+    }
     my $prepare_error = $self->_prepare_params($table, \%entry);
     return $self->render(json => {error => $prepare_error}, status => 400) if defined $prepare_error;
 

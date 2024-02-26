@@ -83,6 +83,13 @@ sub add_rollout_server {
     my $dbh = $self->result_source->schema->storage->dbh;
 
     my $sql = 'insert into rollout_server(rollout_id, server_id, dt) select ?, ?, now()';
+
+    if ($dbh->{Driver}->{Name} eq 'Pg') {
+        $sql = $sql . ' on conflict do nothing';
+    } else {
+        $sql = $sql . ' on duplicate key update server_id = server_id';
+    }
+
     $dbh->prepare($sql)->execute($rollout_id, $server_id);
     return 1;
 }

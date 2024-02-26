@@ -36,4 +36,6 @@ __PACKAGE__->add_columns(
   db_sync_full_every => { data_type => "integer", is_nullable => 1 },
 );
 
+
+__PACKAGE__->set_primary_key("id");
 1;

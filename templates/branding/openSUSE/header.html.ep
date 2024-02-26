@@ -36,8 +36,9 @@
           <span class="d-md-none">MirrorCache</span>
         </a>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="user-dropdown">
-          %= link_to 'Mirrors' => url_for('server') => class => 'dropdown-item'
-          %= link_to 'Folders' => url_for('folder') => class => 'dropdown-item'
+          %= link_to 'Mirrors'  => url_for('server')  => class => 'dropdown-item'
+          %= link_to 'Projects' => url_for('project') => class => 'dropdown-item'
+          %= link_to 'Folders'  => url_for('folder')  => class => 'dropdown-item'
           %= link_to 'Statistics' => url_for('/rest/stat') => class => 'dropdown-item'
           %= tag 'div' => class => 'dropdown-divider'
           %= tag 'h3' => class => 'dropdown-header' => 'User menu'
