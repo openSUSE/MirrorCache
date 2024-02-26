@@ -1,4 +1,4 @@
-# Copyright (C) 2022 SUSE LLC
+# Copyright (C) 2022,2024 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,11 +15,11 @@
 
 package MirrorCache::WebAPI::Controller::Rest::Project;
 use Mojo::Base 'Mojolicious::Controller';
-use Mojo::Promise;
 
 sub show {
     my ($self) = @_;
     my $name = $self->param("name");
+    return $self->render(code => 400, text => "Mandatory argument is missing") unless $name;
 
     my $prj = $self->schema->resultset('Project')->find({ name => $name });
 

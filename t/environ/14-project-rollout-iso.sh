@@ -15,7 +15,7 @@ for x in $mc $ap7 $ap8 $ap6 $ap5 $ap4; do
     mkdir -p $x/dt/{folder1,folder2,folder3}
     mkdir -p $x/dt/project1/iso
     mkdir -p $x/dt/project2/iso
-    echo $x/dt/project1/iso/proj1-Build1.1-Media.iso{,sha256} | xargs -n 1 touch
+    echo $x/dt/project1/iso/proj1-Build1.1-Media.iso{,.sha256} | xargs -n 1 touch
     echo $x/dt/project2/iso/proj1-Snapshot240131-Media.iso{,.sha256} | xargs -n 1 touch
 done
 
@@ -50,5 +50,25 @@ $mc/backstage/shoot
 
 $mc/sql_test 2 == 'select count(*) from rollout'
 $mc/sql_test 240131 == 'select version from rollout where project_id = 2'
+
+for x in $mc $ap7 $ap8 $ap6; do
+    rm $x/dt/project1/iso/proj1*
+    echo $x/dt/project1/iso/proj1-Build2.1-Media.iso{,.sha256} | xargs -n 1 touch
+done
+
+$mc/backstage/job -e folder_sync -a '["/project1/iso"]'
+$mc/backstage/job -e mirror_scan -a '["/project1/iso"]'
+$mc/backstage/shoot
+
+for x in $ap5 $ap4; do
+    rm $x/dt/project1/iso/proj1*
+    echo $x/dt/project1/iso/proj1-Build2.1-Media.iso{,.sha256} | xargs -n 1 touch
+done
+
+$mc/backstage/job -e folder_sync -a '["/project1/iso"]'
+$mc/backstage/job -e mirror_scan -a '["/project1/iso"]'
+$mc/backstage/shoot
+
+$mc/sql 'select * from rollout where project_id = 1'
 
 echo success

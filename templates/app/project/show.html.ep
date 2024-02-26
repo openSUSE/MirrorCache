@@ -1,0 +1,38 @@
+% layout 'bootstrap';
+% title 'Project ' . $project->{name};
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <style type='text/css'>
+table { width:100%%; }
+.name { text-align:left; }
+  </style>
+% content_for 'ready_function' => begin
+    is_operator = <%= (is_operator) ? 'true' : 'false' %>;
+    project_id   = <%= $project->{id} %>;
+    name         = "<%= $project->{name} %>";
+    setupProjectPropagation(project_id);
+% end
+<div class="row">
+<div class="col-sm-12">
+    <h4>Project: <%= $project->{name} %></h4>
+
+    <div class="card">
+        <div class="card-body status-info">
+            <div><span>Id: </span><%= $project->{id} %></div>
+            <div><span>Name: </span><%= $project->{name} %></div>
+            <div><span>Path: </span><%= $project->{path} %></div>
+        </div>
+    </div>
+
+    <h3>Propagation on Mirrors</h3>
+    <table id="project_propagation" class="table table-striped">
+        <thead>
+            <th>Time</th>
+            <th>Prefix</th>
+            <th>Version</th>
+            <th>Mirrors</th>
+        </thead>
+    </table>
+
+</div>
+
+</div>

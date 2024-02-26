@@ -1,0 +1,33 @@
+% layout 'bootstrap';
+% title 'Projects';
+
+% content_for 'ready_function' => begin
+    setupAdminTable(<%= is_admin_js %>);
+% end
+
+<div class="row">
+    <div class="col-sm-12">
+        <h2><%= title %></h2>
+
+        %= include 'layouts/info'
+
+        <table id="folders" class="admintable table table-striped">
+            <thead>
+                <tr>
+                    <th class="col_value">Id</th>
+                    <th class="col_value">Name</th>
+                    <th class="col_value">Path</th>
+                    <th class="col_action">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        % if (is_admin && !eval('$mirror_provider_url')) {
+        <div class="text-center">
+            <input value="New project" onclick="addAdminTableRow();" type="button" class="btn btn-default"/>
+        </div>
+        % }
+        <input type="hidden" id="admintable_api_url" value="/rest/project"/>
+    </div>
+</div>

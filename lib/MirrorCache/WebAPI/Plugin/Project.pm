@@ -139,7 +139,7 @@ sub _list_full {
         my $alias = $projects_alias{$name};
         my $path  = $projects_path{$name};
 
-        my %prj = ( name => $name, alias => $alias, path => $path );
+        my %prj = ( id => $p->{id}, name => $name, alias => $alias, path => $path );
         push @res, \%prj;
     }
     return \@res;

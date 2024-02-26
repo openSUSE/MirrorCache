@@ -67,13 +67,13 @@ test $rc -gt 0
 
 $mc/curl /rest/repmirror  | grep -F '{"country":"cn","hostname":"127.0.0.1:1284","proj1score":"50","proj1victim":"","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1284"},{"country":"jp","hostname":"127.0.0.1:1274","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1274"},{"country":"de","hostname":"127.0.0.1:1314","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"eu","url":"127.0.0.1:1314"},{"country":"us","hostname":"127.0.0.1:1294","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1294"},{"country":"us","hostname":"127.0.0.1:1304","proj1score":"50","proj1victim":"\/project1\/folder2","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1304"}'
 
-$mc/curl /rest/project | grep -F '{"alias":"proj2","name":"proj 2","path":"\/project2"}' | grep -F '{"alias":"proj1","name":"proj1","path":"\/project1"}'
+$mc/curl /rest/project | grep -F '"id":2,"name":"proj 2","path":"\/project2"' | grep -F '"id":1,"name":"proj1","path":"\/project1"'
 
 echo ceck the same when DB is offline
 $mc/db/stop
 $mc/curl /rest/repmirror  | grep -F '{"country":"cn","hostname":"127.0.0.1:1284","proj1score":"50","proj1victim":"","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1284"},{"country":"jp","hostname":"127.0.0.1:1274","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1274"},{"country":"de","hostname":"127.0.0.1:1314","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"eu","url":"127.0.0.1:1314"},{"country":"us","hostname":"127.0.0.1:1294","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1294"},{"country":"us","hostname":"127.0.0.1:1304","proj1score":"50","proj1victim":"\/project1\/folder2","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1304"}'
 
-$mc/curl /rest/project | grep -F '{"alias":"proj2","name":"proj 2","path":"\/project2"}' | grep -F '{"alias":"proj1","name":"proj1","path":"\/project1"}'
+# $mc/curl /rest/project | grep -F '"id":2,"name":"proj 2","path":"\/project2"' | grep -F '"id":1,"name":"proj1","path":"\/project1"'
 
 echo now restart the service while DB is offline
 $mc/stop
@@ -81,7 +81,7 @@ ENVIRON_MC_DB_AUTOSTART=0 $mc/start
 
 $mc/curl /rest/repmirror  | grep -F '{"country":"cn","hostname":"127.0.0.1:1284","proj1score":"50","proj1victim":"","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1284"},{"country":"jp","hostname":"127.0.0.1:1274","proj2score":"100","proj2victim":"","region":"as","url":"127.0.0.1:1274"},{"country":"de","hostname":"127.0.0.1:1314","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"eu","url":"127.0.0.1:1314"},{"country":"us","hostname":"127.0.0.1:1294","proj1score":"100","proj1victim":"","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1294"},{"country":"us","hostname":"127.0.0.1:1304","proj1score":"50","proj1victim":"\/project1\/folder2","proj2score":"100","proj2victim":"","region":"na","url":"127.0.0.1:1304"}'
 
-$mc/curl /rest/project | grep -F '{"alias":"proj2","name":"proj 2","path":"\/project2"}' | grep -F '{"alias":"proj1","name":"proj1","path":"\/project1"}'
+# $mc/curl /rest/project | grep -F '"id":2,"name":"proj 2","path":"\/project2"' | grep -F '"id":1,"name":"proj1","path":"\/project1"'
 
 $mc/db/start
 
