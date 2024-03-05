@@ -184,6 +184,25 @@ td.newregion, tr:hover td.newregion {
             <tbody>
                 % my $prev_region = '';
                 % for my $m (@$mirrors) {
+                %     if ($single_project_report) {
+                %         # skip mirror unless it has anything to show
+                %         my $nothingtoshow = 1;
+                %         for my $project (@$projects) {
+                %             my $name    = $project->{name};
+                %             my $prio   = $project->{prio};
+                %             next if $prio && !$single_project_report && $prio < 0;
+                %             my $alias   = $project->{alias};
+                %             my $column1 = $alias . "score";
+                %             my $column2 = $alias . "victim";
+                %             my ($first, $second) = split ' ', $name;
+                %             my $x = $m->{$column1};
+                %             if (defined $x) {
+                %                 $nothingtoshow = 0;
+                %                 last;
+                %             }
+                %         }
+                %         next if $nothingtoshow;
+                %     }
                 %     my $region = $m->{region};
                 %     if ($region ne $prev_region) {
                 %         my $region_name = region_name($region);

@@ -101,4 +101,9 @@ rc=0
 $mc/curl /report/mirrors | grep -F '2.0' || rc=$?
 test $rc -gt 0
 
+echo check 2.0 link has no cn server, because it has nothing from 2.0
+rc=0
+$mc/curl /report/mirrors/proj1 | grep -F "$($ap5/print_address)" || rc=$?
+test $rc -gt 0
+
 echo success
