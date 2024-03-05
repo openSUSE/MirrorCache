@@ -56,7 +56,7 @@ sub _init_if_needed {
             my @rows = $c->schema->resultset('Project')->search(undef, { order_by => { -desc => [qw/prio name/] } });
             # we want to cache it, so move to simpler structure
             for my $r (@rows) {
-                my %proj = ( id => $r->id, name => $r->name, path => $r->path, redirect => $r->redirect );
+                my %proj = ( id => $r->id, name => $r->name, path => $r->path, redirect => $r->redirect, prio => $r->prio );
                 push @projects, \%proj;
             }
             $wasdberror = 0;
@@ -139,7 +139,7 @@ sub _list_full {
         my $alias = $projects_alias{$name};
         my $path  = $projects_path{$name};
 
-        my %prj = ( id => $p->{id}, name => $name, alias => $alias, path => $path );
+        my %prj = ( id => $p->{id}, name => $name, alias => $alias, path => $path, prio => $p->{prio} );
         push @res, \%prj;
     }
     return \@res;
