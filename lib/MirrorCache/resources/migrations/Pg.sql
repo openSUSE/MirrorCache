@@ -407,4 +407,5 @@ create table rollout_server (
     dt timestamp,
     primary key(rollout_id, server_id)
 );
-
+-- 34 up
+alter table rollout_server add column if not exists scan_dt timestamp;

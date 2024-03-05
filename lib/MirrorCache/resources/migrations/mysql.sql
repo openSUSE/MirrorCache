@@ -419,3 +419,5 @@ alter table rollout_server
    add constraint `fk_rollout_server_server`  FOREIGN KEY(server_id)  references server(id)  on delete cascade,
    add constraint `fk_rollout_server_rollout` FOREIGN KEY(rollout_id) references rollout(id) on delete cascade;
 
+-- 34 up
+alter table rollout_server add column if not exists scan_dt timestamp;
