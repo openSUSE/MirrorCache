@@ -79,18 +79,19 @@ END_SQL
 }
 
 sub add_rollout_server {
-    my ($self, $rollout_id, $server_id) = @_;
+    my ($self, $rollout_id, $server_id, $dt) = @_;
     my $dbh = $self->result_source->schema->storage->dbh;
 
-    my $sql = 'insert into rollout_server(rollout_id, server_id, dt) select ?, ?, now()';
+    my $sql = 'insert into rollout_server(rollout_id, server_id, dt, scan_dt) select ?, ?, to_timestamp(?), now()';
 
     if ($dbh->{Driver}->{Name} eq 'Pg') {
         $sql = $sql . ' on conflict do nothing';
     } else {
+        $sql =~ s/to_timestamp/from_unixtime/g;
         $sql = $sql . ' on duplicate key update server_id = server_id';
     }
 
-    $dbh->prepare($sql)->execute($rollout_id, $server_id);
+    $dbh->prepare($sql)->execute($rollout_id, $server_id, $dt);
     return 1;
 }
 
