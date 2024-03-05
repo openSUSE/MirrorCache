@@ -91,4 +91,14 @@ test $rc -gt 0
 
 $mc/curl /report/mirrors | grep 'generated at'
 
+# update priority to negative and make sure it is not in the report any longer
+$mc/sql "update project set prio = -1 where name like '2.0%'";
+$mc/stop
+$mc/start
+
+echo check 2.0 is no longer in the report
+rc=0
+$mc/curl /report/mirrors | grep -F '2.0' || rc=$?
+test $rc -gt 0
+
 echo success

@@ -4,11 +4,13 @@
 % # Build Title
 % my $first_old = '';
 % my $first;
+% my $single_project_report = 1;
 % for my $project (@$projects) {
 %     my $name   = $project->{name};
 %     ($first) = split ' ', $name, 2;
 %     if ($first_old && $first_old ne $first) {
 %         $first = '';
+%         $single_project_report = 0;
 %         last;
 %     }
 %     $first_old = $first;
@@ -34,6 +36,7 @@
 %     $extra_title = "Leap $first"   if 0 == rindex $first, "15.", 0;
 %     $extra_title = "Build Service" if $first eq 'repositories';
 %     $extra_title = "Tumbleweed"    if $first eq 'TW';
+%     $extra_title = "Slowroll"      if $first eq 'SR';
 %     my %extra_menu_item = ( title => $extra_title, href => "/report/mirrors?project=$first" );
 %     push @extra_menu, \%extra_menu_item unless $first_old;
 
@@ -160,10 +163,13 @@ td.newregion, tr:hover td.newregion {
                     % $first = '';
                     % for my $project (@$projects) {
                     %     my $name   = $project->{name};
+                    %     my $prio   = $project->{prio};
+                    %     next if $prio && !$single_project_report && $prio < 0;
                     %     ($first) = split ' ', $name, 2;
                     %     $first = "Leap $first"   if 0 == rindex $first, "15.", 0;
                     %     $first = "Build Service" if $first eq 'repositories';
                     %     $first = "Tumbleweed"    if $first eq 'TW';
+                    %     $first = "Slowroll"      if $first eq 'SR';
                     %     if ($first_old ne $first) {
                     %          if ($first_old) {
                     </th>
@@ -217,6 +223,8 @@ td.newregion, tr:hover td.newregion {
                     <td>
                 %     for my $project (@$projects) {
                 %         my $name    = $project->{name};
+                %         my $prio   = $project->{prio};
+                %         next if $prio && !$single_project_report && $prio < 0;
                 %         my $alias   = $project->{alias};
                 %         my $path    = $project->{path};
                 %         my $column1 = $alias . "score";

@@ -29,6 +29,7 @@ __PACKAGE__->add_columns(
         data_type   => 'timestamp',
         is_nullable => 1
   },
+  prio => { data_type => "integer", is_nullable => 1 },
   db_sync_every => {
         data_type   => 'integer',
         is_nullable => 1
