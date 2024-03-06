@@ -395,6 +395,10 @@ function setupAdminTable(editable) {
     var columnDefs = [];
     var url = $("#admintable_api_url").val() + window.location.search;
 
+    if (url == '/rest/rollout_server' && (typeof version !== 'undefined') ) {
+        url = url + '/' + version;
+    }
+
     var thElements = $('.admintable thead th').each(function() {
         var th = $(this);
 
@@ -414,7 +418,7 @@ function setupAdminTable(editable) {
             type: 'empty-string-last',
         };
         if (th.hasClass('col_value')) {
-            if (columnName == 'hostname') {
+            if (columnName == 'hostname' || columnName == 'mirror') {
                 columnDef.render = renderAdminTableHostname;
             } else if (columnName == 'name' && url && url.startsWith('/rest/project')) {
                 columnDef.render = renderAdminTableProjectName;

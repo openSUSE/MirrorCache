@@ -184,6 +184,7 @@ sub _setup_webui {
     $rest_r->get('/project/:name/mirror_summary')->to('project#mirror_summary');
     $rest_r->get('/project/:name/mirror_list')->to('project#mirror_list');
     $rest_r->get('/project/propagation/:project_id')->to('project_propagation#list');
+    $rest_r->get('/rollout_server/:version')->to('rollout_server#list');
 
     my $rest_operator_auth;
     $rest_operator_auth = $rest->under('/')->to('session#ensure_operator');
@@ -237,6 +238,7 @@ sub _setup_webui {
     $app_r->get('/folder/<id:num>')->name('folder_show')->to('folder#show');
     $app_r->get('/project')->name('project')->to('project#index');
     $app_r->get('/project/#id')->name('project_show')->to('project#show');
+    $app_r->get('/rollout_server/:version')->to('rollout_server#index');
 
     my $admin = $r->any('/admin');
     my $admin_auth = $admin->under('/')->to('session#ensure_admin')->name('ensure_admin');
