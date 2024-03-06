@@ -40,7 +40,7 @@ my %tables = (
     },
     Project => {
         keys     => [['id'], ['name'],],
-        cols     => ['id', 'name', 'path'],
+        cols     => ['id', 'name', 'path', 'prio'],
     },
 );
 
