@@ -421,3 +421,4 @@ alter table rollout_server
 
 -- 34 up
 alter table rollout_server add column if not exists scan_dt timestamp;
+create index if not exists i_rollout_version on rollout(version);

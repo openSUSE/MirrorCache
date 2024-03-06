@@ -10,8 +10,9 @@ ap4=$(environ ap4)
 
 for x in $mc $ap5 $ap4; do
     mkdir -p $x/dt/project1/repodata
-    mkdir -p $x/dt/project2/repodata
     touch $x/dt/project1/repodata/0001-primary.xml.gz
+    mkdir -p $x/dt/project2/repodata
+    sleep 1
     touch $x/dt/project2/repodata/0001-primary.xml.gz
 done
 
@@ -40,5 +41,9 @@ $mc/backstage/shoot
 
 $mc/sql_test 2 == 'select count(*) from rollout'
 $mc/sql_test 100 -lt 'select version from rollout where project_id = 2'
+
+ver="$($mc/sql 'select version from rollout where project_id = 2')"
+
+$mc/curl /rest/rollout_server/$(echo -n $ver)
 
 echo success
