@@ -62,12 +62,16 @@ hq_address=$(mc9/print_address)
 hq_interface=127.0.0.10
 eu_interface=127.0.0.3
 
-# repodata/repomd.xml is served from root even when asked from EU
+echo repodata/repomd.xml is served from root even when asked from EU
 curl -si --interface $eu_interface http://$hq_address/download/folder1/repodata/repomd.xml | grep -A20 '200 OK' | grep repomdcontent
-# repodata/repomd.xml is served even when DB is down
+echo repodata/repomd.xml shows mirrorlist
+curl -si --interface $eu_interface http://$hq_address/download/folder1/repodata/repomd.xml.mirrorlist | grep -F '<!DOCTYPE html>'
+curl -si --interface $eu_interface -H 'Accept: */*' http://$hq_address/download/folder1/repodata/repomd.xml.mirrorlist | grep -F '<!DOCTYPE html>'
+curl -si --interface $eu_interface -H 'Accept: */*, application/xml' http://$hq_address/download/folder1/repodata/repomd.xml.mirrorlist | grep -F '<!DOCTYPE html>'
+
+echo repodata/repomd.xml is served even when DB is down
 $mc9/db/stop
 curl -si --interface $eu_interface http://$hq_address/download/folder1/repodata/repomd.xml | grep -A20 '200 OK' | grep repomdcontent
-
 
 curl -si --interface $eu_interface http://$hq_address/geoip     | grep -A 50 '200 OK' | grep "<host>euaddress.net</host>"
 curl -si                           http://$hq_address/geoip     | grep -A 50 '200 OK' | grep "<host>naaddress.com</host>"
