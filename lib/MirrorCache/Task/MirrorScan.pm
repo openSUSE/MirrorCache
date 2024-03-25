@@ -57,7 +57,7 @@ sub _scan {
     }
     return undef unless $dbfiles;
 
-    my $count = _doscan($app, $job, $path, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+    my $count = _doscan($app, $job, $path, $realfolder_id, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
     $job->note($count => 1);
     return $job->finish;
 }
@@ -103,7 +103,7 @@ sub _dbfiles {
 }
 
 sub _doscan {
-    my ($app, $job, $path, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = @_;
+    my ($app, $job, $path, $realfolder_id, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = @_;
     my @dbfiles = @$dbfiles;
     my %dbfileids = %$dbfileids;
     my %dbfileprefixes = %$dbfileprefixes;
@@ -228,6 +228,7 @@ unless ($hasall) {
                 $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder_id, hash => $digest});
                 unless($folder_diff->in_storage) {
                     $folder_diff->dt($latestdt);
+                    $folder_diff->realfolder_id($realfolder_id) if $realfolder_id && $realfolder_id != $folder_id;
                     $folder_diff->insert;
 
                     foreach my $id (@missing_files) {

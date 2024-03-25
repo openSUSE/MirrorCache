@@ -410,3 +410,6 @@ create table rollout_server (
 -- 34 up
 alter table rollout_server add column if not exists scan_dt timestamp;
 create index if not exists rollout_version_inx on rollout(version);
+-- 35 up
+alter table folder_diff add column if not exists realfolder_id bigint;
+

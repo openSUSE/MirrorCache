@@ -31,7 +31,7 @@ my @ROUTES = ( '/browse', '/download' );
 has [ '_route', '_route_len' ]; # this is '/download' or '/browse'
 has [ 'route', 'route_len' ]; # this may be '/download' or '/browse' or empty if one of TOP_FOLDERS present
 has [ 'metalink', 'meta4', 'zsync', 'accept_all', 'accept_metalink', 'accept_meta4', 'accept_zsync' ];
-has [ 'metalink_limit' ];          # maximum mirrors to search for metalink
+has metalink_limit => 10;          # maximum mirrors to search for metalink
 has [ '_ip', '_country', '_region', '_lat', '_lng', '_vpn' ];
 has [ '_avoid_countries' ];
 has [ '_pedantic' ];
@@ -522,7 +522,7 @@ sub _init_path($self) {
                 $regex = $v if eval { m/$v/; 1; };
             } elsif ($k eq 'P' || $k eq 'GLOB') {
                 my $x = _glob2re($v);
-                next unless eval { m/$x/; 1; };
+                next unless ($x && eval { m/$x/; 1; });
                 $glob  = $v;
                 $glob_regex = $x;
             }

@@ -46,7 +46,7 @@ sub register {
         }
         my (@mirrors_country, @mirrors_region, @mirrors_rest);
         my $project_id = $c->mcproject->get_id($path);
-        my $cnt = _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, undef, undef, $folder_id, $project_id);
+        my $cnt = _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, undef, undef, $folder_id, $project_id, undef, undef, 16);
 
         return $c->render(status => 204, text => 'No mirrors found') unless $cnt;
         my @mirrors;
@@ -186,13 +186,11 @@ sub register {
 
         my (@mirrors_country, @mirrors_region, @mirrors_rest);
         my $project_id = $c->mcproject->get_id($dirname);
-        _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $file->{name}, $folder_id, $project_id);
+        my $realproject_id;
+        $realproject_id = $c->mcproject->get_id($realdirname) if ($realfolder_id && $realfolder_id != $folder_id);
+        my $limit = $dm->mirrorlist ? 300 : (( $dm->metalink || $dm->meta4 || $dm->zsync || $dm->pedantic )? $dm->metalink_limit : 1);
+        my $cnt = _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $file->{name}, $folder_id, $project_id, $realfolder_id, $realproject_id, $limit);
 
-        # add mirrors that have realpath
-        if ($realfolder_id && $realfolder_id != $folder_id) {
-            my $realproject_id = $c->mcproject->get_id($realdirname);
-            _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $file->{name}, $realfolder_id, $realproject_id);
-        }
         my $mirror;
         $mirror = $mirrors_country[0] if @mirrors_country;
         $mirror = $mirrors_region[0]  if !$mirror && @mirrors_region;
@@ -736,7 +734,7 @@ sub _build_metalink() {
 }
 
 sub _collect_mirrors {
-    my ($dm, $mirrors_country, $mirrors_region, $mirrors_rest, $file_id, $file_name, $folder_id, $project_id) = @_;
+    my ($dm, $mirrors_country, $mirrors_region, $mirrors_rest, $file_id, $file_name, $folder_id, $project_id, $realfolder_id, $realproject_id, $limit) = @_;
 
     my $country = $dm->country;
     my $region  = $dm->region;
@@ -748,30 +746,27 @@ sub _collect_mirrors {
     my $mirrorlist = $dm->mirrorlist;
     my $ipvstrict  = $dm->ipvstrict;
     my $metalink   = $dm->metalink || $dm->meta4 || $dm->zsync;
-    my $limit = $mirrorlist ? 200 : (( $metalink || $dm->pedantic )? 10 : 1);
-    my $hard_limit = $dm->metalink_limit;
-    $limit = $hard_limit if $hard_limit;
     my $rs = $dm->c->schema->resultset('Server');
 
     my $m;
     $m = $rs->mirrors_query(
-            $country, $region, $folder_id, $file_id, $project_id,
+            $country, $region, $realfolder_id, $folder_id, $file_id, $realproject_id, $project_id,
             $scheme, $ipv, $lat, $lng, $avoid_countries, $limit, 0,
             !$mirrorlist, $ipvstrict, $vpn
     ) if $country;
 
     if ($m && scalar(@$m)) {
-        splice(@$m, $hard_limit) if $hard_limit && $hard_limit > scalar(@$m);
+        splice(@$m, $limit) if $limit > scalar(@$m);
         push @$mirrors_country, @$m;
     }
     my $found_count = scalar(@$mirrors_country) + scalar(@$mirrors_region) + scalar(@$mirrors_rest);
 
-    if ($region && ($found_count < $limit) && (!$hard_limit || $found_count < $hard_limit)) {
+    if ($region && ($found_count < $limit)) {
         my @avoid_countries;
         push @avoid_countries, @$avoid_countries if $avoid_countries && scalar(@$avoid_countries);
         push @avoid_countries, $country if ($country and !(grep { $country eq $_ } @avoid_countries));
         $m = $rs->mirrors_query(
-            $country, $region, $folder_id, $file_id, $project_id,
+            $country, $region, $realfolder_id, $folder_id, $file_id, $realproject_id, $project_id,
             $scheme, $ipv, $lat, $lng, \@avoid_countries, $limit, 0,
             !$mirrorlist, $ipvstrict, $vpn
         );
@@ -779,8 +774,8 @@ sub _collect_mirrors {
 
         $found_more = scalar(@$m) if $m;
         if ($found_more) {
-            if ($hard_limit && $found_count + $found_more > $hard_limit) {
-                $found_more = $hard_limit - $found_count;
+            if ($limit && $found_count + $found_more > $limit) {
+                $found_more = $limit - $found_count;
                 splice @$m, $found_more;
             }
             $found_count += $found_more;
@@ -788,21 +783,17 @@ sub _collect_mirrors {
         }
     }
 
-    if (
-        ($found_count < $limit && !$dm->root_country && (!$hard_limit || $hard_limit > $found_count)) ||
-        ($metalink && $found_count < 3) ||
-        $mirrorlist
-    ) {
+    if ($found_count < $limit) {
         $m = $rs->mirrors_query(
-            $country, $region,  $folder_id, $file_id, $project_id,
+            $country, $region, $realfolder_id, $folder_id, $file_id, $realproject_id, $project_id,
             $scheme, $ipv,  $lat, $lng, $avoid_countries, $limit, 1,
             !$mirrorlist, $ipvstrict, $vpn
         );
         my $found_more;
         $found_more = scalar(@$m) if $m;
         if ($found_more) {
-            if ($hard_limit && $found_count + $found_more > $hard_limit) {
-                $found_more = $hard_limit - $found_count;
+            if ($found_count + $found_more > $limit) {
+                $found_more = $limit - $found_count;
                 splice @$m, $found_more;
             }
             $found_count += $found_more;
