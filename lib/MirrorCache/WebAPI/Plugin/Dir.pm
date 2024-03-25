@@ -705,7 +705,7 @@ sub _render_small {
     return undef unless ($small_file_size && ($root_nfs || !$root->is_remote));
     $dm->_init_path;
     $c->log->error('DIR::render_small2') if $MCDEBUG;
-    return undef if ($dm->metalink && $dm->accept) || ($dm->meta4 && $dm->accept) || $dm->mirrorlist || $dm->zsync;
+    return undef if ($dm->metalink && !$dm->accept_all) || ($dm->meta4 && !$dm->accept_all) || $dm->mirrorlist || $dm->zsync;
     $c->log->error('DIR::render_small3') if $MCDEBUG;
     my ($path, undef) = $dm->path;
     my $full;
