@@ -56,11 +56,13 @@ __PACKAGE__->add_columns(
   { data_type => "bigint", is_foreign_key => 1, is_nullable => 1 },
   "hash",
   { data_type => "varchar", is_nullable => 1, size => 40 },
-  "dt", 
+  "dt",
   {
     data_type   => 'timestamp',
     is_nullable => 0
   },
+  "realfolder_id",
+  { data_type => "bigint", is_foreign_key => 1, is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
