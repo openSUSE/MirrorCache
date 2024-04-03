@@ -26,24 +26,6 @@ sub show {
     $self->render(json => {$prj->get_columns});
 }
 
-sub mirror_list {
-    my ($self) = @_;
-    my $name = $self->param("name");
-
-    my $rec = $self->schema->resultset('Project')->mirror_list($name);
-
-    $self->render(json => $rec);
-}
-
-sub mirror_summary {
-    my ($self) = @_;
-    my $name = $self->param("name");
-
-    my $rec = $self->schema->resultset('Project')->mirror_summary($name);
-
-    $self->render(json => { current => $rec->{current}, outdated => $rec->{outdated} });
-}
-
 sub list {
     my ($self) = @_;
 

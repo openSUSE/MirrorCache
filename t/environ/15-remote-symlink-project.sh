@@ -54,7 +54,7 @@ $mc/start
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
 
-$mc/sql "insert into project(name,path,etalon) select 'updates','/updates', 1"
+$mc/sql "insert into project(name,path) select 'updates','/updates'"
 # restart to refresh info about projects
 $mc/stop && $mc/start
 

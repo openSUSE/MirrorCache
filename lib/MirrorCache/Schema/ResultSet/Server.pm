@@ -307,21 +307,13 @@ sub report_mirrors {
 
     my $sql = <<"END_SQL";
 with
-etalon as (
-    select prj.id project_id, prj.name, f.id as folder_id, fd2.id as diff_id, f.path
-    from project prj
-    join folder f on f.path like concat(prj.path,'%')
-    join folder_diff fd2 on fd2.folder_id = f.id
-    join folder_diff_server fds2 on fd2.id = fds2.folder_diff_id and fds2.server_id = prj.etalon
-    -- where prj.name = 'repositories'
-    $where1
-),
-project_folder_count as (
-    select project_id, count(*) cnt
-    from etalon
-    group by project_id
+recent_rollouts as (
+select r1.project_id, r1.prefix, max(r1.id) last_rollout_id, max(r2.id) prelast_rollout_id
+from rollout r1
+left join rollout r2 on (r1.project_id, r1.prefix) = (r2.project_id, r2.prefix) and r2.id < r1.id
+group by r1.project_id, r1.prefix
 )
-select s.id, s.region, s.country,
+select s.id as server_id, name, prefix, name as project, country, region,
     s.sponsor, s.sponsor_url,
     s.hostname as hostname,
     concat(s.hostname, s.urldir) as url,
@@ -329,36 +321,32 @@ select s.id, s.region, s.country,
     case when (select rating from server_stability where capability = 'https' and server_id = s.id) > 0 then concat('https://', s.hostname, '/', s.urldir, '/') else '' end as https_url,
     ( select msg from server_note where kind = 'Ftp'   and server_note.hostname = s.hostname order by server_note.dt desc limit 1) as ftp_url,
     ( select msg from server_note where kind = 'Rsync' and server_note.hostname = s.hostname order by server_note.dt desc limit 1) as rsync_url,
-    project,
-    round(case when project_folder_count.cnt > 3 then s_eq * 100 / project_folder_count.cnt when s_eq =  project_folder_count.cnt then 100 else 50 end, 0) score,
-    s_eq, s_ne, victim, project_folder_count.cnt
-from (
-select
-    cmp.project_id,
-    cmp.name project,
-    cmp.server_id,
-    sum(s_eq) s_eq, sum(s_ne) s_ne,
-    max(example) victim
-from (
-    select
-        etalon.project_id,
-        etalon.name,
-        case when etalon.diff_id = fd.id then 1 else 0 end as s_eq,
-        case when etalon.diff_id != fd.id or fd.id is null then 1 else 0 end as s_ne,
-        case when etalon.diff_id != fd.id or fd.id is null then path else '' end example,
-        fds.server_id
-    from etalon
-    left join folder_diff fd on fd.folder_id = etalon.folder_id
-    left join folder_diff_server fds on fds.folder_diff_id = fd.id
-) cmp
-group by server_id, project_id, name
-) smry
-join project_folder_count on project_folder_count.project_id = smry.project_id
-join server s on smry.server_id = s.id and s.enabled
-order by region, country, score, hostname, project;
+    case when recent_rollout_server.server_id is null then
+             case when sp.state > 0 then 100 else 0 end
+         when  6*60*60 > unix_timestamp(last_dt)    - unix_timestamp(rr2_dt) then 100
+         when 24*60*60 > unix_timestamp(prelast_dt) - unix_timestamp(rr1_dt) then 75
+         else 50
+    end as score
+from
+server s
+left join server_project sp on s.id = sp.server_id
+left join project on sp.project_id = project.id
+left join (
+select rs1.server_id, project_id, prefix, rs1.dt prelast_dt, rs2.dt last_dt, (select dt from rollout where id = rs1.rollout_id) rr1_dt, (select dt from rollout where id = rs2.rollout_id) rr2_dt
+from recent_rollouts
+left join rollout_server rs1 on rs1.rollout_id = recent_rollouts.prelast_rollout_id -- prelast
+left join rollout_server rs2 on rs2.rollout_id = recent_rollouts.last_rollout_id and rs1.server_id = rs2.server_id -- last
+) recent_rollout_server on recent_rollout_server.server_id = s.id and recent_rollout_server.project_id = project.id
+where
+s.enabled
+and coalesce(sp.state,1) > 0
+order by region, country, hostname
 END_SQL
 
-    $sql =~ s/interval '1 day'/interval 1 day/g unless ($dbh->{Driver}->{Name} eq 'Pg');
+    if ($dbh->{Driver}->{Name} eq 'Pg') {
+        $sql =~ s/unix_timestamp\(last_dt\)    - unix_timestamp\(rr2_dt\)/cast(EXTRACT(EPOCH FROM    last_dt) - EXTRACT(EPOCH FROM rr2_dt) as integer)/g;
+        $sql =~ s/unix_timestamp\(prelast_dt\) - unix_timestamp\(rr1_dt\)/cast(EXTRACT(EPOCH FROM prelast_dt) - EXTRACT(EPOCH FROM rr1_dt) as integer)/g;
+    }
 
     my $prep = $dbh->prepare($sql);
     if ($project && $region) {

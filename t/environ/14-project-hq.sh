@@ -61,8 +61,8 @@ $mc8/sql "insert into server(hostname,urldir,enabled,country,region) select '$($
 $mc8/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','jp','as'"
 
 for i in 6 8 9; do
-    mc$i/sql "insert into project(name,path,etalon) select 'proj1','/project1', 1"
-    mc$i/sql "insert into project(name,path,etalon) select 'proj 2','/project2', 1"
+    mc$i/sql "insert into project(name,path) select 'proj1','/project1'"
+    mc$i/sql "insert into project(name,path) select 'proj 2','/project2'"
     mc$i/backstage/job -e folder_sync -a '["/project1/folder1"]'
     mc$i/backstage/job -e mirror_scan -a '["/project1/folder1"]'
     mc$i/backstage/job -e folder_sync -a '["/project1/folder2"]'
@@ -70,6 +70,7 @@ for i in 6 8 9; do
     mc$i/backstage/job -e folder_sync -a '["/project2/folder1"]'
     mc$i/backstage/job -e mirror_scan -a '["/project2/folder1"]'
     mc$i/backstage/shoot
+    mc$i/backstage/job mirror_probe_projects
     mc$i/backstage/job -e report -a '["once"]'
     mc$i/backstage/shoot
 done
@@ -121,6 +122,7 @@ test 8 == $($mc9/curl -i /report/mirrors | grep -A500 '200 OK' | grep -Eo $allmi
 echo collect report when one of the instances is down
 $mc6/stop
 
+$mc9/backstage/job mirror_probe_projects
 $mc9/backstage/job -e report -a '["once"]'
 $mc9/backstage/shoot
 

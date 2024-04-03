@@ -31,8 +31,8 @@ $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($a
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','cn','as'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','jp','as'"
 
-$mc/sql "insert into project(name,path,etalon) select 'proj1 ISO','/project1/iso', 3"
-$mc/sql "insert into project(name,path,etalon) select 'proj 2 ISO','/project2/iso', 3"
+$mc/sql "insert into project(name,path) select 'proj1 ISO','/project1/iso'"
+$mc/sql "insert into project(name,path) select 'proj 2 ISO','/project2/iso'"
 
 $mc/backstage/job -e folder_sync -a '["/project1/iso"]'
 $mc/backstage/job -e mirror_scan -a '["/project1/iso"]'

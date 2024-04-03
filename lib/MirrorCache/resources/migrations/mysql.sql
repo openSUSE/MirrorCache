@@ -424,3 +424,5 @@ alter table rollout_server add column if not exists scan_dt timestamp;
 create index if not exists i_rollout_version on rollout(version);
 -- 35 up
 alter table folder_diff add column if not exists realfolder_id bigint;
+-- 36 up
+alter table project drop constraint fk_project_etalon, drop column etalon;

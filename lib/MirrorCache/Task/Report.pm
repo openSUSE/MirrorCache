@@ -150,9 +150,10 @@ sub _run_mirrors {
     my %capability;
     my %url;
     for my $m (@$mirrors) {
+        next unless $m->{region} && $m->{country} && $m->{hostname} && $m->{project};
         $report{ $m->{region} }{ $m->{country} }{ $m->{hostname} }{ $m->{project} }
-          = [ $m->{score}, $m->{victim} ];
-        $sponsor{$m->{hostname}} = [$m->{sponsor},$m->{sponsor_url}];
+          = $m->{score};
+        $sponsor{$m->{hostname}} = [$m->{sponsor},$m->{sponsor_url}] if $m->{sponsor};
         $url{$m->{hostname}} = $m->{url};
         for my $capability (qw/http https ipv4 ipv6 ftp rsync/) {
             $capability{$m->{hostname}}{$capability} = $m->{$capability . '_url'} if $m->{$capability . '_url'};
@@ -179,15 +180,12 @@ sub _run_mirrors {
 
                 my $by_project = $by_country->{$hostname};
                 for my $project (sort keys %$by_project) {
-                    my $p = $by_project->{$project};
-                    my $score = $p->[0];
-                    my $victim = $p->[1];
+                    my $score = $by_project->{$project};
                     $project =~ tr/ //ds;
                     $project =~ tr/\.//ds;
                     $project = lc($project);
                     $project = "c$project" if $project =~ /^\d/;
                     $row{$project . 'score'}  = $score;
-                    $row{$project . 'victim'} = $victim;
                 }
                 # add capabilities
                 for my $capability (qw/http https ipv4 ipv6 ftp rsync/) {

@@ -27,7 +27,7 @@ $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($a
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','us','na'"
 
-$mc/sql "insert into project(name,path,etalon) select 'proj1','/project1', 1"
+$mc/sql "insert into project(name,path) select 'proj1','/project1'"
 
 $mc/sql "insert into server_project(server_id,project_id,state) select 3,1,-1"
 

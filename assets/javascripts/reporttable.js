@@ -14,7 +14,6 @@ function setupReportTable() {
             columnName = 'c' + columnName;
         }
         columns.push({ data: (columnName + 'score'), defaultContent: "" });
-        columns.push({ data: (columnName + 'victim'), defaultContent: "" });
     });
 
     var url = $("#reporttable_api_url").val();
@@ -44,10 +43,6 @@ function setupReportTable() {
 function layoutReportTable() {
     var dt = $('.reporttable').DataTable();
 
-    var victim = 1;
-    if (!$('#victimcheckbox').is(":checked")) {
-        victim = 0;
-    }
     var existchecked = 0;
     $('#checkboxes label').each(function() {
         var columnName = $(this).text();
@@ -80,9 +75,7 @@ function layoutReportTable() {
         if (vis != dt.columns(index).visible()) {
             dt.columns(index).visible(vis);
         }
-        if (vis && victim != dt.columns(index + 1).visible()) {
-            dt.columns(index + 1).visible(victim);
-        } else if (!vis && dt.columns(index + 1).visible()) {
+        if (!vis && dt.columns(index + 1).visible()) {
             dt.columns(index + 1).visible(vis);
         }
         i = i + 1;

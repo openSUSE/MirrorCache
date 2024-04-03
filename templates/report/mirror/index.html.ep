@@ -21,8 +21,6 @@
             % # <input value="1" name="proj2checkbox" type="checkbox" id="proj2checkbox"/>
             % # <label for="filter-proj2">proj2</label>
         </div>
-        <input name="victimcheckbox" type="checkbox" id="victimcheckbox"/>
-        <label for="victimcheckbox">Blame</label>
         <table id="servers" class="reporttable table table-striped">
             <thead>
                 <tr>
@@ -31,7 +29,6 @@
                     <th class="col_value">Url</th>
                     % for my $project (@$projects) {
                     <th class="col_value"><%= $project  %> score</th>
-                    <th class="col_value"><%= $project  %> victim</th>
                     % }
                 </tr>
             </thead>

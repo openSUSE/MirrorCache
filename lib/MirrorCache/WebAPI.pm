@@ -181,8 +181,6 @@ sub _setup_webui {
     $rest_r->get('/project')->name('rest_project')->to('table#list', table => 'Project');
     # $rest_r->get('/project/:name')->to('project#show');
     $rest_r->get('/project/:id')->to('table#list', table => 'Project');
-    $rest_r->get('/project/:name/mirror_summary')->to('project#mirror_summary');
-    $rest_r->get('/project/:name/mirror_list')->to('project#mirror_list');
     $rest_r->get('/project/propagation/:project_id')->to('project_propagation#list');
     $rest_r->get('/rollout_server/:version')->to('rollout_server#list');
 
