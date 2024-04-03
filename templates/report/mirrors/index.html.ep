@@ -193,7 +193,6 @@ td.newregion, tr:hover td.newregion {
                 %             next if $prio && !$single_project_report && $prio < 0;
                 %             my $alias   = $project->{alias};
                 %             my $column1 = $alias . "score";
-                %             my $column2 = $alias . "victim";
                 %             my ($first, $second) = split ' ', $name;
                 %             my $x = $m->{$column1};
                 %             if (defined $x) {
@@ -247,9 +246,7 @@ td.newregion, tr:hover td.newregion {
                 %         my $alias   = $project->{alias};
                 %         my $path    = $project->{path};
                 %         my $column1 = $alias . "score";
-                %         my $column2 = $alias . "victim";
                 %         my ($first, $second) = split ' ', $name;
-                %         my $victim = $m->{$column2};
                 %         if ($first_old && $first_old ne $first) {
                     </td><td>
                 %         }
@@ -265,9 +262,6 @@ td.newregion, tr:hover td.newregion {
                 %         $style = 'repoperfect'    if $x == 100;
                         <div class="repo">
                             <a class="<%=$style%>"
-                %         if ($victim) {
-                               title="diff in: <%=$victim%>"
-                %         }
                 %         $second = 'iso' if $second eq 'ISO' || $second eq 'ISOs';
                                href="<%=$url . $path%>">
                                 <%= $second %>

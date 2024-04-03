@@ -75,4 +75,10 @@ $mc/sql_test 4 == 'select count(*) from rollout'
 $mc/sql_test 1 == 'select count(*) from rollout_server where rollout_id = 4'
 $mc/sql_test 2 == 'select count(*) from rollout_server where rollout_id = 3'
 
+$mc/backstage/job mirror_probe_projects
+$mc/backstage/job report
+$mc/backstage/shoot
+
+$mc/curl /rest/repmirror
+
 echo success

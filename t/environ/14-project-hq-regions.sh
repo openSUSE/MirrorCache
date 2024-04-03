@@ -74,8 +74,8 @@ $mc8/sql_test 2 == "select count(*) from server"
 
 
 for i in 6 8 9; do
-    mc$i/sql "insert into project(name,path,etalon) select 'proj1','/project1', min(id) from server"
-    mc$i/sql "insert into project(name,path,etalon) select 'proj 2','/project2', min(id) from server"
+    mc$i/sql "insert into project(name,path) select 'proj1','/project1'"
+    mc$i/sql "insert into project(name,path) select 'proj 2','/project2'"
     mc$i/backstage/job -e folder_sync -a '["/project1/folder1"]'
     mc$i/backstage/job -e mirror_scan -a '["/project1/folder1"]'
     mc$i/backstage/job -e folder_sync -a '["/project1/folder2"]'
@@ -83,6 +83,7 @@ for i in 6 8 9; do
     mc$i/backstage/job -e folder_sync -a '["/project2/folder1"]'
     mc$i/backstage/job -e mirror_scan -a '["/project2/folder1"]'
     mc$i/backstage/shoot
+    mc$i/backstage/job mirror_probe_projects
     mc$i/backstage/job -e report -a '["once"]'
     mc$i/backstage/shoot
 done

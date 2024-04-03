@@ -44,9 +44,9 @@ $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($a
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','jp','as'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap3/print_address)','','f','jp','as'"
 
-$mc/sql "insert into project(name,path,etalon) select '2.0 1','/project2/folder1', 3"
-$mc/sql "insert into project(name,path,etalon) select 'proj1','/project1', 3"
-$mc/sql "insert into project(name,path,etalon) select '2.0 2','/project2/folder2', 3"
+$mc/sql "insert into project(name,path) select '2.0 1','/project2/folder1'"
+$mc/sql "insert into project(name,path) select 'proj1','/project1'"
+$mc/sql "insert into project(name,path) select '2.0 2','/project2/folder2'"
 
 $mc/backstage/job -e folder_sync -a '["/project1/folder1"]'
 $mc/backstage/job -e mirror_scan -a '["/project1/folder1"]'
@@ -58,13 +58,12 @@ $mc/backstage/job -e folder_sync -a '["/project2/folder2"]'
 $mc/backstage/job -e mirror_scan -a '["/project2/folder2"]'
 $mc/backstage/shoot
 
+$mc/backstage/job mirror_probe_projects
 $mc/backstage/job -e report -a '["once"]'
 $mc/backstage/shoot
 
 $mc/curl /report/mirrors | tidy --drop-empty-elements no | \
    grep -A5 -F '<div class="repo">' | \
-   grep -A4 -F '<a class="repouncertain"' | \
-   grep -A3 -F '"diff in: /project2/folder2"' | \
    grep -A2 -F '"http://127.0.0.1:1304/project2/folder2">' | \
    grep -C3 '\b2\b' | \
    grep -C3 -F '</a>'

@@ -89,7 +89,7 @@ $mc/curl /rest/repdownload?period=day | grep '"known_files_no_mirrors":"144","kn
 # $mc/curl /rest/repdownload?group=arch
 # $mc/curl /rest/repdownload?group=os
 # $mc/curl /rest/repdownload?group=os_version
-$mc/curl /rest/repdownload?group=country,os_version,arch,project | grep -o '"arch":"amd64","bytes_redirected":"22","bytes_served":"0","bytes_total":"22","country":"cn"'
+$mc/curl /rest/repdownload?group=country,os_version,arch | grep -o '"arch":"amd64","bytes_redirected":"22","bytes_served":"0","bytes_total":"22","country":"cn"'
 
 $mc/curl /rest/repdownload?group=mirror | grep -o '"mirror":"127.0.0.1:1304","total_requests":"'
 
