@@ -22,6 +22,7 @@ use Directory::Scanner::OBSReleaseInfo;
 my $HASHES_COLLECT = $ENV{MIRRORCACHE_HASHES_COLLECT} // 0;
 my $HASHES_IMPORT  = $ENV{MIRRORCACHE_HASHES_IMPORT} // 0;
 my $HASHES_QUEUE   = $ENV{MIRRORCACHE_HASHES_QUEUE} // 'hashes';
+my $SCAN_MTIME_DIFF= $ENV{MIRRORCACHE_SCAN_MTIME_DIFF} // 60;
 
 sub register {
     my ($self, $app) = @_;
@@ -165,7 +166,13 @@ sub _sync {
         if ($dbfileids{$file}) {
             my $id = delete $dbfileidstodelete{$file};
             if (
-                (defined $size && defined $mtime) && ($size != ($dbfilesizes{$file} // -1) || $mtime != ($dbfilemtimes{$file} // -1))
+                (defined $size && defined $mtime)
+                &&
+                (
+                    $size != ($dbfilesizes{$file} // -1)
+                    ||
+                    $SCAN_MTIME_DIFF < abs($mtime - ($dbfilemtimes{$file} // -1)) # when scanning over http the seconds mightbe truncated from mtime - we must tolerate it here
+                )                                                   # otherwise folder_diff_server.dt will be no longer valid if we increase dt
                 ||
                 (defined $target && $target ne ($dbfiletargets{$file} // ''))
             ) {
