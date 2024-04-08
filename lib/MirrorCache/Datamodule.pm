@@ -557,48 +557,19 @@ sub _init_path($self) {
         push @c_new, $component;
     }
     $path = '/'.join('/', reverse @c_new);
-    if(!$trailing_slash && ((my $pos = length($path)-length('.metalink')) > 1)) {
-        if ('.metalink' eq substr($path,$pos)) {
-            $self->metalink(1);
-            $path = substr($path,0,$pos);
+    unless ($trailing_slash || $self->extra) {
+        my @ext = qw(metalink meta4 mirrorlist zsync torrent magnet btih);
+        for my $ext (@ext) {
+            if((my $pos = length($path)-length(".$ext")) > 1) {
+                if (".$ext" eq substr($path,$pos)) {
+                    $self->$ext(1);
+                    $path = substr($path,0,$pos);
+                    last;
+                }
+            }
         }
     }
-    if(!$trailing_slash && ((my $pos = length($path)-length('.meta4')) > 1)) {
-        if ('.meta4' eq substr($path,$pos)) {
-            $self->meta4(1);
-            $path = substr($path,0,$pos);
-        }
-    }
-    if (!$trailing_slash && ((my $pos = length($path) - length('.mirrorlist')) > 1)) {
-        if ('.mirrorlist' eq substr($path, $pos)) {
-            $self->mirrorlist(1);
-            $path = substr($path, 0, $pos);
-        }
-    }
-    if (!$trailing_slash && ((my $pos = length($path) - length('.zsync')) > 1)) {
-        if ('.zsync' eq substr($path, $pos)) {
-            $self->zsync(1);
-            $path = substr($path, 0, $pos);
-        }
-    }
-    if (!$trailing_slash && ((my $pos = length($path) - length('.torrent')) > 1)) {
-        if ('.torrent' eq substr($path, $pos)) {
-            $self->torrent(1);
-            $path = substr($path, 0, $pos);
-        }
-    }
-    if (!$trailing_slash && ((my $pos = length($path) - length('.magnet')) > 1)) {
-        if ('.magnet' eq substr($path, $pos)) {
-            $self->magnet(1);
-            $path = substr($path, 0, $pos);
-        }
-    }
-    if (!$trailing_slash && ((my $pos = length($path) - length('.btih')) > 1)) {
-        if ('.btih' eq substr($path, $pos)) {
-            $self->btih(1);
-            $path = substr($path, 0, $pos);
-        }
-    }
+
     $pedantic = $ENV{'MIRRORCACHE_PEDANTIC'} unless defined $pedantic;
     if (!defined $pedantic) {
         if ( $path =~ m/.*\/([^\/]*-Current[^\/]*)$/ ) {
