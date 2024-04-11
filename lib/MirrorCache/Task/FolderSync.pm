@@ -30,7 +30,7 @@ sub register {
 }
 
 sub _sync {
-    my ($app, $job, $path) = @_;
+    my ($app, $job, $path, $recurs) = @_;
     return $job->fail('Empty path is not allowed') unless $path;
     return $job->fail('Trailing slash is forbidden') if '/' eq substr($path,-1) && $path ne '/';
 
@@ -100,15 +100,26 @@ sub _sync {
         }
     };
 
+    my @subfolders;
+
     if ($folder) {
         $update_db_last->();
     } else {
         my $count = 0;
         my $sub = sub {
             my ($file, $size, $mmode, $mtime, $target) = @_;
-            $file = $file . '/' if !$root->is_remote && $path ne '/' && $root->is_dir("$path/$file");
-            $file = $file . '/' if !$root->is_remote && $path eq '/' && $root->is_dir("$path$file");
-            $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
+            my $subfolder;
+            if ($root->is_remote) {
+                $subfolder = 1 if $mmode && $mmode < 1000;
+            } else {
+                if ($path eq '/') {
+                    $subfolder = 1 if $root->is_dir("$path$file");
+                } else {
+                    $subfolder = 1 if $root->is_dir("$path/$file");
+                }
+            }
+            push @subfolders, $file if $subfolder && $recurs;
+            $file = $file . '/' if $subfolder;
             $count = $count+1;
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime, target => $target});
             $obsrelease->next_file($file, $mtime) if $obsrelease;
@@ -138,6 +149,10 @@ sub _sync {
         }
         $schema->resultset('Folder')->request_scan($otherFolder->id) if $otherFolder && ($count || !$otherFolder->scan_requested);
         $schema->resultset('Rollout')->add_rollout($proj->{project_id}, $obsrelease->versionmtime, $obsrelease->version, $obsrelease->versionfilename, $proj_prefix) if $obsrelease && $obsrelease->versionfilename;
+
+        for my $subfolder (@subfolders) {
+            $minion->enqueue('folder_sync' => ["$path/$subfolder"]);
+        }
         return;
     };
     return $job->fail("Couldn't create folder $path in DB") unless $folder && $folder->id;
@@ -160,9 +175,18 @@ sub _sync {
     my $cnt = 0, my $updated = 0;
     my $sub = sub {
         my ($file, $size, $mmode, $mtime, $target) = @_;
-        $file = $file . '/' if !$root->is_remote && $path ne '/' && $root->is_dir("$path/$file");
-        $file = $file . '/' if !$root->is_remote && $path eq '/' && $root->is_dir("$path$file");
-        $file = $file . '/' if $mmode && $root->is_remote && $mmode < 1000;
+        my $subfolder;
+        if ($root->is_remote) {
+            $subfolder = 1 if $mmode && $mmode < 1000;
+        } else {
+            if ($path eq '/') {
+                $subfolder = 1 if $root->is_dir("$path$file");
+            } else {
+                $subfolder = 1 if $root->is_dir("$path/$file");
+            }
+        }
+        push @subfolders, $file if $subfolder && $recurs;
+        $file = $file . '/' if $subfolder;
         if ($dbfileids{$file}) {
             my $id = delete $dbfileidstodelete{$file};
             if (
@@ -226,6 +250,11 @@ sub _sync {
         $otherFolder->update({sync_last => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'}) if $otherFolder;
     }
     $schema->resultset('Rollout')->add_rollout($proj->{project_id}, $obsrelease->versionmtime, $obsrelease->version, $obsrelease->versionfilename, $proj_prefix) if $obsrelease && $obsrelease->versionfilename;
+
+
+    for my $subfolder (@subfolders) {
+        $minion->enqueue('folder_sync' => ["$path/$subfolder"]);
+    }
 }
 
 1;
