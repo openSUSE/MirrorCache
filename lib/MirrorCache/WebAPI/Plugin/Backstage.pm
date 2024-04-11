@@ -34,7 +34,7 @@ sub new {
 }
 
 my @permanent_jobs =
-  qw(folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses mirror_scan_schedule_from_path_errors mirror_scan_schedule cleanup stat_agg_schedule mirror_check_from_stat report);
+  qw(folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses mirror_scan_schedule_from_path_errors mirror_scan_schedule project_sync_schedule cleanup stat_agg_schedule mirror_check_from_stat report);
 
 sub register_tasks {
     my $self = shift;
@@ -64,6 +64,7 @@ sub register_tasks {
         qw(MirrorCache::Task::FolderSyncSchedule),
         qw(MirrorCache::Task::FolderSync),
         qw(MirrorCache::Task::FolderTree),
+        qw(MirrorCache::Task::ProjectSyncSchedule),
         qw(MirrorCache::Task::Cleanup),
         qw(MirrorCache::Task::Report),
         qw(MirrorCache::Task::StatAggSchedule),
