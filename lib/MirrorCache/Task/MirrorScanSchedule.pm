@@ -22,9 +22,14 @@ sub register {
 }
 
 my $RESCAN = int($ENV{MIRRORCACHE_RESCAN_INTERVAL} // 24 * 60 * 60);
+my $PROJECT_RESCAN = int($ENV{MIRRORCACHE_PROJECT_RESCAN_INTERVAL} // 4 * 60 * 60);
+
 my $DELAY  = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
 $DELAY     = $DELAY+1 if $DELAY; # period should differ from the same in FolderScanSchedule to avoid deadlocks
+
 my $EXPIRE = int($ENV{MIRRORCACHE_SCHEDULE_EXPIRE_INTERVAL} // 14 * 24 * 60 * 60);
+my $PROJECT_EXPIRE = int($ENV{MIRRORCACHE_SCHEDULE_EXPIRE_INTERVAL} // 2 * 24 * 60 * 60);
+
 my $RECKLESS=int($ENV{MIRRORCACHE_RECKLESS} // 0);
 
 $RESCAN=0 if $RECKLESS;
@@ -57,6 +62,21 @@ sub _run {
     my @folders;
 
 if ($schema->pg) {
+    # prioritize folders belonging to projects
+    $schema->storage->dbh->prepare(
+        "update folder set scan_requested = CURRENT_TIMESTAMP(3) where id in
+        (
+            select folder.id from folder
+            join project on folder.path like concat(project.path, '%')
+            where scan_requested < now() - interval '$PROJECT_RESCAN second' and
+                  scan_requested < scan_scheduled and
+                  wanted > now() - interval '$PROJECT_EXPIRE second'
+                and project.db_sync_every > 0
+            order by scan_requested limit 20
+        )"
+    )->execute();
+
+    # now the rest
     $schema->storage->dbh->prepare(
         "update folder set scan_requested = CURRENT_TIMESTAMP(3) where id in
         (
@@ -75,6 +95,23 @@ if ($schema->pg) {
         rows => $limit
     });
 } else {
+    # prioritize folders belonging to projects
+    $schema->storage->dbh->prepare(
+        "update folder f
+        join
+        (
+            select folder.id from folder
+            join project on folder.path like concat(project.path, '%')
+            where scan_requested < date_sub(CURRENT_TIMESTAMP(3), interval $PROJECT_RESCAN second) and
+                  scan_requested < scan_scheduled and
+                  wanted > date_sub(CURRENT_TIMESTAMP(3), interval $PROJECT_EXPIRE second)
+                and project.db_sync_every > 0
+            order by scan_requested limit 20
+        ) x ON x.id = f.id
+        set scan_requested = CURRENT_TIMESTAMP(3)"
+    )->execute();
+
+    # now the rest
     $schema->storage->dbh->prepare(
         "update folder f
         join
