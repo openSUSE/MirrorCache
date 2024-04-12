@@ -1,9 +1,9 @@
-FROM registry.opensuse.org/opensuse/leap:15.5
+FROM registry.opensuse.org/opensuse/leap:15.6
 ENV container podman
 
 ENV LANG en_US.UTF-8
 
-RUN zypper ar -f http://mirrorcache.opensuse.org/repositories/openSUSE:infrastructure:MirrorCache/15.5 mc
+RUN zypper ar -f http://cdn.opensuse.org/repositories/openSUSE:infrastructure:MirrorCache/15.6 mc
 RUN zypper --gpg-auto-import-keys -vvv ref
 
 RUN zypper -vvvn install systemd curl sudo iputils vi
