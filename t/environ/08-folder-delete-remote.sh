@@ -35,16 +35,16 @@ $mc/db/sql "select * from file"
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
-$mc/curl --interface 127.0.0.2 -X DELETE -I /admin/folder_diff/1
+$mc/curl --interface 127.0.0.2 -X DELETE -i /admin/folder_diff/1
 
 # check nothing was actually deleted
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 
-$mc/curl --interface 127.0.0.2 -X DELETE -I -H 'x-forwarded-for: 127.0.0.1' /admin/folder_diff/1
-$mc/curl --interface 127.0.0.2 -X DELETE -I -H 'x-forwarded-for: 127.0.0.1' /admin/folder_diff/1
+$mc/curl --interface 127.0.0.2 -X DELETE -i -H 'x-forwarded-for: 127.0.0.1' /admin/folder_diff/1
+$mc/curl --interface 127.0.0.2 -X DELETE -i -H 'x-forwarded-for: 127.0.0.1' /admin/folder_diff/1
 
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 
 # with 127.0.0.3 it actually works
-$mc/curl --interface 127.0.0.3 -X DELETE -I /admin/folder_diff/1
+$mc/curl --interface 127.0.0.3 -X DELETE -i /admin/folder_diff/1
 test 0 == $($mc/db/sql "select count(*) from folder_diff")

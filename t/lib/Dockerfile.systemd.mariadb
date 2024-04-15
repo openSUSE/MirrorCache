@@ -1,4 +1,4 @@
-FROM registry.opensuse.org/opensuse/leap:15.6
+FROM opensuse/leap:15.6
 ENV container podman
 
 ENV LANG en_US.UTF-8

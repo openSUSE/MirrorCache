@@ -35,13 +35,13 @@ $mc/db/sql "select * from file"
 test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
-$mc/curl -X DELETE -I /admin/folder_diff/1
+$mc/curl -X DELETE -i /admin/folder_diff/1
 
 test 1 == $($mc/db/sql "select count(*) from folder")
 test 0 == $($mc/db/sql "select count(*) from folder_diff")
 test 0 == $($mc/db/sql "select count(*) from folder_diff_file")
 
-$mc/curl -X DELETE -I /admin/folder/1
+$mc/curl -X DELETE -i /admin/folder/1
 
 test 0 == $($mc/db/sql "select count(*) from file")
 test 0 == $($mc/db/sql "select count(*) from folder")
