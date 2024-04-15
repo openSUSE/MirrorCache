@@ -12,7 +12,7 @@ jobs:
       image: ubuntu-2204:2023.04.2
     environment:
       MIRRORCACHE_DB_PROVIDER: << parameters.db >>
-      T_EXPERIMENTAL: << parameters.db >>
+      T_EXPERIMENTAL: << parameters.experimental >>
     working_directory: ~/project
     steps:
       - checkout:
