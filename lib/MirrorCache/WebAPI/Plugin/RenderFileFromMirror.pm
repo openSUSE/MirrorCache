@@ -136,24 +136,21 @@ sub register {
                 $file = $schema->resultset('File')->find_with_hash_and_zhash($fldid, $basename, $x);
             }
         }
-        if($file) {
-            $dm->file_id($file->{id});
-            $dm->file_age($file->{age});
-        }
         my $country = $dm->country;
         my $region  = $dm->region;
         if (!$file) {
-            return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$file && !$dm->accept_metalink); # file is unknown - cannot generate metalink
-            return $root->render_file($dm, $filepath . '.meta4')     if ($dm->meta4    && !$file && !$dm->accept_meta4); # file is unknown - cannot generate meta4
+            return $root->render_file($dm, $filepath . '.metalink')  if ($dm->metalink && !$dm->accept_metalink); # file is unknown - cannot generate metalink
+            return $root->render_file($dm, $filepath . '.meta4')     if ($dm->meta4    && !$dm->accept_meta4); # file is unknown - cannot generate meta4
             return $root->render_file($dm, $filepath)
               if !$dm->extra || $dm->accept_all; # TODO we still can check file on mirrors even if it is missing in DB
         }
 
-        if (!$file) {
-            return undef;
-        }
+        return undef unless $file;
+        $dm->set_file_stats($file->{id}, $file->{size}, $file->{mtime}, $file->{age});
+
         $c->log->error($c->dumper('RENDER FILE_ID', $file->{id})) if $MCDEBUG;
         $c->res->headers->vary('Accept, COUNTRY, X-COUNTRY, Fastly-SSL');
+        $c->res->headers->etag($dm->etag) if defined $dm->file_size;
         my $baseurl; # just hostname + eventual urldir (without folder and file)
         my $fullurl; # baseurl with path and filename
         if ($dm->metalink || $dm->meta4 || $dm->torrent || $dm->zsync || $dm->magnet) {

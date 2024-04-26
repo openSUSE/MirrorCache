@@ -97,7 +97,9 @@ sub render_file {
     } else {
         my $rootpath = $self->rootpath($filepath);
         return !!$c->render(status => 404, text => "File $filepath not found") unless $rootpath;
-        $res = !!$c->render_file(filepath => $rootpath . $root_subtree . $filepath, content_type => $dm->mime, content_disposition => 'inline');
+        my $full = $rootpath . $root_subtree . $filepath;
+        $self->set_etag($c, $full);
+        $res = !!$c->render_file(filepath => $full, content_type => $dm->mime, content_disposition => 'inline');
     }
     $c->stat->redirect_to_root($dm, $not_miss);
     return $res;
@@ -114,6 +116,7 @@ sub render_file_if_small {
     eval { $size = -s $full if -f $full; };
     return undef unless ((defined $size) && $size <= $max_size);
     my $c = $dm->c;
+    $self->set_etag($c, $full);
     $c->render_file(filepath => $full, content_type => $dm->mime, content_disposition => 'inline');
     return 1;
 }
@@ -165,7 +168,7 @@ sub rootpath {
 
 
 sub _detect_ln_in_the_same_folder {
-    my ($dir, $file) = @_;
+    my ($self, $dir, $file) = @_;
     return undef unless $file;
 
     my $dest;
@@ -174,10 +177,10 @@ sub _detect_ln_in_the_same_folder {
             $dest = readlink($root->[dir] . $dir . '/' . $file);
         };
         next unless $dest;
-        $dest = Mojo::File->new($dest);
-
-        return undef unless $dest->dirname eq '.' || $dest->dirname eq $dir;
-        return $dest->basename;
+        my $x = Mojo::File->new($dest);
+        return undef unless $x->dirname eq '.' || $x->dirname eq $dir;
+        $dest = $root->[dir] . $dir . '/' . $dest if $x->dirname eq '.';
+        return ($x->basename, $self->etag($dest));
     };
     return undef;
 }
@@ -185,9 +188,29 @@ sub _detect_ln_in_the_same_folder {
 sub detect_ln_in_the_same_folder {
     my ($self, $path) = @_;
     my $f = Mojo::File->new($path);
-    my $res = _detect_ln_in_the_same_folder($f->dirname, $f->basename);
+    my ($res, $etag) = $self->_detect_ln_in_the_same_folder($f->dirname, $f->basename);
     return undef unless $res;
-    return $f->dirname . '/' . $res;
+    $res = $f->dirname . '/' . $res;
+    return ($res, $etag);
+}
+
+sub etag {
+    my ($self, $file) = @_;
+    my $etag;
+    eval {
+        my @stat = stat($file);
+        my $size  = $stat[7];
+        my $mtime = $stat[9];
+        my $etag = sprintf('%X', $mtime // 0) . '-' . sprintf('%X', $size // 0);
+    };
+    return $etag;
+}
+
+sub set_etag {
+    my ($self, $c, $file) = @_;
+    if (my $etag = $self->etag($file)) {
+        $c->res->headers->etag($etag);
+    }
 }
 
 # we cannot use $subtree here, because we may actually render from realdir, which is outside subtree
@@ -208,7 +231,7 @@ sub foreach_filename {
                         return undef unless $TOP_FOLDERS{$f->basename};
                     }
                 }
-                my $target = _detect_ln_in_the_same_folder($dir, $f->basename);
+                my ($target, undef) = $self->_detect_ln_in_the_same_folder($dir, $f->basename);
                 $sub->($f->basename, $stat->size, $stat->mode, $stat->mtime, $target),
             } else {
                 $sub->($f->basename, undef, undef, undef);
