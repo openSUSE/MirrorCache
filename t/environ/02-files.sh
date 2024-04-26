@@ -193,6 +193,7 @@ done
 
 # test case insensitive:
 $mc/curl -I /download/folder1/file1.1.dat | grep '302 Found'
+$mc/curl -I /download/folder1/file1.1.dat | grep -i Etag
 $mc/curl -I /download/Folder1/file1.1.DAT | grep '200 OK'
 
 echo check cache control
