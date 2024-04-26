@@ -198,6 +198,7 @@ sub _detect_ln_in_the_same_folder {
         my $ua = Mojo::UserAgent->new->max_redirects(0)->request_timeout(2);
         my $tx = $ua->head($url, {'User-Agent' => 'MirrorCache/detect_redirect'});
         my $res = $tx->res;
+        my $etag = $res->headers->etag;
 
         # redirect on oneself
         if ($res->is_redirect && $res->headers) {
@@ -205,34 +206,38 @@ sub _detect_ln_in_the_same_folder {
             my $url1 = $rootlocation . $dir1;
             if ($location && $url1 eq substr($location, 0, length($url1))) {
                 my $ln = substr($location, length($url1));
-                return $ln if -1 == index($ln, '/');
+                return ($ln, $etag) if -1 == index($ln, '/');
             }
         }
         return undef;
     }
 
     my $dest;
+    my $thisfile = $nfs . $dir . '/' . $file;
     eval {
-        $dest = readlink($nfs . $dir . '/' . $file);
+        $dest = readlink($thisfile);
     };
     return undef unless $dest;
     my $res;
+    my $realfile;
     eval {
-        $dest = Mojo::File->new($dest);
+        my $x = Mojo::File->new($dest);
 
-        return undef unless $dest->dirname eq '.' || $dest->dirname eq $dir;
-        $res = $dest->basename;
+        return undef unless $x->dirname eq '.' || $x->dirname eq $dir;
+        $res = $x->basename;
+        $realfile = $dest;
+        $realfile = $nfs . $dir . '/' . $dest if $x->dirname eq '.';
     };
-    return $res;
+    return ($res, $self->etag($realfile));
 }
 
 # this is simillar to self->realpath, just detects symlinks in current folder
 sub detect_ln_in_the_same_folder {
     my ($self, $path) = @_;
     my $f = Mojo::File->new($path);
-    my $res = $self->_detect_ln_in_the_same_folder($f->dirname, $f->basename);
+    my ($res, $etag) = $self->_detect_ln_in_the_same_folder($f->dirname, $f->basename);
     return undef unless $res;
-    return $f->dirname . '/' . $res;
+    return ($f->dirname . '/' . $res, $etag);
 }
 
 # this is complicated to avoid storing big html in memory
@@ -293,7 +298,7 @@ sub _foreach_filename_html {
 
         if ($t && ($href20 eq substr($t,0,20))) {
             if ($desc{name} && (!$P || $desc{name} =~ $P)) {
-                my $target = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
+                my ($target, undef) = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
                 $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
                 %desc = ();
             }
@@ -334,7 +339,7 @@ sub _foreach_filename_html {
         $p->parse($chunk);
     }
     if ($desc{name} && (!$P || $desc{name} =~ $P)) {
-        my $target = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
+        my ($target, undef) = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
         $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
         %desc = ();
     }
@@ -368,6 +373,18 @@ sub _foreach_filename_json {
         $cnt++;
     }
     return $cnt;
+}
+
+sub etag {
+    my ($self, $file) = @_;
+    my $etag;
+    eval {
+        my @stat = stat($file);
+        my $size  = $stat[7];
+        my $mtime = $stat[9];
+        $etag = sprintf('%X', $mtime // 0) . '-' . sprintf('%X', $size // 0);
+    };
+    return $etag;
 }
 
 1;

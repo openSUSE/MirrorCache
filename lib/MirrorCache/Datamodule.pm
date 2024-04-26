@@ -31,6 +31,7 @@ my @ROUTES = ( '/browse', '/download' );
 has [ '_route', '_route_len' ]; # this is '/download' or '/browse'
 has [ 'route', 'route_len' ]; # this may be '/download' or '/browse' or empty if one of TOP_FOLDERS present
 has [ 'metalink', 'meta4', 'zsync', 'accept_all', 'accept_metalink', 'accept_meta4', 'accept_zsync' ];
+has 'xtra';
 has metalink_limit => 10;          # maximum mirrors to search for metalink
 has [ '_ip', '_country', '_region', '_lat', '_lng', '_vpn' ];
 has [ '_avoid_countries' ];
@@ -49,6 +50,7 @@ has 'mirrorlist';
 has [ 'torrent', 'magnet', 'btih' ];
 has [ 'json', 'jsontable' ];
 has [ 'folder_id', 'file_id', 'file_age', 'folder_sync_last', 'folder_scan_last' ]; # shortcut to requested folder and file, if known
+has [ 'file_size', 'file_mtime' ];
 has [ 'real_folder_id' ];
 
 has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
@@ -96,6 +98,11 @@ sub reset($self, $c, $top_folder = undef) {
     $self->torrent(undef);
     $self->magnet(undef);
     $self->btih(undef);
+    $self->xtra(undef);
+    $self->file_id(undef);
+    $self->file_size(undef);
+    $self->file_mtime(undef);
+    $self->file_age(undef);
 }
 
 sub ip_sha1($self) {
@@ -389,14 +396,17 @@ sub _init_headers($self) {
     $self->c->log->error($self->c->dumper("DATAMODULE HEADERS ACCEPT", $headers->accept)) if $MCDEBUG;
     return unless $headers->accept;
 
-    $self->metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/i;
-    $self->meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/i;
-    $self->zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/i;
-
-    $self->accept_metalink(1)   if $headers->accept =~ m/\bapplication\/metalink/i;
-    $self->accept_meta4(1)      if $headers->accept =~ m/\bapplication\/metalink4/i;
-    $self->accept_zsync(1)      if $headers->accept =~ m/\bapplication\/x-zsync/i;
-
+    for my $xtra (qw(metalink meta4 zsync)) {
+        my $x = $xtra;
+        $x = 'x-zsync'   if $x eq 'zsync';
+        $x = 'metalink4' if $x eq 'meta4';
+        if ($headers->accept =~ m/\bapplication\/$x/i) {
+            my $method = "accept_$xtra";
+            $self->$method(1);
+            $self->$xtra(1);
+            $self->xtra($xtra);
+        }
+    }
     $self->accept_all(1) if scalar($headers->accept =~ m/\*\/\*/) && scalar($headers->accept ne '*/*');
 }
 
@@ -631,6 +641,27 @@ sub scan_last_ago($self) {
     return 0 unless $scan_last;
     $scan_last->set_time_zone('local');
     return time() - $scan_last->epoch;
+}
+
+sub set_file_stats($self, $id, $size, $mtime, $age) {
+    $self->file_id($id);
+    $self->file_size($size);
+    $self->file_mtime($mtime);
+    $self->file_age($age);
+}
+
+sub etag($self) {
+    my $size  = sprintf('%X', $self->file_size  // 0);
+    my $mtime = sprintf('%X', $self->file_mtime // 0);
+    my $res = "$mtime-$size";
+    my $xtra;
+    if ($self->_original_path =~ m/\.(metalink|meta4|zsync|mirrorlist|torrent|magnet|btih)$/) {
+        $xtra = $1;
+    } else {
+        $xtra = $self->xtra;
+    }
+    $res = "$res-$xtra" if $xtra;
+    return $res;
 }
 
 1;

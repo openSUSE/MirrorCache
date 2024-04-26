@@ -61,6 +61,8 @@ $mc/backstage/shoot
 $mc/curl -I /download/folder1/file-Media.iso        | grep -C 10 302 | grep /download/folder1/file2.1-Media.iso
 $mc/curl -I /download/folder1/file-Media.iso.sha256 | grep -C 10 302 | grep /download/folder1/file2.1-Media.iso.sha256
 $mc/curl -L /download/folder1/file-Media.iso.sha256 | grep -q "2019dd7afaf5759c68cec4d0e7553227657f01c69da168489116a1c48e40270e  "
+$mc/curl -I /download/folder1/file-Media.iso        | grep -i Etag
+$mc/curl -I /download/folder1/file-Media.iso.sha256 | grep -i Etag
 echo success
 
 
