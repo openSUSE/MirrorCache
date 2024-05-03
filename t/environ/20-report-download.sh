@@ -17,7 +17,7 @@ files=(
     /tumbleweed/repo/oss/noarch/apparmor-docs-3.0.7-3.1.noarch.rpm
     /tumbleweed/repo/oss/x86_64/cargo1.64-1.64.0-1.1.x86_64.rpm
     /distribution/leap/15.3/repo/oss/noarch/python-pyOpenSSL-doc-17.5.0-3.9.1.noarch.rpm
-    /update/leap/15.3/sle/noarch/libreoffice-l10n-or-6.1.3.2_7.3.6.2-6.28_150300.14.22.24.2.noarch.drpm
+    /distribution/leap/15.3/repo/oss/noarch/libreoffice-l10n-or-6.1.3.2_7.3.6.2-6.28_150300.14.22.24.2.noarch.drpm
     /distribution/leap/15.1/repo/oss/noarch/yast2-online-update-configuration-4.1.0-lp151.1.1.noarch.rpm
     /repositories/isv:/ownCloud:/desktop/Ubuntu_20.04/01-Packages
     /repositories/isv:/ownCloud:/desktop/Ubuntu_18.04/01-Packages
@@ -99,5 +99,10 @@ $mc/backstage/shoot
 $mc/curl /rest/repdownload?group=mirror,country | grep '{"bytes_redirected":"396","bytes_served":"0","bytes_total":"396","country":"de",' | grep -o '"known_files_no_mirrors":"0","known_files_redirected":"36","known_files_requested":"36","mirror":"127.0.0.1:1314","total_requests":"36"}'
 
 $mc/curl -Is /download/repositories/home:/b1:/branches:/science:/EtherLab/Debian_Testing/arm64/libethercat_1.5.2-33_arm64.deb | grep 'X-MEDIA-VERSION: 1.5.2'
+
+
+$mc/curl -Is /download/repositories/home:/b1:/branches:/science:/EtherLab/Debian_Testing/arm64/libethercat_1.5.2-33_arm64.deb | grep 'X-MEDIA-VERSION: 1.5.2'
+
+$mc/curl -Is '/download/distribution/leap/15.3/repo/oss/noarch/?REGEX=.*\.noarch\..?rpm' | grep 'X-MEDIA-VERSION: 17.5.0,7.3.6.2'
 
 echo success
