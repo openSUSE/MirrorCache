@@ -25,6 +25,8 @@ use Cwd;
 
 use constant { dir=>0, host=>1, host_vpn=>2 };
 
+use Directory::Scanner::OBSMediaVersion;
+
 my @roots;
 my $app;
 
@@ -166,7 +168,6 @@ sub rootpath {
 }
 
 
-
 sub _detect_ln_in_the_same_folder {
     my ($self, $dir, $file) = @_;
     return undef unless $file;
@@ -180,7 +181,7 @@ sub _detect_ln_in_the_same_folder {
         my $x = Mojo::File->new($dest);
         return undef unless $x->dirname eq '.' || $x->dirname eq $dir;
         $dest = $root->[dir] . $dir . '/' . $dest if $x->dirname eq '.';
-        return ($x->basename, $self->etag($dest));
+        return ($x->basename, $self->etag($dest), $self->detect_version($dest));
     };
     return undef;
 }
@@ -188,30 +189,12 @@ sub _detect_ln_in_the_same_folder {
 sub detect_ln_in_the_same_folder {
     my ($self, $path) = @_;
     my $f = Mojo::File->new($path);
-    my ($res, $etag) = $self->_detect_ln_in_the_same_folder($f->dirname, $f->basename);
+    my ($res, $etag, $version) = $self->_detect_ln_in_the_same_folder($f->dirname, $f->basename);
     return undef unless $res;
     $res = $f->dirname . '/' . $res;
-    return ($res, $etag);
+    return ($res, $etag, $version);
 }
 
-sub etag {
-    my ($self, $file) = @_;
-    my $etag;
-    eval {
-        my @stat = stat($file);
-        my $size  = $stat[7];
-        my $mtime = $stat[9];
-        my $etag = sprintf('%X', $mtime // 0) . '-' . sprintf('%X', $size // 0);
-    };
-    return $etag;
-}
-
-sub set_etag {
-    my ($self, $c, $file) = @_;
-    if (my $etag = $self->etag($file)) {
-        $c->res->headers->etag($etag);
-    }
-}
 
 # we cannot use $subtree here, because we may actually render from realdir, which is outside subtree
 sub foreach_filename {
@@ -264,6 +247,33 @@ sub list_files {
         });
     }
     return \@files;
+}
+
+sub etag {
+    my ($self, $file) = @_;
+    my $etag;
+    eval {
+        my @stat = stat($file);
+        my $size  = $stat[7];
+        my $mtime = $stat[9];
+        $etag = sprintf('%X', $mtime // 0) . '-' . sprintf('%X', $size // 0);
+    };
+    return $etag;
+}
+
+sub detect_version {
+    my ($self, $file) = @_;
+    return Directory::Scanner::OBSMediaVersion::parse_version($file);
+}
+
+sub set_etag {
+    my ($self, $c, $file) = @_;
+    if (my $etag = $self->etag($file)) {
+        $c->res->headers->etag($etag);
+        if (my $version = $self->detect_version($file)) {
+            $c->res->headers->add('X-MEDIA-VERION' => $version);
+        }
+    }
 }
 
 1;

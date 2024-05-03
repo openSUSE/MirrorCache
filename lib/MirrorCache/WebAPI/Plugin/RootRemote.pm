@@ -24,6 +24,8 @@ use File::Basename;
 use HTML::Parser;
 use Time::Piece;
 
+use Directory::Scanner::OBSMediaVersion;
+
 # rooturlredirect as defined in mcconfig->redirect
 # rooturlsredirect same as above just https
 has [ 'rooturl', 'rooturlredirect', 'rooturlredirects', 'rooturlredirectvpn', 'rooturlredirectvpns', 'rootnfs', 'top_folders' ];
@@ -206,6 +208,8 @@ sub _detect_ln_in_the_same_folder {
             my $url1 = $rootlocation . $dir1;
             if ($location && $url1 eq substr($location, 0, length($url1))) {
                 my $ln = substr($location, length($url1));
+                my $version;
+                $version = $self->detect_version($ln) if $ln;
                 return ($ln, $etag) if -1 == index($ln, '/');
             }
         }
@@ -220,24 +224,27 @@ sub _detect_ln_in_the_same_folder {
     return undef unless $dest;
     my $res;
     my $realfile;
+    my $version;
     eval {
         my $x = Mojo::File->new($dest);
 
         return undef unless $x->dirname eq '.' || $x->dirname eq $dir;
         $res = $x->basename;
+        $version = $self->detect_version($res) if $res;
+
         $realfile = $dest;
         $realfile = $nfs . $dir . '/' . $dest if $x->dirname eq '.';
     };
-    return ($res, $self->etag($realfile));
+    return ($res, $self->etag($realfile), $version);
 }
 
 # this is simillar to self->realpath, just detects symlinks in current folder
 sub detect_ln_in_the_same_folder {
     my ($self, $path) = @_;
     my $f = Mojo::File->new($path);
-    my ($res, $etag) = $self->_detect_ln_in_the_same_folder($f->dirname, $f->basename);
+    my ($res, $etag, $version) = $self->_detect_ln_in_the_same_folder($f->dirname, $f->basename);
     return undef unless $res;
-    return ($f->dirname . '/' . $res, $etag);
+    return ($f->dirname . '/' . $res, $etag, $version);
 }
 
 # this is complicated to avoid storing big html in memory
@@ -298,7 +305,7 @@ sub _foreach_filename_html {
 
         if ($t && ($href20 eq substr($t,0,20))) {
             if ($desc{name} && (!$P || $desc{name} =~ $P)) {
-                my ($target, undef) = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
+                my ($target, undef, undef) = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
                 $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
                 %desc = ();
             }
@@ -339,7 +346,7 @@ sub _foreach_filename_html {
         $p->parse($chunk);
     }
     if ($desc{name} && (!$P || $desc{name} =~ $P)) {
-        my ($target, undef) = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
+        my ($target, undef, undef) = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
         $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
         %desc = ();
     }
@@ -385,6 +392,11 @@ sub etag {
         $etag = sprintf('%X', $mtime // 0) . '-' . sprintf('%X', $size // 0);
     };
     return $etag;
+}
+
+sub detect_version {
+    my ($self, $file) = @_;
+    return Directory::Scanner::OBSMediaVersion::parse_version($file);
 }
 
 1;

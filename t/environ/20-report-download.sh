@@ -98,4 +98,6 @@ $mc/backstage/shoot
 
 $mc/curl /rest/repdownload?group=mirror,country | grep '{"bytes_redirected":"396","bytes_served":"0","bytes_total":"396","country":"de",' | grep -o '"known_files_no_mirrors":"0","known_files_redirected":"36","known_files_requested":"36","mirror":"127.0.0.1:1314","total_requests":"36"}'
 
+$mc/curl -Is /download/repositories/home:/b1:/branches:/science:/EtherLab/Debian_Testing/arm64/libethercat_1.5.2-33_arm64.deb | grep 'X-MEDIA-VERSION: 1.5.2'
+
 echo success
