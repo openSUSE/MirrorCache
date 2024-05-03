@@ -146,11 +146,12 @@ sub register {
         }
 
         return undef unless $file;
-        $dm->set_file_stats($file->{id}, $file->{size}, $file->{mtime}, $file->{age});
+        $dm->set_file_stats($file->{id}, $file->{size}, $file->{mtime}, $file->{age}, $file->{name});
 
         $c->log->error($c->dumper('RENDER FILE_ID', $file->{id})) if $MCDEBUG;
         $c->res->headers->vary('Accept, COUNTRY, X-COUNTRY, Fastly-SSL');
         $c->res->headers->etag($dm->etag) if defined $dm->file_size;
+        $c->res->headers->add('X-MEDIA-VERSION' => $dm->media_version) if $dm->media_version;
         my $baseurl; # just hostname + eventual urldir (without folder and file)
         my $fullurl; # baseurl with path and filename
         if ($dm->metalink || $dm->meta4 || $dm->torrent || $dm->zsync || $dm->magnet) {
