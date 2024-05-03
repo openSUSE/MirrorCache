@@ -23,6 +23,8 @@ use Digest::SHA qw(sha1_hex);
 use Mojolicious::Types;
 use MirrorCache::Utils 'region_for_country';
 
+use Directory::Scanner::OBSMediaVersion;
+
 my $MCDEBUG = $ENV{MCDEBUG_DATAMODULE} // $ENV{MCDEBUG_ALL} // 0;
 
 has c => undef, weak => 1;
@@ -51,6 +53,7 @@ has [ 'torrent', 'magnet', 'btih' ];
 has [ 'json', 'jsontable' ];
 has [ 'folder_id', 'file_id', 'file_age', 'folder_sync_last', 'folder_scan_last' ]; # shortcut to requested folder and file, if known
 has [ 'file_size', 'file_mtime' ];
+has [ 'media_version' ];
 has [ 'real_folder_id' ];
 
 has root_country => ($ENV{MIRRORCACHE_ROOT_COUNTRY} ? lc($ENV{MIRRORCACHE_ROOT_COUNTRY}) : "");
@@ -103,6 +106,7 @@ sub reset($self, $c, $top_folder = undef) {
     $self->file_size(undef);
     $self->file_mtime(undef);
     $self->file_age(undef);
+    $self->media_version(undef);
 }
 
 sub ip_sha1($self) {
@@ -345,6 +349,9 @@ sub redirect($self, $url, $skip_xtra = undef) {
         $xtra = $1;
         $xtra = substr($xtra, 1);
         $param->append($xtra => 1);
+    }
+    if (my $version = Directory::Scanner::OBSMediaVersion::parse_version($url)) {
+        $c->headers->add('X-MEDIA-VERSION' => $version);
     }
     return $c->redirect_to($url) unless $param->to_hash;
     return $c->redirect_to($url . '?' . $param->to_string);
@@ -643,11 +650,16 @@ sub scan_last_ago($self) {
     return time() - $scan_last->epoch;
 }
 
-sub set_file_stats($self, $id, $size, $mtime, $age) {
+sub set_file_stats($self, $id, $size, $mtime, $age, $name) {
     $self->file_id($id);
     $self->file_size($size);
     $self->file_mtime($mtime);
     $self->file_age($age);
+
+    return unless $name;
+    if (my $version = Directory::Scanner::OBSMediaVersion::parse_version($name)) {
+        $self->media_version($version);
+    }
 }
 
 sub etag($self) {

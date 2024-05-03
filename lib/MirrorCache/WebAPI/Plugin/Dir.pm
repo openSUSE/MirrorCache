@@ -229,10 +229,10 @@ sub _redirect_project_ln_geo {
 
         $c->log->error('pedantic: ' . ($dm->pedantic // 'undef')) if $MCDEBUG;
         if ($path =~ m/(GNOME_.*|.*(Media|[C|c]urrent|Next))\.iso(\.sha256(\.asc)?)?/ && $dm->pedantic) {
-            my ($ln, $etag) = $root->detect_ln_in_the_same_folder($dm->original_path);
+            my ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($dm->original_path);
             my $extra = 1;
             unless ($ln) {
-                ($ln, $etag) = $root->detect_ln_in_the_same_folder($path);
+                ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($path);
                 $extra = 0;
             }
             $c->log->error("ln for $path : " . ($ln // 'null')) if $MCDEBUG;
@@ -240,6 +240,7 @@ sub _redirect_project_ln_geo {
                 # redirect to the symlink
                 $c->log->error('redirect detected: ' . $ln . ": " . $c->dumper($dm->accept_all, $dm->accept)) if $MCDEBUG;
                 $c->res->headers->etag($etag) if $etag;
+                $c->res->headers->add('X-MEDIA-VERSION' => $version) if $version;
                 $dm->redirect($dm->route . $ln, $extra && ($dm->accept_all || !$dm->accept));
                 return 1;
             }
@@ -452,7 +453,7 @@ sub _render_from_db {
                     my $eq = ($file->{name} eq substr($dm->original_path, -length($file->{name})));
                     $dm->redirect($dm->route . $dirname . '/' . $file->{target}, ($eq && ($dm->accept_all || !$dm->accept)));
                 } else {
-                    $dm->set_file_stats($file->{id}, $file->{size}, $file->{mtime}, $file->{age});
+                    $dm->set_file_stats($file->{id}, $file->{size}, $file->{mtime}, $file->{age}, $file->{name});
                     # find a mirror for it
                     $c->mirrorcache->render_file($path, $dm, $file);
                 }
