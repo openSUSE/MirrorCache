@@ -28,6 +28,8 @@ use Digest::Meta4;
 use MirrorCache::Utils;
 use MirrorCache::Datamodule;
 
+use Directory::Scanner::OBSMediaVersion;
+
 my $root;
 my $mc_config;
 my @top_folders;
@@ -609,6 +611,7 @@ sub _render_dir_from_db {
     my @files;
     my $childrenfiles = $c->schema->resultset('File')->find_with_regex($id, $dm->glob_regex, $dm->regex);
 
+    my $max_mtime;
     for my $file_id ( keys %$childrenfiles ) {
         my $child = $childrenfiles->{$file_id};
         my $basename = $child->{name};
@@ -629,6 +632,8 @@ sub _render_dir_from_db {
             my $encoded   = Encode::decode_utf8( './' . $basename );
             my $mime_type = $dm->mime || 'text/plain';
 
+            $max_mtime = $mtime unless $max_mtime && $mtime && ($max_mtime > $mtime);
+
             push @files, {
                 url   => $encoded,
                 name  => $basename,
@@ -640,10 +645,37 @@ sub _render_dir_from_db {
         }
         $files[-1]->{desc} = $desc if $desc;
     }
+    _add_etag($c, \@files, $max_mtime);
     my @items = sort _by_filename @files;
     return $c->render( json => { data => \@items } ) if $dm->jsontable;
     return $c->render( json => \@items) if $json;
     return $c->render( 'dir', files => \@items, route => $dm->route, cur_path => $dir, folder_id => $id );
+}
+
+sub _add_etag {
+    my $c         = shift;
+    my $files     = shift;
+    my $max_mtime = shift;
+
+    return unless $max_mtime;
+    my @files = @$files;
+
+    my $etag = sprintf('%X', scalar(@files)) . '-' . sprintf('%X', $max_mtime);
+    $c->res->headers->etag($etag);
+    my @versions;
+    for my $f (@files) {
+        if (my $version = Directory::Scanner::OBSMediaVersion::parse_version($f->{name})) {
+            push @versions, $version;
+            last if scalar(@versions) gt 4;
+        }
+    }
+    my $media_version;
+    if (scalar(@versions) gt 4) {
+        $media_version = 'MULTIPLE';
+    } else {
+        $media_version = join(',', sort @versions);
+    }
+    $c->res->headers->add('X-MEDIA-VERSION' => $media_version);
 }
 
 sub _render_dir_local {
@@ -659,13 +691,14 @@ sub _render_dir_local {
     my $realpath = $root->realpath($dir);
     $realpath =  $dm->root_subtree . $dir unless $realpath;
     my $files = $root->list_files($realpath, $dm->glob_regex, $dm->regex);
-
+    my $max_mtime;
     for my $f ( @$files ) {
         my $basename = $f->basename;
         my $stat     = $f->stat;
         $basename = $basename . '/' if $stat && -d $stat;
         my $size     = $stat->size if $stat;
         my $mtime    = $stat->mtime if $stat;
+        $max_mtime   = $mtime unless $max_mtime && $mtime && ($max_mtime > $mtime);
         my $desc     = $folderDesc{$c->mcbranding}{$dir}{$basename};
         if ($json) {
             push @files, {
@@ -692,6 +725,7 @@ sub _render_dir_local {
         }
         $files[-1]->{desc} = $desc if $desc;
     }
+    _add_etag($c, \@files, $max_mtime);
     my @items = sort _by_filename @files;
     return $c->render( json => { data => \@items } ) if $dm->jsontable;
     return $c->render( json => \@items) if $json;
