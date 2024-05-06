@@ -9,6 +9,7 @@ Group=mirrorcache
 EnvironmentFile=-/etc/mirrorcache/conf.env
 EnvironmentFile=/etc/mirrorcache/conf-subtree.env
 ExecStart=/usr/share/mirrorcache/script/mirrorcache-daemon
+WorkingDirectory=/var/lib/mirrorcache
 
 [Install]
 WantedBy=multi-user.target
