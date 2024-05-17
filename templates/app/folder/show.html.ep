@@ -6,8 +6,24 @@ table { width:100%%; }
 .name { text-align:left; }
   </style>
 % my $stats = url_for '/download' . $folder->{path} . '/';
+% my ($sync_status, $sync_ago);
+% if ($folder->{sync_scheduled} && $folder->{sync_requested} && $folder->{sync_last}) {
+%     if ($folder->{sync_scheduled} ge $folder->{sync_requested}) {
+%        if ($folder->{sync_scheduled} lt $folder->{sync_last}) {
+%            $sync_status = 'last sync ';
+%            $sync_ago = $folder->{sync_last};
+%        } else {
+%            $sync_status = 'sync queued ';
+%            $sync_ago = $folder->{sync_scheduled};
+%        }
+%     } else {
+%        $sync_status = 'sync requested ';
+%        $sync_ago = $folder->{sync_requested};
+%     }
+% }
 <script>
       $(function () {
+        document.getElementById("spandbstatus").innerHTML = '<%= $sync_status %>'.concat(fromNow('<%= $sync_ago %>'));
         pollFolderJobStats('<%= $folder->{id} %>');
         pollFolderStats('<%= $stats %>');
       });
@@ -58,6 +74,7 @@ table { width:100%%; }
         <div class="card-body status-info">
             <div><span>Id: </span><%= $folder->{id} %></div>
             <div><span>Path: </span><%= $folder->{path} %></div>
+            <div><span>Database status: </span><span id="spandbstatus"></span></div>
             <div><span>Last sync: </span><%= $folder->{sync_last} %></div>
             <div><span>Sync Scheduled: </span><%= $folder->{sync_scheduled} %></div>
             <div><span>Sync Requested: </span><%= $folder->{sync_requested} %></div>
@@ -84,9 +101,28 @@ table { width:100%%; }
         </div>
     </div>
 </div>
-% if (is_admin) {
 <div class="col-sm-12">
     <h4>Folder actions:</h4>
+    <div class="btn-group mr-2" role="group">
+        <button class='btn btn-secondary'
+            type='submit'
+            title='Request database sync'
+            onclick='sendPost("/rest/request_sync", "<%=$folder->{path}%>")'>Request sync
+        </button>
+    </div>
+</div>
+% if (is_admin) {
+<br>
+<div class="col-sm-12">
+    <h4>Admin actions:</h4>
+    <div class="btn-group mr-2" role="group">
+        <button class='btn btn-secondary'
+            type='submit'
+            title='Run database sync'
+            data-posturl="/rest/sync?path=<%=$folder->{path}%>"
+            onclick='sendPost("/rest/sync", "<%=$folder->{path}%>")'>Run sync
+        </button>
+    </div>
     <div class="btn-group mr-2" role="group">
         <button class='btn btn-warning'
             type='submit'

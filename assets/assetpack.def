@@ -112,7 +112,9 @@
 < https://code.jquery.com/jquery-3.3.1.js
 < https://cdn.datatables.net/1.10.16/js/jquery.dataTables.js
 < https://cdn.datatables.net/1.10.16/js/dataTables.bootstrap4.js
-< http://timeago.yarp.com/jquery.timeago.js
+< https://timeago.yarp.com/jquery.timeago.js
+< https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js
+< https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js
 < javascripts/mirrorcache.js
 < javascripts/browse.js
 < javascripts/mirrorlist.js
