@@ -78,4 +78,36 @@ sub sync_tree {
     );
 }
 
+sub sync {
+    my $self = shift;
+    my $path = $self->param("path");
+    return $self->render(status => 400, text => "Mandatory argument is missing") unless $path;
+
+    my $job_id;
+    eval {
+        $job_id = $self->minion->enqueue('folder_sync' => [$path] => {priority => 10, notes => {$path => 1}} );
+    };
+    return $self->render(status => 500, text => Dumper($@)) unless $job_id;
+
+    return $self->render(
+        json => {
+            job_id     => $job_id,
+        }
+    );
+}
+
+sub request_sync {
+    my $self = shift;
+    my $path = $self->param("path");
+    return $self->render(status => 400, text => "Mandatory argument is missing") unless $path;
+
+    $self->schema->resultset('Folder')->request_sync($path);
+
+    return $self->render(
+        json => {
+            status     => 'Ok',
+        }
+    );
+}
+
 1;
