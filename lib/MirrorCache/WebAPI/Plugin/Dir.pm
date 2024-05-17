@@ -197,13 +197,19 @@ sub _render_dir {
                 $folder_id = $folder->id;
                 $dm->folder_id($folder_id);
                 $dm->folder_sync_last($folder->sync_last);
+                $dm->folder_sync_requested($folder->sync_requested);
                 $dm->file_id(-1);
             }
         }
     }; # we must log eventual error, but first need to have a way to suppress flood of errors e.g. when DB is down
 
-    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $folder_id, re_pattern => $dm->re_pattern ) if !$dm->json && $dm->browse;
-
+    if (!$dm->json && $dm->browse) {
+        my $remote;
+        eval {
+            $remote = $c->mc->root->rooturl;
+        };
+        return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $folder_id, re_pattern => $dm->re_pattern, sync_last => $dm->folder_sync_last, sync_requested => $dm->folder_sync_requested, remote => $remote);
+    }
     return _render_dir_local($dm, $folder_id, $dir) unless $root->is_remote; # just render files if we have them locally
 
     $c->stat->redirect_to_root($dm, 0) unless $folder_id && $dm->folder_sync_last;
@@ -416,6 +422,7 @@ sub _render_from_db {
                     $dm->folder_id($folder->{id});
                     $dm->folder_sync_last($folder->{sync_last});
                     $dm->folder_scan_last($folder->{scan_last});
+                    $dm->folder_sync_requested($folder->{sync_requested});
                 }
             } else {
                 my $another_folder = $rsFolder->find({path => $realpath_subtree});
@@ -426,6 +433,7 @@ sub _render_from_db {
                     $dm->folder_id($folder->{id});
                     $dm->folder_sync_last($folder->{sync_last});
                     $dm->folder_scan_last($folder->{scan_last});
+                    $dm->folder_sync_requested($folder->{sync_requested});
                 }
             }
             if ($it_must_be_folder && !$file_pattern_in_folder) {
@@ -605,8 +613,11 @@ sub _render_dir_from_db {
     my $dir = shift;
     my $c   = $dm->c;
     my $json = $dm->json;
-
-    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $id, re_pattern => $dm->re_pattern ) if !$json && $dm->browse;
+    my $remote;
+    eval {
+        $remote = $c->mc->root->rooturl;
+    };
+    return $c->render( 'browse', route => $dm->route, cur_path => $dir, folder_id => $id, re_pattern => $dm->re_pattern, sync_last => $dm->folder_sync_last, sync_requested => $dm->folder_sync_requested, remote => $remote ) if !$json && $dm->browse;
 
     my @files;
     my $childrenfiles = $c->schema->resultset('File')->find_with_regex($id, $dm->glob_regex, $dm->regex);
@@ -649,7 +660,7 @@ sub _render_dir_from_db {
     my @items = sort _by_filename @files;
     return $c->render( json => { data => \@items } ) if $dm->jsontable;
     return $c->render( json => \@items) if $json;
-    return $c->render( 'dir', files => \@items, route => $dm->route, cur_path => $dir, folder_id => $id );
+    return $c->render( 'dir', files => \@items, route => $dm->route, cur_path => $dir, folder_id => $id, sync_last => $dm->folder_sync_last, sync_requested => $dm->folder_sync_requested, remote => $remote );
 }
 
 sub _add_etag {

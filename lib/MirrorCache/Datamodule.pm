@@ -51,7 +51,7 @@ has [ '_is_secure', '_is_ipv4', '_ipvstrict', '_is_head' ];
 has 'mirrorlist';
 has [ 'torrent', 'magnet', 'btih' ];
 has [ 'json', 'jsontable' ];
-has [ 'folder_id', 'file_id', 'file_age', 'folder_sync_last', 'folder_scan_last' ]; # shortcut to requested folder and file, if known
+has [ 'folder_id', 'file_id', 'file_age', 'folder_sync_last', 'folder_scan_last', 'folder_sync_requested' ]; # shortcut to requested folder and file, if known
 has [ 'file_size', 'file_mtime' ];
 has [ 'media_version' ];
 has [ 'real_folder_id' ];
@@ -627,6 +627,7 @@ sub root_is_hit($self) {
 sub root_is_better($self, $region, $lng) {
     if ($self->_root_region && $region && $self->lng && $self->_root_longitude && $region eq $self->_root_region) {
         # simly check if root is closer to the client by longitude
+        return 1 unless defined $lng;
         return 1 if abs( $self->_root_longitude - $self->lng ) < abs( $lng - $self->lng );
     }
     return 0;

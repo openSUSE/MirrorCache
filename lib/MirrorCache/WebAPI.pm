@@ -210,6 +210,8 @@ sub _setup_webui {
     $rest_usr_r->post('/myserver/:id')->name('post_myserver')->to('table#update', table => 'MyServer');
     $rest_usr_r->delete('/myserver/:id')->to('table#destroy', table => 'MyServer');
     $rest_usr_r->put('/myserver/location/:id')->name('rest_put_myserver_location')->to('myserver_location#update_location');
+    $rest_usr_r->post('/sync')->name('rest_post_sync')->to('folder_jobs#sync');
+    $rest_usr_r->post('/request_sync')->name('rest_post_request_sync')->to('folder_jobs#request_sync');
 
     $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
     $rest_r->get('/repmirror')->name('rest_repmirror')->to('report_mirror#list');
