@@ -46,7 +46,6 @@ $mcsub/gen_env MIRRORCACHE_ROOT="'$mc/dt:testhost.com'" \
                MIRRORCACHE_SUBTREE=/updates \
                MIRRORCACHE_TOP_FOLDERS=tool \
                MIRRORCACHE_VPN=0 \
-               MIRRORCACHE_VPN_PREFIX=127.0.0. \
                MIRRORCACHE_ROOT_COUNTRY=us
 $mcsub/start
 
