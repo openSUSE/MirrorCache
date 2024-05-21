@@ -360,7 +360,7 @@ sub redirect($self, $url, $skip_xtra = undef) {
         $param->append($xtra => 1);
     }
     if (my $version = Directory::Scanner::OBSMediaVersion::parse_version($url)) {
-        $c->headers->add('X-MEDIA-VERSION' => $version);
+        $c->res->headers->add('X-MEDIA-VERSION' => $version);
     }
     return $c->redirect_to($url) unless $param->to_hash;
     return $c->redirect_to($url . '?' . $param->to_string);

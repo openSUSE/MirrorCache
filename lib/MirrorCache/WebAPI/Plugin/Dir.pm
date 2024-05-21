@@ -674,12 +674,14 @@ sub _add_etag {
     my $etag = sprintf('%X', scalar(@files)) . '-' . sprintf('%X', $max_mtime);
     $c->res->headers->etag($etag);
     my @versions;
+    my %versions;
     for my $f (@files) {
         if (my $version = Directory::Scanner::OBSMediaVersion::parse_version($f->{name})) {
-            push @versions, $version;
-            last if scalar(@versions) gt 4;
+            $versions{$version}=1;
+            last if scalar(keys %versions) gt 4;
         }
     }
+    @versions = sort keys %versions;
     my $media_version;
     if (scalar(@versions) gt 4) {
         $media_version = 'MULTIPLE';
