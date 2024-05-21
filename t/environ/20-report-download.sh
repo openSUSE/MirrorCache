@@ -105,4 +105,9 @@ $mc/curl -Is /download/repositories/home:/b1:/branches:/science:/EtherLab/Debian
 
 $mc/curl -Is '/download/distribution/leap/15.3/repo/oss/noarch/?REGEX=.*\.noarch\..?rpm' | grep 'X-MEDIA-VERSION: 17.5.0,7.3.6.2'
 
+$mc/curl '/rest/repdownload?group=country&os=ubuntu'
+$mc/curl '/rest/repdownload?group=country,mirror&type=rpm'
+$mc/curl "/rest/repdownload?group=project&mirror=$(ap7/print_address)"
+$mc/curl '/rest/repdownload?group=project,mirror&country=de'
+
 echo success
