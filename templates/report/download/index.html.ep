@@ -26,7 +26,7 @@
             <tbody>
             </tbody>
         </table>
-        <input type="hidden" id="reporttable_api_url" value="/rest/repdownload?period=day&group=<%= $column %>"/>
+        <input type="hidden" id="reporttable_api_url" value="/rest/repdownload?period=day&<%= $params %>"/>
     </div>
 </div>
 </form>

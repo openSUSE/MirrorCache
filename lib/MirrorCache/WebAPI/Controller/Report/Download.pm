@@ -18,12 +18,14 @@ use Mojo::Base 'Mojolicious::Controller';
 
 sub index {
     my ($self, $template) = @_;
-    my $group = $self->param('group');
+    my $group = $self->req->param('group');
+    my $params = $self->req->params->to_string;
 
     $self->stash;
     $self->render(
         "report/download/index",
         column      => $group,
+        params      => $params,
     );
 }
 

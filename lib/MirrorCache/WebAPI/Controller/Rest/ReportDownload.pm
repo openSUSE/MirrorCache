@@ -38,9 +38,38 @@ sub list {
     my $sql_from   = ' from agg_download';
     my $sql_where  = " where period = '$period' and dt > now() - interval '$limit $period'";
     $sql_where  = " where period = '$period' and dt > now() - interval $limit $period" unless $self->schema->pg;
+
+    my @params;
+    for my $p (qw(country type os arch mirror project)) {
+        if (my $v = $self->param($p)) {
+            if ($p eq 'mirror') {
+                $sql_where  = "$sql_where and agg_download.mirror_id in (select id from server where hostname like ?)";
+                push @params, "%$v%";
+            } elsif ($p eq 'type') {
+                $sql_where  = "$sql_where and agg_download.file_type in (select id from popular_file_type where name like ?)";
+                push @params, "%$v%";
+            } elsif ($p eq 'os') {
+                $sql_where  = "$sql_where and agg_download.os_id in (select id from popular_os where name like ?)";
+                push @params, "%$v%";
+            } elsif ($p eq 'os_version') {
+                $sql_where  = "$sql_where and agg_download.os_id in (select id from popular_os where version like ?)";
+                push @params, "%$v%";
+            } elsif ($p eq 'arch') {
+                $sql_where  = "$sql_where and agg_download.arch_id in (select id from popular_arch where name like ?)";
+                push @params, "%$v%";
+            } elsif ($p eq 'project') {
+                $sql_where  = "$sql_where and agg_download.project_id in (select id from project where name like ?)";
+                push @params, "%$v%";
+            } else {
+                $sql_where  = "$sql_where and agg_download.$p like ?";
+                push @params, $v;
+            }
+        }
+    }
+
     my $sql_group  = ' group by dt';
     my $sql_order  = ' order by dt desc';
-    my $sql_limit  = " limit 1000";
+    my $sql_limit  = " limit 100000";
 
     for my $p (split ',', $group) {
         if ($p eq 'project') {
@@ -96,7 +125,7 @@ sub list {
     }
     my @res;
     eval {
-        my $data = $schema->storage->dbh->selectall_hashref($sql, 'k', {});
+        my $data = $schema->storage->dbh->selectall_hashref($sql, 'k', {}, @params);
         my @keys = sort keys %$data;
         my @data;
         for my $k (@keys) {

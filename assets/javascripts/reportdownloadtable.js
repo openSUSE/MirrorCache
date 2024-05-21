@@ -5,9 +5,12 @@ function setupReportDownloadTable(column) {
     columns.push({
         data: 'dt',
         defaultContent: "",
-        render: function (data) {
-            var date = new Date(data);
-            return date.toLocaleDateString();
+        render: function (data, type, row, meta) {
+            if(type === 'display') {
+                var date = new Date(data);
+                return date.toLocaleDateString();
+            }
+            return data;
         }
     });
     columns.push({
