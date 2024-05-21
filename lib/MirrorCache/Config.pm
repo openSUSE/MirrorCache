@@ -1,4 +1,4 @@
-# Copyright (C) 2022,2023 SUSE LLC
+# Copyright (C) 2022-2024 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ has dbdb         => $ENV{MIRRORCACHE_DB} // 'mirrorcache';
 has dsn          => $ENV{MIRRORCACHE_DSN};
 has redirect     => $ENV{MIRRORCACHE_REDIRECT};
 has redirect_vpn => $ENV{MIRRORCACHE_REDIRECT_VPN};
+has vpn_prefix   => $ENV{MIRRORCACHE_VPN_PREFIX};
 
 has 'offline_redirect'; # list of url to fallback if there was an error while serving from DB
 has 'offline_redirect_https'; # the same as above, just with https
@@ -64,7 +65,7 @@ sub init($self, $cfgfile) {
     my $cfg;
     $cfg = Config::IniFiles->new(-file => $cfgfile, -fallback => 'default') if $cfgfile;
     if ($cfg) {
-        for my $k (qw/root root_nfs redirect redirect_huge huge_file_size small_file_size city_mmdb ip2location top_folders regions mirror_provider browser_agent_mask custom_footer_message country_image_dir/) {
+        for my $k (qw/root root_nfs redirect redirect_huge huge_file_size small_file_size city_mmdb ip2location top_folders regions mirror_provider browser_agent_mask custom_footer_message country_image_dir vpn_prefix/) {
             if (my $v = $cfg->val('default', $k)) {
                 $self->$k($v);
             }

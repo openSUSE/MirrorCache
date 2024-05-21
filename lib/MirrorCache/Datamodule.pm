@@ -1,4 +1,4 @@
-# Copyright (C) 2021,2022 SUSE LLC
+# Copyright (C) 2021-2024 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -76,6 +76,11 @@ sub elapsed($self) {
 }
 
 sub app($self, $app) {
+    eval {
+        if (my $prefix = $app->mcconfig->vpn_prefix) {
+            $self->vpn_prefix($prefix);
+        }
+    };
     $self->_root_region(region_for_country($self->root_country) || '');
 }
 
@@ -124,12 +129,16 @@ sub vpn($self) {
     return $self->_vpn_var if defined $self->_vpn_var;
 
     unless (defined $self->_vpn) {
-        my $ip = $self->ip;
-        $ip =~ s/^::ffff://;
-        if ($self->vpn_prefix && (rindex($ip, $self->vpn_prefix, 0) == 0)) {
-            $self->_vpn(1);
-        } else {
+        unless ($self->vpn_prefix) {
             $self->_vpn(0);
+        } else {
+            my $ip = $self->ip;
+            $ip =~ s/^::ffff://;
+            my $match = 0;
+            for my $pref (split /[\s]+/, $self->vpn_prefix) {
+                $match = 1 if (rindex($ip, $pref, 0) == 0);
+            }
+            $self->_vpn($match);
         }
     }
     return $self->_vpn;
