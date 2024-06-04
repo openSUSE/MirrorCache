@@ -107,8 +107,15 @@ table { width:100%%; }
         <button class='btn btn-secondary'
             type='submit'
             title='Request database sync'
+% if (!current_user) {
+            disabled
+% }
             onclick='sendPost("/rest/request_sync", "<%=$folder->{path}%>")'>Request sync
         </button>
+% if (!current_user) {
+        <br>
+        <a class="nav-link" href="/login">Login required</a>
+% }
     </div>
 </div>
 % if (is_admin) {
