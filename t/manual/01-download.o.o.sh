@@ -18,7 +18,7 @@ $mc/gen_env MIRRORCACHE_RECKLESS=0 \
 
 $mc/start
 $mc/backstage/start
-$mc/db/sql -f dist/salt/profile/mirrorcache/files/usr/share/mirrorcache/sql/mirrors-eu.sql mc_test
+$mc/db/sql -f dist/salt/mirrors-eu.sql mc_test
 
 # $mc/backstage/job -e folder_tree -a '["/distribution"]'
 # $mc/backstage/job -e folder_tree -a '["/tumbleweed"]'

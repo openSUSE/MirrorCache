@@ -185,7 +185,12 @@ function fromNow(date) {
         { max: 1000 * YEAR, divisor: 100 * YEAR, past1: 'last century', pastN: '# centuries ago', future1: 'in a century', futureN: 'in # centuries' },
         { max: Infinity, divisor: 1000 * YEAR, past1: 'last millennium', pastN: '# millennia ago', future1: 'in a millennium', futureN: 'in # millennia' },
     ];
-    const diff = Date.now() - (typeof date === 'object' ? date : new Date(date)).getTime();
+    // ensure date is an object to safely use its functions
+    date = (typeof date === 'object' ? date : new Date(date));
+    // convert from utc time like this
+    date = new Date(date.getTime() - date.getTimezoneOffset()*60*1000);
+
+    const diff = Date.now() - date.getTime();
     const diffAbs = Math.abs(diff);
     for (const unit of units) {
         if (diffAbs < unit.max) {
