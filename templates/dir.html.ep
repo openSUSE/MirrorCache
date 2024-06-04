@@ -127,7 +127,7 @@ tr.td.a::after{
   </table>
   % if (my $sl = eval '$sync_last') {
         % my $remott = eval '$remote' // '';
-        <span style="font-size: 75%;margin-right:2px;">Content was </span>
+        <span style="font-size: 75%;margin-right:2px;">DB was </span>
         <a style="font-size: 75%" href="<%= url_for("/app/folder/$folder_id")%>">synched</a>
         % if ($remott) {
             <a style="font-size: 75%;margin-left:2px;margin-right:2px" href="<%= $remott %>">from remote</a>
