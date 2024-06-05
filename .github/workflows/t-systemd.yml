@@ -14,4 +14,4 @@ jobs:
       - uses: actions/checkout@v2
       - name: t
         run: |
-          echo make test_systemd
+          make test_systemd
