@@ -616,8 +616,9 @@ sub _init_path($self) {
     ) {
         $self->must_render_from_root(1);
         my $time = ~time() & 0xff;
+        my $time2 = 60*60 + $time; # allow caches to serve content for 1h while they re-check
 
-        $self->c->res->headers->cache_control("public, max-age=$time");
+        $self->c->res->headers->cache_control("public, max-age=$time stale-while-revalidate=$time2");
     }
 
     my ($ext) = $path =~ /([^.]+)$/;
