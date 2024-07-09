@@ -356,8 +356,7 @@ sub redirect($self, $url, $skip_xtra = undef) {
     my $param = $c->req->params;
     if (!$skip_xtra && $self->_original_path =~ m/(\.metalink|\.meta4|\.zsync|\.mirrorlist|\.torrent|\.magnet|\.btih)$/) {
         $xtra = $1;
-        $xtra = substr($xtra, 1);
-        $param->append($xtra => 1);
+        $url = $url . $xtra;
     }
     if (my $version = Directory::Scanner::OBSMediaVersion::parse_version($url)) {
         $c->res->headers->add('X-MEDIA-VERSION' => $version);
