@@ -74,11 +74,11 @@ $mc/curl /download/folder1/file1.1.dat.metalink | grep -o '<hash type="sha-256">
 $mc/curl /download/folder1/file1.1.dat.meta4    | grep -o '<hash>5179db3d4263c9cb4ecf0edbc653ca460e3678b7</hash>'
 $mc/curl /download/folder1/file1.1.dat.metalink | grep -o '<hash piece="0">5179db3d4263c9cb4ecf0edbc653ca460e3678b7</hash>'
 
-$mc/curl -I /download/folder1/file1.1.dat.btih | grep '200 OK'
+$mc/curl -I /download/folder1/file1.1.dat.btih    | grep -C20 '200 OK' | grep 'Content-Disposition: attachment; filename="file1.1.dat.btih"'
 $mc/curl /download/folder1/file1.1.dat.btih
-$mc/curl -I /download/folder1/file1.1.dat.magnet | grep '200 OK'
+$mc/curl -I /download/folder1/file1.1.dat.magnet  | grep -C20 '200 OK' | grep 'Content-Disposition: attachment; filename="file1.1.dat.magnet"'
 $mc/curl /download/folder1/file1.1.dat.magnet
-$mc/curl -I /download/folder1/file1.1.dat.torrent | grep '200 OK'
+$mc/curl -I /download/folder1/file1.1.dat.torrent | grep -C20 '200 OK' | grep 'Content-Disposition: attachment; filename="file1.1.dat.torrent"'
 $mc/curl /download/folder1/file1.1.dat.torrent
 
 $mc/curl /download/folder1/file1.1.dat.metalink | xmllint --noout --format -

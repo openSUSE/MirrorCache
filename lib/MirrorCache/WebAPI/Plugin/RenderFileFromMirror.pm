@@ -844,6 +844,7 @@ sub _render_btih() {
         return 1;
     }
 
+    $c->res->headers->content_disposition('attachment; filename="' .$filename. '.btih"');
     $c->render(text => "$filename " . _calc_btih($filename, $file));
     return 1;
 }
@@ -862,6 +863,7 @@ sub _render_magnet() {
     $filename = Mojo::Util::url_escape($filename);
     $url      = Mojo::Util::url_escape($url);
 
+    $c->res->headers->content_disposition('attachment; filename="' .$filename. '.magnet"');
     $c->render(text => "magnet:?xt=urn:btih:$btih&amp;xt=urn:md5:$md5&amp;xl=$size&amp;dn=$filename&amp;as=$url");
     return 1;
 }
@@ -911,6 +913,7 @@ sub _render_torrent() {
     $footer = $footer . 'ee';
 
     $c->res->headers->content_length(length($header) + length($pieces) + length($footer));
+    $c->res->headers->content_disposition('attachment; filename="' .$filename. '.torrent"');
     $c->write($header => sub () {
             $c->write($pieces => sub () {
                 $c->write($footer => sub () {$c->finish});
