@@ -67,7 +67,7 @@ sub register {
                 my $c = shift;
                 my $file = $c->param('file');
                 my $https = $c->param('https');
-                return $c->render(status => 400) unless $file;
+                return $c->render(text => '', status => 400) unless $file;
                 my $dm = MirrorCache::Datamodule->new->app($c->app);
                 $dm->reset($c);
 

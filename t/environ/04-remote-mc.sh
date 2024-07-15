@@ -48,6 +48,7 @@ test 2 == $($mc/db/sql "select count(*) from folder_diff")
 test 1 == $($mc/db/sql "select count(*) from folder_diff_file")
 
 $mc/curl -I /download/folder1/file2.1.dat | grep $($ng7/print_address)
+$mc/curl -I -H "If-Modified-Since: $(date -u --rfc-3339=seconds)" /download/folder1/file2.1.dat | grep '304 Not Modified'
 
 mv $ng7/dt/folder1/file2.1.dat $ng8/dt/folder1/
 

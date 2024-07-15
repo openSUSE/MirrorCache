@@ -6,9 +6,6 @@ mc=$(environ mc $(pwd))
 MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 $mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL
 
-$mc/start
-$mc/status
-
 ap8=$(environ ap8)
 ap7=$(environ ap7)
 
@@ -35,10 +32,17 @@ for x in $mc $ap7 $ap8; do
     done
 done
 
+$mc/start
+$mc/status
+
 $ap7/start
 $ap8/start
 
 $mc/curl -I -H "Accept: */*, application/metalink+xml" /download/Folder1/repodata/repomd.xml | grep '200 OK'
+$mc/curl -I -H "Accept: */*, application/metalink+xml" -H "If-Modified-Since: $(date -u --rfc-3339=seconds --date='1 second ago')" /download/Folder1/repodata/repomd.xml | grep '304 Not Modified'
+$mc/curl -I -H "Accept: */*, application/metalink+xml" -H "If-Modified-Since: $(date -u --rfc-3339=seconds --date='1 hour ago')" /download/Folder1/repodata/repomd.xml | grep '200 OK'
+$mc/curl -I -H "Accept: */*, application/metalink+xml" -H "If-Modified-Since: Sun, 06 Nov 1994 08:49:37 GMT" /download/Folder1/repodata/repomd.xml | grep '200 OK'
+$mc/curl -I -H "Accept: */*, application/metalink+xml" -H "If-Modified-Since: Smoe 10 Garbage 10:53:46 UTC 2024x" /download/Folder1/repodata/repomd.xml | grep '200 OK'
 
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','ca','na'"
