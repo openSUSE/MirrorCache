@@ -78,6 +78,16 @@ sub is_file {
     return 0;
 }
 
+sub is_file_mtime {
+    return 1 unless $_[1];
+    for my $root (@roots) {
+        my $f = $root->[dir] . $root_subtree . $_[1];
+        next unless -f $root->[dir] . $root_subtree . $_[1];
+        return Mojo::File->new($f)->stat->mtime;
+    }
+    return 0;
+}
+
 sub is_dir {
     my ($self, $path) = @_;
     return 1 if !$path || $path eq '/';

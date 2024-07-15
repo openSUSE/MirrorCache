@@ -119,7 +119,7 @@ sub register {
         $c->log->error($c->dumper('RENDER FOLDER REAL', $realfolder_id ? $realfolder_id : 'NULL')) if $MCDEBUG;
         my $fileoriginpath = $filepath;
         $fileoriginpath = $realdirname . '/' . $basename if $realdirname ne $dirname;
-        return $root->render_file($dm, $fileoriginpath, 1) if $dm->must_render_from_root; # && $root->is_reachable;
+        return $root->render_file($dm, $fileoriginpath, 1) if $dm->must_render_from_root && !$c->req->headers->if_modified_since; # && $root->is_reachable;
 
         if ($folder || $realfolder_id) {
             my $fldid = ($realfolder_id? $realfolder_id : $folder_id);
@@ -152,6 +152,22 @@ sub register {
         $c->res->headers->vary('Accept, COUNTRY, X-COUNTRY, Fastly-SSL');
         $c->res->headers->etag($dm->etag) if defined $dm->file_size;
         $c->res->headers->add('X-MEDIA-VERSION' => $dm->media_version) if $dm->media_version;
+
+        my $mtime = $file->{mtime};
+        if ($mtime) { # Check Last Modified Since header
+            my $lms;
+            eval {
+                if (my $x = $c->req->headers->if_modified_since) {
+                    $c->log->error($c->dumper('RENDER IF MODIFIED SINCE1', $x)) if $MCDEBUG;
+                    $lms = Mojo::Date->new($x)->epoch;
+                }
+            };
+            $c->log->error($c->dumper('RENDER IF MODIFIED SINCE', $lms, $mtime)) if $MCDEBUG;
+
+            # Not Modified
+            return $c->render(status => 304, text => '') if int($lms // 0) && int($mtime // 0) && $mtime <= $lms;
+        }
+
         my $baseurl; # just hostname + eventual urldir (without folder and file)
         my $fullurl; # baseurl with path and filename
         if ($dm->metalink || $dm->meta4 || $dm->torrent || $dm->zsync || $dm->magnet) {

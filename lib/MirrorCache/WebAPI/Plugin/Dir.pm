@@ -23,6 +23,8 @@ use Sort::Versions;
 use Time::Piece;
 use Time::Seconds;
 use Time::ParseDate;
+use Mojo::Date;
+
 use Digest::Metalink;
 use Digest::Meta4;
 use MirrorCache::Utils;
@@ -82,6 +84,7 @@ sub indx {
     eval {
       $success =
          _render_hashes($dm)
+      || _render_if_not_modified($dm)
       || _render_small($dm)
       || _set_cache_control($dm)
       || _redirect_project_ln_geo($dm)
@@ -743,6 +746,30 @@ sub _render_dir_local {
     return $c->render( json => { data => \@items } ) if $dm->jsontable;
     return $c->render( json => \@items) if $json;
     return $c->render( 'dir', files => \@items, route => $dm->route, cur_path => $dir, folder_id => $id );
+}
+
+sub _render_if_not_modified {
+    my $dm = shift;
+    return undef if $root->is_remote;
+    my $c = $dm->c;
+    my $x = $c->req->headers->if_modified_since;
+    $c->log->error($c->dumper('DIR::render_if_not_modified1', $x, ref $x, scalar($x), ref scalar($x))) if $MCDEBUG;
+    return undef unless $x;
+    $x = scalar($x);
+    my $lms;
+    eval {
+        $lms = Mojo::Date->new($x)->epoch;
+    };
+    $c->log->error($c->dumper('DIR::render_if_not_modified2', $lms)) if $MCDEBUG;
+    return undef unless int($lms // 0);
+    $dm->_init_path;
+    my ($path, undef) = $dm->path;
+    my $mtime = $root->is_file_mtime($path);
+    $c->log->error($c->dumper('DIR::render_if_not_modified3', $mtime)) if $MCDEBUG;
+    return undef unless int($mtime // 0);
+    return $c->render(text => '', status => 304) if $mtime <= $lms;
+    $c->log->error($c->dumper('DIR::render_if_not_modified4', $mtime, $lms)) if $MCDEBUG;
+    return undef;
 }
 
 sub _render_small {
