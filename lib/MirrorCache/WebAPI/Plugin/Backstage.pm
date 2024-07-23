@@ -113,7 +113,7 @@ eval {
 
     $app->hook(
         before_server_start => sub {
-            my $every = $ENV{MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL} // 15 * 60;
+            my $every = $ENV{MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL} // 5 * 60;
             $self->check_permanent_jobs;
             Mojo::IOLoop->next_tick(
                 sub {
@@ -132,6 +132,9 @@ sub check_permanent_jobs {
 eval {
     my $app    = shift->app;
     my $minion = $app->minion;
+    my $guard  = $minion->guard('check_permanent_jobs', 60);
+    return undef unless $guard;
+
     my $jobs   = $minion->jobs(
         {
             tasks  => \@permanent_jobs,
