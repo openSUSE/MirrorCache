@@ -46,6 +46,10 @@ sub register_tasks {
     if ($app->mcconfig->mirror_provider) {
         push @permanent_jobs, 'mirror_provider_sync';
     }
+    eval {
+        my $projects = $app->mcproject->list;
+        push @permanent_jobs, 'report_project_size_schedule' if @$projects;
+    };
 
     $app->plugin($_)
       for (
@@ -67,6 +71,8 @@ sub register_tasks {
         qw(MirrorCache::Task::ProjectSyncSchedule),
         qw(MirrorCache::Task::Cleanup),
         qw(MirrorCache::Task::Report),
+        qw(MirrorCache::Task::ReportProjectSize),
+        qw(MirrorCache::Task::ReportProjectSizeSchedule),
         qw(MirrorCache::Task::StatAggSchedule),
       );
 }

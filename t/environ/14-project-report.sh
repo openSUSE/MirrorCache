@@ -74,7 +74,11 @@ $mc/backstage/shoot
 
 $mc/backstage/job mirror_probe_projects
 $mc/backstage/job -e report -a '["once"]'
+$mc/backstage/job -e report_project_size_schedule -a '["once"]'
 $mc/backstage/shoot
+
+$mc/sql_test 4 == "select file_cnt from project where path = '/project1'"
+$mc/sql_test 2 == "select file_cnt from project where path = '/project2/folder1'"
 
 $mc/curl /report/mirrors | tidy --drop-empty-elements no | \
    grep -A4 -F '<div class="repo">' | \
