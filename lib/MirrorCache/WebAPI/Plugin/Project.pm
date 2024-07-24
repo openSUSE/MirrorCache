@@ -54,11 +54,13 @@ sub _init_if_needed {
     eval { #the table may be missing - no big deal (only reports might be inaccurate if some other error occurred).
         eval {
             my @rows = $c->schema->resultset('Project')->search(undef, { order_by => { -desc => [qw/prio name/] } });
+            my @projs;
             # we want to cache it, so move to simpler structure
             for my $r (@rows) {
                 my %proj = ( id => $r->id, name => $r->name, path => $r->path, redirect => $r->redirect, prio => $r->prio );
-                push @projects, \%proj;
+                push @projs, \%proj;
             }
+            @projects = @projs;
             $wasdberror = 0;
             $initialized = 1;
         };
