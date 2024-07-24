@@ -18,6 +18,9 @@
                     <th class="col_value">Name</th>
                     <th class="col_value">Path</th>
                     <th class="col_value">Prio</th>
+                    <th class="col_ro">Size</th>
+                    <th class="col_ro">File Count</th>
+                    <th class="col_unixtime">Last Modified</th>
                     <th class="col_action">Actions</th>
                 </tr>
             </thead>

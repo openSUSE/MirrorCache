@@ -46,6 +46,10 @@ sub register_tasks {
     if ($app->mcconfig->mirror_provider) {
         push @permanent_jobs, 'mirror_provider_sync';
     }
+    eval {
+        my $projects = $app->mcproject->list;
+        push @permanent_jobs, 'report_project_size_schedule' if @$projects;
+    };
 
     $app->plugin($_)
       for (
@@ -67,6 +71,8 @@ sub register_tasks {
         qw(MirrorCache::Task::ProjectSyncSchedule),
         qw(MirrorCache::Task::Cleanup),
         qw(MirrorCache::Task::Report),
+        qw(MirrorCache::Task::ReportProjectSize),
+        qw(MirrorCache::Task::ReportProjectSizeSchedule),
         qw(MirrorCache::Task::StatAggSchedule),
       );
 }
@@ -113,7 +119,7 @@ eval {
 
     $app->hook(
         before_server_start => sub {
-            my $every = $ENV{MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL} // 15 * 60;
+            my $every = $ENV{MIRRORCACHE_PERMANENT_JOBS_CHECK_INTERVAL} // 5 * 60;
             $self->check_permanent_jobs;
             Mojo::IOLoop->next_tick(
                 sub {
@@ -132,6 +138,9 @@ sub check_permanent_jobs {
 eval {
     my $app    = shift->app;
     my $minion = $app->minion;
+    my $guard  = $minion->guard('check_permanent_jobs', 60);
+    return undef unless $guard;
+
     my $jobs   = $minion->jobs(
         {
             tasks  => \@permanent_jobs,

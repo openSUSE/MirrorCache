@@ -257,6 +257,14 @@ function renderAdminTableValue(data, type, row, meta) {
     return htmlEscape(data);
 }
 
+function renderAdminUnixtime(data, type, row, meta) {
+    return data ? new Date(data*1000).toISOString() : '';
+}
+
+function renderAdminReadonly(data, type, row, meta) {
+    return data ? data : '';
+}
+
 function renderAdminTableSettingsList(data, type, row, meta) {
     var plainText = type !== 'display';
     var edit = isEditingAdminTableRow(meta);
@@ -409,6 +417,11 @@ function setupAdminTable(editable) {
         } else {
             // columnName = th.text().trim().toLowerCase().replace(/ /g, '_');
             columnName = th.text().trim().toLowerCase();
+            if (columnName == 'file count') {
+                columnName = 'file cnt';
+            } else if (columnName == 'last modified') {
+                columnName = 'lm';
+            }
         }
         columns.push({ data: columnName });
 
@@ -428,6 +441,12 @@ function setupAdminTable(editable) {
                 columnDef.render = renderAdminTableValue;
             }
             emptyRow[columnName] = "";
+        } else if (th.hasClass('col_ro')) {
+            columnDef.render = renderAdminReadonly;
+            emptyRow.settings = {};
+        } else if (th.hasClass('col_unixtime')) {
+            columnDef.render = renderAdminUnixtime;
+            emptyRow.settings = {};
         } else if (th.hasClass('col_settings')) {
             columnDef.render = renderAdminTableSettings;
             emptyRow.settings = {};

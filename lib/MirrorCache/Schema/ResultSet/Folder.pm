@@ -404,4 +404,21 @@ END_SQL
     $prep->execute($pathfrom, $pathto, $pathto);
 }
 
+sub calculate_disk_usage {
+    my ($self, $path) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    $path = $path . "%";
+
+    my $sql = "select sum(file.size) size, count(*) file_cnt, max(mtime) lm from file join folder on folder_id = folder.id where path like ?";
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($path);
+    my $res = $dbh->selectrow_hashref($prep);
+    return ($res->{size}, $res->{file_cnt}, $res->{lm});
+}
+
+
 1;

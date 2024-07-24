@@ -414,3 +414,8 @@ create index if not exists rollout_version_inx on rollout(version);
 alter table folder_diff add column if not exists realfolder_id bigint;
 -- 36 up
 alter table project drop column etalon;
+-- 37 up
+alter table project
+            add column if not exists size     bigint,
+            add column if not exists file_cnt bigint,
+            add column if not exists lm       bigint;
