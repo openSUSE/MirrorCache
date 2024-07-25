@@ -265,6 +265,24 @@ function renderAdminReadonly(data, type, row, meta) {
     return data ? data : '';
 }
 
+function renderAdminSize(data, type, row, meta) {
+    if(type === 'display' && data) {
+        if (Math.abs(data) < 1024) {
+            return data;
+        }
+        const units = ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+        let u = -1;
+
+        do {
+            data /= 1024;
+            ++u;
+        } while (Math.round(Math.abs(data) * 10) >= 1024 && u < units.length - 1);
+
+         return data.toFixed(1) + ' ' + units[u];
+    }
+    return data ? data : '';
+}
+
 function renderAdminTableSettingsList(data, type, row, meta) {
     var plainText = type !== 'display';
     var edit = isEditingAdminTableRow(meta);
@@ -442,7 +460,7 @@ function setupAdminTable(editable) {
             }
             emptyRow[columnName] = "";
         } else if (th.hasClass('col_ro')) {
-            columnDef.render = renderAdminReadonly;
+            columnDef.render = (columnName == 'size'? renderAdminSize : renderAdminReadonly);
             emptyRow.settings = {};
         } else if (th.hasClass('col_unixtime')) {
             columnDef.render = renderAdminUnixtime;
