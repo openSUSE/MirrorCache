@@ -30,9 +30,6 @@ sub _run {
     return $job->finish('Previous report job is still active for ' . $path)
         unless my $guard = $minion->guard('report_project_size_' . $path, 30*60);
 
-    my $realpath = $app->mc->root->rootpath($path);
-    return $job->fail('Path not found: ' . $path) unless $realpath;
-
     my ($size, $file_cnt, $lm) = $app->schema->resultset('Folder')->calculate_disk_usage($path);
 
     $job->note("total size" => $size, "file count" => $file_cnt, "last modified" => $lm);

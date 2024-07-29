@@ -34,7 +34,7 @@ sub new {
 }
 
 my @permanent_jobs =
-  qw(folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses mirror_scan_schedule_from_path_errors mirror_scan_schedule project_sync_schedule cleanup stat_agg_schedule mirror_check_from_stat report);
+    qw(folder_sync_schedule_from_misses folder_sync_schedule mirror_scan_schedule_from_misses mirror_scan_schedule_from_path_errors mirror_scan_schedule project_sync_schedule cleanup stat_agg_schedule mirror_check_from_stat report report_project_size_schedule);
 
 sub register_tasks {
     my $self = shift;
@@ -46,10 +46,6 @@ sub register_tasks {
     if ($app->mcconfig->mirror_provider) {
         push @permanent_jobs, 'mirror_provider_sync';
     }
-    eval {
-        my $projects = $app->mcproject->list;
-        push @permanent_jobs, 'report_project_size_schedule' if @$projects;
-    };
 
     $app->plugin($_)
       for (
