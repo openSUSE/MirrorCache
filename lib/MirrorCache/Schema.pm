@@ -32,13 +32,15 @@ sub connect_db {
     $PROVIDER = $provider;
 
     unless ($SINGLETON) {
+        my @attr;
         if (pg()) {
             require Mojo::Pg;
         } else {
             require 'Mojo/' . $PROVIDER . '.pm';
+            @attr = (mysql_enable_utf8 => 1);
         }
 
-        $SINGLETON = __PACKAGE__->connect($dsn, $user, $pass);
+        $SINGLETON = __PACKAGE__->connect($dsn, $user, $pass, { @attr });
 
         if ($our_regions) {
             my @regions = split ',', $our_regions;

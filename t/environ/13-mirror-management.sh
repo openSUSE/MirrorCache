@@ -21,19 +21,20 @@ $mc/curl '/rest/server' \
 # Update mirror urldir and sponsor
 $mc/curl '/rest/server/2' \
     -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
-    --data-raw 'id=2&urldir=/somedir&sponsor=SUSE&hostname=127.0.0.1:1314&country=eu&enabled=0'
+    --data-raw 'id=2&urldir=/somedir&sponsor=Kormányzati&hostname=127.0.0.1:1314&country=eu&enabled=0'
 
-$mc/sql_test SUSE == 'select sponsor from server where id = 2'
+$mc/sql_test Kormányzati == 'select sponsor from server where id = 2'
+$mc/curl /rest/server | grep Kormányzati
 
 # Look for server_update event with both ids: who executed action and what was affected
-$mc/curl '/admin/auditlog/ajax?search\[value\]=event:server_update' | grep 'server_update' | grep '"user_id":-2' | grep '\\\"id\\\":\\\"2\\\"'
+$mc/curl '/admin/auditlog/ajax?search\[value\]=event:server_update' | grep 'server_update' | grep '"user_id":-2' | grep '\\"id\\":\\"2\\"'
 
 # Delete mirror
 $mc/curl '/rest/server/2' -X DELETE >/dev/null
 $mc/curl '/rest/server/2' -X DELETE | grep 'error'
 
 # Look for server_delete event with both ids: who executed action and what was affected
-$mc/curl '/admin/auditlog/ajax?search\[value\]=event:server_delete' | grep 'server_delete' | grep '"user_id":-2' | grep '\\\"id\\\":2'
+$mc/curl '/admin/auditlog/ajax?search\[value\]=event:server_delete' | grep 'server_delete' | grep '"user_id":-2' | grep '\\"id\\":2'
 
 $mc/curl -X POST /logout
 
