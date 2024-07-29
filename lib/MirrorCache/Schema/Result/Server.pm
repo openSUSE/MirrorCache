@@ -64,7 +64,7 @@ __PACKAGE__->has_many(
   "MirrorCache::Schema::Result::ServerCapabilityDeclaration",
   sub {
     my $args = shift;
-    return { 
+    return {
         "$args->{foreign_alias}.server_id" => { -ident => "$args->{self_alias}.id" },
         "$args->{foreign_alias}.extra"     => { '=', 'region' },
     };
