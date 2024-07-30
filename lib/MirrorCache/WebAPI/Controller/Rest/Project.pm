@@ -34,4 +34,13 @@ sub list {
     $self->render(json => $list);
 }
 
+sub last_modified {
+    my ($self) = @_;
+
+    my $name = $self->param("project");
+    my $prj = $self->schema->resultset('Project')->find({ name => $name });
+
+    $self->render(text => $prj->lm, status => 200);
+}
+
 1;
