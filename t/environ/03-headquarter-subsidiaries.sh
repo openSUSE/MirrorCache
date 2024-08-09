@@ -56,6 +56,9 @@ echo the root folder is not redirected
 curl --interface $eu_interface -Is http://$hq_address/ | grep '200 OK'
 curl --interface $eu_interface -Is http://$hq_address/download/folder1/media.1/media | grep '200 OK'
 
+mc9/curl -I -H 'Accept: */*, application/metalink+xml'                      /folder1/media.1/media | grep '200 OK'
+mc9/curl -I -H 'Accept: */*, application/metalink+xml, application/x-zsync' /folder1/media.1/media | grep '200 OK'
+
 echo check redirection from headquarter
 curl --interface $na_interface -Is http://$hq_address/download/folder1/filebig1.1.dat | grep "Location: http://$na_address/download/folder1/filebig1.1.dat"
 curl --interface $eu_interface -Is http://$hq_address/download/folder1/filebig1.1.dat | grep "Location: http://$eu_address/download/folder1/filebig1.1.dat"
