@@ -431,3 +431,6 @@ alter table project
             add column if not exists size     bigint,
             add column if not exists file_cnt bigint,
             add column if not exists lm       bigint;
+-- 38 up
+alter table server convert to character set utf8mb4 collate utf8mb4_bin;
+alter table report_body convert to character set utf8mb4 collate utf8mb4_bin;
