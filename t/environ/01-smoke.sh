@@ -135,7 +135,6 @@ $mc/curl /download/folder3/file1.1.dat.meta4    | grep '<url location="US" prior
 $mc/backstage/shoot -q hashes
 
 echo check zsync works
-# perl-Inline-C might be missing if it doesnt
 $mc/curl -H "Accept: */*, application/metalink+xml, application/x-zsync" /download/folder1/file9.1.dat \
     | grep -C 20 "URL: http://$($ap7/print_address)/folder1/file9.1.dat" \
     | grep -C 20 "URL: http://$($ap8/print_address)/folder1/file9.1.dat" \

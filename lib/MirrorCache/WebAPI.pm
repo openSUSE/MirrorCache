@@ -183,6 +183,7 @@ sub _setup_webui {
     $rest_r->get('/project/:id')->to('table#list', table => 'Project');
     $rest_r->get('/project/propagation/:project_id')->to('project_propagation#list');
     $rest_r->get('/project_last_modified')->to('project#last_modified');
+    $rest_r->get('/project_disk_usage')->to('project#disk_usage');
     $rest_r->get('/rollout_server/:version')->to('rollout_server#list');
 
     my $rest_operator_auth;

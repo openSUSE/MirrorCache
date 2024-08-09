@@ -40,7 +40,20 @@ sub last_modified {
     my $name = $self->param("project");
     my $prj = $self->schema->resultset('Project')->find({ name => $name });
 
+    return $self->render(text => 'Not found', status => 404) unless $prj && $prj->id;
+    return $self->render(text => 'No data', status => 201) unless $prj->lm;
     $self->render(text => $prj->lm, status => 200);
+}
+
+sub disk_usage {
+    my ($self) = @_;
+
+    my $name = $self->param("project");
+    my $prj = $self->schema->resultset('Project')->find({ name => $name });
+
+    return $self->render(text => 'Not found', status => 404) unless $prj && $prj->id;
+    return $self->render(text => 'No data', status => 201) unless defined $prj->size;
+    $self->render(text => $prj->size, status => 200);
 }
 
 1;

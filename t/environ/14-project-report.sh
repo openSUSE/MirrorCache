@@ -87,6 +87,10 @@ lm=$($mc/curl /rest/project_last_modified?project=proj1)
 
 test "$lm" == "$(date +%s -r $mc/dt/project1/folder2/file1.1.dat)"
 
+du=$($mc/curl '/rest/project_disk_usage?project=2.0+2')
+
+test "$du" == 13
+
 $mc/curl /report/mirrors | tidy --drop-empty-elements no | \
    grep -A4 -F '<div class="repo">' | \
    grep -A2 -F '"http://127.0.0.1:1304/project2/folder2">' | \
