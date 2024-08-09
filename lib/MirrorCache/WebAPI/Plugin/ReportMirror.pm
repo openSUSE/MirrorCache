@@ -17,6 +17,7 @@ package MirrorCache::WebAPI::Plugin::ReportMirror;
 use Mojo::Base 'Mojolicious::Plugin';
 
 use Mojo::JSON qw(decode_json encode_json);
+use Mojo::Util qw(encode);
 use Mojo::File;
 
 my $last_cache_run; # last time when we saved reports into cache
@@ -53,6 +54,7 @@ sub _list {
         } else {
             $dt   = $res[0];
             $body = $res[1];
+            $body = encode('UTF-8',$body) unless $c->schema->pg;
             $report = decode_json($body);
         }
         $waserror = 0;
@@ -114,6 +116,7 @@ sub _list_geo_from_db {
     my $sql = 'select dt, body, tag from report_body where report_id = 1 and tag = ? order by dt desc limit 1';
     my @res = $c->schema->storage->dbh->selectrow_array($sql, {}, 'local');
     my $body = $res[1];
+    $body = encode('UTF-8',$body) unless $c->schema->pg;
     my $report = decode_json($body);
     my @report = @$report;
     my %regions_res;

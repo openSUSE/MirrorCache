@@ -33,7 +33,7 @@ rm -r $ap4/dt/project1/
 
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap6/print_address)','','t','us','na'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap7/print_address)','','t','us','na'"
-$mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap8/print_address)','','t','de','eu'"
+$mc/sql "insert into server(hostname,urldir,enabled,country,region,sponsor) select '$($ap8/print_address)','','t','de','eu','Poznań'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap5/print_address)','','t','cn','as'"
 $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($ap4/print_address)','','t','jp','as'"
 
@@ -64,19 +64,19 @@ $mc/curl /rest/repmirror  | grep -F '"country":"jp","proj1score":"0","proj2score
 echo proj1 is not on ap4, so it shouldnt appear in repmirror at all
 test $rc -gt 0
 
-$mc/curl /rest/repmirror  | grep -F '{"country":"cn","hostname":"127.0.0.1:1284"'
+$mc/curl /rest/repmirror  | grep -F '{"country":"cn","hostname":"127.0.0.1:1284"' | grep -oF '"sponsor":"Poznań"'
 
 $mc/curl /rest/project | grep -F '"id":2,"name":"proj 2","path":"\/project2"' | grep -F '"id":1,"name":"proj1","path":"\/project1"'
 
 echo check the same when DB is offline
 $mc/db/stop
-$mc/curl /rest/repmirror  | grep -F '{"country":"cn","hostname":"127.0.0.1:1284","proj1score":'
+$mc/curl /rest/repmirror  | grep -F '{"country":"cn","hostname":"127.0.0.1:1284","proj1score":' | grep -oF '"sponsor":"Poznań"'
 
 echo now restart the service while DB is offline
 $mc/stop
 ENVIRON_MC_DB_AUTOSTART=0 $mc/start
 
-$mc/curl /rest/repmirror  | grep -F '{"country":"cn","hostname":"127.0.0.1:1284","proj1score":'
+$mc/curl /rest/repmirror  | grep -F '{"country":"cn","hostname":"127.0.0.1:1284","proj1score":' | grep -oF '"sponsor":"Poznań"'
 
 $mc/db/start
 
