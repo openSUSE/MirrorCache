@@ -116,6 +116,7 @@ sub _list_geo_from_db {
     my $sql = 'select dt, body, tag from report_body where report_id = 1 and tag = ? order by dt desc limit 1';
     my @res = $c->schema->storage->dbh->selectrow_array($sql, {}, 'local');
     my $body = $res[1];
+    $body = encode('UTF-8',$body) unless $c->schema->pg;
     my $report = decode_json($body);
     my @report = @$report;
     my %regions_res;
