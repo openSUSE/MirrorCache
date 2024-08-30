@@ -37,7 +37,7 @@ install:
 	for i in dist/systemd/*.service; do \
 		install -m 644 $$i "${DESTDIR}"/usr/lib/systemd/system ;\
 	done
-	install -D -m 755 -d "${DESTDIR}"/etc/mirrorcache
+	install -D -m 750 -d "${DESTDIR}"/etc/mirrorcache
 
 setup_system_user:
 	getent group ${MC_SRV_GROUP} > /dev/null || groupadd ${MC_SRV_GROUP}
