@@ -50,11 +50,11 @@ podman_info="$($PODMAN info >/dev/null 2>&1)" || {
 mkdir -p $thisdir/src
 cp $thisdir/../data/city.mmdb $thisdir/src/
 
-$PODMAN build -t $ident.image -f $thisdir/Dockerfile.systemd.$MIRRORCACHE_DB_PROVIDER $thisdir
+$PODMAN build --net=host -t $ident.image -f $thisdir/Dockerfile.systemd.$MIRRORCACHE_DB_PROVIDER $thisdir
 
 map_port=""
 [ -z "$EXPOSE_PORT" ] || map_port="-p $EXPOSE_PORT:80"
-$PODMAN run --privileged $map_port --rm --name "$containername" -d -v"$thisdir/../..":/opt/project -e MIRRORCACHE_DB_PROVIDER=$MIRRORCACHE_DB_PROVIDER -- $ident.image
+$PODMAN run --net=host --privileged $map_port --rm --name "$containername" -d -v"$thisdir/../..":/opt/project -e MIRRORCACHE_DB_PROVIDER=$MIRRORCACHE_DB_PROVIDER -- $ident.image
 
 in_cleanup=0
 
