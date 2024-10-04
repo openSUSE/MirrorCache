@@ -1,7 +1,7 @@
 [Unit]
 Description=MirrorCache webApp
+After=systemd-tmpfiles-setup.service postgresql.service mariadb.service nss-lookup.target
 Before=apache2.service
-After=postgresql.service mariadb.service nss-lookup.target
 
 [Service]
 User=mirrorcache
@@ -9,6 +9,7 @@ Group=mirrorcache
 ExecStart=/usr/share/mirrorcache/script/mirrorcache-daemon
 EnvironmentFile=/etc/mirrorcache/conf.env
 WorkingDirectory=/var/lib/mirrorcache
+Environment="MOJO_TMPDIR=/tmp/mirrorcache"
 
 [Install]
 WantedBy=multi-user.target

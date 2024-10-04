@@ -1,5 +1,6 @@
 [Unit]
 Description=MirrorCache daemon for file hashes calculation jobs
+After=systemd-tmpfiles-setup.service postgresql.service mariadb.service
 
 [Service]
 User=mirrorcache
@@ -11,6 +12,7 @@ RestartSec=10
 EnvironmentFile=/etc/mirrorcache/conf.env
 EnvironmentFile=-/etc/mirrorcache/conf-hashes.env
 WorkingDirectory=/var/lib/mirrorcache
+Environment="MOJO_TMPDIR=/tmp/mirrorcache"
 
 [Install]
 WantedBy=multi-user.target

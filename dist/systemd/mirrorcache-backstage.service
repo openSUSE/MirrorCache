@@ -1,6 +1,6 @@
 [Unit]
 Description=MirrorCache daemon for background jobs
-After=postgresql.service
+After=systemd-tmpfiles-setup.service postgresql.service mariadb.service
 
 [Service]
 User=mirrorcache
@@ -11,6 +11,7 @@ Restart=on-failure
 RestartSec=10
 EnvironmentFile=/etc/mirrorcache/conf.env
 WorkingDirectory=/var/lib/mirrorcache
+Environment="MOJO_TMPDIR=/tmp/mirrorcache"
 
 [Install]
 WantedBy=multi-user.target
