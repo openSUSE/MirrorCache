@@ -305,7 +305,11 @@ sub _foreach_filename_html {
 
         if ($t && ($href20 eq substr($t,0,20))) {
             if ($desc{name} && (!$P || $desc{name} =~ $P)) {
-                my ($target, undef, undef) = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
+                my $target;
+
+                if ($desc{name} =~ m/(GNOME_.*|.*(Media|[C|c]urrent|Next))\.iso(\.sha256(\.asc)?)?/) {
+                    ($target, undef, undef) = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
+                }
                 $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
                 %desc = ();
             }
@@ -346,7 +350,11 @@ sub _foreach_filename_html {
         $p->parse($chunk);
     }
     if ($desc{name} && (!$P || $desc{name} =~ $P)) {
-        my ($target, undef, undef) = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
+        my $target;
+
+        if ($desc{name} =~ m/(GNOME_.*|.*(Media|[C|c]urrent|Next))\.iso(\.sha256(\.asc)?)?/) {
+            ($target, undef, undef) = $self->_detect_ln_in_the_same_folder($dir, $desc{name});
+        }
         $sub->($desc{name}, $desc{size}, undef, $desc{mtime}, $target);
         %desc = ();
     }
