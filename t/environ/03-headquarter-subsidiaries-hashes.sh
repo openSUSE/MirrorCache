@@ -79,6 +79,7 @@ for i in 9 6 7 8; do
     ( cd mc$i/dt/folder1/ && ln -s file4.1.dat file-Media.iso )
     ( cd mc$i/dt/folder1/ && ln -s file4.1.dat xcurr.dat )
     ( cd mc$i/dt/folder1/ && ln -s file4.1.dat.zsync xcurr.dat.zsync )
+    ( cd mc$i/dt/folder1/ && ln -s file4.1.dat xfile-NoCloud.qcow2 )
     mc$i/backstage/job -e folder_sync -a '["/folder1"]'
     mc$i/backstage/shoot
     mc$i/backstage/shoot -q hashes
@@ -87,6 +88,7 @@ for i in 9 6 7 8; do
         ext=""
         [ -z "$x" ] || ext=.$x
         mc$i/curl -I /folder1/file-Media.iso$ext | grep -C 10 302 | grep /folder1/file4.1.dat$ext | grep -v /download/folder1/file4.1.dat
+        mc$i/curl -I /folder1/xfile-NoCloud.qcow2$ext | grep -C 10 302 | grep /folder1/file4.1.dat$ext | grep -v /download/folder1/file4.1.dat
     done
 done
 
@@ -102,11 +104,11 @@ for i in 6 7 8 9; do
     mc$i/backstage/shoot
     MIRRORCACHE_HASHES_IMPORT_RETRY_DELAY=$DELAY mc$i/backstage/shoot -q hashes
     if test $i != 9; then
-        test -z $(mc$i/sql "select md5 from hash where file_id=8")
         test -z $(mc$i/sql "select md5 from hash where file_id=9")
+        test -z $(mc$i/sql "select md5 from hash where file_id=10")
     else
-        test $(mc$i/sql "select md5 from hash where file_id=8") == $(mc$i/sql 'select md5 from hash where file_id=9')
-        test $(mc$i/sql "select md5 from hash where file_id=3") != $(mc$i/sql 'select md5 from hash where file_id=8')
+        test $(mc$i/sql "select md5 from hash where file_id=9") == $(mc$i/sql 'select md5 from hash where file_id=10')
+        test $(mc$i/sql "select md5 from hash where file_id=3") != $(mc$i/sql 'select md5 from hash where file_id=9')
     fi
 done
 
@@ -118,9 +120,12 @@ mc9/curl -I /download/folder1/file-Media.iso?metalink   | grep 'Location: /downl
 mc9/curl -I /download/folder1/file-Media.iso.mirrorlist | grep 'Location: /download/folder1/file4.1.dat\.mirrorlist'
 mc9/curl -I /download/folder1/file-Media.iso?mirrorlist | grep 'Location: /download/folder1/file4.1.dat?mirrorlist='
 
-mc9/curl -I /download/folder1/xcurr.dat            | grep "Location: http://$na_address/download/folder1/xcurr.dat"
-mc9/curl -I /download/folder1/xcurr.dat.metalink   | grep "Location: http://$na_address/download/folder1/xcurr.dat.metalink"
-mc9/curl -I /download/folder1/xcurr.dat?meta4      | grep "Location: http://$na_address/download/folder1/xcurr.dat?meta4"
+# mc9/curl -I /download/folder1/xcurr.dat            | grep "Location: http://$na_address/download/folder1/xcurr.dat"
+# mc9/curl -I /download/folder1/xcurr.dat.metalink   | grep "Location: http://$na_address/download/folder1/xcurr.dat.metalink"
+# mc9/curl -I /download/folder1/xcurr.dat?meta4      | grep "Location: http://$na_address/download/folder1/xcurr.dat?meta4"
+mc9/curl -I /download/folder1/xcurr.dat            | grep 'Location: /download/folder1/file4.1.dat'
+mc9/curl -I /download/folder1/xcurr.dat.metalink   | grep 'Location: /download/folder1/file4.1.dat.metalink'
+mc9/curl -I /download/folder1/xcurr.dat?meta4      | grep 'Location: /download/folder1/file4.1.dat?meta4'
 mc9/curl -I /download/folder1/xcurr.dat.mirrorlist | grep '/folder1/file4.1.dat.mirrorlist'
 
 
@@ -137,8 +142,8 @@ mc6/curl -I /download/folder1/xcurr.dat.mirrorlist | grep '/folder1/file4.1.dat\
 # now the hashes on subsidiaries should be retried and match the headquarter
 for i in 6 7 8; do
     mc$i/backstage/shoot -q hashes
-    test $(mc$i/sql "select md5 from hash where file_id=8") == $(mc9/sql 'select md5 from hash where file_id=9')
-    test $(mc$i/sql "select md5 from hash where file_id=3") != $(mc9/sql 'select md5 from hash where file_id=9')
+    test $(mc$i/sql "select md5 from hash where file_id=9") == $(mc9/sql 'select md5 from hash where file_id=10')
+    test $(mc$i/sql "select md5 from hash where file_id=3") != $(mc9/sql 'select md5 from hash where file_id=10')
 done
 
 echo success

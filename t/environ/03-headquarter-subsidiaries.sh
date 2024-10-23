@@ -93,9 +93,7 @@ curl --interface $hq_interface -Is http://$hq_address/download/folder1/filehuge1
 echo test cache-control
 curl --interface $na_interface -Is http://$hq_address/download/folder1/filebig1.1.dat | grep -i 'cache-control'
 curl --interface $na_interface -Is http://$hq_address/download/folder1/filehuge1.1.dat | grep -i 'cache-control'
-rc=0
-curl --interface $na_interface -Is http://$hq_address/download/folder1/filesmall1.1.dat | grep -i 'cache-control' || rc=$?
-test $rc -gt 0
+curl --interface $na_interface -Is http://$hq_address/download/folder1/filesmall1.1.dat | grep -i 'cache-control'
 
 echo check content-type
 ct=$($mc9/curl -I /download/folder1/file.json | grep Content-Type)

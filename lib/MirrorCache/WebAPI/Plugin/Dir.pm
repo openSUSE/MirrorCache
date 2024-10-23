@@ -85,9 +85,10 @@ sub indx {
       $success =
          _render_hashes($dm)
       || _render_if_not_modified($dm)
-      || _render_small($dm)
       || _set_cache_control($dm)
-      || _redirect_project_ln_geo($dm)
+      || _redirect_ln($dm)
+      || _render_small($dm)
+      || _redirect_project_geo($dm)
       || _redirect_normalized($dm)
       || _render_stats($dm)
       || _local_render($dm, 0) # check if we should render local
@@ -224,11 +225,38 @@ sub _render_dir {
 }
 
 # this combines similar checks for redirecting as specified in DB links and projects, as well as subsidiaries
-sub _redirect_project_ln_geo {
+sub _redirect_ln {
+    my $dm = shift;
+    my ($path, $trailing_slash) = $dm->path;
+    return undef if $trailing_slash || !$dm->pedantic;
+
+    my $c = $dm->c;
+    $c->log->error($c->dumper('DIR::render_ln')) if $MCDEBUG;
+    my ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($dm->original_path);
+    my $extra = 1;
+    unless ($ln) {
+        ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($path);
+        $extra = 0;
+    }
+    $c->log->error("ln for $path : " . ($ln // 'null')) if $MCDEBUG;
+    if ($ln) {
+        # redirect to the symlink
+        $c->log->error('redirect detected: ' . $ln . ": " . $c->dumper($dm->accept_all, $dm->accept)) if $MCDEBUG;
+        $c->res->headers->etag($etag) if $etag;
+        $c->res->headers->add('X-MEDIA-VERSION' => $version) if $version;
+        $dm->redirect($dm->route . $ln, $extra && ($dm->accept_all || !$dm->accept));
+        return 1;
+    }
+    return undef;
+}
+
+# this combines similar checks for redirecting as specified in DB links and projects, as well as subsidiaries
+sub _redirect_project_geo {
     my $dm = shift;
     my ($path, $trailing_slash) = $dm->path;
 
     my $c = $dm->c;
+    $c->log->error($c->dumper('DIR::render_project_ln_geo')) if $MCDEBUG;
     # each project may have a redirect defined in DB, so all requests are redirected for it
     unless ($trailing_slash) {
         my $redirect = $c->mcproject->redirect($path, $dm->region);
@@ -236,25 +264,6 @@ sub _redirect_project_ln_geo {
             $dm->redirect($dm->scheme . '://' . $redirect . $path);
             $c->stat->redirect_to_region($dm);
             return 1;
-        }
-
-        $c->log->error('pedantic: ' . ($dm->pedantic // 'undef')) if $MCDEBUG;
-        if ($path =~ m/(GNOME_.*|.*(Media|[C|c]urrent|Next))\.iso(\.sha256(\.asc)?)?/ && $dm->pedantic) {
-            my ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($dm->original_path);
-            my $extra = 1;
-            unless ($ln) {
-                ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($path);
-                $extra = 0;
-            }
-            $c->log->error("ln for $path : " . ($ln // 'null')) if $MCDEBUG;
-            if ($ln) {
-                # redirect to the symlink
-                $c->log->error('redirect detected: ' . $ln . ": " . $c->dumper($dm->accept_all, $dm->accept)) if $MCDEBUG;
-                $c->res->headers->etag($etag) if $etag;
-                $c->res->headers->add('X-MEDIA-VERSION' => $version) if $version;
-                $dm->redirect($dm->route . $ln, $extra && ($dm->accept_all || !$dm->accept));
-                return 1;
-            }
         }
     }
     return undef if $trailing_slash || $path eq '/' || $dm->mirrorlist;
@@ -779,7 +788,7 @@ sub _render_small {
     my $c=$dm->c;
     $c->log->error('DIR::render_small1') if $MCDEBUG;
     return undef unless ($small_file_size && ($root_nfs || !$root->is_remote));
-    $dm->_init_path;
+    # $dm->_init_path;
     $c->log->error('DIR::render_small2') if $MCDEBUG;
     return undef if ($dm->metalink && !$dm->accept_all) || ($dm->meta4 && !$dm->accept_all) || $dm->mirrorlist || ($dm->zsync && !$dm->accept_all);
     $c->log->error('DIR::render_small3') if $MCDEBUG;
