@@ -227,14 +227,17 @@ sub _render_dir {
 # this combines similar checks for redirecting as specified in DB links and projects, as well as subsidiaries
 sub _redirect_ln {
     my $dm = shift;
-    my ($path, $trailing_slash) = $dm->path;
-    return undef if $trailing_slash || !$dm->pedantic;
-
     my $c = $dm->c;
-    $c->log->error($c->dumper('DIR::render_ln')) if $MCDEBUG;
-    my ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($dm->original_path);
+    return undef if !$dm->pedantic;
+    my ($path, $trailing_slash) = $dm->path;
+
+    return undef if $trailing_slash;
+    return undef unless ($dm->extra || $path =~ m/([C|c]urrent)\.iso(\.sha256(\.asc)?)?/);
+    my $original_path = $dm->original_path;
+    my ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($original_path);
+    return undef if ($ln &&  $dm->extra && !$dm->accept && $original_path ne $path ); # e.g. requested .zsync file and it exists
     my $extra = 1;
-    unless ($ln) {
+    unless ($ln || $original_path eq $path) {
         ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($path);
         $extra = 0;
     }
@@ -256,7 +259,7 @@ sub _redirect_project_geo {
     my ($path, $trailing_slash) = $dm->path;
 
     my $c = $dm->c;
-    $c->log->error($c->dumper('DIR::render_project_ln_geo')) if $MCDEBUG;
+    $c->log->error($c->dumper('DIR::render_project_geo')) if $MCDEBUG;
     # each project may have a redirect defined in DB, so all requests are redirected for it
     unless ($trailing_slash) {
         my $redirect = $c->mcproject->redirect($path, $dm->region);
@@ -363,7 +366,11 @@ sub _local_render {
     return _render_top_folders($dm) if @top_folders && $path eq '/';
     my $original_path = $dm->original_path;
 
-    return $root->render_file_if_nfs($dm, $path) if $root->is_remote && ($original_path eq $path || (!$dm->extra && !$dm->accept));
+    if ($root->is_remote && ($original_path eq $path || (!$dm->extra && !$dm->accept))) {
+        if ($accept || $dm->must_render_from_root) {
+            return $root->render_file_if_nfs($dm, $path);
+        }
+    }
     return undef if $root->is_remote;
     $c->log->error($c->dumper('local_render3: ')) if $MCDEBUG;
 
@@ -470,7 +477,7 @@ sub _render_from_db {
                     $path = $path . '.zsync';
                 }
 
-                if ($file->{target}) {
+                if ($file->{target} && 1 < index($file->{name}, 'Current')) {
                     # redirect to the symlink
                     my $eq = ($file->{name} eq substr($dm->original_path, -length($file->{name})));
                     $dm->redirect($dm->route . $dirname . '/' . $file->{target}, ($eq && ($dm->accept_all || !$dm->accept)));
