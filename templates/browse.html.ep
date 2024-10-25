@@ -53,13 +53,16 @@ a::after{
       % if ($folder_id_safe) {
       <li class="breadcrumb-item active"><a href="<%= url_for("/app/folder/$folder_id") %>"><%== $bc_last %></a></li>
       % } elsif ($bc_last) {
-      <li class="breadcrumb-item active"><%== $bc_last %></a></li>
+      <li class="breadcrumb-item active"><%== $bc_last %></li>
       % }
     </ol>
   </div>
 
 % content_for 'ready_function' => begin
-    setupBrowseTable("<%= $full_path %>");
+% if ($re_pattern) {
+  document.getElementById('browse_api_url').value += "&" + encodeURI("<%=$re_pattern%>");
+% }
+  setupBrowseTable("<%= $full_path %>");
 % end
 
 <form id='ajaxform'>
@@ -77,7 +80,7 @@ a::after{
             <tbody>
             </tbody>
         </table>
-        <input type="hidden" id="browse_api_url" value="/download<%= $cur_path %>/?jsontable<%==$re_pattern%>"/>
+        <input type="hidden" id="browse_api_url" value="/download<%= $cur_path %>/?jsontable"/>
     </div>
     % if ($sl) {
         <span style="font-size: 75%;margin-right:2px;">DB was </span>
