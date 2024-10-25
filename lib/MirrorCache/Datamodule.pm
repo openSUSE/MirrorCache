@@ -171,7 +171,7 @@ sub avoid_countries($self) {
 
 sub pedantic($self) {
     unless (defined $self->_pedantic) {
-        $self->_init_location;
+        $self->_init_path;
     }
     return $self->_pedantic;
 }
@@ -605,7 +605,7 @@ sub _init_path($self) {
         }
     }
 
-    $self->_pedantic($pedantic) if defined $pedantic;
+    $self->_pedantic($pedantic // 0);
 
     $self->agent; # parse headers
     if (

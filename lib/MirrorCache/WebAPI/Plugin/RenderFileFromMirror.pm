@@ -121,6 +121,23 @@ sub register {
         $fileoriginpath = $realdirname . '/' . $basename if $realdirname ne $dirname;
         return $root->render_file($dm, $fileoriginpath, 1) if $dm->must_render_from_root && !$c->req->headers->if_modified_since; # && $root->is_reachable;
 
+        # check if file is a symlink in the same folder
+        my ($ln, $etag, $version) = ($basename, undef, undef);
+        unless ($root->is_remote) {
+            ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($dm->original_path);
+            my $extra = 1;
+            unless ($ln) {
+                ($ln, $etag, $version) = $root->detect_ln_in_the_same_folder($filepath);
+                $extra = 0;
+            }
+        }
+        if($ln) {
+            my @arr = split /\//,$ln; # split path
+            $ln = $arr[(scalar(@arr))-1];
+        } else {
+            $ln = $basename;
+        }
+
         if ($folder || $realfolder_id) {
             my $fldid = ($realfolder_id? $realfolder_id : $folder_id);
             $folder_id = $fldid unless $folder_id;
@@ -129,11 +146,11 @@ sub register {
             $x = '.zsync' if  ($dm->zsync && !$dm->accept_zsync);
 
             if (!$dm->zsync) {
-                $file = $schema->resultset('File')->find_with_hash($fldid, $basename, $x) unless $file;
+                $file = $schema->resultset('File')->find_with_hash($fldid, $ln, $x) unless $file;
             } elsif (!$dm->meta4 && !$dm->metalink) {
-                $file = $schema->resultset('File')->find_with_zhash($fldid, $basename, $x);
+                $file = $schema->resultset('File')->find_with_zhash($fldid, $ln, $x);
             } else {
-                $file = $schema->resultset('File')->find_with_hash_and_zhash($fldid, $basename, $x);
+                $file = $schema->resultset('File')->find_with_hash_and_zhash($fldid, $ln, $x);
             }
         }
         my $country = $dm->country;
@@ -150,7 +167,11 @@ sub register {
 
         $c->log->error($c->dumper('RENDER FILE_ID', $file->{id})) if $MCDEBUG;
         $c->res->headers->vary('Accept, COUNTRY, X-COUNTRY, Fastly-SSL');
-        $c->res->headers->etag($dm->etag) if defined $dm->file_size;
+        if ($etag) {
+            $c->res->headers->etag($etag);
+        } elsif (defined $dm->file_size) {
+            $c->res->headers->etag($dm->etag);
+        }
         $c->res->headers->add('X-MEDIA-VERSION' => $dm->media_version) if $dm->media_version;
 
         my $mtime = $file->{mtime};
@@ -203,7 +224,7 @@ sub register {
         my $realproject_id;
         $realproject_id = $c->mcproject->get_id($realdirname) if ($realfolder_id && $realfolder_id != $folder_id);
         my $limit = $dm->mirrorlist ? 300 : (( $dm->metalink || $dm->meta4 || $dm->zsync || $dm->pedantic )? $dm->metalink_limit : 1);
-        my $cnt = _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $file->{name}, $folder_id, $project_id, $realfolder_id, $realproject_id, $limit);
+        my $cnt = _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, $file->{id}, $basename, $folder_id, $project_id, $realfolder_id, $realproject_id, $limit);
 
         my $mirror;
         $mirror = $mirrors_country[0] if @mirrors_country;
