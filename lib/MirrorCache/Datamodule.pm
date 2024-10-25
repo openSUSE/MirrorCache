@@ -279,8 +279,11 @@ sub re_pattern($self) {
     my ($regex, $glob) = ($self->regex, $self->glob);
 
     my $res = '';
-    $res = "&REGEX=$regex" if $regex;
-    $res = "$res&P=$glob"  if $glob;
+    if ($regex) {
+        $res = "REGEX=$regex";
+    } elsif ($glob) {
+        $res = "P=$glob";
+    }
     return $res;
 }
 
