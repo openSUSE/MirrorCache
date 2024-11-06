@@ -11,7 +11,7 @@ Restart=on-failure
 RestartSec=10
 EnvironmentFile=/etc/mirrorcache/conf.env
 WorkingDirectory=/var/lib/mirrorcache
-Environment="MOJO_TMPDIR=/tmp/mirrorcache"
+Environment="MOJO_TMPDIR=/var/lib/mirrorcache/tmp"
 
 [Install]
 WantedBy=multi-user.target

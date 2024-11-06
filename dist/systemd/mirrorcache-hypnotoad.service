@@ -13,7 +13,7 @@ ExecReload=/usr/share/mirrorcache/script/mirrorcache-hypnotoad
 EnvironmentFile=/etc/mirrorcache/conf.env
 KillMode=process
 WorkingDirectory=/var/lib/mirrorcache
-Environment="MOJO_TMPDIR=/tmp/mirrorcache"
+Environment="MOJO_TMPDIR=/var/lib/mirrorcache/tmp"
 
 [Install]
 WantedBy=multi-user.target
