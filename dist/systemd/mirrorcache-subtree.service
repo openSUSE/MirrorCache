@@ -10,7 +10,7 @@ EnvironmentFile=-/etc/mirrorcache/conf.env
 EnvironmentFile=/etc/mirrorcache/conf-subtree.env
 ExecStart=/usr/share/mirrorcache/script/mirrorcache-daemon
 WorkingDirectory=/var/lib/mirrorcache
-Environment="MOJO_TMPDIR=/tmp/mirrorcache"
+Environment="MOJO_TMPDIR=/var/lib/mirrorcache/tmp"
 
 [Install]
 WantedBy=multi-user.target
