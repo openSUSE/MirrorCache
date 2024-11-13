@@ -434,3 +434,24 @@ alter table project
 -- 38 up
 alter table server convert to character set utf8mb4 collate utf8mb4_bin;
 alter table report_body convert to character set utf8mb4 collate utf8mb4_bin;
+-- 39 up
+create table if not exists metapkg (
+    id bigint NOT NULL AUTO_INCREMENT primary key,
+    name varchar(512) UNIQUE NOT NULL,
+    t_created  timestamp default current_timestamp
+);
+
+create table if not exists pkg (
+    id bigint NOT NULL AUTO_INCREMENT primary key,
+    metapkg_id bigint NOT NULL,
+    folder_id  bigint NOT NULL,
+    os_id      int,
+    os_version varchar(16),
+    arch_id    smallint,
+    repository varchar(128),
+    t_created  timestamp default current_timestamp,
+    CONSTRAINT pkg_folder UNIQUE (folder_id, metapkg_id)
+);
+
+create index if not exists pkg_metapkg_id_idx on pkg(metapkg_id);
+

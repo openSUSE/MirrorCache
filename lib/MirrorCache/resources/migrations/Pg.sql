@@ -419,3 +419,26 @@ alter table project
             add column if not exists size     bigint,
             add column if not exists file_cnt bigint,
             add column if not exists lm       bigint;
+-- 38 up
+-- noop
+-- 39 up
+create table if not exists metapkg (
+    id serial NOT NULL PRIMARY KEY,
+    name varchar(512) UNIQUE NOT NULL,
+    t_created  timestamp default current_timestamp
+);
+
+create table if not exists pkg (
+    id serial NOT NULL PRIMARY KEY,
+    metapkg_id bigint NOT NULL,
+    folder_id  bigint NOT NULL,
+    os_id      int,
+    os_version varchar(16),
+    arch_id    smallint,
+    repository varchar(128),
+    t_created  timestamp default current_timestamp,
+    CONSTRAINT pkg_folder UNIQUE (folder_id, metapkg_id)
+);
+
+create index if not exists pkg_metapkg_id_idx on pkg(metapkg_id);
+

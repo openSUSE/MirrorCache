@@ -16,11 +16,11 @@
          <li class='nav-item' id="server">
             %= link_to 'Mirrors' => url_for('server') => class => 'nav-link'
          </li>
+         <li class='nav-item' id="package">
+            %= link_to 'Packages' => url_for('/app/package') => class => 'nav-link'
+         </li>
          <li class='nav-item' id="project">
             %= link_to 'Projects' => url_for('/app/project') => class => 'nav-link'
-         </li>
-         <li class='nav-item' id="folder">
-            %= link_to 'Folders' => url_for('folder') => class => 'nav-link'
          </li>
          <li class='nav-item' id="stat">
             %= link_to 'Statistics' => url_for('/rest/stat') => class => 'nav-link'
