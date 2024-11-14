@@ -52,7 +52,7 @@ zypper refresh -s
 zypper install MirrorCache
 
 zypper install postgresql postgresql-server
-systemctl enable postgresql
+systemctl enable --now postgresql
 
 sudo -u postgres createuser mirrorcache
 sudo -u postgres createdb mirrorcache
@@ -63,8 +63,8 @@ MIRRORCACHE_TOP_FOLDERS='debug distribution factory history ports repositories s
 MOJO_LISTEN=http://*:8000
 " >> /etc/mirrorcache/conf.env
 
-systemctl enable mirrorcache
-systemctl enable mirrorcache-backstage
+systemctl enable --now mirrorcache
+systemctl enable --now mirrorcache-backstage
 ```
 
 ### Setup systemd from source
