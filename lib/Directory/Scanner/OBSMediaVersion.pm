@@ -39,7 +39,7 @@ sub parse_pkg($filename) {
 
 # return name, version, build, arch
 sub parse_pkg_rpm($basename) {
-    return undef unless ($basename =~ m/(.*)-([^-]+)-([^-]+)\.(x86_64|noarch|i[3-6]86)|ppc64|aarch64|arm64|amd64|s390|src/);
+    return undef unless ($basename =~ m/(.*)-([^-]+)-([^-]+)\.(x86_64|noarch|i[3-6]86|ppc64|aarch64|arm64|amd64|s390|src)/);
     return ($1, $2, $3, $4);
 }
 
