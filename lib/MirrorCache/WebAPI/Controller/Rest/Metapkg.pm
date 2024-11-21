@@ -37,6 +37,8 @@ sub search_locations {
     my $p_os       = $self->param('os');
     my $p_os_ver   = $self->param('os_ver');
     my $p_repo     = $self->param('repo');
+    my $p_ign_path = $self->param('ignore_path');
+    my $p_ign_file = $self->param('ignore_file');
 
     my $sql_from = <<'END_SQL';
 select metapkg.name, folder.path as path, file.name as file, file.size as size, file.mtime as time
@@ -75,6 +77,14 @@ END_SQL
         push @parms, $p_repo;
         push @parms, ($arch ? $arch : '%');
     }
+    if ($p_ign_path) {
+        $sql_where = "$sql_where and folder.path not like concat('%', ?::text, '%')";
+        push @parms, $p_ign_path;
+    }
+    if ($p_ign_file) {
+        $sql_where = "$sql_where and file.name not like concat('%', ?::text, '%')";
+        push @parms, $p_ign_file;
+    }
 
     my $sql = $sql_from . "\n"  . $sql_where;
 
@@ -95,6 +105,8 @@ sub search {
     my $p_os       = $self->param('os');
     my $p_os_ver   = $self->param('os_ver');
     my $p_repo     = $self->param('repo');
+    my $p_ign_path = $self->param('ignore_path');
+    my $p_ign_file = $self->param('ignore_file');
 
     my $sql_from = <<'END_SQL';
 select distinct metapkg.name
@@ -110,7 +122,7 @@ END_SQL
         $arch = "%$p";
     }
 
-    if ($p_official || $p_os || $p_repo) {
+    if ($p_official || $p_os || $p_repo || $p_ign_path) {
         $sql_from = "$sql_from\njoin folder on pkg.folder_id = folder.id";
     }
 
@@ -132,6 +144,14 @@ END_SQL
         $sql_where = "$sql_where and folder.path like concat('%/', ?::text, '/', ?::text)";
         push @parms, $p_repo;
         push @parms, ($arch ? $arch : '%');
+    }
+    if ($p_ign_path) {
+        $sql_where = "$sql_where and folder.path not like concat('%', ?::text, '%')";
+        push @parms, $p_ign_path;
+    }
+    if ($p_ign_file) {
+        $sql_where = "$sql_where and metapkg.name not like concat('%', ?::text, '%')";
+        push @parms, $p_ign_file;
     }
 
     my $sql = $sql_from . "\n"  . $sql_where;

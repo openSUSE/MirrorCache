@@ -5,6 +5,8 @@ var pkg_param_official;
 var pkg_param_os;
 var pkg_param_os_ver;
 var pkg_param_repo;
+var pkg_param_ign_path;
+var pkg_param_ign_file;
 
 function initPackageParams() {
 
@@ -18,6 +20,8 @@ function initPackageParams() {
     pkg_param_os = urlParams.get('os');
     pkg_param_os_ver = urlParams.get('os_ver');
     pkg_param_repo = urlParams.get('repo');
+    pkg_param_ign_path = urlParams.get('ignore_path');
+    pkg_param_ign_file = urlParams.get('ignore_file');
 
     if (pkg_param_pkg) {
         ( document.getElementById("packag") || {} ).value = pkg_param_pkg;
@@ -37,6 +41,12 @@ function initPackageParams() {
     if (pkg_param_repo) {
         document.getElementById("repo").value = pkg_param_repo;
     }
+    if (pkg_param_ign_path) {
+        document.getElementById("ign_path").value = pkg_param_ign_path;
+    }
+    if (pkg_param_ign_file) {
+        document.getElementById("ign_file").value = pkg_param_ign_file;
+    }
 
 }
 
@@ -54,6 +64,8 @@ function setupPackages() {
     pkg_param_os       = document.getElementById("os").value;
     pkg_param_os_ver   = document.getElementById("os_ver").value;
     pkg_param_repo     = document.getElementById("repo").value;
+    pkg_param_ign_path = document.getElementById("ign_path").value;
+    pkg_param_ign_file = document.getElementById("ign_file").value;
 
     var dataTable = table.DataTable({
         ajax: {
@@ -64,7 +76,9 @@ function setupPackages() {
                 "official": pkg_param_official,
                 "os":       pkg_param_os,
                 "os_ver":   pkg_param_os_ver,
-                "repo":     pkg_param_repo
+                "repo":     pkg_param_repo,
+                "ignore_path": pkg_param_ign_path,
+                "ignore_file": pkg_param_ign_file,
             },
         },
         deferRender: true,
@@ -90,6 +104,12 @@ function setupPackages() {
                     }
                     if (pkg_param_repo) {
                         get.push(['repo', htmlEscape(pkg_param_repo)]);
+                    }
+                    if (pkg_param_ign_path) {
+                        get.push(['ignore_path', htmlEscape(pkg_param_ign_path)]);
+                    }
+                    if (pkg_param_ign_file) {
+                        get.push(['ignore_file', htmlEscape(pkg_param_ign_file)]);
                     }
                     var getstr = '';
                     for (var i = 0; i < get.length; i++) {
@@ -129,6 +149,8 @@ function setupPackageLocations(name) {
     pkg_param_os       = document.getElementById("os").value;
     pkg_param_os_ver   = document.getElementById("os_ver").value;
     pkg_param_repo     = document.getElementById("repo").value;
+    pkg_param_ign_path = document.getElementById("ign_path").value;
+    pkg_param_ign_file = document.getElementById("ign_file").value;
 
     var dataTable = table.DataTable({
         ajax: {
@@ -139,7 +161,9 @@ function setupPackageLocations(name) {
                 "official": pkg_param_official,
                 "os":       pkg_param_os,
                 "os_ver":   pkg_param_os_ver,
-                "repo":     pkg_param_repo
+                "repo":     pkg_param_repo,
+                "ignore_path": pkg_param_ign_path,
+                "ignore_file": pkg_param_ign_file,
             },
         },
         deferRender: true,

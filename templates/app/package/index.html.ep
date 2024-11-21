@@ -32,14 +32,11 @@ input[type = text] {
 <div class="row">
     <div class="col-sm-12">
         <h2><%= title %></h2>
-
         <div class="container-fluid" id="content">
             <div class="card">
-                <div class="card-header">Specify search parameters</div>
-                <div class="card-body">
                     <form action="javascript:setupPackages()">
-                        <div>
-                            <div class = row>
+                        <div class = "row">
+                            <div class = "col-xl-4">
                                 <div class = col25>
                                     <label class="form-label" for="packag">Package</label>
                                 </div>
@@ -47,7 +44,8 @@ input[type = text] {
                                     <input id="packag" name="packag" type="text">
                                 </div>
                             </div>
-                            <div class = row>
+                            <br>
+                            <div class = "col-xl-4">
                                 <div class = col25>
                                     <label class="form-label" for="arch">Arch</label>
                                 </div>
@@ -67,7 +65,25 @@ input[type = text] {
                                     </datalist>
                                 </div>
                             </div>
-                            <div class = row>
+                            <br>
+                            <div class = "col-xl-4">
+                                <div class = col25>
+                                    <label class="form-label" for="repo">Repository</label>
+                                </div>
+                                <div class = col75>
+                                    <input id="repo" name="repo" type="text" list="repolist">
+                                    <datalist id="repolist">
+                                        <option value="15.6">15.6</option>
+                                        <option value="openSUSE_Tumbleweed">openSUSE_Tumbleweed</option>
+                                        <option value="openSUSE_Leap_15.6">openSUSE_Leap_15.6</option>
+                                        <option value="15.6">15.5</option>
+                                        <option value="openSUSE_Leap_15.5">openSUSE_Leap_15.5</option>
+                                        <option value="16.0">16.0</option>
+                                    </datalist>
+                                </div>
+                            </div>
+                            <br>
+                            <div class = "col-xl-4">
                                 <div class = col25>
                                     <label class="form-label" for="os">OS</label>
                                 </div>
@@ -86,7 +102,8 @@ input[type = text] {
                                     </datalist>
                                 </div>
                             </div>
-                            <div class = row>
+                            <br>
+                            <div class = "col-xl-4">
                                 <div class = col25>
                                     <label class="form-label" for="os_ver">OS Version</label>
                                 </div>
@@ -99,23 +116,8 @@ input[type = text] {
                                     </datalist>
                                 </div>
                             </div>
-                            <div class = row>
-                                <div class = col25>
-                                    <label class="form-label" for="repo">Repository</label>
-                                </div>
-                                <div class = col75>
-                                    <input id="repo" name="repo" type="text" list="repolist">
-                                    <datalist id="repolist">
-                                        <option value="15.6">15.6</option>
-                                        <option value="openSUSE_Tumbleweed">openSUSE_Tumbleweed</option>
-                                        <option value="openSUSE_Leap_15.6">openSUSE_Leap_15.6</option>
-                                        <option value="15.6">15.5</option>
-                                        <option value="openSUSE_Leap_15.5">openSUSE_Leap_15.5</option>
-                                        <option value="16.0">16.0</option>
-                                    </datalist>
-                                </div>
-                            </div>
-                            <div class = row>
+                            <br>
+                            <div class = "col-xl-4">
                                 <div class = col25>
                                     <label class="form-label" for="official">Official</label>
                                 </div>
@@ -123,12 +125,33 @@ input[type = text] {
                                     <input id="official" name="official" type="checkbox">
                                 </div>
                             </div>
+                            <br>
+                            <div class = "col-xl-4">
+                                <div class = col25>
+                                    <label class="form-label" for="ign_path">Ignore path</label>
+                                </div>
+                                <div class = col75>
+                                    <input id="ign_path" name="ign_path" type="text" list="ign_pathlist">
+                                    <datalist id="ign_pathlist">
+                                        <option value="/repositories">/repositories</option>
+                                        <option value="/repositories/home:">/repositories/home:</option>
+                                    </datalist>
+                                </div>
+                            </div>
+                            <br>
+                            <div class = "col-xl-4">
+                                <div class = col25>
+                                    <label class="form-label" for="ign_file">Ignore files</label>
+                                </div>
+                                <div class = col75>
+                                    <input id="ign_file" name="ign_file" type="text">
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <input class="btn btn-primary" type="submit" value="Search"/>
                         </div>
                     </form>
-                </div>
             </div>
         </div>
         <table id="packages" class="admintable table table-striped">
