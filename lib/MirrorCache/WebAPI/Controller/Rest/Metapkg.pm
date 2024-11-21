@@ -55,7 +55,7 @@ END_SQL
 
 
     if ($p_official) {
-        $sql_from  = $sql_from . "\njoin project on folder.path like concat(project.name, '%') and project.prio > 10\n";
+        $sql_from  = $sql_from . "\njoin project on folder.path like concat(project.path, '%') and project.prio > 10\n";
     }
     if ($p_os) {
         $sql_from  = $sql_from . "\njoin popular_os os on folder.path ~ os.mask and (coalesce(os.neg_mask,'') = '' or not folder.path ~ os.neg_mask) and os.name = ?\n";
@@ -117,7 +117,7 @@ END_SQL
     # and file.name like concat(metapkg.name, '-%')
 
     if ($p_official) {
-        $sql_from  = $sql_from . "\njoin project on folder.path like concat(project.name, '%') and project.prio > 10\n";
+        $sql_from  = $sql_from . "\njoin project on folder.path like concat(project.path, '%') and project.prio > 10\n";
     }
     if ($p_os) {
         $sql_from  = $sql_from . "\njoin popular_os os on folder.path ~ os.mask and (coalesce(os.neg_mask,'') = '' or not folder.path ~ os.neg_mask) and os.name = ?\n";
