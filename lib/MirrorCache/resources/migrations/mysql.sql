@@ -454,4 +454,6 @@ create table if not exists pkg (
 );
 
 create index if not exists pkg_metapkg_id_idx on pkg(metapkg_id);
-
+-- 40 up
+update popular_os set mask = '.*[lL]eap(/|_)(([1-9][0-9])(.|_)([0-9])?(-test|-Current)?)/.*|(.*/(16|15|12|43|42).(0|1|2|3|4|5|6)/.*)' where id = 4;
+insert into popular_os(id,name,mask) select 10, 'slowroll', '.*/[Ss]lowroll/.*' on duplicate key update id=id;
