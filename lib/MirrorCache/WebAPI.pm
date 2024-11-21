@@ -186,6 +186,10 @@ sub _setup_webui {
     $rest_r->get('/project_disk_usage')->to('project#disk_usage');
     $rest_r->get('/rollout_server/:version')->to('rollout_server#list');
 
+    $rest_r->get('/search/package_locations')->to('metapkg#search_locations');
+    $rest_r->get('/search/packages')->to('metapkg#search');
+    $rest_r->get('/package/#name')->to('metapkg#index');
+
     my $rest_operator_auth;
     $rest_operator_auth = $rest->under('/')->to('session#ensure_operator');
     my $rest_operator_r = $rest_operator_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');
@@ -236,6 +240,8 @@ sub _setup_webui {
     $app_r->get('/server')->name('server')->to('server#index');
     $app_r->get('/server/#hostname')->name('server_show')->to('server#show');
     $app_r->get('/myserver')->name('myserver')->to('myserver#index');
+    $app_r->get('/package')->to('package#index');
+    $app_r->get('/package/:name')->to('package#show');
     $app_r->get('/folder')->name('folder')->to('folder#index');
     $app_r->get('/folder/<id:num>')->name('folder_show')->to('folder#show');
     $app_r->get('/project')->name('project')->to('project#index');

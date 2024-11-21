@@ -63,6 +63,7 @@ sub register_tasks {
         qw(MirrorCache::Task::FolderSyncScheduleFromMisses),
         qw(MirrorCache::Task::FolderSyncSchedule),
         qw(MirrorCache::Task::FolderSync),
+        qw(MirrorCache::Task::FolderPkgSync),
         qw(MirrorCache::Task::FolderTree),
         qw(MirrorCache::Task::ProjectSyncSchedule),
         qw(MirrorCache::Task::Cleanup),

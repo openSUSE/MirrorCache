@@ -106,6 +106,7 @@ sub _sync {
         $update_db_last->();
     } else {
         my $count = 0;
+        my $has_pkg = 0;
         my $sub = sub {
             my ($file, $size, $mmode, $mtime, $target) = @_;
             my $subfolder;
@@ -123,6 +124,9 @@ sub _sync {
             $count = $count+1;
             $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime, target => $target});
             $obsrelease->next_file($file, $mtime) if $obsrelease;
+            if ( 0 == $has_pkg && $file =~ /\.(d?rpm|deb)$/ ) {
+                $has_pkg = 1;
+            }
             return undef;
         };
         eval {
@@ -146,6 +150,7 @@ sub _sync {
             $schema->resultset('Folder')->request_scan($folder->id);
             $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
             $minion->enqueue('folder_hashes_import' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_IMPORT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_import', $HASHES_QUEUE);
+            $minion->enqueue('folder_pkg_sync' => [$realpath]) if $has_pkg && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_pkg_sync');
         }
         $schema->resultset('Folder')->request_scan($otherFolder->id) if $otherFolder && ($count || !$otherFolder->scan_requested);
         $schema->resultset('Rollout')->add_rollout($proj->{project_id}, $obsrelease->versionmtime, $obsrelease->version, $obsrelease->versionfilename, $proj_prefix) if $obsrelease && $obsrelease->versionfilename;
@@ -173,6 +178,7 @@ sub _sync {
     my %dbfileidstodelete = %dbfileids;
 
     my $cnt = 0, my $updated = 0;
+    my $has_pkg = 0;
     my $sub = sub {
         my ($file, $size, $mmode, $mtime, $target) = @_;
         my $subfolder;
@@ -208,6 +214,9 @@ sub _sync {
             return;
         }
         $obsrelease->next_file($file, $mtime) if $obsrelease;
+        if ( 0 == $has_pkg && $file =~ /\.(d?rpm|deb)$/ ) {
+            $has_pkg = 1;
+        }
         $cnt = $cnt + 1;
         $schema->resultset('File')->create({folder_id => $folder->id, name => $file, size => $size, mtime => $mtime, target => $target});
         return undef;
@@ -243,6 +252,7 @@ sub _sync {
         $minion->enqueue('folder_hashes_create' => [$realpath, $max_dt] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
         $minion->enqueue('folder_hashes_import' => [$realpath, $max_dt] => {queue => $HASHES_QUEUE}) if $HASHES_IMPORT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_import', $HASHES_QUEUE);
     }
+    $minion->enqueue('folder_pkg_sync' => [$realpath]) if $has_pkg && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_pkg_sync');
 
     if ($otherFolder && ($cnt || $updated || !$otherFolder->scan_requested)) {
         $otherFolder->update({sync_last => \"CURRENT_TIMESTAMP(3)", scan_requested => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});

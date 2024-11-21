@@ -65,7 +65,7 @@ span.ratingunknown {
 % if ($server->{admin_email}) {
             <div><span>Email: </span><%= $server->{admin_email} %></div>
 % }
-            
+
             % $server->{rating_http};
             <div>
                 <span>Health:</span>

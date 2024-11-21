@@ -124,6 +124,7 @@
 < javascripts/admin_user.js
 < javascripts/audit_log.js
 < javascripts/server.js
+< javascripts/package.js
 < javascripts/project.js
 < https://raw.githubusercontent.com/bootstrapthemesco/bootstrap-4-multi-dropdown-navbar/beta2.0/js/bootstrap-4-navbar.js
 < https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.js

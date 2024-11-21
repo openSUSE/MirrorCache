@@ -311,6 +311,25 @@ END_SQL
     return $dbh->selectall_hashref($sql, 'id', {}, $folder_id, $dt);
 }
 
+sub find_pkgs {
+    my ($self, $folder_id) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = <<'END_SQL';
+select file.id, file.name as basename, metapkg.name as pkg_name, pkg.id as pkg_id, metapkg_id, pkg.arch_id
+from file
+left join pkg on file.folder_id = pkg.folder_id
+left join metapkg on metapkg.id = metapkg_id and file.name like concat (metapkg.name, '-%')
+where file.folder_id = ?
+and (file.name like '%.rpm' or file.name like '%.deb')
+END_SQL
+
+    return $dbh->selectall_hashref($sql, 'id', {}, $folder_id);
+}
+
 # returns pair (bool, max_dt)
 sub need_hashes {
     my ($self, $folder_id) = @_;

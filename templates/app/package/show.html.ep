@@ -1,0 +1,148 @@
+% layout 'bootstrap';
+% title 'Package ' . $package->{name};
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <style type='text/css'>
+table { width:100%%; }
+.name { text-align:left; }
+  </style>
+
+% content_for 'ready_function' => begin
+    initPackageParams();
+    package_id   = <%= $package->{id} %>;
+    pkg_name     = "<%= $package->{name} %>";
+    setupPackageLocations(name);
+% end
+
+% content_for 'head' => begin
+
+<style type='text/css'>
+
+.col25 {
+  width: 25%;
+  float: left;
+  margin-top: 6px;
+}
+
+.col75 {
+  width: 75%;
+  float: left;
+  margin-top: 6px;
+}
+
+input[type = text] {
+  width : 100%;
+}
+</style>
+% end
+
+
+<div class="row">
+<div class="col-sm-12">
+    <h4>Package: <%= $package->{name} %></h4>
+        <div class="container-fluid" id="content">
+            <div class="card">
+                <div class="card-header">Specify search parameters</div>
+                <div class="card-body">
+                    <form action="javascript:setupPackageLocations()">
+                        <div>
+                            <div class = row>
+                                <div class = col25>
+                                    <label class="form-label" for="arch">Arch</label>
+                                </div>
+                                <div class = col75>
+                                    <input id="arch" name="arch" type="text" list="archlist">
+                                    <datalist id="archlist">
+                                      <option value="x86_64">x86_64</option>
+                                      <option value="noarch">noarch</option>
+                                      <option value="ppc64">ppc64</option>
+                                      <option value="aarch64">aarch64</option>
+                                      <option value="arm64">arm64</option>
+                                      <option value="amd64">amd64</option>
+                                      <option value="s390">s390</option>
+                                      <option value="i386">i386</option>
+                                      <option value="i486">i486</option>
+                                      <option value="i586">i586</option>
+                                    </datalist>
+                                </div>
+                            </div>
+                            <div class = row>
+                                <div class = col25>
+                                    <label class="form-label" for="os">OS</label>
+                                </div>
+                                <div class = col75>
+                                    <input id="os" name="os" type="text" list="oslist">
+                                    <datalist id="oslist">
+                                        <option value="leap">leap</option>
+                                        <option value="tumbleweed">tumbleweed</option>
+                                        <option value="factory">factory</option>
+                                        <option value="microos">microos</option>
+                                        <option value="leap-micro">leap-micro</option>
+                                        <option value="xubuntu">Ubuntu</option>
+                                        <option value="debian">Debian</option>
+                                        <option value="rhel">RHEL</option>
+                                        <option value="centos">CentOS</option>
+                                    </datalist>
+                                </div>
+                            </div>
+                            <div class = row>
+                                <div class = col25>
+                                    <label class="form-label" for="os_ver">OS Version</label>
+                                </div>
+                                <div class = col75>
+                                    <input id="os_ver" name="os_ver" type="text" list="os_verlist">
+                                    <datalist id="os_verlist">
+                                        <option value="15.6">15.6</option>
+                                        <option value="15.6">15.5</option>
+                                        <option value="16.0">16.0</option>
+                                    </datalist>
+                                </div>
+                            </div>
+                            <div class = row>
+                                <div class = col25>
+                                    <label class="form-label" for="repo">Repository</label>
+                                </div>
+                                <div class = col75>
+                                    <input id="repo" name="repo" type="text" list="repolist">
+                                    <datalist id="repolist">
+                                        <option value="15.6">15.6</option>
+                                        <option value="openSUSE_Tumbleweed">openSUSE_Tumbleweed</option>
+                                        <option value="openSUSE_Leap_15.6">openSUSE_Leap_15.6</option>
+                                        <option value="15.6">15.5</option>
+                                        <option value="openSUSE_Leap_15.5">openSUSE_Leap_15.5</option>
+                                        <option value="16.0">16.0</option>
+                                    </datalist>
+                                </div>
+                            </div>
+                            <div class = row>
+                                <div class = col25>
+                                    <label class="form-label" for="official">Official</label>
+                                </div>
+                                <div class = col75>
+                                    <input id="official" name="official" type="checkbox">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <input class="btn btn-primary" type="submit" value="Search"/>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    <h3>Found locations</h3>
+    <table id="package_locations" class="table table-striped">
+        <thead>
+            <tr>
+                <th class="col_value">Path</th>
+                <th class="col_value">File</th>
+                <th class="col_value">Size</th>
+                <th class="col_value">Time</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+</div>
