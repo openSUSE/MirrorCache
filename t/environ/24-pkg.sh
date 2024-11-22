@@ -67,4 +67,13 @@ done
 $mc/sql_test 6 ==  "select count(*) from pkg"
 $mc/sql_test 6 ==  "select count(*) from metapkg"
 
+$mc/curl /rest/search/packages
+
+$mc/curl /rest/search/packages?ignore_path=tumbleweed
+$mc/curl /rest/search/packages?ignore_file=python
+$mc/curl "/rest/search/packages?ignore_file=python&ignore_path=tumbleweed"
+
+$mc/curl "/rest/search/package_locations?package=xmltooling-schemas"
+$mc/curl "/rest/search/package_locations?package=xmltooling-schemas&ignore_path=shibboleth"
+
 echo success
