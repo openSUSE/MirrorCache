@@ -319,10 +319,8 @@ sub find_pkgs {
     my $dbh     = $schema->storage->dbh;
 
     my $sql = <<'END_SQL';
-select file.id, file.name as basename, metapkg.name as pkg_name, pkg.id as pkg_id, metapkg_id, pkg.arch_id
+select file.id, file.name as basename
 from file
-left join pkg on file.folder_id = pkg.folder_id
-left join metapkg on metapkg.id = metapkg_id and file.name like concat (metapkg.name, '-%')
 where file.folder_id = ?
 and (file.name like '%.rpm' or file.name like '%.deb')
 END_SQL
