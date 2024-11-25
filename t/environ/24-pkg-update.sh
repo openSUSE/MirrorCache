@@ -14,6 +14,7 @@ ap7=$(environ ap7)
 
 files=(
     /folder1/x86_64/mypkg-1.1-1.1.x86_64.rpm
+    /folder1/x86_64/mypkg-doc-1.1-1.1.x86_64.rpm
     /folder1/x86_64/yourpkg-1.1-1.1.x86_64.rpm
     )
 
@@ -39,8 +40,8 @@ done
 $mc/backstage/job -e folder_sync -a '["/folder1/x86_64"]'
 $mc/backstage/shoot
 
-$mc/sql_test 2 ==  "select count(*) from pkg"
-$mc/sql_test 2 ==  "select count(*) from metapkg"
+$mc/sql_test 3 ==  "select count(*) from pkg"
+$mc/sql_test 3 ==  "select count(*) from metapkg"
 
 $mc/curl /rest/package/mypkg
 
@@ -66,13 +67,20 @@ $mc/backstage/job -e folder_sync -a '["/folder1/x86_64"]'
 $mc/backstage/job -e folder_sync -a '["/folder2/x86_64"]'
 $mc/backstage/shoot
 
-$mc/sql_test 3 ==  "select count(*) from pkg"
-$mc/sql_test 3 ==  "select count(*) from metapkg"
+$mc/sql_test 4 ==  "select count(*) from pkg"
+$mc/sql_test 4 ==  "select count(*) from metapkg"
 
 $mc/curl /rest/search/packages?package=mypkg
 
 $mc/curl '/rest/search/package_locations?package=mypkg&repo=folder2'
 
 $mc/curl /rest/search/package_locations?package=yourpkg
+
+rc=0
+$mc/curl "/rest/search/package_locations?package=mypkg&strict=1" | grep mypkg-doc || rc=$?
+test $rc -gt 0
+
+$mc/curl /rest/search/package_locations?package=mypkg | grep mypkg-doc
+$mc/curl --globoff '/rest/search/package_locations?package=^([a-zA-Z0-9])(([\-.]|[_]+)?([a-zA-Z0-9]+))*(@){1}[a-z0-9]+[.]{1}(([a-z]{2,3})|([a-z]{2,3}[.]{1}[a-z]{2,3}))$'
 
 echo success
