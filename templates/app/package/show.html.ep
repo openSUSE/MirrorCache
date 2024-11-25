@@ -154,6 +154,15 @@ input[type = text] {
                                     <input id="ign_file" name="ign_file" type="text">
                                 </div>
                             </div>
+                            <br>
+                            <div class = "col-xl-4">
+                                <div class = col25>
+                                    <label class="form-label" for="official">Strict</label>
+                                </div>
+                                <div class = col75>
+                                    <input id="strict" name="strict" type="checkbox">
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <input class="btn btn-primary" type="submit" value="Search"/>

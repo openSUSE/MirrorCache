@@ -39,6 +39,7 @@ sub search_locations {
     my $p_repo     = $self->param('repo');
     my $p_ign_path = $self->param('ignore_path');
     my $p_ign_file = $self->param('ignore_file');
+    my $p_strict   = $self->param('strict');
 
     my $sql_from = <<'END_SQL';
 select metapkg.name, folder.path as path, file.name as file, file.size as size, file.mtime as time
@@ -71,7 +72,7 @@ END_SQL
     my $sql_where = "WHERE file.name like ? and metapkg.name = ?";
 
     push @parms, "$package$arch%";
-    push @parms, "$package";
+    push @parms, $package;
     if ($p_repo) {
         $sql_where = "$sql_where and folder.path like concat('%/', ?::text, '/', ?::text)";
         push @parms, $p_repo;
@@ -84,6 +85,11 @@ END_SQL
     if ($p_ign_file) {
         $sql_where = "$sql_where and file.name not like concat('%', ?::text, '%')";
         push @parms, $p_ign_file;
+    }
+    if ($p_strict) {
+        $sql_where = "$sql_where and file.name ~ ?";
+        my $qm = quotemeta($package);
+        push @parms, "^$qm-([^-]+)-([^-]+)\.(x86_64|noarch|i[3-6]86|ppc64|aarch64|arm64|amd64|s390|src)";
     }
 
     my $sql = $sql_from . "\n"  . $sql_where;
@@ -107,6 +113,7 @@ sub search {
     my $p_repo     = $self->param('repo');
     my $p_ign_path = $self->param('ignore_path');
     my $p_ign_file = $self->param('ignore_file');
+    my $p_strict   = $self->param('strict');
 
     my $sql_from = <<'END_SQL';
 select distinct metapkg.name

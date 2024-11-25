@@ -7,6 +7,7 @@ var pkg_param_os_ver;
 var pkg_param_repo;
 var pkg_param_ign_path;
 var pkg_param_ign_file;
+var pkg_param_strict;
 
 function initPackageParams() {
 
@@ -22,6 +23,7 @@ function initPackageParams() {
     pkg_param_repo = urlParams.get('repo');
     pkg_param_ign_path = urlParams.get('ignore_path');
     pkg_param_ign_file = urlParams.get('ignore_file');
+    pkg_param_strict = urlParams.get('strict');
 
     if (pkg_param_pkg) {
         ( document.getElementById("packag") || {} ).value = pkg_param_pkg;
@@ -47,7 +49,9 @@ function initPackageParams() {
     if (pkg_param_ign_file) {
         document.getElementById("ign_file").value = pkg_param_ign_file;
     }
-
+    if (pkg_param_strict) {
+        ( document.getElementById("strict") || {} ).checked = pkg_param_strict? 1 : 0;
+    }
 }
 
 function setupPackages() {
@@ -151,6 +155,7 @@ function setupPackageLocations(name) {
     pkg_param_repo     = document.getElementById("repo").value;
     pkg_param_ign_path = document.getElementById("ign_path").value;
     pkg_param_ign_file = document.getElementById("ign_file").value;
+    pkg_param_strict   = document.getElementById("strict").checked ? 1 : '';
 
     var dataTable = table.DataTable({
         ajax: {
@@ -164,6 +169,7 @@ function setupPackageLocations(name) {
                 "repo":     pkg_param_repo,
                 "ignore_path": pkg_param_ign_path,
                 "ignore_file": pkg_param_ign_file,
+                "strict"     : pkg_param_strict,
             },
         },
         deferRender: true,
