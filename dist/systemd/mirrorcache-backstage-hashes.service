@@ -13,6 +13,9 @@ EnvironmentFile=/etc/mirrorcache/conf.env
 EnvironmentFile=-/etc/mirrorcache/conf-hashes.env
 WorkingDirectory=/var/lib/mirrorcache
 Environment="MOJO_TMPDIR=/var/lib/mirrorcache/tmp"
+Environment="MOJO_LOG_LEVEL=error"
+MemoryHigh=2G
+MemoryMax=3G
 
 [Install]
 WantedBy=multi-user.target
