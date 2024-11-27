@@ -51,6 +51,7 @@ setup_system_user:
 setup_system_db:
 	sudo -u postgres createuser mirrorcache
 	sudo -u postgres createdb mirrorcache
+	sudo -u postgres psql -c 'GRANT all ON SCHEMA public TO mirrorcache' mirrorcache
 
 setup_production_assets:
 	cd "${DESTDIR}"/usr/share/mirrorcache/ && \

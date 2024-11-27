@@ -37,6 +37,23 @@ sub run {
         $self->app->log->info('Resetting all leftover locks after restart');
         $minion->reset({locks => 1});
     }
+    $minion->on(
+        worker => sub () {
+            my (undef, $worker) = @_;
+            $worker->on(
+                dequeue => sub () {
+                    my (undef, $job) = @_;
+                    $job->on(
+                        cleanup => sub () {
+                            my ($j) = @_;
+                            $j->app->minion->backend->mysql->close_idle_connections() unless $j->app->schema->pg;
+                            $j->app->schema->disconnect_db;
+                        }
+                    );
+                }
+            );
+        }
+    );
     $self->SUPER::run(@args);
 }
 
