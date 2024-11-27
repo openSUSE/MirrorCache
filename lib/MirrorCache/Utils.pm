@@ -31,7 +31,20 @@ sub random_string {
     my ($length, $chars) = @_;
     $length //= 16;
     $chars  //= ['a' .. 'z', 'A' .. 'Z', '0' .. '9', '_'];
-    return join('', map { $chars->[rand @$chars] } 1 .. $length);
+    my $upper = @$chars;
+    return join('', map { $chars->[_random_int_safe($upper)] } 1 .. $length);
+}
+
+# this will reliably work only for $upper < 1000000000
+sub _random_int_safe {
+    my ($upper) = @_;
+    my $length = 4;
+    open(my $fd, '<:raw:bytes', '/dev/urandom') || die "can't open /dev/urandom: $!";
+    read($fd, my $bytes, $length) || die "can't read random byte: $!";
+    close $fd;
+
+    my $res = unpack("N", $bytes);
+    return int($res) % $upper;
 }
 
 sub datetime_now() {
