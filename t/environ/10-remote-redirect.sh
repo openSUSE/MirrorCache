@@ -20,7 +20,7 @@ $ap7/configure_ssl
 # this mirror will have disabled both http and https
 ap6=$(environ ap6)
 
-$mc/gen_env MIRRORCACHE_PEDANTIC=1 \
+$mc/gen_env MIRRORCACHE_PEDANTIC=2 \
     MIRRORCACHE_ROOT=http://$($ap5/print_address) \
     MIRRORCACHE_REDIRECT=$($ap4/print_address) \
     MOJO_CA_FILE=$(pwd)/ca/ca.pem \
@@ -145,7 +145,7 @@ test $rc -gt 0
 
 # shutdown ap7, then https must redirect to ap4
 $ap7/stop
-$ap9/curl_https -I /folder1/file1.1.dat?PEDANTIC=1 | grep https:// | grep $($ap4/print_address)
+$ap9/curl_https -I /folder1/file1.1.dat?PEDANTIC=2 | grep https:// | grep $($ap4/print_address)
 
 
 $ap9/curl_https /folder1/file1.1.dat.metalink | grep 'origin="https://metalink_publisher.net/folder1/file1.1.dat.metalink"'
