@@ -6,7 +6,7 @@ mc=$(environ mc $(pwd))
 ng9=$(environ ng9)
 ap9=$(environ ap9)
 
-$mc/gen_env MIRRORCACHE_PEDANTIC=1 \
+$mc/gen_env MIRRORCACHE_PEDANTIC=2 \
     MIRRORCACHE_ROOT=http://$($ng9/print_address) \
     MIRRORCACHE_REDIRECT=http://$($ap9/print_address) \
     MIRRORCACHE_REDIRECT_VPN=root.vpn.us \
@@ -49,7 +49,7 @@ $mc/curl -I /download/folder1/file2.1.dat | grep $($ng7/print_address)
 
 mv $ng7/dt/folder1/file2.1.dat $ng8/dt/folder1/
 
-# gets redirected to MIRRORCACHE_REDIRECT again, because MIRRORCACHE_PEDANTIC is set to 1
+# gets redirected to MIRRORCACHE_REDIRECT again, because MIRRORCACHE_PEDANTIC is not 0
 $mc/curl -I /download/folder1/file2.1.dat | grep $($ap9/print_address)
 
 $mc/backstage/job mirror_scan_schedule_from_path_errors

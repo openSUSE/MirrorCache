@@ -5,7 +5,7 @@ mc=$(environ mc $(pwd))
 
 ap9=$(environ ap9)
 
-$mc/gen_env MIRRORCACHE_PEDANTIC=1 \
+$mc/gen_env MIRRORCACHE_PEDANTIC=2 \
     MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0 \
     MIRRORCACHE_ROOT=http://$($ap9/print_address) \
     MIRRORCACHE_ROOT_NFS=$ap9/dt

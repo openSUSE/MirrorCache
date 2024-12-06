@@ -7,7 +7,7 @@ MIRRORCACHE_RESCAN_INTERVAL=$((7 * 24 * 60 * 60)) # set one week to avoid automa
 
 $mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL \
             MIRRORCACHE_RESCAN_INTERVAL=$MIRRORCACHE_RESCAN_INTERVAL \
-            MIRRORCACHE_PEDANTIC=1 \
+            MIRRORCACHE_PEDANTIC=2 \
             MIRRORCACHE_RECKLESS=0
 
 $mc/start
@@ -70,8 +70,8 @@ $mc/sql "update folder set sync_scheduled = sync_last - interval '1 second'"
 $mc/sql "update folder set sync_requested = sync_last - interval '2 second'"
 
 for x in {1,2,3} ; do
-    $mc/curl -I /download/folder$x/file1.1.dat?PEDANTIC=0 | grep '302 Found'
-    $mc/curl -I /download/folder$x/file1.1.dat | grep '200 OK'
+    $mc/curl -i /download/folder$x/file1.1.dat?PEDANTIC=0 | grep '302 Found'
+    $mc/curl -i /download/folder$x/file1.1.dat | grep '200 OK'
 done
 
 $mc/backstage/job mirror_scan_schedule_from_path_errors
@@ -87,7 +87,7 @@ $mc/sql_test 3 == "select count(*) from minion_jobs where task='mirror_scan'"
 sleep $S
 
 for x in {1,2,3} ; do
-    $mc/curl -I /download/folder$x/file1.1.dat | grep '200 OK'
+    $mc/curl -i /download/folder$x/file1.1.dat | grep '200 OK'
 done
 
 $mc/backstage/job mirror_scan_schedule_from_path_errors
@@ -100,3 +100,5 @@ $mc/backstage/shoot
 $mc/sql_test 6 == "select count(*) from minion_jobs where task='folder_sync'"
 # only folder3 must cause mirror scan from path_errors, but folder1 will be rescanned from Stat.pm
 $mc/sql_test 5 == "select count(*) from minion_jobs where task='mirror_scan'"
+
+echo success

@@ -42,7 +42,7 @@ $mc/curl /download/folder1/file1.1.dat.mirrorlist | grep "${FAKEURL}"
 $mc/curl /download/folder1/file1.1.dat.metalink   | grep "${FAKEURL}"/folder1/file1.1.dat
 # with pedantic we ignore it though
 rc=0
-$mc/curl -I /download/folder1/file1.1.dat?"COUNTRY=it&PEDANTIC=1" | grep "${FAKEURL}" || rc=$?
+$mc/curl -I /download/folder1/file1.1.dat?"COUNTRY=it&PEDANTIC=2" | grep "${FAKEURL}" || rc=$?
 test $rc -gt 0
 
 echo test LIMIT with meta4
