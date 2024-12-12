@@ -39,6 +39,7 @@
           %= link_to 'Mirrors'  => url_for('server')  => class => 'dropdown-item'
           %= link_to 'Packages' => url_for('/app/package')  => class => 'dropdown-item'
           %= link_to 'Projects' => url_for('project') => class => 'dropdown-item'
+          %= link_to 'Efficiency' => url_for('/app/efficiency')  => class => 'dropdown-item'
           %= link_to 'Statistics' => url_for('/rest/stat') => class => 'dropdown-item'
           %= tag 'div' => class => 'dropdown-divider'
           %= tag 'h3' => class => 'dropdown-header' => 'User menu'

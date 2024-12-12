@@ -227,6 +227,7 @@ sub _setup_webui {
     $rest_r->get('/myip')->name('rest_myip')->to('my_ip#show') if $self->_geodb;
 
     $rest_r->get('/stat')->name('rest_stat')->to('stat#list');
+    $rest_r->get('/efficiency')->name('rest_efficiency')->to('efficiency#list');
 
     my $report_r = $r->any('/report')->to(namespace => 'MirrorCache::WebAPI::Controller::Report');
     $report_r->get('/mirror')->name('report_mirror')->to('mirror#index');
@@ -247,6 +248,7 @@ sub _setup_webui {
     $app_r->get('/project')->name('project')->to('project#index');
     $app_r->get('/project/#id')->name('project_show')->to('project#show');
     $app_r->get('/rollout_server/:version')->to('rollout_server#index');
+    $app_r->get('/efficiency')->to('efficiency#index');
 
     my $admin = $r->any('/admin');
     my $admin_auth = $admin->under('/')->to('session#ensure_admin')->name('ensure_admin');

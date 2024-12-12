@@ -1,0 +1,94 @@
+% layout 'bootstrap';
+% title 'Efficiency';
+
+% content_for 'head' => begin
+  <script>
+
+function updateHistoryChart(period) {
+    var period1 = period + 'ly';
+    if (period === 'day') {
+        period1 = 'daily';
+    }
+    $.ajax({
+        url: '/rest/efficiency',
+        method: 'GET',
+        data: {
+          period: period,
+        },
+        success: function(response) {
+            layout = {
+              title: {text: 'Cache Efficiency ' + period1},
+              yaxis: {
+                title: {
+                    text: "Count"
+                }
+              },
+              yaxis2: {
+                title: {
+                    text: "Hit Rate",
+                    font: {color: "#0000FF"}
+                },
+                overlaying: 'y',
+                range: [0, 100],
+                fixedrange: true,
+                side: 'right'
+              },
+            };
+
+
+            data = [
+              {name: 'hits',       type: 'scatter', x: [], y: [], line: { color: "#00FF00", dash: 'solid',   width: 2 }}, // hit
+              {name: 'misses',     type: 'scatter', x: [], y: [], line: { color: "#FF0000", dash: 'solid',   width: 2 }}, // miss
+              {name: 'passes',     type: 'scatter', x: [], y: [], line: { color: "#FFFF00", dash: 'solid',   width: 1 }}, // pass
+              {name: 'bot',        type: 'scatter', x: [], y: [], line: { color: "#A52A2A", dash: 'dashdot', width: 1 }}, // bot
+              {name: 'geo',        type: 'scatter', x: [], y: [], line: { color: "#220031", dash: 'dot',     width: 1 }}, // geo
+              {name: 'efficiency', type: 'scatter', x: [], y: [], line: { color: "#0000FF", dash: 'solid',   width: 3 }, yaxis: 'y2'}, // hitrate
+            ];
+
+            response.forEach((element, index, array) => {
+                var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
+                d.setUTCSeconds(element.dt);
+                data.forEach((e, i, a) => {
+                    data[i].x.push(d);
+                });
+                data[0].y.push(element.hit);
+                data[1].y.push(element.miss);
+                data[2].y.push(element.pass);
+                data[3].y.push(element.bot);
+                data[4].y.push(element.geo);
+                if (element.hit + element.miss > 0) {
+                    var rate = 100 * (element.hit / (eval(element.hit) + eval(element.miss)));
+                    rate = Math.round(rate);
+                    data[5].y.push(rate);
+                }
+            });
+
+            // Plotly.react('efficiency-chart', data, layout);
+            Plotly.newPlot('efficiency-chart', data, layout);
+        }
+    });
+}
+
+  </script>
+% end
+
+
+% content_for 'ready_function' => begin
+    document.getElementsByClassName('tablinks')[1].click()
+
+    //  updateHistoryChart();
+% end
+
+
+<div class="tab">
+  <button class="tablinks" onclick="updateHistoryChart('hour')">Hourly</button>
+  <button class="tablinks" onclick="updateHistoryChart('day')">Daily</button>
+  <!-- button class="tablinks" onclick="updateHistoryChart('month')">Monthly</button -->
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+    <div id="efficiency-chart"></div>
+  </div>
+</div>
+
