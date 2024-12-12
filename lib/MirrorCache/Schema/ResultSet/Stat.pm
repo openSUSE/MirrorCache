@@ -277,4 +277,134 @@ sub secure_max_id {
     return $prev_stat_id;
 }
 
+
+my $SQLEFFICIENCY_HOURLY_PG = <<"END_SQL";
+select
+extract(epoch from now())::integer as dt,
+hit_minute  + coalesce(hit,0)  as hit,
+miss_minute + coalesce(miss,0) as miss,
+pass_minute + coalesce(pass,0) as pass,
+geo_minute  + coalesce(geo,0)  as geo,
+bot_minute  + coalesce(bot,0)  as bot
+from
+(
+select
+sum(case when mirror_id >  0 and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as hit_minute,
+sum(case when mirror_id = -1 and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as miss_minute,
+sum(case when mirror_id = 0  and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as pass_minute,
+sum(case when mirror_id < -1 and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as geo_minute,
+sum(case when                        (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as bot_minute
+from (
+select lastdt from (select dt as lastdt from stat_agg where period = 'minute' order by dt desc limit 1) x union select CURRENT_TIMESTAMP(3) - interval '1 hour' limit 1
+) lastagg join stat on dt > lastdt
+) agg_minute
+left join
+(
+select
+sum(case when mirror_id >  0 then hit_count else 0 end) as hit,
+sum(case when mirror_id = -1 then hit_count else 0 end) as miss,
+sum(case when mirror_id = 0  then hit_count else 0 end) as pass,
+sum(case when mirror_id < -1 and mirror_id != -100 then hit_count else 0 end) as geo,
+sum(case when mirror_id = -100 then hit_count else 0 end) as bot
+from stat_agg
+where
+period = 'minute'
+and dt <= (select dt from stat_agg where period = 'minute' order by dt desc limit 1)
+and dt > date_trunc('hour', CURRENT_TIMESTAMP(3))
+) agg_hour on 1=1
+union
+select extract(epoch from dt)::integer,
+sum(case when mirror_id > 0  then hit_count else 0 end) as hit,
+sum(case when mirror_id = -1 then hit_count else 0 end) as miss,
+sum(case when mirror_id = 0  then hit_count else 0 end) as pass,
+sum(case when mirror_id < -1 and mirror_id != -100 then hit_count else 0 end) as geo,
+sum(case when mirror_id = -100 then hit_count else 0 end) as bot
+from stat_agg
+where
+period = 'hour'
+and dt <= date_trunc('hour', CURRENT_TIMESTAMP(3)) and dt > CURRENT_TIMESTAMP(3) - interval '30 hour'
+group by dt
+order by 1 desc
+limit 30
+END_SQL
+
+
+
+my $SQLEFFICIENCY_DAILY_PG = <<"END_SQL";
+select
+extract(epoch from now())::integer as dt,
+sum(hit)  as hit,
+sum(miss) as miss,
+sum(pass) as pass,
+sum(geo)  as geo,
+sum(bot)  as bot
+from
+(
+select
+sum(case when mirror_id >  0  and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as hit,
+sum(case when mirror_id = -1  and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as miss,
+sum(case when mirror_id = 0   and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as pass,
+sum(case when mirror_id < -1  and not (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as geo,
+sum(case when                         (lower(agent) ~ '$BOT_MASK') then 1 else 0 end) as bot
+from (
+select lastdt from (select dt as lastdt from stat_agg where period = 'hour' order by dt desc limit 1) x union select date_trunc('day', CURRENT_TIMESTAMP(3)) limit 1
+) lastagg join stat on dt > lastdt
+union
+select
+sum(case when mirror_id >  0 then hit_count else 0 end) as hit,
+sum(case when mirror_id = -1 then hit_count else 0 end) as miss,
+sum(case when mirror_id = 0  then hit_count else 0 end) as pass,
+sum(case when mirror_id < -1 and mirror_id != -100 then hit_count else 0 end) as geo,
+sum(case when mirror_id = -100 then hit_count else 0 end) as bot
+from stat_agg
+where
+period = 'hour'
+and dt <= (select dt from stat_agg where period = 'hour' order by dt desc limit 1)
+and dt > date_trunc('day', CURRENT_TIMESTAMP(3))
+group by dt
+) heute
+union
+select extract(epoch from dt)::integer,
+sum(case when mirror_id > 0  then hit_count else 0 end) as hit,
+sum(case when mirror_id = -1 then hit_count else 0 end) as miss,
+sum(case when mirror_id = 0  then hit_count else 0 end) as pass,
+sum(case when mirror_id < -1 and mirror_id != -100 then hit_count else 0 end) as geo,
+sum(case when mirror_id = -100 then hit_count else 0 end) as bot
+from stat_agg
+where
+period = 'day'
+and dt <= date_trunc('day', CURRENT_TIMESTAMP(3)) and dt > CURRENT_TIMESTAMP(3) - 30 * 24 * interval '1 hour'
+group by dt
+order by 1 desc
+limit 30
+END_SQL
+
+
+sub select_efficiency() {
+    my ($self, $period, $limit) = @_;
+
+    my $sql;
+    my $dbh = $self->result_source->schema->storage->dbh;
+
+    $sql = $SQLEFFICIENCY_HOURLY_PG;
+    $sql = $SQLEFFICIENCY_DAILY_PG if $period eq 'day';
+
+    if ($dbh->{Driver}->{Name} ne 'Pg') {
+        $sql =~ s/date_trunc\('day', CURRENT_TIMESTAMP\(3\)\)/date(CURRENT_TIMESTAMP(3))/g;
+        $sql =~ s/date_trunc\('hour', CURRENT_TIMESTAMP\(3\)\)/CURDATE() + INTERVAL hour(now()) HOUR/g;
+        $sql =~ s/ ~ / REGEXP /g;
+        $sql =~ s/30 \* 24 \* interval '1 hour'/interval 30 day/g;
+        $sql =~ s/interval 'hour'/interval 1 hour/g;
+        $sql =~ s/interval '1 hour'/interval 1 hour/g;
+        $sql =~ s/interval '30 hour'/interval 30 hour/g;
+        $sql =~ s/interval 'day'/interval 1 day/g;
+        $sql =~ s/extract\(epoch from now\(\)\)::integer/floor(unix_timestamp(now()))/g;
+        $sql =~ s/extract\(epoch from dt\)::integer/floor(unix_timestamp(dt))/g;
+    }
+    my $prep = $dbh->prepare($sql);
+    $prep->execute();
+    my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
+    return $arrayref;
+}
+
 1;

@@ -110,4 +110,15 @@ $mc/curl '/rest/repdownload?group=country,mirror&type=rpm'
 $mc/curl "/rest/repdownload?group=project&mirror=$(ap7/print_address)"
 $mc/curl '/rest/repdownload?group=project,mirror&country=de'
 
+
+$mc/backstage/job stat_agg_schedule
+$mc/backstage/shoot
+
+$mc/sql "insert into stat_agg select  dt - interval '1 day',  period, mirror_id, hit_count from stat_agg where period = 'day'"
+$mc/sql "insert into stat_agg select  dt - interval '1 hour', period, mirror_id, hit_count from stat_agg where period = 'hour'"
+
+$mc/curl /rest/efficiency
+$mc/curl /rest/efficiency?period=day
+
+
 echo success

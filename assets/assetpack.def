@@ -133,6 +133,7 @@
 < https://cdnjs.cloudflare.com/ajax/libs/jquery-ujs/1.2.1/rails.js
 < javascripts/disable_animations.js [mode==test]
 < https://raw.githubusercontent.com/sorich87/bootstrap-tour/6a1028fb562f9aa68c451f0901f8cfeb43cad140/build/js/bootstrap-tour.min.js
+< https://cdn.plot.ly/plotly-basic-2.35.2.min.js
 
 ! navigation.css
 < stylesheets/navigation.scss
