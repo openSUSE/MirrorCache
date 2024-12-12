@@ -707,7 +707,7 @@ sub _add_etag {
     } else {
         $media_version = join(',', sort @versions);
     }
-    $c->res->headers->add('X-MEDIA-VERSION' => $media_version);
+    $c->res->headers->add('X-MEDIA-VERSION' => $media_version) if $media_version;
 }
 
 sub _render_dir_local {
