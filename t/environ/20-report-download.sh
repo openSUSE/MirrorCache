@@ -100,10 +100,13 @@ $mc/curl /rest/repdownload?group=mirror,country | grep '{"bytes_redirected":"396
 
 $mc/curl -Is /download/repositories/home:/b1:/branches:/science:/EtherLab/Debian_Testing/arm64/libethercat_1.5.2-33_arm64.deb | grep 'X-MEDIA-VERSION: 1.5.2'
 
-
 $mc/curl -Is /download/repositories/home:/b1:/branches:/science:/EtherLab/Debian_Testing/arm64/libethercat_1.5.2-33_arm64.deb | grep 'X-MEDIA-VERSION: 1.5.2'
 
 $mc/curl -Is '/download/distribution/leap/15.3/repo/oss/noarch/?REGEX=.*\.noarch\..?rpm' | grep 'X-MEDIA-VERSION: 17.5.0,7.3.6.2'
+
+rc=0
+$mc/curl -Is /download/repositories/home:/b1:/branches:/science:/EtherLab/Debian_Testing/ | grep -i X-MEDIA-VERSION || rc=$?
+test $rc -gt 0
 
 $mc/curl '/rest/repdownload?group=country&os=ubuntu'
 $mc/curl '/rest/repdownload?group=country,mirror&type=rpm'
