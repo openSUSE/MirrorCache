@@ -24,6 +24,7 @@ for x in $mc $ap7 $ap8; do
     echo $x/dt/folder1/file1.dat | xargs -n 1 touch
     echo $x/dt/Folder1/file1.1.DAT | xargs -n 1 touch
     echo $x/dt/Folder1/repodata/repomd.xml | xargs -n 1 touch
+    ( cd $x/dt/folder1/ ; touch GNOME_3.6.2.x86_64.iso ; ln -s GNOME_3.6.2.x86_64.iso GNOME_Next.x86_64.iso )
     mkdir -p $x/dt/folder1.11test/
     for f in $unversionedfiles; do
         str=1
@@ -207,5 +208,14 @@ $mc/curl -i -H "Accept: */*, application/metalink+xml" /download/Folder1/repodat
 $mc/curl -i /download/folder1/file1.1.dat | grep Cache-Control
 $mc/curl -i /download/Folder1/file1.1.DAT | grep Cache-Control
 
+echo check x-media-version
+$mc/curl -i /download/folder1/GNOME_3.6.2.x86_64.iso | grep 'X-MEDIA-VERSION: 3.6.2'
 
+$mc/curl -i /download/folder1/GNOME_Next.x86_64.iso  | grep 'X-MEDIA-VERSION: 3.6.2'
 
+echo check dont detect x-media-version in openSUSE-Leap-15.3-NET-x86_64.iso
+rc=0
+$mc/curl -i /download/folder1.11test/openSUSE-Leap-15.3-NET-x86_64.iso  | grep 'X-MEDIA-VERSION:' || rc=$?
+test $rc -gt 0
+
+echo success
