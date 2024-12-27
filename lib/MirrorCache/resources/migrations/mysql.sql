@@ -459,3 +459,13 @@ update popular_os set mask = '.*[lL]eap(/|_)(([1-9][0-9])(.|_)([0-9])?(-test|-Cu
 insert into popular_os(id,name,mask) select 10, 'slowroll', '.*/[Ss]lowroll/.*' on duplicate key update id=id;
 -- 41 up
 alter table stat_agg add primary key if not exists (period, dt, mirror_id);
+-- 42 up
+create table if not exists agg_download_pkg (
+    period     enum('minute', 'hour', 'day', 'month', 'year', 'total', 'uptime') NOT NULL,
+    dt         timestamp NOT NULL,
+    metapkg_id bigint NOT NULL,
+    folder_id  bigint NOT NULL,
+    country    varchar(2),
+    cnt        bigint,
+    primary key(period, dt, metapkg_id, folder_id, country)
+);
