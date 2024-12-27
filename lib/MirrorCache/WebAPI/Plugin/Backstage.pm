@@ -71,6 +71,7 @@ sub register_tasks {
         qw(MirrorCache::Task::ReportProjectSize),
         qw(MirrorCache::Task::ReportProjectSizeSchedule),
         qw(MirrorCache::Task::StatAggSchedule),
+        qw(MirrorCache::Task::StatAggPkg),
       );
 }
 

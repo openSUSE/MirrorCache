@@ -446,3 +446,13 @@ update popular_os set mask = '.*[lL]eap(/|_)(([1-9][0-9])(.|_)([0-9])?(-test|-Cu
 insert into popular_os(id,name,mask) select 10, 'slowroll', '.*/[Ss]lowroll/.*' on conflict do nothing;
 -- 41 up
 alter table stat_agg add primary key (period, dt, mirror_id);
+-- 42 up
+create table if not exists agg_download_pkg (
+    period     stat_period_t NOT NULL,
+    dt         timestamp NOT NULL,
+    metapkg_id bigint NOT NULL,
+    folder_id  bigint NOT NULL,
+    country    varchar(2),
+    cnt        bigint,
+    primary key(period, dt, metapkg_id, folder_id, country)
+);

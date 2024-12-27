@@ -123,5 +123,7 @@ $mc/sql "insert into stat_agg select  dt - interval '1 hour', period, mirror_id,
 $mc/curl /rest/efficiency
 $mc/curl /rest/efficiency?period=day
 
+# $mc/sql 'select * from agg_download_pkg'
+$mc/sql_test 4 == "select count(*) from agg_download_pkg join metapkg on metapkg_id = id where period = 'day' and name = 'cargo1.64' group by period, dt"
 
 echo success
