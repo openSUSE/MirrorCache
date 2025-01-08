@@ -614,7 +614,7 @@ sub _init_path($self) {
     if (
         ( $self->accept_all || !$self->extra )
         && $self->_original_path eq $path
-        && $path =~ m/\/(repodata\/repomd\.xml[^\/]*|media\.1\/(media|products)|content|.*\.sha\d\d\d(\.asc)?|Release(\.key|\.gpg)?|InRelease|Packages(\.gz|\.zst)?|Sources(\.gz|\.zst)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?|tar\.zst(\.sig)?))?|(files|primary|other)\.xml\.(gz|zck|zst)|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz|zst)|gpg-pubkey.*\.asc|CHECKSUMS(\.asc)?)$/
+        && $path =~ m/\/(repodata\/repomd\.xml[^\/]*|media\.1\/(media|products)|content|.*\.sha\d\d\d(\.asc)?|Release(\.key|\.gpg)?|InRelease|Packages(\.gz|\.zst)?|Sources(\.gz|\.zst)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?|tar\.zst(\.sig)?))?|(files|primary|other)\.xml\.(gz|zck|zst)|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz|zst)|gpg-pubkey.*\.asc|CHECKSUMS(\.asc)?|APKINDEX\.tar\.gz)$/
     ) {
         $self->must_render_from_root(1);
         my $time = ~time() & 0xff;
