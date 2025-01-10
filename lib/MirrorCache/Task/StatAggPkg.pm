@@ -31,11 +31,11 @@ sub _run {
     return $job->finish('Previous stat agg pkg job is still active')
       unless my $guard = $minion->guard('stat_agg_pkg', 86400);
 
-    if ($minion->lock('stat_agg_pkg_hour', 5*60)) {
+    if ($minion->lock('stat_agg_pkg_hour', 15*60)) {
         _agg($app, $job, 'hour');
     }
 
-    if ($minion->lock('stat_agg_pkg_day', 15*60)) {
+    if ($minion->lock('stat_agg_pkg_day', 2*60*60)) {
         _agg($app, $job, 'day');
     }
 

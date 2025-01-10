@@ -242,7 +242,7 @@ sub _setup_webui {
     $app_r->get('/server/#hostname')->name('server_show')->to('server#show');
     $app_r->get('/myserver')->name('myserver')->to('myserver#index');
     $app_r->get('/package')->to('package#index');
-    $app_r->get('/package/:name')->to('package#show');
+    $app_r->get('/package/#name')->to('package#show');
     $app_r->get('/folder')->name('folder')->to('folder#index');
     $app_r->get('/folder/<id:num>')->name('folder_show')->to('folder#show');
     $app_r->get('/project')->name('project')->to('project#index');
