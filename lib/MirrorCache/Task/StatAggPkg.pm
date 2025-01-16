@@ -1,4 +1,4 @@
-# Copyright (C) 2024 SUSE LLC
+# Copyright (C) 2024,2025 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ from
 ( select date_trunc('$period', CURRENT_TIMESTAMP(3)) - interval '1 $period' as dt_from, date_trunc('$period', CURRENT_TIMESTAMP(3)) as dt_to ) x
 join stat on dt between x.dt_from and x.dt_to and path like '%rpm'
 join metapkg on name = regexp_replace(path, '$pkg_re', '\\2')
-left join agg_download_pkg on period = '$period'::stat_period_t and agg_download_pkg.dt = x.dt_to and agg_download_pkg.country = stat.country and agg_download_pkg.folder_id != coalesce(stat.folder_id, 0)
+left join agg_download_pkg on period = '$period'::stat_period_t and agg_download_pkg.dt = x.dt_to and agg_download_pkg.country = stat.country and agg_download_pkg.folder_id = coalesce(stat.folder_id, 0)
 where
 agg_download_pkg.period is NULL
 group by dt_to, metapkg.id, stat.folder_id, stat.country
@@ -72,7 +72,7 @@ from
 ( select date_sub(CONVERT(DATE_FORMAT(now(),'$format'),DATETIME), interval 1 $period) as dt_from, CONVERT(DATE_FORMAT(now(),'$format'),DATETIME) as dt_to ) x
 join stat on dt between x.dt_from and x.dt_to and path like '%rpm'
 join metapkg on name = regexp_replace(path, '$pkg_re', '\\\\2')
-left join agg_download_pkg on period = '$period' and agg_download_pkg.dt = x.dt_to and agg_download_pkg.country = stat.country and agg_download_pkg.folder_id != coalesce(stat.folder_id, 0)
+left join agg_download_pkg on period = '$period' and agg_download_pkg.dt = x.dt_to and agg_download_pkg.country = stat.country and agg_download_pkg.folder_id = coalesce(stat.folder_id, 0)
 where
 agg_download_pkg.period is NULL
 group by dt_to, metapkg.id, stat.folder_id, stat.country
