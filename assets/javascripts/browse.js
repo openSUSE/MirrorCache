@@ -46,6 +46,7 @@ function setupBrowseTable(path) {
         data: 'mtime',
         className: 'mtime',
         defaultContent: "",
+        orderSequence: ['desc','asc'],
         render: function (data, type, row, meta) {
             if(type === 'display' && data > 0){
                 data = new Date(data * 1000).toLocaleString().replace(/.\d+$/, "").replace(/:\d\d (AM|PM)$/, " $1");

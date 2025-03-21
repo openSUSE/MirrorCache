@@ -204,6 +204,7 @@ function setupPackageLocations(name) {
             data: 'time',
             className: 'mtime',
             defaultContent: "",
+            orderSequence: ['desc','asc'],
             render: function (data, type, row, meta) {
                 if(type === 'display' && data > 0){
                     path = row['path'] + '/';
