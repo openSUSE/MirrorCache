@@ -39,6 +39,9 @@ sub _run {
         _agg($app, $job, 'day');
     }
 
+    if ($minion->lock('stat_agg_pkg_total', 2*60*60)) {
+        _agg_total($app, $job, 'day');
+    }
 }
 
 # my $pkg_re = '^(.*\\/)+(.*)-[^-]+-[^-]+\\.(x86_64|noarch|ppc64le|(a|loong)arch64.*|s390x|i[3-6]86|armv.*|src|riscv64|ppc.*|nosrc|ia64)(\\.d?rpm)$';
@@ -79,6 +82,34 @@ group by dt_to, metapkg.id, stat.folder_id, stat.country
 ";
     };
 
+    eval {
+        $dbh->prepare($sql)->execute;
+        1;
+    } or $job->note("last_warning_$period" => $@, "last_warning_$period" . "_at" => datetime_now());
+}
+
+
+sub _agg_total {
+    my ($app, $job) = @_;
+    my $period = 'total';
+
+    my $dbh = $app->schema->storage->dbh;
+    my $sql = "
+insert into agg_download_pkg select '$period'::stat_period_t, date_trunc('day',now()), d1.metapkg_id, d1.folder_id, d1.country, coalesce(d2.cnt, 0) + sum(d1.cnt)
+from
+agg_download_pkg d1
+left join ( select max(dt) as dt from agg_download_pkg where period = '$period'::stat_period_t ) x on 1 = 1
+left join agg_download_pkg d2 on (d2.metapkg_id, d2.folder_id, d2.country, d2.period, d2.dt) = (d1.metapkg_id, d1.folder_id, d1.country, '$period'::stat_period_t, x.dt)
+where
+d1.period = 'day'::stat_period_t and d1.dt > coalesce(x.dt, now() - interval '1 year')
+group by d1.metapkg_id, d1.folder_id, d1.country, d2.cnt
+";
+
+    if ($dbh->{Driver}->{Name} ne 'Pg') {
+        $sql =~ s/::stat_period_t//g;
+        $sql =~ s/interval '1 year'/interval 1 year/g;
+        $sql =~ s/date_trunc\('day',now\(\)\)/date(now())/g
+    }
     eval {
         $dbh->prepare($sql)->execute;
         1;

@@ -9,6 +9,11 @@ var pkg_param_ign_path;
 var pkg_param_ign_file;
 var pkg_param_strict;
 
+var pkg_stat_first_seen;
+var pkg_stat_dl_todate = ''; // total excluding today
+var pkg_stat_dl_today  = ''; // today excluding last hour
+var pkg_stat_dl_curr   = ''; // last hour
+
 function initPackageParams() {
 
     const queryString = window.location.search;
@@ -244,5 +249,87 @@ function setupPackageLocations(name) {
             [100, 1000, 10, -1],
             [100, 1000, 10, 'All'],
         ],
+    });
+}
+
+
+
+
+function setupDownloadStatUI() {
+    if (typeof pkg_stat_first_seen != 'undefined') {
+        res = pkg_stat_first_seen;
+        if ( +parseInt(pkg_stat_first_seen) > 0) {
+            res = new Date(+parseInt(pkg_stat_first_seen)*1000).toISOString();
+            // truncate seconds
+            res = res.substring(0, 16) + res.substr(23)
+        }
+        document.getElementById("download-stat-first-seen").textContent = res;
+    }
+    if (typeof pkg_stat_dl_todate != 'undefined') {
+        var res = pkg_stat_dl_todate;
+        if ( +parseInt(pkg_stat_dl_today) > 0) {
+            res = +res + +parseInt(pkg_stat_dl_today);
+        }
+        if ( +parseInt(pkg_stat_dl_curr) > 0) {
+            res = +res + +parseInt(pkg_stat_dl_curr);
+        }
+        document.getElementById("download-stat-total").textContent = res;
+    }
+    if (typeof pkg_stat_dl_today != 'undefined') {
+        var res = pkg_stat_dl_today;
+        if ( +parseInt(pkg_stat_dl_curr) > 0) {
+            res = +res + +parseInt(pkg_stat_dl_curr);
+        }
+        document.getElementById("download-stat-today").textContent = res;
+    }
+    if (typeof pkg_stat_dl_today != 'undefined') {
+        var res = pkg_stat_dl_curr;
+        document.getElementById("download-stat-curr").textContent = res;
+    }
+}
+
+function setupPackageStatDownload(id) {
+    $.ajax({
+        url: '/rest/package/' + id + '/stat_download',
+        method: 'GET',
+        success: function(response) {
+            var data = response.data[0];
+            if (typeof data === 'undefined') {
+                return;
+            }
+            var c = data.cnt_total;
+            if (typeof c !== 'undefined' && c > 0) {
+                pkg_stat_dl_todate = c;
+            }
+            c = data.cnt_today;
+            if (typeof c !== 'undefined' && c > 0) {
+                pkg_stat_dl_today = c;
+            }
+            c = data.first_seen;
+            if (typeof c !== 'undefined' && c > 0) {
+                pkg_stat_first_seen = c;
+            }
+            setupDownloadStatUI();
+        },
+        error: handleAjaxError,
+    });
+}
+
+function setupPackageStatDownloadCurr(package_name) {
+    $.ajax({
+        url: '/rest/package/' + package_name + '/stat_download_curr',
+        method: 'GET',
+        success: function(response) {
+            var data = response.data[0];
+            if (typeof data === 'undefined') {
+                return;
+            }
+            var c = data.cnt_curr;
+            if (typeof c !== 'undefined' && c > 0) {
+                pkg_stat_dl_curr = c;
+            }
+            setupDownloadStatUI();
+        },
+        error: handleAjaxError,
     });
 }

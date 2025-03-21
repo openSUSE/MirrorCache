@@ -10,7 +10,9 @@ table { width:100%%; }
     initPackageParams();
     package_id   = <%= $package->{id} %>;
     pkg_name     = "<%= $package->{name} %>";
-    setupPackageLocations(name);
+    setupPackageLocations(pkg_name);
+    setupPackageStatDownload(package_id);
+    setupPackageStatDownloadCurr(pkg_name);
 % end
 
 % content_for 'head' => begin
@@ -40,6 +42,7 @@ input[type = text] {
 <div class="col-sm-12">
         <div class="container-fluid" id="content">
             <div class="card">
+                <div class="card-header">Locations search parameters</div>
                 <div class="card-body">
                     <form action="javascript:setupPackageLocations()">
                         <div class = "row">
@@ -81,9 +84,9 @@ input[type = text] {
                                     <input id="repo" name="repo" type="text" list="repolist">
                                     <datalist id="repolist">
                                         <option value="15.6">15.6</option>
+                                        <option value="15.5">15.5</option>
                                         <option value="openSUSE_Tumbleweed">openSUSE_Tumbleweed</option>
                                         <option value="openSUSE_Leap_15.6">openSUSE_Leap_15.6</option>
-                                        <option value="15.6">15.5</option>
                                         <option value="openSUSE_Leap_15.5">openSUSE_Leap_15.5</option>
                                         <option value="16.0">16.0</option>
                                     </datalist>
@@ -118,7 +121,7 @@ input[type = text] {
                                     <input id="os_ver" name="os_ver" type="text" list="os_verlist">
                                     <datalist id="os_verlist">
                                         <option value="15.6">15.6</option>
-                                        <option value="15.6">15.5</option>
+                                        <option value="15.5">15.5</option>
                                         <option value="16.0">16.0</option>
                                     </datalist>
                                 </div>
@@ -172,7 +175,7 @@ input[type = text] {
             </div>
         </div>
 
-    <h3>Found locations</h3>
+    <div class="card-header">Locations found</div>
     <table id="package_locations" class="table table-striped">
         <thead>
             <tr>
@@ -188,3 +191,23 @@ input[type = text] {
 </div>
 
 </div>
+</div>
+<br>
+<div id="download-statistics" class="card">
+    <div class="card-header">Download Statistics</div>
+    <div class="card-body row">
+        <div class="col-sm-3">
+            First seen: <span class="badge text-bg-success" id="download-stat-first-seen"></span>
+        </div>
+        <div class="col-sm-3">
+            Total: <span class="badge text-bg-primary" id="download-stat-total"></span>
+        </div>
+        <div class="col-sm-3">
+            Today: <span class="badge text-bg-secondary" id="download-stat-today"></span>
+        </div>
+        <div class="col-sm-3">
+            Recent: <span class="badge text-bg-dark" id="download-stat-curr"></span>
+        </div>
+    </div>
+</div>
+

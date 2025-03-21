@@ -172,4 +172,52 @@ END_SQL
     return $self->render(json => { data => $res });
 }
 
+
+sub stat_download {
+    my $self = shift;
+    my $id = $self->param('id');
+    my $sql;
+    $sql = <<'END_SQL';
+select
+  extract(epoch from ( select min(dt) from agg_download_pkg where metapkg_id = ? and period = 'hour' ))::int as first_seen,
+  coalesce( (select sum(cnt) as cnt from agg_download_pkg where metapkg_id = ? and period = 'total' and dt = (select max(dt) from agg_download_pkg where period = 'total')), 0 ) as cnt_total,
+  coalesce( (select sum(cnt) as cnt from agg_download_pkg where metapkg_id = ? and period = 'hour'  and dt > (select max(dt) from agg_download_pkg where period = 'total')), 0 ) as cnt_today,
+  sum(cnt) as cnt_30d,
+  coalesce( sum(case when dt > now() - interval '7 day' then cnt else 0 end), 0 ) as cnt_7d,
+  coalesce( sum(case when dt > now() - interval '1 day' then cnt else 0 end), 0) as cnt_1d
+from agg_download_pkg
+where metapkg_id = ? and period = 'day' and dt > now() - interval '30 day'
+END_SQL
+    unless ($self->schema->pg) {
+        $sql =~ s/::int//g;
+        $sql =~ s/interval '(\d+) day'/interval $1 day/g;
+        $sql =~ s/extract\(epoch from/unix_timestamp(/g;
+    }
+
+    my $res = $self->schema->storage->dbh->selectall_arrayref($sql, {Columns => {}}, $id, $id, $id, $id);
+    return $self->render(json => { data => $res });
+}
+
+sub stat_download_curr {
+    my $self = shift;
+    my $name = $self->param('name');
+    my $sql;
+    $sql = <<'END_SQL';
+select
+  count(*) as cnt_curr
+from
+  stat
+  left join (select max(dt) as dt from agg_download_pkg where period = 'hour') last_agg_hour on 1 = 1
+where
+  stat.dt > coalesce(last_agg_hour.dt, now() - interval '1 hour') and path like concat('%',?::text,'%rpm') and ? = regexp_replace(path, '^(.*\/)+(.*)-[^-]+-[^-]+\.(x86_64|noarch|ppc64le|(a|loong)arch64.*|s390x|i[3-6]86|armv.*|src|riscv64|ppc.*|nosrc|ia64)(\.d?rpm)$', '\2')
+END_SQL
+    unless ($self->schema->pg) {
+        $sql =~ s/\\2/\\\\2/g;
+        $sql =~ s/::text//g;
+        $sql =~ s/interval '(\d+) (day|hour)'/interval $1 $2/g;
+    }
+    my $res = $self->schema->storage->dbh->selectall_arrayref($sql, {Columns => {}}, $name, $name);
+    return $self->render(json => { data => $res });
+}
+
 1;

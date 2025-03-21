@@ -74,9 +74,9 @@ input[type = text] {
                                     <input id="repo" name="repo" type="text" list="repolist">
                                     <datalist id="repolist">
                                         <option value="15.6">15.6</option>
+                                        <option value="15.5">15.5</option>
                                         <option value="openSUSE_Tumbleweed">openSUSE_Tumbleweed</option>
                                         <option value="openSUSE_Leap_15.6">openSUSE_Leap_15.6</option>
-                                        <option value="15.6">15.5</option>
                                         <option value="openSUSE_Leap_15.5">openSUSE_Leap_15.5</option>
                                         <option value="16.0">16.0</option>
                                     </datalist>
@@ -111,7 +111,7 @@ input[type = text] {
                                     <input id="os_ver" name="os_ver" type="text" list="os_verlist">
                                     <datalist id="os_verlist">
                                         <option value="15.6">15.6</option>
-                                        <option value="15.6">15.5</option>
+                                        <option value="15.5">15.5</option>
                                         <option value="16.0">16.0</option>
                                     </datalist>
                                 </div>
