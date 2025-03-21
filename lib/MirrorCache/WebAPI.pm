@@ -190,6 +190,9 @@ sub _setup_webui {
     $rest_r->get('/search/packages')->to('metapkg#search');
     $rest_r->get('/package/#name')->to('metapkg#index');
 
+    $rest_r->get('/package/#id/stat_download')->to('metapkg#stat_download');
+    $rest_r->get('/package/#name/stat_download_curr')->to('metapkg#stat_download_curr');
+
     my $rest_operator_auth;
     $rest_operator_auth = $rest->under('/')->to('session#ensure_operator');
     my $rest_operator_r = $rest_operator_auth->any('/')->to(namespace => 'MirrorCache::WebAPI::Controller::Rest');

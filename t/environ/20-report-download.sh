@@ -126,4 +126,14 @@ $mc/curl /rest/efficiency?period=day
 # $mc/sql 'select * from agg_download_pkg'
 $mc/sql_test 4 == "select count(*) from agg_download_pkg join metapkg on metapkg_id = id where period = 'day' and name = 'cargo1.64' group by period, dt"
 
+$mc/curl /rest/package/1/stat_download | grep '"cnt_1d":"32","cnt_30d":"32","cnt_7d":"32","cnt_today":"8","cnt_total":"32"'
+$mc/curl /rest/package/cargo1.64/stat_download_curr | grep '{"cnt_curr":0}'
+
+$mc/curl -I /download/tumbleweed/repo/oss/x86_64/cargo1.64-1.64.0-1.1.x86_64.rpm | grep HTTP
+$mc/curl -I /download/tumbleweed/repo/oss/x86_64/cargo1.64-1.64.0-1.1.x86_64.rpm | grep HTTP
+$mc/curl -I /download/tumbleweed/repo/oss/x86_64/cargo1.64-1.64.0-1.1.x86_64.rpm | grep HTTP
+
+
+$mc/curl /rest/package/cargo1.64/stat_download_curr | grep '{"cnt_curr":3}'
+
 echo success
