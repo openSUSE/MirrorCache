@@ -44,9 +44,6 @@ sub _run {
     }
 }
 
-# my $pkg_re = '^(.*\\/)+(.*)-[^-]+-[^-]+\\.(x86_64|noarch|ppc64le|(a|loong)arch64.*|s390x|i[3-6]86|armv.*|src|riscv64|ppc.*|nosrc|ia64)(\\.d?rpm)$';
-my $pkg_re = '^(.*\/)+(.*)-[^-]+-[^-]+\.(x86_64|noarch|ppc64le|(a|loong)arch64.*|s390x|i[3-6]86|armv.*|src|riscv64|ppc.*|nosrc|ia64)(\.d?rpm)$';
-
 sub _agg {
     my ($app, $job, $period) = @_;
 
@@ -56,8 +53,8 @@ sub _agg {
 insert into agg_download_pkg select '$period'::stat_period_t, dt_to, metapkg.id, coalesce(stat.folder_id, 0), stat.country, count(*)
 from
 ( select date_trunc('$period', CURRENT_TIMESTAMP(3)) - interval '1 $period' as dt_from, date_trunc('$period', CURRENT_TIMESTAMP(3)) as dt_to ) x
-join stat on dt between x.dt_from and x.dt_to and path like '%rpm'
-join metapkg on name = regexp_replace(path, '$pkg_re', '\\2')
+join stat on dt between x.dt_from and x.dt_to and pkg is not null
+join metapkg on name = pkg
 left join agg_download_pkg on period = '$period'::stat_period_t and agg_download_pkg.dt = x.dt_to and agg_download_pkg.country = stat.country and agg_download_pkg.folder_id = coalesce(stat.folder_id, 0)
 where
 agg_download_pkg.period is NULL
@@ -73,8 +70,8 @@ group by dt_to, metapkg.id, stat.folder_id, stat.country
 insert into agg_download_pkg select '$period', dt_to, metapkg.id, coalesce(stat.folder_id, 0), stat.country, count(*)
 from
 ( select date_sub(CONVERT(DATE_FORMAT(now(),'$format'),DATETIME), interval 1 $period) as dt_from, CONVERT(DATE_FORMAT(now(),'$format'),DATETIME) as dt_to ) x
-join stat on dt between x.dt_from and x.dt_to and path like '%rpm'
-join metapkg on name = regexp_replace(path, '$pkg_re', '\\\\2')
+join stat on dt between x.dt_from and x.dt_to and pkg is not null
+join metapkg on name = pkg
 left join agg_download_pkg on period = '$period' and agg_download_pkg.dt = x.dt_to and agg_download_pkg.country = stat.country and agg_download_pkg.folder_id = coalesce(stat.folder_id, 0)
 where
 agg_download_pkg.period is NULL

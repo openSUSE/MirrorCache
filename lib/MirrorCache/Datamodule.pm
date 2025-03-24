@@ -41,7 +41,7 @@ has [ '_pedantic' ];
 has [ '_glob' ];           # glob pattern from url for folder rendering, e.g. "file*.iso"
 has [ '_glob_regex' ];     # generated regex for _glob, i.e. "^file.*\.iso$"
 has [ '_regex' ];          # regex from url for folder rendering, e.g. "file.*iso"
-has [ '_scheme', '_path', '_trailing_slash' ];
+has [ '_scheme', '_path', '_trailing_slash', 'ext' ];
 has [ '_query', '_query1' ];
 has '_original_path';
 has 'must_render_from_root';
@@ -112,6 +112,7 @@ sub reset($self, $c, $top_folder = undef) {
     $self->file_mtime(undef);
     $self->file_age(undef);
     $self->media_version(undef);
+    $self->ext(undef);
 }
 
 sub ip_sha1($self) {
@@ -624,6 +625,7 @@ sub _init_path($self) {
     }
 
     my ($ext) = $path =~ /([^.]+)$/;
+    $self->ext($ext) if $ext;
     my $mime = '';
     $mime = $TYPES->type($ext) // '' if $ext;
     $self->_mime($mime);

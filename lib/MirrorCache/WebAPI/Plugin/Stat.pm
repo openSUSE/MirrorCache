@@ -62,13 +62,21 @@ sub redirect_to_region($self, $dm) {
 
 my $ONLY_MISS = $ENV{MIRRORCACHE_STAT_LOG_ONLY_MISSES};
 
+sub pkg_from_path($dm, $path) {
+    return undef unless 'rpm' eq $dm->ext || 'drpm' eq $dm->ext;
+    if ( $path =~ m/^(.*\/)+(.*)-[^-]+-[^-]+\.(x86_64|noarch|ppc64le|(a|loong)arch64.*|s390x|i[3-6]86|armv.*|src|riscv64|ppc.*|nosrc|ia64)(\.d?rpm)$/ ) {
+        return $2;
+    }
+    return undef;
+}
+
 sub redirect_to_mirror($self, $mirror_id, $dm) {
     return undef if $ONLY_MISS && $mirror_id != -1;
     my ($path, $trailing_slash) = $dm->path;
     $path = $dm->root_subtree . $path;
     my $rows = $self->rows;
     my @rows = defined $rows? @$rows : ();
-    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, ($dm->metalink || $dm->meta4)? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head, $$, int($dm->elapsed*1000), $dm->file_age, $dm->folder_scan_last, $dm->mirror_country ];
+    push @rows, [ $dm->ip_sha1, scalar $dm->agent, scalar ($path . $trailing_slash), $dm->country, datetime_now(), $mirror_id, $dm->folder_id, $dm->file_id, $dm->is_secure, $dm->is_ipv4, ($dm->metalink || $dm->meta4)? 1 : 0, $dm->mirrorlist? 1 : 0, $dm->is_head, $$, int($dm->elapsed*1000), pkg_from_path($dm, $path),  $dm->file_age, $dm->folder_scan_last, $dm->mirror_country ];
     my $cnt = @rows;
     if ($cnt >= $FLUSH_COUNT) {
         $self->rows(undef);
@@ -95,8 +103,8 @@ sub flush($self, $rows) {
     $self->rows(undef);
     my @rows = @$rows;
     my $sql = <<"END_SQL";
-insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, mirrorlist, head, pid, execution_time)
-values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+insert into stat(ip_sha1, agent, path, country, dt, mirror_id, folder_id, file_id, secure, ipv4, metalink, mirrorlist, head, pid, execution_time, pkg)
+values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 END_SQL
 
     my %demand_sync;
