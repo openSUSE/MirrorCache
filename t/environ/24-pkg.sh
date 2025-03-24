@@ -52,6 +52,8 @@ for f in ${files[@]}; do
     $mc/curl -Is /download$f
 done
 
+$mc/sql_test 1 == "select count(*) from stat where pkg = 'qjackctl'";
+
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
 $mc/backstage/shoot

@@ -456,3 +456,6 @@ create table if not exists agg_download_pkg (
     cnt        bigint,
     primary key(period, dt, metapkg_id, folder_id, country)
 );
+-- 43 up
+alter table stat add column if not exists pkg varchar(512);
+create index if not exists stat_dt_pkg_folder_id_country_idx on stat(dt, pkg, folder_id, country);
