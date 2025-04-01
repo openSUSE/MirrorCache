@@ -11,6 +11,8 @@ var pkg_param_strict;
 
 var pkg_stat_first_seen;
 var pkg_stat_dl_todate = ''; // total excluding today
+var pkg_stat_dl_month  = ''; // last 30 days excluding today
+var pkg_stat_dl_week   = ''; // last 7 days excluding today
 var pkg_stat_dl_today  = ''; // today excluding last hour
 var pkg_stat_dl_curr   = ''; // last hour
 
@@ -247,13 +249,28 @@ function setupPackageLocations(name) {
             }
         }],
         lengthMenu: [
-            [100, 1000, 10, -1],
-            [100, 1000, 10, 'All'],
+            [30, 100, 1000, 10, -1],
+            [30, 100, 1000, 10, 'All'],
         ],
     });
 }
 
 
+function setupDownloadStatUIElement(elementName, v, v1) {
+    var dot = '...';
+    var res;
+    if (typeof v != 'undefined') {
+        res = v;
+        if ( +parseInt(v1) > 0) {
+            res = + res + +parseInt(v1);
+        }
+        if ( +parseInt(pkg_stat_dl_curr) > 0) {
+            res = +res + +parseInt(pkg_stat_dl_curr);
+            dot = '';
+        }
+    }
+    document.getElementById(elementName).textContent = String(res).concat(dot);
+}
 
 
 function setupDownloadStatUI() {
@@ -266,23 +283,12 @@ function setupDownloadStatUI() {
         }
         document.getElementById("download-stat-first-seen").textContent = res;
     }
-    if (typeof pkg_stat_dl_todate != 'undefined') {
-        var res = pkg_stat_dl_todate;
-        if ( +parseInt(pkg_stat_dl_today) > 0) {
-            res = +res + +parseInt(pkg_stat_dl_today);
-        }
-        if ( +parseInt(pkg_stat_dl_curr) > 0) {
-            res = +res + +parseInt(pkg_stat_dl_curr);
-        }
-        document.getElementById("download-stat-total").textContent = res;
-    }
-    if (typeof pkg_stat_dl_today != 'undefined') {
-        var res = pkg_stat_dl_today;
-        if ( +parseInt(pkg_stat_dl_curr) > 0) {
-            res = +res + +parseInt(pkg_stat_dl_curr);
-        }
-        document.getElementById("download-stat-today").textContent = res;
-    }
+
+    setupDownloadStatUIElement("download-stat-total", pkg_stat_dl_todate, pkg_stat_dl_today);
+    setupDownloadStatUIElement("download-stat-month", pkg_stat_dl_month,  pkg_stat_dl_today);
+    setupDownloadStatUIElement("download-stat-week",  pkg_stat_dl_week,   pkg_stat_dl_today);
+    setupDownloadStatUIElement("download-stat-today", pkg_stat_dl_today);
+
     if (typeof pkg_stat_dl_today != 'undefined') {
         var res = pkg_stat_dl_curr;
         document.getElementById("download-stat-curr").textContent = res;
@@ -301,6 +307,14 @@ function setupPackageStatDownload(id) {
             var c = data.cnt_total;
             if (typeof c !== 'undefined' && c > 0) {
                 pkg_stat_dl_todate = c;
+            }
+            c = data.cnt_30d;
+            if (typeof c !== 'undefined' && c > 0) {
+                pkg_stat_dl_month = c;
+            }
+            c = data.cnt_7d;
+            if (typeof c !== 'undefined' && c > 0) {
+                pkg_stat_dl_week = c;
             }
             c = data.cnt_today;
             if (typeof c !== 'undefined' && c > 0) {

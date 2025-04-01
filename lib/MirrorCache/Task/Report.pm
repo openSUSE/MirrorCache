@@ -94,7 +94,7 @@ insert into agg_download(period, dt, project_id, country, mirror_id,
         bytes)
 select 'hour'::stat_period_t cperiod, date_trunc('hour', stat.dt) cdt, coalesce(p.id, 0) cpid, coalesce(stat.country, '') ccountry, stat.mirror_id cmirror_id,
         coalesce(ft.id, 0) cft_id,
-        coalesce(os.id, 0) cos_id, coalesce(regexp_replace(stat.path, os.mask, os.version), '') cos_version,
+        coalesce(os.id, 0) cos_id, lower(coalesce(regexp_replace(stat.path, os.mask, os.version), '')) cos_version,
         coalesce(arch.id, 0) carch_id,
         0 cmeta_id,
         count(*) cnt,
@@ -112,7 +112,7 @@ left join agg_download d       on stat.mirror_id = d.mirror_id
                               and d.project_id = coalesce(p.id, 0)
                               and d.file_type  = coalesce(ft.id, 0)
                               and d.os_id = coalesce(os.id, 0)
-                              and d.os_version = coalesce(regexp_replace(stat.path, os.mask, os.version), '')
+                              and d.os_version = lower(coalesce(regexp_replace(stat.path, os.mask, os.version), ''))
                               and d.arch_id = coalesce(arch.id, 0)
                               and d.dt = date_trunc('hour', stat.dt)
                               and d.dt > now() - interval '7 hour'

@@ -11,7 +11,7 @@ RUN zypper --gpg-auto-import-keys ref
 RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-Plugin-ClientIP \
     vim mariadb mariadb-server curl sudo git-core wget tar m4 make rsync \
     apache2 perl-Digest-MD4 tidy nginx bbe perl-DBD-mysql perl-Mojo-mysql perl-Minion-Backend-mysql perl-DateTime-HiRes \
-    perl-Config-IniFiles environ
+    perl-Config-IniFiles environ eatmydata
 
 # optional dependencies used in testing
 RUN zypper -vvv -n install perl-Geo-IP2Location perl-Digest-Zsync perl-DateTime-Format-MySQL libxml2-tools

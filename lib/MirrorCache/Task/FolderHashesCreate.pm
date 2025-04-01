@@ -57,6 +57,7 @@ sub _sync {
         my $block_size = calcBlockSize($file->{size});
         eval {
             my $indir = $root->rootpath($path);
+            die "Not found: $path" unless $indir;
             calcMetalink($indir, $path, $basename, $block_size, $schema, $file->{id});
             $count++;
         };
