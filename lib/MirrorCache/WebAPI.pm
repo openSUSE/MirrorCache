@@ -88,7 +88,7 @@ sub startup {
     my $secret = random_string(16);
     $self->config->{hypnotoad}{listen}   = [$ENV{MOJO_LISTEN} // 'http://*:8080'];
     $self->config->{hypnotoad}{proxy}    = $ENV{MOJO_REVERSE_PROXY} // 0,
-    $self->config->{hypnotoad}{workers}  = $ENV{MIRRORCACHE_WORKERS},
+    $self->config->{hypnotoad}{workers}  = $mcconfig->workers,
     # $self->config->{hypnotoad}{pid_file} = $ENV{MIRRORCACHE_HYPNOTOAD_PID}, - already set in constructor
     $self->config->{_openid_secret} = $secret;
     $self->secrets([$secret]);

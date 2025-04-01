@@ -90,7 +90,7 @@ sub _init_if_needed {
     if ($caching && @projects && !$wasdberror) {
         eval {
             my $f = Mojo::File->new( "$cache_dir/$cache_filename.json" );
-            $f->spurt(encode_json([ @projects ]));
+            $f->spew(encode_json([ @projects ]));
         };
     }
 

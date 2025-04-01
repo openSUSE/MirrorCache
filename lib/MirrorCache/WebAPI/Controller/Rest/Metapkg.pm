@@ -179,7 +179,7 @@ sub stat_download {
     my $sql;
     $sql = <<'END_SQL';
 select
-  extract(epoch from ( select min(dt) from agg_download_pkg where metapkg_id = ? and period = 'hour' ))::int as first_seen,
+  extract(epoch from ( select min(dt) from agg_download_pkg where metapkg_id = ? and period = 'day' ))::int as first_seen,
   coalesce( (select sum(cnt) as cnt from agg_download_pkg where metapkg_id = ? and period = 'total' and dt = (select max(dt) from agg_download_pkg where period = 'total')), 0 ) as cnt_total,
   coalesce( (select sum(cnt) as cnt from agg_download_pkg where metapkg_id = ? and period = 'hour'  and dt > (select max(dt) from agg_download_pkg where period = 'total')), 0 ) as cnt_today,
   sum(cnt) as cnt_30d,
@@ -203,20 +203,15 @@ sub stat_download_curr {
     my $name = $self->param('name');
     my $sql;
     $sql = <<'END_SQL';
-select
-  count(*) as cnt_curr
-from
-  stat
-  left join (select max(dt) as dt from agg_download_pkg where period = 'hour') last_agg_hour on 1 = 1
-where
-  stat.dt > coalesce(last_agg_hour.dt, now() - interval '1 hour') and path like concat('%',?::text,'%rpm') and ? = regexp_replace(path, '^(.*\/)+(.*)-[^-]+-[^-]+\.(x86_64|noarch|ppc64le|(a|loong)arch64.*|s390x|i[3-6]86|armv.*|src|riscv64|ppc.*|nosrc|ia64)(\.d?rpm)$', '\2')
+select count(*) as cnt_curr
+from stat
+where stat.dt > coalesce((select max(dt) as dt from agg_download_pkg where period = 'hour') , now() - interval '1 hour') and pkg = ?::text;
 END_SQL
     unless ($self->schema->pg) {
-        $sql =~ s/\\2/\\\\2/g;
         $sql =~ s/::text//g;
         $sql =~ s/interval '(\d+) (day|hour)'/interval $1 $2/g;
     }
-    my $res = $self->schema->storage->dbh->selectall_arrayref($sql, {Columns => {}}, $name, $name);
+    my $res = $self->schema->storage->dbh->selectall_arrayref($sql, {Columns => {}}, $name);
     return $self->render(json => { data => $res });
 }
 
