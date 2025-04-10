@@ -67,7 +67,7 @@ sub sync_tree {
 
     my $job_id;
     eval {
-        $job_id = $self->minion->enqueue('folder_tree' => [$path] => {priority => 10});
+        $job_id = $self->backstage->enqueue('folder_tree', $path);
     };
     return $self->render(status => 500, text => Dumper($@)) unless $job_id;
 
@@ -85,7 +85,7 @@ sub sync {
 
     my $job_id;
     eval {
-        $job_id = $self->minion->enqueue('folder_sync' => [$path] => {priority => 10, notes => {$path => 1}} );
+        $job_id = $self->backstage->enqueue('folder_sync', $path);
     };
     return $self->render(status => 500, text => Dumper($@)) unless $job_id;
 

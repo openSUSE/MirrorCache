@@ -61,9 +61,10 @@ sub _run {
         my $needsync = $project->get_column('needsync');
         next unless $needsync;
         $rs->mark_scheduled($project->id);
-        $minion->enqueue('folder_sync' => [$project->path, 1] => {priority => 2} => {notes => {$project->path => 1}} );
+        $app->backstage->enqueue('folder_sync', $project->path, 1);
         $cnt++;
     }
+
     $job->note(count => $cnt);
 
     return $job->finish unless $DELAY;

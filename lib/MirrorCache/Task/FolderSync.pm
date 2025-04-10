@@ -150,13 +150,13 @@ sub _sync {
             $schema->resultset('Folder')->request_scan($folder->id);
             $minion->enqueue('folder_hashes_create' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
             $minion->enqueue('folder_hashes_import' => [$realpath] => {queue => $HASHES_QUEUE}) if $HASHES_IMPORT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_import', $HASHES_QUEUE);
-            $minion->enqueue('folder_pkg_sync' => [$realpath]) if $has_pkg && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_pkg_sync');
+            $minion->enqueue('folder_pkg_sync' => [$realpath] => { queue => $job->info->{queue} }) if $has_pkg && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_pkg_sync');
         }
         $schema->resultset('Folder')->request_scan($otherFolder->id) if $otherFolder && ($count || !$otherFolder->scan_requested);
         $schema->resultset('Rollout')->add_rollout($proj->{project_id}, $obsrelease->versionmtime, $obsrelease->version, $obsrelease->versionfilename, $proj_prefix) if $obsrelease && $obsrelease->versionfilename;
 
         for my $subfolder (@subfolders) {
-            $minion->enqueue('folder_sync' => ["$path/$subfolder"]);
+            $app->backstage->enqueue('folder_sync', "$path/$subfolder");
         }
         return;
     };
@@ -252,7 +252,7 @@ sub _sync {
         $minion->enqueue('folder_hashes_create' => [$realpath, $max_dt] => {queue => $HASHES_QUEUE}) if $HASHES_COLLECT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_create', $HASHES_QUEUE);
         $minion->enqueue('folder_hashes_import' => [$realpath, $max_dt] => {queue => $HASHES_QUEUE}) if $HASHES_IMPORT && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_hashes_import', $HASHES_QUEUE);
     }
-    $minion->enqueue('folder_pkg_sync' => [$realpath]) if $has_pkg && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_pkg_sync');
+    $minion->enqueue('folder_pkg_sync' => [$realpath] => { queue => $job->info->{queue} }) if $has_pkg && !$app->backstage->inactive_jobs_exceed_limit(1000, 'folder_pkg_sync', $job->info->{queue});
 
     if ($otherFolder && ($cnt || $updated || !$otherFolder->scan_requested)) {
         $otherFolder->update({sync_last => \"CURRENT_TIMESTAMP(3)", scan_requested => \"CURRENT_TIMESTAMP(3)", sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))'});
@@ -263,7 +263,7 @@ sub _sync {
 
 
     for my $subfolder (@subfolders) {
-        $minion->enqueue('folder_sync' => ["$path/$subfolder"]);
+        $app->backstage->enqueue('folder_sync', "$path/$subfolder");
     }
 }
 

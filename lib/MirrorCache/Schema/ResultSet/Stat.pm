@@ -222,6 +222,52 @@ END_SQL
     return ($id, \@folders, \@country_list);
 }
 
+
+# this should return recent requests for unknown yet files or folders
+sub path_misses_shard {
+    my ($self, $min_stat_id, $max_stat_id, $shard) = @_;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $sql = << 'END_SQL';
+select stat.id, stat.path, stat.folder_id, trim(country)
+from stat left join folder on folder.id = stat.folder_id
+where
+(
+	(( mirror_id in (0,-1) or mirrorlist ) and ( file_id is null )) -- unknown file
+or
+	( folder_id is null and mirror_id > -2 ) -- file may be known, but requested folder is unknown - happens when realpath shows to a different folder
+)
+and stat.path !~ '\/(repodata\/repomd\.xml[^\/]*|media\.1\/(media|products)|content|.*\.sha\d\d\d(\.asc)?|Release(\.key|\.gpg)?|InRelease|Packages(\.gz|\.zst)?|Sources(\.gz|\.zst)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?|tar\.zst(\.sig)?))?|(files|primary|other)\.xml\.(gz|zck|zst)|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz|zst)|gpg-pubkey.*\.asc|CHECKSUMS(\.asc)?|APKINDEX\.tar\.gz)$'
+and lower(stat.agent) NOT LIKE '%bot%'
+and lower(stat.agent) NOT LIKE '%rclone%'
+and stat.id between ? and ?
+and stat.path like ?
+and (
+    stat.folder_id is null or
+    folder.sync_requested < folder.sync_scheduled
+    )
+END_SQL
+
+    $sql =~ s/\!\~/not regexp/g unless $dbh->{Driver}->{Name} eq 'Pg';
+
+    my $prep = $dbh->prepare($sql);
+    $prep->execute($min_stat_id, $max_stat_id, "/$shard");
+    my $arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
+    my $id;
+    my %folders = ();
+    foreach my $miss ( @$arrayref ) {
+        my $path = $miss->{path};
+        next unless $path;
+        $path = path($path)->dirname;
+        $folders{$path} = 1;
+    }
+    my @folders = (sort keys %folders);
+    return (\@folders);
+}
+
 sub mirror_misses {
     my ($self, $prev_stat_id, $limit) = @_;
 

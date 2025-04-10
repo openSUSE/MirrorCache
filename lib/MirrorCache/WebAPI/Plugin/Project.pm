@@ -25,6 +25,8 @@ my %projects_path;
 my %projects_alias;
 my %projects_redirect;
 my %projects_region_redirect;
+my %projects_shard;
+
 my $last_init_warning;
 
 my $caching   = 1;
@@ -40,6 +42,7 @@ sub register {
     $app->helper('mcproject.redirect' => \&_redirect);
     $app->helper('mcproject.caching' => \&_caching);
     $app->helper('mcproject.cache_dir' => \&_cache_dir);
+    $app->helper('mcproject.shard_for_path' => \&_shard_for_path);
 
     $caching = 0 unless -w $cache_dir;
 
@@ -57,7 +60,7 @@ sub _init_if_needed {
             my @projs;
             # we want to cache it, so move to simpler structure
             for my $r (@rows) {
-                my %proj = ( id => $r->id, name => $r->name, path => $r->path, redirect => $r->redirect, prio => $r->prio );
+                my %proj = ( id => $r->id, name => $r->name, path => $r->path, redirect => $r->redirect, prio => $r->prio, shard => $r->shard );
                 push @projs, \%proj;
             }
             @projects = @projs;
@@ -105,6 +108,9 @@ sub _init_if_needed {
         $projects_path{$name} = $p->{path};
         $projects_path{$id}   = $p->{path};
         $projects_alias{$name} = $alias;
+        if (my $shard = $p->{shard}) {
+            $projects_shard{$p->{path}} = $shard;
+        }
         my $redirect = $p->{redirect};
         next unless $redirect;
         my @parts = split ';', $redirect;
@@ -181,6 +187,15 @@ sub _caching {
 
 sub _cache_dir {
     $cache_dir;
+}
+
+sub _shard_for_path {
+    my ($c, $path) = @_;
+    _init_if_needed($c);
+    return '' unless keys %projects_shard;
+
+    $path = substr($path, 0, index($path, '/', 1));
+    return $projects_shard{$path};
 }
 
 1;
