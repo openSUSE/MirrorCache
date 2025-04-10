@@ -20,6 +20,7 @@ use Mojo::File qw(path);
 sub register {
     my ($self, $app) = @_;
     $app->minion->add_task(folder_sync_schedule_from_misses => sub { _run($app, @_) });
+    $app->minion->add_task(folder_sync_schedule_from_misses_shard => sub { _run_shard($app, @_) });
 }
 
 my $DELAY = int($ENV{MIRRORCACHE_SCHEDULE_RETRY_INTERVAL} // 10);
@@ -54,15 +55,21 @@ sub _run {
     my $rs = $schema->resultset('Folder');
     my $last_run = 0;
     print STDERR $app->dumper($pref, $folders, $stat_id, $prev_stat_id) if $MCDEBUG;
+
+    # we will schedule folder_sync_schedule_from_misses_shard for each affected shard with range ($prev_stat_id, $next_stat_id)
+    my %affected_shards;
+
     while (scalar(@$folders)) {
         my $cnt = 0;
-        $prev_stat_id = $stat_id;
         print(STDERR "$pref read id from stat up to: $stat_id\n");
         for my $path (@$folders) {
             print STDERR $pref . $path . "\n" if $MCDEBUG;
             my $folder = $rs->find({ path => $path });
             if (!$folder) {
-                if (!$app->mc->root->is_dir($path)) {
+                my $shard  = $app->mcproject->shard_for_path($path);
+                if ($shard) {
+                    $affected_shards{$shard} = 1;
+                } elsif (!$app->mc->root->is_dir($path)) {
                     $path = Mojo::File->new($path)->dirname;
                     next unless $app->mc->root->is_dir($path);
                 }
@@ -86,7 +93,7 @@ sub _run {
         $last_run = $last_run + $cnt;
         last unless $cnt;
         $limit = 10000;
-        ($stat_id, $folders, $country_list) = $schema->resultset('Stat')->path_misses($prev_stat_id, $limit);
+        ($stat_id, $folders, $country_list) = $schema->resultset('Stat')->path_misses($stat_id, $limit);
     }
 
     if ($minion->lock('mirror_force_done', 9000)) {
@@ -103,10 +110,58 @@ sub _run {
     print(STDERR "$pref will retry with id: $prev_stat_id\n") if $MCDEBUG;
     my $total = $job->info->{notes}{total};
     $total = 0 unless $total;
-    $job->note(stat_id => $prev_stat_id, total => $total, last_run => $last_run);
+    $total += $last_run if $last_run;
+    $job->note(stat_id => $stat_id, total => $total, last_run => $last_run);
+
+    for my $shard (keys %affected_shards) {
+        $minion->enqueue('folder_sync_schedule_from_misses_shard' => [$prev_stat_id, $stat_id, $shard] => {queue => $shard});
+    }
 
     return $job->finish unless $DELAY;
     return $job->retry({delay => $DELAY});
+}
+
+
+# files from shards are available only special workeds, thus a dedicated job to run in a queue of those workers
+sub _run_shard {
+    my ($app, $job, $min_stat_id, $max_stat_id, $shard) = @_;
+    my $job_id = $job->id;
+    my $pref = "[schedule_from_misses$shard $job_id]";
+
+    return $job->finish("something is missing: $min_stat_id, $max_stat_id, $shard")
+        unless defined $min_stat_id && $max_stat_id && $shard;
+
+    my $minion = $app->minion;
+    # prevent multiple scheduling tasks to run in parallel
+    return $job->finish("Previous schedule_from_misses_$shard job is still active")
+        unless my $guard = $minion->guard("folder_sync_schedule_from_misses_$shard", 180);
+
+    my $schema = $app->schema;
+
+    my $folders = $schema->resultset('Stat')->path_misses_shard($min_stat_id, $max_stat_id, $shard);
+    my $rs = $schema->resultset('Folder');
+
+    while (scalar(@$folders)) {
+        my $cnt = 0;
+        for my $path (@$folders) {
+            my $folder = $rs->find({ path => $path });
+            if (!$folder) {
+                if (!$app->mc->root->is_dir($path)) {
+                    $path = Mojo::File->new($path)->dirname;
+                    next unless $app->mc->root->is_dir($path);
+                }
+            }
+            $folder = $rs->find({ path => $path }) unless $folder;
+
+            $cnt = $cnt + 1;
+            $rs->request_sync($path);
+            if ($folder && $folder->id) {
+                $rs->request_scan($folder->id);
+            }
+        }
+    }
+
+    return $job->finish("Done $shard for range $min_stat_id, $max_stat_id");
 }
 
 1;

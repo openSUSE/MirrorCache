@@ -99,7 +99,10 @@ if ($schema->pg) {
 
     for my $folder (@folders) {
         $folder->update({sync_scheduled => \'CURRENT_TIMESTAMP(3)'});  # , sync_requested => \'if(sync_requested > sync_scheduled, sync_scheduled, sync_requested)'});
-        $minion->enqueue('folder_sync' => [$folder->path] => {priority => 2} => {notes => {$folder->path => 1}} );
+        my $queue = "default";
+        my $shard = $app->mcproject->shard_for_path($folder->path);
+        $queue = $shard if $shard;
+        $app->backstage->enqueue('folder_sync', $folder->path);
         $cnt = $cnt + 1;
     }
     $job->note(count => $cnt);

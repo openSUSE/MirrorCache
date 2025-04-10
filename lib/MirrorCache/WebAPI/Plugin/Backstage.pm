@@ -186,16 +186,39 @@ END_SQL
     return $db->query($sql, $limit, $queue, $task, $limit1)->expand->hash->{exceed};
 }
 
+sub enqueue {
+    my $self = shift;
+    my $task = shift;
+    my @args = @_;
+    my $app = $self->app;
+
+    my %params;
+    if ($task eq 'folder_sync') {
+        $params{"notes"} = { $args[0] => 1 };
+        if (my $queue = $app->mcproject->shard_for_path($args[0])) {
+            $params{"queue"} = $queue;
+        }
+        $params{"priority"} = 2;
+    } elsif ($task eq 'folder_tree') {
+        if (my $queue = $app->mcproject->shard_for_path($args[0])) {
+            $params{"queue"} = $queue;
+        }
+        $params{"priority"} = 10;
+    }
+    return $app->minion->enqueue($task => [@args] => \%params);
+}
+
 # raсe condition here souldn't be big issue
 sub enqueue_unless_scheduled_with_parameter_or_limit {
-    my ( $self, $task, $arg1, $arg2 ) = @_;
+    my ( $self, $task, $arg, $queue ) = @_;
+    $queue = 'default' unless $queue;
 
-    return 0 if $self->inactive_jobs_exceed_limit(300);
+    return 0 if $self->inactive_jobs_exceed_limit(300, $task, $queue);
 
     my $minion = $self->app->minion;
-    my $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive','active'], notes => [$arg1] });
+    my $res = $minion->backend->list_jobs(0, 1, {tasks => [$task], states => ['inactive','active'], notes => [$arg]});
     return -1 unless ( $res || !exists $res->{total} || $res->{total} > 0 );
-    return $minion->enqueue($task => [($arg1, $arg2)] => {priority => 10} => {notes => { $arg1 => 1 }} );
+    return $minion->enqueue($task => [($arg)] => {notes => { $arg => 1 }, queue => $queue, priority => 10});
 }
 
 

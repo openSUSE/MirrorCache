@@ -474,3 +474,5 @@ alter table stat add column if not exists pkg varchar(512);
 create index if not exists i_stat_dt_pkg_folder_id_country on stat(dt, pkg, folder_id, country);
 -- 44 up
 create index if not exists i_agg_download_pkg_period_metapkg_id_dt on agg_download_pkg(period, metapkg_id, dt);
+-- 45 up
+alter table project add column if not exists shard varchar(32);

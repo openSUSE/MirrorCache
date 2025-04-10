@@ -25,6 +25,8 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 0, size => 512 },
   "redirect",
   { data_type => "varchar", is_nullable => 0, size => 512 },
+  "shard",
+  { data_type => "varchar", is_nullable => 0, size => 32 },
   db_sync_last => {
         data_type   => 'timestamp',
         is_nullable => 1
