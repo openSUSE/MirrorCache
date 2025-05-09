@@ -136,4 +136,13 @@ $mc/curl -I /download/tumbleweed/repo/oss/x86_64/cargo1.64-1.64.0-1.1.x86_64.rpm
 
 $mc/curl /rest/package/cargo1.64/stat_download_curr | grep '{"cnt_curr":3}'
 
+
+echo testing cleanup, for it populate old data
+$mc/sql "update agg_download_pkg set dt = dt - interval '1 month'"
+$mc/sql_test 72 == "select count(*) from agg_download_pkg"
+
+$mc/backstage/job cleanup
+$mc/backstage/shoot
+$mc/sql_test 48 == "select count(*) from agg_download_pkg"
+
 echo success

@@ -20,6 +20,7 @@ use MirrorCache::Utils 'datetime_now';
 sub register {
     my ($self, $app) = @_;
     $app->minion->add_task(cleanup => sub { _run($app, @_) });
+    $app->minion->add_task(cleanup_agg_download_pkg => sub { _run_agg_download_pkg($app, @_) });
 }
 
 my $DELAY          = int($ENV{MIRRORCACHE_SCHEDULE_CLEANUP_RETRY_INTERVAL} // 2 * 60);
@@ -33,6 +34,7 @@ sub _run {
 
     my $schema = $app->schema;
     $minion->enqueue('mirror_probe_projects');
+    $minion->enqueue('cleanup_agg_download_pkg');
 
     # detect stalled backstage jobs
     my $sql;
@@ -137,6 +139,53 @@ END_SQL
 
 
     return $job->retry({delay => $DELAY});
+}
+
+sub _run_agg_download_pkg {
+    my ($app, $job) = @_;
+    my $minion = $app->minion;
+    return $job->finish('Previous cleanup job is still active')
+        unless my $guard = $minion->guard('cleanup_agg_download_pkg', 120);
+
+    my $schema = $app->schema;
+
+    # detect stalled backstage jobs
+    my $sql;
+    if ($schema->pg) {
+$sql = <<'END_SQL';
+delete from agg_download_pkg
+where ctid in (
+   select ctid from agg_download_pkg
+   where period = 'hour' and dt < (current_timestamp - interval '14 day')
+   LIMIT 100000
+)
+END_SQL
+    } else {
+        $sql = "delete from agg_download_pkg where period = 'hour' and dt < date_sub(current_timestamp, interval 14 day) LIMIT 100000";
+    }
+    eval {
+        $schema->storage->dbh->prepare($sql)->execute();
+        1;
+    } or $job->note(sql_error => $@, at => datetime_now());
+
+    if ($schema->pg) {
+$sql = <<'END_SQL';
+delete from agg_download_pkg
+where ctid in (
+   select ctid from agg_download_pkg
+   where period = 'day' and dt < (current_timestamp - interval '6 month')
+   LIMIT 100000
+)
+END_SQL
+    } else {
+        $sql = "delete from agg_download_pkg where period = 'day' and dt < date_sub(current_timestamp, interval 6 month) LIMIT 100000";
+    }
+    eval {
+        $schema->storage->dbh->prepare($sql)->execute();
+        1;
+    } or $job->note(sql_error_2 => $@, at_2 => datetime_now());
+
+    return $job->finish;
 }
 
 1;
