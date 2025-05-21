@@ -151,7 +151,7 @@ from (
     select s.id, s.hostname, s.hostname_vpn, s.urldir, s.region, s.country, s.lat, s.lng, s.score $file_dt, fd.folder_id
     from folder_diff fd
     join file fl on $join_file_cond
-    join folder_diff_server fds on fd.id = fds.folder_diff_id and date_trunc('second', fl.dt) <= fds.dt
+    join folder_diff_server fds on fd.id = fds.folder_diff_id and date_trunc('second', fl.dt) <= coalesce(fds.dt, fl.dt)
     join server s on fds.server_id = s.id and s.enabled  $country_condition $condition_our_regions
     left join server_capability_declaration scd on s.id = scd.server_id and scd.capability = 'country'
     left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id

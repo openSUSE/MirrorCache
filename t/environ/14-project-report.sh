@@ -120,4 +120,12 @@ rc=0
 $mc/curl /report/mirrors/proj1 | grep -F "$($ap5/print_address)" || rc=$?
 test $rc -gt 0
 
+
+$mc/backstage/job -e folder_sync -a '["/project1"]'
+$mc/backstage/job -e mirror_scan -a '["/project1"]'
+$mc/backstage/shoot
+$mc/curl -i /download/project1/?mirrorlist | grep -F '"url":"http:\/\/127.0.0.1:1304\/project1\/"}'
+
+
+
 echo success
