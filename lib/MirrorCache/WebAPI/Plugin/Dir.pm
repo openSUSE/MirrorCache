@@ -381,6 +381,7 @@ sub _local_render {
     }
     if ($root->is_dir($path)) {
         return $dm->redirect($dm->route . $path . '/') if !$trailing_slash && $path ne '/';
+        return undef if $dm->mirrorlist; # must render mirrors
         return _render_dir($dm, $path);
     }
     if (!$trailing_slash) {
