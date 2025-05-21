@@ -5,9 +5,9 @@ ENV LANG en_US.UTF-8
 
 RUN zypper -n in curl # rpm --import needs curl atm
 RUN zypper ar -f http://cdn.opensuse.org/repositories/openSUSE:infrastructure:MirrorCache/15.6 mc
-RUN zypper ar -f https://mirror.mariadb.org/yum/11.7/sles/15/x86_64 mariadb
-RUN rpm --import https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
-RUN zypper --gpg-auto-import-keys ref
+RUN zypper ar -f https://downloads.mariadb.com/MariaDB/mariadb-10.11/yum/sles/15/x86_64 mariadb
+# RUN rpm --import https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+RUN zypper --gpg-auto-import-keys ref 
 
 # install MirrorCache here to fetch all dependencies
 RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-Plugin-ClientIP \
