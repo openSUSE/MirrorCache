@@ -28,7 +28,7 @@ sub mirrors_query {
         $self, $country, $region, $realfolder_id, $folder_id, $file_id,
         $realproject_id, $project_id,
         $capability, $ipv,  $lat,     $lng,    $avoid_countries,
-        $limit,   $avoid_region, $schemastrict, $ipvstrict, $vpn
+        $limit,   $avoid_region, $schemastrict, $ipvstrict, $vpn, $path
     ) = @_;
     $country    = ''     unless $country;
     $region     = ''     unless $region;
@@ -106,14 +106,18 @@ sub mirrors_query {
     }
 
     my $join_file_cond = "fl.folder_id = fd.folder_id";
+    my $folder_cond = "fd.folder_id in (?,?,(select id from folder where path = concat(?::text,'/repodata'))) and (fdf.file_id is NULL and fl.folder_id in (?,?,(select id from folder where path = concat(?::text,'/repodata'))))";
+    my $where_recent = "where s.mtime > 0";
     # license.tar* and info.xml* might be kept with the same name through updates, so timestamp on them is unreliable in mirrorlist for folders
-    my $file_dt = ", max(case when fdf.file_id is null and fl.name ~ '[0-9]' and fl.name not like '%license.tar.%' and fl.name not like '%info.xml.%' then fl.mtime else null end) as mtime";
+    my $file_dt = ", max(case when fdf.file_id is null and fl.name ~ '[0-9]' and fl.name not like '%license.tar.%' and fl.name not like '%info.xml.%' and fl.name not like '%.asc' and fl.name not like '%.txt' and fl.name not like '%/' and fl.name not like 'yast2%' and fl.name not like '%.pf2' then fl.mtime else null end) as mtime";
     my $group_by = "group by s.id, s.hostname, s.hostname_vpn, s.urldir, s.region, s.country, s.lat, s.lng, s.score, fd.folder_id";
 
     if ($file_id) {
         $join_file_cond = "fl.id = ?";
         $file_dt = ", fl.mtime as mtime";
         $group_by = "";
+        $where_recent = "";
+        $folder_cond = "fd.folder_id in (?,?) and coalesce(fd.realfolder_id, ?) = ? and (fdf.file_id is NULL and fl.folder_id = ?)";
     }
 
     my $sql = <<"END_SQL";
@@ -156,7 +160,7 @@ from (
     left join server_capability_declaration scd on s.id = scd.server_id and scd.capability = 'country'
     left join folder_diff_file fdf on fdf.file_id = fl.id and fdf.folder_diff_id = fd.id
     $join_server_project
-    where fd.folder_id in (?,?) and coalesce(fd.realfolder_id, ?) = ? and (fdf.file_id is NULL and fl.folder_id = ?) $condition_server_project
+    where $folder_cond $condition_server_project
     and ( -- here mirrors may be declared to handle only specific countries
         scd.server_id is null
         or
@@ -177,6 +181,7 @@ left join server_stability stability_scheme  on s.id = stability_scheme.server_i
 left join server_stability stability_schemex on s.id = stability_schemex.server_id and stability_schemex.capability = '$capabilityx'
 left join server_stability stability_ipv     on s.id = stability_ipv.server_id     and stability_ipv.capability = '$ipv'
 left join server_stability stability_ipvx    on s.id = stability_ipvx.server_id    and stability_ipvx.capability = '$ipvx'
+$where_recent
 ) x
 WHERE not_disabled $extra
 order by rating_country desc, (dist/100)::int, support_scheme desc, rating_scheme desc, support_ipv desc, rating_ipv desc, score, realfolderscore, random()
@@ -187,6 +192,8 @@ limit $limit;
 END_SQL
 
     $sql =~ s/::int//g                                                unless ($dbh->{Driver}->{Name} eq 'Pg');
+    $sql =~ s/::text//g                                               unless ($dbh->{Driver}->{Name} eq 'Pg');
+    $sql =~ s/interval 1 day/interval "1 day"/g                       unless ($dbh->{Driver}->{Name} eq 'Pg');
     $sql =~ s/random/rand/g                                           unless ($dbh->{Driver}->{Name} eq 'Pg');
     $sql =~ s/date_trunc\('second', fl.dt\)/cast(fl.dt as DATETIME)/g unless ($dbh->{Driver}->{Name} eq 'Pg');
     $sql =~ s/ \~ / REGEXP /g                           unless ($dbh->{Driver}->{Name} eq 'Pg');
@@ -196,7 +203,7 @@ END_SQL
     if ($file_id) {
         $prep->execute($file_id, @country_params, $realfolder_id, $folder_id, $realfolder_id, $realfolder_id, $realfolder_id, $country, $country, $country);
     } else {
-        $prep->execute(@country_params, $realfolder_id, $folder_id, $realfolder_id, $realfolder_id, $realfolder_id, $country, $country, $country);
+        $prep->execute(@country_params, $realfolder_id, $folder_id, $path, $realfolder_id, $folder_id, $path, $country, $country, $country);
     }
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
