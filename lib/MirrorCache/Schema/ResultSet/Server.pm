@@ -109,7 +109,7 @@ sub mirrors_query {
     my $folder_cond = "fd.folder_id in (coalesce((select id from folder where path = concat(?::text,'/repodata')),?),?) and (fdf.file_id is NULL and fl.folder_id in (coalesce((select id from folder where path = concat(?::text,'/repodata')),?),?))";
     my $where_recent = "where s.mtime > 0";
     # license.tar* and info.xml* might be kept with the same name through updates, so timestamp on them is unreliable in mirrorlist for folders
-    my $file_dt = ", max(case when fdf.file_id is null and fl.name ~ '[0-9]' and fl.name not like '%license.tar.%' and fl.name not like '%info.xml.%' and fl.name not like '%.asc' and fl.name not like '%.txt' and fl.name not like '%/' and fl.name not like 'yast2%' and fl.name not like '%.pf2' then fl.mtime else null end) as mtime";
+    my $file_dt = ", max(case when fdf.file_id is null and fl.name ~ '[0-9]' and fl.name not like '%license.tar.%' and fl.name not like '%info.xml.%' and fl.name not like '%.asc' and fl.name not like '%.txt' and fl.name not like '%/' and fl.name not like 'yast2%' and fl.name not like '%.pf2' and fl.name not like '%patterns.xml.zst' then fl.mtime else null end) as mtime";
     my $group_by = "group by s.id, s.hostname, s.hostname_vpn, s.urldir, s.region, s.country, s.lat, s.lng, s.score, fd.folder_id";
 
     if ($file_id) {
@@ -126,6 +126,7 @@ select x.id as mirror_id,
 case when support_scheme > 0 then '$capability' else '$capabilityx' end as scheme,
 hostname,
 urldir,
+folder_path,
 mtime,
 dist,
 case $weight_country_case when region $avoid_region= '$region' then 1 else 0 end rating_country,
@@ -137,7 +138,8 @@ support_ipv,
 rating_ipv
 from (
 select s.id, $hostname as hostname,
-    left(concat(s.urldir,f.path),$MIRRORCACHE_MAX_PATH) as urldir,
+    left(concat(s.urldir),$MIRRORCACHE_MAX_PATH) as urldir,
+    f.path as folder_path,
 s.mtime,
 s.lat as lat,
 s.lng as lng,

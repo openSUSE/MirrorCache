@@ -835,8 +835,13 @@ sub _collect_mirrors {
             push @$mirrors_rest, @$m;
         }
     }
+    my $path = $dm->path . $dm->trailing_slash;
     for $m (@$mirrors_country, @$mirrors_region, @$mirrors_rest) {
-        $m->{url} = $m->{scheme} . '://' . $m->{hostname} . Mojo::Util::url_escape($m->{urldir} . '/' . ($file_name // ''), '^A-Za-z0-9\-._~/');
+        if ($file_name) {
+            $m->{url} = $m->{scheme} . '://' . $m->{hostname} . Mojo::Util::url_escape($m->{urldir} . $m->{folder_path} . '/' . $file_name, '^A-Za-z0-9\-._~/');
+        } else {
+            $m->{url} = $m->{scheme} . '://' . $m->{hostname} . Mojo::Util::url_escape($m->{urldir} . $path, '^A-Za-z0-9\-._~/');
+        }
     }
     return $found_count;
 }
