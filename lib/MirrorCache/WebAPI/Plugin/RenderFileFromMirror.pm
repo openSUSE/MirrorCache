@@ -46,7 +46,7 @@ sub register {
         }
         my (@mirrors_country, @mirrors_region, @mirrors_rest);
         my $project_id = $c->mcproject->get_id($path);
-        my $cnt = _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, undef, undef, $folder_id, $project_id, undef, undef, 16);
+        my $cnt = _collect_mirrors($dm, \@mirrors_country, \@mirrors_region, \@mirrors_rest, undef, undef, $folder_id, $project_id, undef, undef, 32);
 
         return $c->render(status => 204, text => 'No mirrors found') unless $cnt;
         my @mirrors;
@@ -787,7 +787,7 @@ sub _collect_mirrors {
     $m = $rs->mirrors_query(
             $country, $region, $realfolder_id, $folder_id, $file_id, $realproject_id, $project_id,
             $scheme, $ipv, $lat, $lng, $avoid_countries, $limit, 0,
-            !$mirrorlist, $ipvstrict, $vpn
+            !$mirrorlist, $ipvstrict, $vpn, $dm->path
     ) if $country;
 
     if ($m && scalar(@$m)) {
@@ -803,7 +803,7 @@ sub _collect_mirrors {
         $m = $rs->mirrors_query(
             $country, $region, $realfolder_id, $folder_id, $file_id, $realproject_id, $project_id,
             $scheme, $ipv, $lat, $lng, \@avoid_countries, $limit, 0,
-            !$mirrorlist, $ipvstrict, $vpn
+            !$mirrorlist, $ipvstrict, $vpn, $dm->path
         );
         my $found_more;
 
@@ -822,7 +822,7 @@ sub _collect_mirrors {
         $m = $rs->mirrors_query(
             $country, $region, $realfolder_id, $folder_id, $file_id, $realproject_id, $project_id,
             $scheme, $ipv,  $lat, $lng, $avoid_countries, $limit, 1,
-            !$mirrorlist, $ipvstrict, $vpn
+            !$mirrorlist, $ipvstrict, $vpn, $dm->path
         );
         my $found_more;
         $found_more = scalar(@$m) if $m;
