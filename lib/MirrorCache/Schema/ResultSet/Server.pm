@@ -106,7 +106,7 @@ sub mirrors_query {
     }
 
     my $join_file_cond = "fl.folder_id = fd.folder_id";
-    my $folder_cond = "fd.folder_id in (?,?,(select id from folder where path = concat(?::text,'/repodata'))) and (fdf.file_id is NULL and fl.folder_id in (?,?,(select id from folder where path = concat(?::text,'/repodata'))))";
+    my $folder_cond = "fd.folder_id in (coalesce((select id from folder where path = concat(?::text,'/repodata')),?),?) and (fdf.file_id is NULL and fl.folder_id in (coalesce((select id from folder where path = concat(?::text,'/repodata')),?),?))";
     my $where_recent = "where s.mtime > 0";
     # license.tar* and info.xml* might be kept with the same name through updates, so timestamp on them is unreliable in mirrorlist for folders
     my $file_dt = ", max(case when fdf.file_id is null and fl.name ~ '[0-9]' and fl.name not like '%license.tar.%' and fl.name not like '%info.xml.%' and fl.name not like '%.asc' and fl.name not like '%.txt' and fl.name not like '%/' and fl.name not like 'yast2%' and fl.name not like '%.pf2' then fl.mtime else null end) as mtime";
@@ -203,7 +203,7 @@ END_SQL
     if ($file_id) {
         $prep->execute($file_id, @country_params, $realfolder_id, $folder_id, $realfolder_id, $realfolder_id, $realfolder_id, $country, $country, $country);
     } else {
-        $prep->execute(@country_params, $realfolder_id, $folder_id, $path, $realfolder_id, $folder_id, $path, $country, $country, $country);
+        $prep->execute(@country_params, $path, $realfolder_id, $folder_id, $path, $realfolder_id, $folder_id, $country, $country, $country);
     }
     my $server_arrayref = $dbh->selectall_arrayref($prep, { Slice => {} });
     return $server_arrayref;
