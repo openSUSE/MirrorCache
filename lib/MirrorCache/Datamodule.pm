@@ -618,10 +618,11 @@ sub _init_path($self) {
         && $path =~ m/\/(repodata\/repomd\.xml[^\/]*|media\.1\/(media|products)|content|.*\.sha\d\d\d(\.asc)?|Release(\.key|\.gpg)?|InRelease|Packages(\.gz|\.zst)?|Sources(\.gz|\.zst)?|.*_Arch\.(files|db|key)(\.(sig|tar\.gz(\.sig)?|tar\.zst(\.sig)?))?|(files|primary|other)\.xml\.(gz|zck|zst)|[Pp]ackages(\.[A-Z][A-Z])?\.(xz|gz|zst)|gpg-pubkey.*\.asc|CHECKSUMS(\.asc)?|APKINDEX\.tar\.gz)$/
     ) {
         $self->must_render_from_root(1);
-        my $time = ~time() & 0xff;
-        my $time2 = 60*60 + $time; # allow caches to serve content for 1h while they re-check
 
-        $self->c->res->headers->cache_control("public, max-age=$time stale-while-revalidate=$time2 stale-if-error=86400");
+        my $stale_time = 0xff >> 2;  # allow caches to serve content for ~1 minute while they re-check
+        my $max_age = $stale_time + (~time() & 0xff); # for how long to consider the content valid
+
+        $self->c->res->headers->cache_control("public, max-age=$max_age stale-while-revalidate=$stale_time stale-if-error=86400");
     }
 
     my ($ext) = $path =~ /([^.]+)$/;
