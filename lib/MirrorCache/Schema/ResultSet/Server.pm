@@ -109,7 +109,7 @@ sub mirrors_query {
     my $folder_cond = "fd.folder_id in (coalesce((select id from folder where path = concat(?::text,'/repodata')),?),?) and (fdf.file_id is NULL and fl.folder_id in (coalesce((select id from folder where path = concat(?::text,'/repodata')),?),?))";
     my $where_recent = "where s.mtime > 0";
     # license.tar* and info.xml* might be kept with the same name through updates, so timestamp on them is unreliable in mirrorlist for folders
-    my $file_dt = ", max(case when fdf.file_id is null and fl.name ~ '[0-9]' and fl.name not like '%license.tar.%' and fl.name not like '%info.xml.%' and fl.name not like '%.asc' and fl.name not like '%.txt' and fl.name not like '%/' and fl.name not like 'yast2%' and fl.name not like '%.pf2' and fl.name not like '%patterns.xml.zst' then fl.mtime else null end) as mtime";
+    my $file_dt = ", max(case when fdf.file_id is null and fl.name ~ '[0-9]' and fl.name not like '%license.tar.%' and fl.name not like '%info.xml.%' and fl.name not like '%.asc' and fl.name not like '%.txt' and fl.name not like '%/' and fl.name not like 'yast2%' and fl.name not like '%.pf2' and fl.name not like '%patterns.xml.zst' and fl.name not like '%susedata%xml%' and fl.name not like '%appdata-icons%' then fl.mtime else null end) as mtime";
     my $group_by = "group by s.id, s.hostname, s.hostname_vpn, s.urldir, s.region, s.country, s.lat, s.lng, s.score, fd.folder_id";
 
     if ($file_id) {
