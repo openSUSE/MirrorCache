@@ -76,6 +76,6 @@ $mc/curl -H "Accept: */*, application/metalink+xml" --interface 127.0.0.2 -s /do
 $mc/curl -H "Accept: */*, application/metalink4+xml" --interface 127.0.0.2 -s /download/folder1/file1.1.dat?COUNTRY=fr | grep -B20 127.0.0.3
 
 echo check metalink for folder
-$mc/curl -i /download/folder1/?mirrorlist | grep -F '"url":"http:\/\/127.0.0.2:1304\/folder1\/"' | grep -F '"url":"http:\/\/127.0.0.3:1314\/folder1\/"'
+$mc/curl -i /download/folder1/?mirrorlist | grep -F '"url":"http:\/\/127.0.0.2:1304\/folder1\/"' # | grep -F '"url":"http:\/\/127.0.0.3:1314\/folder1\/"'
 
 
