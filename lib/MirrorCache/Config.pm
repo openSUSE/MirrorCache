@@ -59,6 +59,8 @@ has custom_footer_message => $ENV{MIRRORCACHE_CUSTOM_FOOTER_MESSAGE};
 has browser_agent_mask => $ENV{MIRRORCACHE_BROWSER_AGENT_MASK} // '(?i)(firefox|msie|chrom|safari|seamonkey|opera|opr|trident).*';
 has country_image_dir => $ENV{MIRRORCACHE_COUNTRY_IMAGE_DIR} // '/srv/www/htdocs/webalizer/flags/';
 
+has limit_mirrorlist_folder => int($ENV{MIRRORCACHE_LIMIT_MIRRORLIST_FOLDER} // 8);
+
 has geoip => undef;
 
 sub init($self, $cfgfile) {
@@ -67,7 +69,7 @@ sub init($self, $cfgfile) {
     my $cfg;
     $cfg = Config::IniFiles->new(-file => $cfgfile, -fallback => 'default') if $cfgfile;
     if ($cfg) {
-        for my $k (qw/root root_nfs redirect redirect_huge huge_file_size small_file_size city_mmdb ip2location top_folders workers regions mirror_provider browser_agent_mask custom_footer_message country_image_dir vpn_prefix/) {
+        for my $k (qw/root root_nfs redirect redirect_huge huge_file_size small_file_size city_mmdb ip2location top_folders workers regions mirror_provider browser_agent_mask custom_footer_message country_image_dir vpn_prefix limit_mirrorlist_folder/) {
             if (my $v = $cfg->val('default', $k)) {
                 $self->$k($v);
             }
