@@ -46,7 +46,7 @@ sub register {
         }
         my $limit = 8;
         eval {
-            $limit = $app->mcconfig->limit_mirrorlist_folder // $limit;
+            $limit = $app->mcconfig->limit_mirrorlist_folder || $limit;
         };
         my (@mirrors_country, @mirrors_region, @mirrors_rest);
         my $project_id = $c->mcproject->get_id($path);
@@ -782,16 +782,16 @@ sub _collect_mirrors {
     my $vpn = $dm->vpn;
     my ($lat, $lng) = $dm->coord;
     my $avoid_countries = $dm->avoid_countries;
-    my $mirrorlist = $dm->mirrorlist;
+    my $schemastrict = 1;
+    $schemastrict = 0 if $dm->mirrorlist && $file_name;
     my $ipvstrict  = $dm->ipvstrict;
-    my $metalink   = $dm->metalink || $dm->meta4 || $dm->zsync;
     my $rs = $dm->c->schema->resultset('Server');
 
     my $m;
     $m = $rs->mirrors_query(
             $country, $region, $realfolder_id, $folder_id, $file_id, $realproject_id, $project_id,
             $scheme, $ipv, $lat, $lng, $avoid_countries, $limit, 0,
-            !$mirrorlist, $ipvstrict, $vpn, $dm->path
+            $schemastrict, $ipvstrict, $vpn, $dm->path
     ) if $country;
 
     if ($m && scalar(@$m)) {
@@ -807,7 +807,7 @@ sub _collect_mirrors {
         $m = $rs->mirrors_query(
             $country, $region, $realfolder_id, $folder_id, $file_id, $realproject_id, $project_id,
             $scheme, $ipv, $lat, $lng, \@avoid_countries, $limit, 0,
-            !$mirrorlist, $ipvstrict, $vpn, $dm->path
+            $schemastrict, $ipvstrict, $vpn, $dm->path
         );
         my $found_more;
 
@@ -826,7 +826,7 @@ sub _collect_mirrors {
         $m = $rs->mirrors_query(
             $country, $region, $realfolder_id, $folder_id, $file_id, $realproject_id, $project_id,
             $scheme, $ipv,  $lat, $lng, $avoid_countries, $limit, 1,
-            !$mirrorlist, $ipvstrict, $vpn, $dm->path
+            $schemastrict, $ipvstrict, $vpn, $dm->path
         );
         my $found_more;
         $found_more = scalar(@$m) if $m;
@@ -842,9 +842,13 @@ sub _collect_mirrors {
     my $path = $dm->path . $dm->trailing_slash;
     for $m (@$mirrors_country, @$mirrors_region, @$mirrors_rest) {
         if ($file_name) {
-            $m->{url} = $m->{scheme} . '://' . $m->{hostname} . Mojo::Util::url_escape($m->{urldir} . $m->{folder_path} . '/' . $file_name, '^A-Za-z0-9\-._~/');
+            $m->{url} = $m->{scheme} . '://' . $m->{hostname} . Mojo::Util::url_escape($m->{urldir} . '/' . $file_name, '^A-Za-z0-9\-._~/');
         } else {
-            $m->{url} = $m->{scheme} . '://' . $m->{hostname} . Mojo::Util::url_escape($m->{urldir} . $path, '^A-Za-z0-9\-._~/');
+            my $urldir = $m->{urldir};
+            if ( '/repodata' eq substr($urldir, -length('/repodata')) && '/repodata' ne substr($dm->path, -length('/repodata'))) {
+                $urldir = substr($urldir, 0, -length('/repodata'));
+            }
+            $m->{url} = $m->{scheme} . '://' . $m->{hostname} . Mojo::Util::url_escape($urldir . $dm->trailing_slash, '^A-Za-z0-9\-._~/');
         }
     }
     return $found_count;

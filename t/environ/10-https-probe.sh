@@ -44,8 +44,9 @@ ap7=$(environ ap7)
 $ap7/configure_ssl
 
 for x in $mc $ap7 $ap8; do
-    mkdir -p $x/dt/{folder1,folder2,folder3}
-    echo $x/dt/{folder1,folder2,folder3}/{file1.1,file2.1}.dat | xargs -n 1 touch
+    mkdir -p $x/dt/{folder1,folder2,folder3}/repodata/
+    echo $x/dt/{folder1,folder2,folder3}/repodata/{file1.1,file2.1}.dat | xargs -n 1 touch
+    echo $x/dt/{folder1,folder2,folder3}/file.dat | xargs -n 1 touch
 done
 
 $ap9/curl_https /download/  | grep folder1
@@ -68,7 +69,8 @@ $mc/sql_test 1 == "select 1 from server_capability_check where server_id=2 and c
 $mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 1,'http',now()"
 $mc/db/sql "insert into server_capability_force(server_id,capability,dt) select 2,'https',now()"
 
-$ap9/curl_https --cacert ca/ca.pem -I /download/folder1/file1.1.dat
+$ap9/curl_https --cacert ca/ca.pem -I /download/folder1/repodata/file1.1.dat
+$ap9/curl_https --cacert ca/ca.pem -I /download/folder1/file.dat
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
@@ -77,10 +79,19 @@ $mc/backstage/job mirror_scan_schedule
 $mc/backstage/shoot
 
 # make sure https redirects to https
-$ap9/curl_https -I /download/folder1/file1.1.dat | grep https:// | grep $($ap7/print_address)
-$ap9/curl -I /download/folder1/file1.1.dat | grep http:// | grep $($ap8/print_address)
+$ap9/curl_https -I /download/folder1/repodata/file1.1.dat | grep https:// | grep $($ap7/print_address)
+$ap9/curl -I /download/folder1/repodata/file1.1.dat | grep http:// | grep $($ap8/print_address)
 
-$ap9/curl_https /download/folder1/file1.1.dat.metalink | grep 'origin="https://metalink_publisher.net/folder1/file1.1.dat.metalink"'
-$ap9/curl       /download/folder1/file1.1.dat.metalink | grep 'origin="http://metalink_publisher.net/folder1/file1.1.dat.metalink"'
-$ap9/curl_https /download/folder1/file1.1.dat.mirrorlist | grep Origin | grep https://metalink_publisher.net/folder1/file1.1.dat
-$ap9/curl       /download/folder1/file1.1.dat.mirrorlist | grep Origin | grep http://metalink_publisher.net/folder1/file1.1.dat
+$ap9/curl_https /download/folder1/repodata/file1.1.dat.metalink | grep 'origin="https://metalink_publisher.net/folder1/repodata/file1.1.dat.metalink"'
+$ap9/curl       /download/folder1/repodata/file1.1.dat.metalink | grep 'origin="http://metalink_publisher.net/folder1/repodata/file1.1.dat.metalink"'
+$ap9/curl_https /download/folder1/repodata/file1.1.dat.mirrorlist | grep Origin | grep https://metalink_publisher.net/folder1/repodata/file1.1.dat
+$ap9/curl       /download/folder1/repodata/file1.1.dat.mirrorlist | grep Origin | grep http://metalink_publisher.net/folder1/repodata/file1.1.dat
+
+
+echo make sure https protocol is respected in folder mirrorlist
+$ap9/curl       /download/folder1/repodata/?mirrorlist | grep -F '"http:\/\/127.0.0.1:1314\/folder1\/repodata\/"'  | grep -v "127.0.0.1:1304"
+$ap9/curl_https /download/folder1/repodata/?mirrorlist | grep -F '"https:\/\/127.0.0.1:1304\/folder1\/repodata\/"' | grep -v "127.0.0.1:1314"
+$ap9/curl       /download/folder1/?mirrorlist | grep -F '"http:\/\/127.0.0.1:1314\/folder1\/"'  | grep -v "127.0.0.1:1304"
+$ap9/curl_https /download/folder1/?mirrorlist | grep -F '"https:\/\/127.0.0.1:1304\/folder1\/"'  | grep -v "127.0.0.1:1314"
+
+echo success
