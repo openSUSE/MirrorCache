@@ -476,3 +476,7 @@ create index if not exists i_stat_dt_pkg_folder_id_country on stat(dt, pkg, fold
 create index if not exists i_agg_download_pkg_period_metapkg_id_dt on agg_download_pkg(period, metapkg_id, dt);
 -- 45 up
 alter table project add column if not exists shard varchar(32);
+-- 46 up
+-- delete duplicate rows and add PR to server_project
+delete from server_project where (server_id, project_id, dt) in (select x.server_id, x.project_id, x.dt from server_project x join server_project y on (y.server_id, y.project_id) = (x.server_id, x.project_id) and x.dt < y.dt);
+alter table server_project add primary key if not exists (server_id, project_id);
