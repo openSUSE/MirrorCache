@@ -1,4 +1,4 @@
-# Copyright (C) 2021 SUSE LLC
+# Copyright (C) 2021-2025 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,7 +33,9 @@ sub _run {
       unless my $guard = $minion->guard('cleanup', 120);
 
     my $schema = $app->schema;
-    $minion->enqueue('mirror_probe_projects');
+    for my $region ('eu', 'na', 'sa', 'af', 'as', 'oc') {
+        $minion->enqueue('mirror_probe_projects' => [$region]);
+    }
     $minion->enqueue('cleanup_agg_download_pkg');
 
     # detect stalled backstage jobs

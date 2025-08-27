@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2023 SUSE LLC
+# Copyright (C) 2020-2025 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -258,11 +258,13 @@ END_SQL
 }
 
 sub server_projects {
-    my ($self) = @_;
+    my ($self, $region) = @_;
     my $rsource = $self->result_source;
     my $schema  = $rsource->schema;
     my $dbh     = $schema->storage->dbh;
     my $condition_our_regions = $schema->condition_our_regions;
+    my $condirion_region = "";
+    $region = '' unless $region;
 
     my $sql = <<"END_SQL";
 select concat(s.id, '::', p.id) as _key,
@@ -272,12 +274,12 @@ select concat(s.id, '::', p.id) as _key,
         sp.server_id as mirror_id,
         coalesce(sp.state, -2) oldstate
 from project p
-    join server s on s.enabled
+    join server s on s.enabled and (? = '' or s.region = ?)
     left join server_project sp on sp.server_id = s.id and sp.project_id = p.id
 where
     coalesce(sp.state,0) > -1 $condition_our_regions
 END_SQL
-    return $dbh->selectall_hashref($sql, '_key', {});
+    return $dbh->selectall_hashref($sql, '_key', {}, $region, $region);
 }
 
 sub log_project_probe_outcome {

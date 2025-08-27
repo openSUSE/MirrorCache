@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020-2025 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -123,16 +123,16 @@ sub _probe_capability {
 }
 
 sub _probe_projects {
-    my ($app, $job, $country) = @_;
-    $country = '' unless $country;
+    my ($app, $job, $region) = @_;
+    $region = '' unless $region;
 
     my $minion = $app->minion;
     return $job->finish("Previous projects probe job is still active")
-        unless my $guard = $minion->guard('mirror_probe_projects', 6000);
+        unless my $guard = $minion->guard('mirror_probe_projects' . $region, 6000);
 
     my $schema = $app->schema;
     my $rs = $schema->resultset('Server');
-    my $href = $rs->server_projects();
+    my $href = $rs->server_projects($region);
 
     my %count;
     my @keys = sort keys %$href;
