@@ -270,12 +270,14 @@ sub server_projects {
 select concat(s.id, '::', p.id) as _key,
         s.id as server_id,
         p.id as project_id,
+        CASE WHEN coalesce(scf.server_id, 0) > 0 THEN 'https' ELSE 'http' END as protocol,
         concat(CASE WHEN length(s.hostname_vpn)>0 THEN s.hostname_vpn ELSE s.hostname END,s.urldir, p.path) as uri,
         sp.server_id as mirror_id,
         coalesce(sp.state, -2) oldstate
 from project p
     join server s on s.enabled and (? = '' or s.region = ?)
     left join server_project sp on sp.server_id = s.id and sp.project_id = p.id
+    left join server_capability_force scf on scf.server_id = s.id and capability = 'http'
 where
     coalesce(sp.state,0) > -1 $condition_our_regions
 END_SQL
