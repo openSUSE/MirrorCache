@@ -146,7 +146,7 @@ sub _probe_projects {
         eval {
             $code = Mojo::UserAgent->new->max_redirects(5)->head($data->{uri}, {'User-Agent' => 'MirrorCache/probe_projects'})->result->code;
         };
-        $success = 0 if $code ne 200;
+        $success = 0 if ($code < 200 || $code >= 400) and $code != 403;
 
         $count{$code} = 0 unless $count{$code};
         $count{$code}++;
