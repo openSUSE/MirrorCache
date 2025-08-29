@@ -56,7 +56,7 @@ sub list {
     my $table = $self->param("table");
     my %search;
     my %x;
-    my $region = $self->req->param('region');
+    my $region = $self->req->param('region') // "";
 
     if ($table eq 'Server' || $table eq 'MyServer') {
         %x = (
@@ -66,7 +66,6 @@ sub list {
               );
 
         my $a       = 'region';
-        my $pattern = '(^|,)' . $region . '(,|$)';
         my $regexp  = $self->schema->pg ? '~' : 'REGEXP';
         my $isnull  = "IS NULL";
         unless ($region) {
@@ -76,6 +75,7 @@ sub list {
             ];
 
         } else {
+            my $pattern = '(^|,)' . $region . '(,|$)';
             $search{'-and'} = [
                 '-or'  => [
                     [ "server_capability_declaration.capability" => $a ],

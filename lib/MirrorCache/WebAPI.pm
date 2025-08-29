@@ -201,9 +201,6 @@ sub _setup_webui {
     $rest_operator_r->delete('/server/:id')->to('table#destroy', table => 'Server');
     $rest_operator_r->put('/server/location/:id')->name('rest_put_server_location')->to('server_location#update_location');
     $rest_operator_r->put('/server/check_file')->name('rest_put_server_check_file')->to('server_check_file#start');
-    $rest_operator_r->post('/server/note/#hostname')->name('rest_put_server_note')->to('server_note#ins');
-    $rest_operator_r->get('/server/note/#hostname')->name('rest_get_server_note')->to('server_note#list');
-    $rest_operator_r->get('/server/contact/#hostname')->name('rest_get_server_contact')->to('server_note#list_contact');
     $rest_operator_r->post('/sync_tree')->name('rest_post_sync_tree')->to('folder_jobs#sync_tree');
 
     $rest_operator_r->post('/project')->to('table#create', table => 'Project');
@@ -221,6 +218,9 @@ sub _setup_webui {
     $rest_usr_r->put('/myserver/location/:id')->name('rest_put_myserver_location')->to('myserver_location#update_location');
     $rest_usr_r->post('/sync')->name('rest_post_sync')->to('folder_jobs#sync');
     $rest_usr_r->post('/request_sync')->name('rest_post_request_sync')->to('folder_jobs#request_sync');
+    $rest_usr_r->post('/server/note/#hostname')->name('rest_put_server_note')->to('server_note#ins');
+    $rest_usr_r->get('/server/note/#hostname')->name('rest_get_server_note')->to('server_note#list');
+    $rest_usr_r->get('/server/contact/#hostname')->name('rest_get_server_contact')->to('server_note#list_contact');
 
     $rest_r->get('/folder')->name('rest_folder')->to('table#list', table => 'Folder');
     $rest_r->get('/repmirror')->name('rest_repmirror')->to('report_mirror#list');
