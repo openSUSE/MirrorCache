@@ -34,10 +34,13 @@ span.ratingunknown {
 
 % content_for 'ready_function' => begin
     is_operator = <%= (is_operator) ? 'true' : 'false' %>;
+    is_admin    = <%= (is_admin) ? 'true' : 'false' %>;
     server_id   = <%= $server->{id} %>;
     subsidiary  = "<%= $server->{subsidiary} %>";
     provider    = "<%= $server->{provider} %>";
-    if (is_operator) {
+    username    = "<%= $server->{admin_username} %>";
+    is_owner    = <%= $server->{is_owner} %>;
+    if (is_owner || is_admin || is_operator) {
         hostname = "<%= $server->{hostname} %>";
         if (!provider) {
             setupServerNote(hostname);
@@ -83,7 +86,7 @@ span.ratingunknown {
         </div>
     </div>
 
-% if (is_operator) {
+% if (is_operator || is_admin || $server->{is_owner} ) {
     <h3>Private notes</h3>
 %     if ($server->{provider}) {
     <div>

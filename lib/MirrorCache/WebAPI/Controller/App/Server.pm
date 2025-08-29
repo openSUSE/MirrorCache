@@ -56,7 +56,10 @@ sub show {
         or return $self->reply->not_found;
 
     my $admin_email = '';
-    if ($self->is_operator) {
+    my $current_username = $self->current_username;
+    my $is_owner = 0;
+    $is_owner = 1 if ($current_username && $current_username eq ($f->{admin_username} // '' ));
+    if ($self->is_operator || $self->is_admin || $is_owner) {
         $admin_email = $self->schema->storage->dbh->selectrow_array("SELECT msg FROM server_note WHERE hostname = ? AND kind = 'Email' ORDER BY dt DESC LIMIT 1", undef, $hostname);
     }
     my $subsidiary;
@@ -83,6 +86,7 @@ sub show {
         rating_https => $f->{rating_https},
         rating_ipv4  => $f->{rating_ipv4},
         rating_ipv6  => $f->{rating_ipv6},
+        is_owner     => $is_owner,
     };
 
     return $self->render('app/server/show', server => $server);
