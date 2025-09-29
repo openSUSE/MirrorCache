@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020-2025 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -141,6 +141,16 @@ sub startup {
             $self->plugin('RootLocal');
         } else {
             $self->plugin('RootRemote');
+        }
+    }
+    # Load Plugins from ENV
+    foreach (sort keys %ENV) {
+        my (undef, $plug) = split /MIRRORCACHE_PLUGIN_(.*)/, $_;
+        next unless $plug;
+        my $err = 1;
+        eval { $self->plugin($plug); $err = 0 };
+        if ($err) {
+            warn("Could not load plugin from {$plug}: $@\n")
         }
     }
 }
