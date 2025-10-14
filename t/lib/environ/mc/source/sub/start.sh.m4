@@ -5,7 +5,7 @@ source __workdir/conf.env
 
 (
 cd __workdir
-__srcdir/script/mirrorcache daemon run >> __workdir/.cout 2>> __workdir/.cerr &
+MIRRORCACHE_INTERNAL_SETUP_WEBAPI=1 __srcdir/script/mirrorcache daemon run >> __workdir/.cout 2>> __workdir/.cerr &
 
 pid=$!
 echo $pid > __workdir/.pid

@@ -31,23 +31,6 @@ sub new {
     # setting pid_file in startup will not help, need to set it earlier
     $self->config->{hypnotoad}{pid_file} = $ENV{MIRRORCACHE_HYPNOTOAD_PID} // '/run/mirrorcache/hypnotoad.pid';
 
-    # I wasn't able to find reliable way in Mojolicious to detect when WebUI is started
-    # (e.g. in daemon or hypnotoad in contrast to other commands like backend start / shoot)
-    # so the code below tries to detect if _setup_ui is needed to be called
-
-    my $started = 0;
-    for (my $i = 0; my @r = caller($i); $i++) {
-        next unless $r[3] =~ m/Hypnotoad/;
-        $self->_setup_webui;
-        $started = 1;
-        last;
-    }
-
-    $self->hook(before_command => sub {
-        my ($command, $arg) = @_;
-        $self->_setup_webui if ref($command) =~ m/daemon|prefork/;
-    }) unless $started;
-
     $self;
 }
 
@@ -104,15 +87,8 @@ sub startup {
     $self->defaults(branding => $ENV{MIRRORCACHE_BRANDING});
     $self->defaults(custom_footer_message => $ENV{MIRRORCACHE_CUSTOM_FOOTER_MESSAGE});
 
-    $self->plugin('RenderFile');
-
     push @{$self->plugins->namespaces}, 'MirrorCache::WebAPI::Plugin';
-
     $self->plugin('Backstage');
-    $self->plugin('AuditLog');
-    $self->plugin('RenderFileFromMirror');
-    $self->plugin('ReportMirror');
-    $self->plugin('HashedParams');
 
     if ($geodb_file && $geodb_file =~ /\.mmdb$/i) {
         require MaxMind::DB::Reader;
@@ -153,6 +129,21 @@ sub startup {
             warn("Could not load plugin from {$plug}: $@\n")
         }
     }
+
+    $self->_setup_webui_plugins if ($ENV{MIRRORCACHE_INTERNAL_SETUP_WEBAPI});
+}
+
+sub _setup_webui_plugins {
+    my ($self) = shift;
+    my $root = $self->mcconfig->root;
+    $self->log->info("initializing WebUI");
+    $self->plugin('RenderFile');
+    $self->plugin('AuditLog');
+    $self->plugin('RenderFileFromMirror');
+    $self->plugin('ReportMirror');
+    $self->plugin('HashedParams');
+
+    $self->_setup_webui;
 }
 
 sub _setup_webui {

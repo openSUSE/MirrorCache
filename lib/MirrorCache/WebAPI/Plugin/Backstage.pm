@@ -47,8 +47,8 @@ sub register_tasks {
         push @permanent_jobs, 'mirror_provider_sync';
     }
 
-    $app->plugin($_)
-      for (
+    unless ($ENV{MIRRORCACHE_INTERNAL_BACKSTAGE_EXEC}) {
+      $app->plugin($_) for (
         qw(MirrorCache::Task::MirrorCheckFromStat),
         qw(MirrorCache::Task::MirrorFileCheck),
         qw(MirrorCache::Task::MirrorScanScheduleFromMisses),
@@ -73,6 +73,9 @@ sub register_tasks {
         qw(MirrorCache::Task::StatAggSchedule),
         qw(MirrorCache::Task::StatAggPkg),
       );
+    } else {
+      $app->plugin("MirrorCache::Task::Exec");
+    }
 }
 
 sub register {

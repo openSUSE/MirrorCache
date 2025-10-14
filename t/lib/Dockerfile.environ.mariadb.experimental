@@ -16,7 +16,7 @@ RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-P
     perl-Config-IniFiles environ eatmydata
 
 # optional dependencies used in testing
-RUN zypper -vvv -n install perl-Geo-IP2Location perl-Digest-Zsync perl-DateTime-Format-MySQL libxml2-tools
+RUN zypper -vvv -n install perl-Geo-IP2Location perl-Digest-Zsync perl-DateTime-Format-MySQL libxml2-tools iputils
 
 RUN zypper -vvv -n install MariaDB-server-compat MariaDB-client-compat
 

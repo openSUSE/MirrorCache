@@ -1,0 +1,19 @@
+[Unit]
+Description=MirrorCache daemon for executing scheduled tasks
+
+[Service]
+User=mirrorcache-exec
+Group=mirrorcache-exec
+ExecStart=/usr/share/mirrorcache/script/mirrorcache-backstage-exec
+Nice=19
+Restart=on-failure
+RestartSec=10
+EnvironmentFile=/etc/mirrorcache/conf.env
+WorkingDirectory=/var/lib/mirrorcache
+Environment="MOJO_TMPDIR=/var/lib/mirrorcache/tmp"
+Environment="MOJO_LOG_LEVEL=error"
+MemoryHigh=2G
+MemoryMax=3G
+
+[Install]
+WantedBy=multi-user.target
