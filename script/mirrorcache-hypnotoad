@@ -1,6 +1,6 @@
 #!/bin/sh -e
 echo $MOJO_LISTEN
-hypnotoad "$(dirname "$0")"/mirrorcache
+MIRRORCACHE_INTERNAL_SETUP_WEBAPI=1 hypnotoad "$(dirname "$0")"/mirrorcache
 [ -f ${MIRRORCACHE_HYPNOTOAD_PID:-/run/mirrorcache/hypnotoad.pid} ] || sleep 0.5
 [ -f ${MIRRORCACHE_HYPNOTOAD_PID:-/run/mirrorcache/hypnotoad.pid} ] || sleep 0.5
 [ -f ${MIRRORCACHE_HYPNOTOAD_PID:-/run/mirrorcache/hypnotoad.pid} ] || sleep 0.5
