@@ -83,6 +83,7 @@ input[type = text] {
                                 <div class = col75>
                                     <input id="repo" name="repo" type="text" list="repolist">
                                     <datalist id="repolist">
+                                        <option value="16.0">16.0</option>
                                         <option value="15.6">15.6</option>
                                         <option value="15.5">15.5</option>
                                         <option value="openSUSE_Tumbleweed">openSUSE_Tumbleweed</option>

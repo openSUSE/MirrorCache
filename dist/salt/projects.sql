@@ -26,3 +26,14 @@ insert into project(name,path) select '15.5 source','/source/distribution/leap/1
 insert into project(name,path) select '15.5 update','/update/leap/15.5';
 insert into project(name,path) select '15.5 port','/ports/aarch64/distribution/leap/15.5';
 
+insert into project(name,path) select '15.6 ISO','/distribution/leap/15.6/iso';
+insert into project(name,path) select '15.6 repo','/distribution/leap/15.6/repo';
+insert into project(name,path) select '15.6 debug','/debug/distribution/leap/15.6/repo';
+insert into project(name,path) select '15.6 source','/source/distribution/leap/15.6/repo';
+insert into project(name,path) select '15.6 update','/update/leap/15.6';
+insert into project(name,path) select '15.6 port','/ports/aarch64/distribution/leap/15.6';
+
+insert into project(name,path) select '16.0 ISO','/distribution/leap/16.0/installer/iso';
+insert into project(name,path) select '16.0 repo','/distribution/leap/16.0/repo';
+insert into project(name,path) select '16.0 debug','/debug/distribution/leap/16.0/repo';
+insert into project(name,path) select '16.0 source','/source/distribution/leap/16.0/repo';

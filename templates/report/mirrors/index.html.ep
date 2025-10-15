@@ -33,7 +33,7 @@
 %     my $name   = $project->{name};
 %     ($first) = split ' ', $name, 2;
 %     my $extra_title = $first;
-%     $extra_title = "Leap $first"   if 0 == rindex $first, "15.", 0;
+%     $extra_title = "Leap $first"   if ((0 == rindex $first, "15.", 0) || (0 == rindex $first, "16.", 0));
 %     $extra_title = "Build Service" if $first eq 'repositories';
 %     $extra_title = "Tumbleweed"    if $first eq 'TW';
 %     $extra_title = "Slowroll"      if $first eq 'SR';
