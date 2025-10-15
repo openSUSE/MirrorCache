@@ -1,7 +1,7 @@
 #
 # spec file for package MirrorCache
 #
-# Copyright (c) 2021 SUSE LLC
+# Copyright (c) 2021,2025 SUSE LLC
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -19,10 +19,11 @@
 %define mirrorcache_services_restart mirrorcache.service mirrorcache-backstage.service mirrorcache-backstage-hashes.service mirrorcache-subtree.service
 %define mirrorcache_services %{mirrorcache_services_restart} mirrorcache-hypnotoad.service
 %define assetpack_requires perl(CSS::Minifier::XS) >= 0.01 perl(JavaScript::Minifier::XS) >= 0.11 perl(Mojolicious::Plugin::AssetPack) >= 1.36 perl(IO::Socket::SSL)
-%define main_requires %{assetpack_requires} perl(Carp) perl(DBD::Pg) >= 3.7.4 perl(DBI) >= 1.632 perl(DBIx::Class) >= 0.082801 perl(DBIx::Class::DynamicDefault) perl(DateTime) perl(Encode) perl(Time::Piece) perl(Time::Seconds) perl(Time::ParseDate) perl(DateTime::Format::Pg) perl(Exporter) perl(File::Basename) perl(LWP::UserAgent) perl(Mojo::Base) perl(Mojo::ByteStream) perl(Mojo::IOLoop) perl(Mojo::JSON) perl(Mojo::Pg) perl(Mojo::URL) perl(Mojo::Util) perl(Mojolicious::Commands) perl(Mojolicious::Plugin) perl(Mojolicious::Plugin::RenderFile) perl(Mojolicious::Static) perl(Net::OpenID::Consumer) perl(POSIX) perl(Sort::Versions) perl(URI::Escape) perl(XML::Writer) perl(base) perl(constant) perl(diagnostics) perl(strict) perl(warnings) shadow rubygem(sass) perl(Net::DNS) perl(LWP::Protocol::https) perl(Digest::SHA) perl(Config::IniFiles)
+%define common_requires perl(Carp) perl(DBD::Pg) >= 3.7.4 perl(DBI) >= 1.632 perl(DBIx::Class) >= 0.082801 perl(DBIx::Class::DynamicDefault) perl(DateTime) perl(Encode) perl(Time::Piece) perl(Time::Seconds) perl(Time::ParseDate) perl(DateTime::Format::Pg) perl(Exporter) perl(File::Basename) perl(LWP::UserAgent) perl(Mojo::Base) perl(Mojo::ByteStream) perl(Mojo::IOLoop) perl(Mojo::JSON) perl(Mojo::Pg) perl(Mojo::URL) perl(Mojo::Util) perl(Mojolicious::Commands) perl(Mojolicious::Plugin) perl(POSIX) perl(Sort::Versions) perl(URI::Escape) perl(XML::Writer) perl(base) perl(constant) perl(diagnostics) perl(strict) perl(warnings) shadow perl(Net::DNS) perl(LWP::Protocol::https) perl(Digest::SHA) perl(Config::IniFiles)
+%define main_requires %{assetpack_requires} perl(Mojolicious::Plugin::RenderFile) perl(Mojolicious::Static) perl(Net::OpenID::Consumer) rubygem(sass)
 %define build_requires %{assetpack_requires} rubygem(sass) tidy sysuser-shadow sysuser-tools
 Name:           MirrorCache
-Version:        0.1
+Version:        0
 Release:        0
 Summary:        WebApp to redirect and manage mirrors
 License:        GPL-2.0-or-later
@@ -32,11 +33,13 @@ Source0:        %{name}-%{version}.tar.xz
 Source1:        cache.tar.xz
 Source2:        %{name}-user.conf
 Source3:        %{name}-tmpfilesd.conf
+Source4:        %{name}-Exec-user.conf
+Source5:        %{name}-Exec-tmpfilesd.conf
 # use update-cache (or tools/generate-packed-assets) to generate/update cache.tar.xz
 Source101:      update-cache.sh
 BuildRequires:  %{build_requires}
+Requires:       MirrorCache-common
 Requires:       %{main_requires}
-Requires:       perl(Minion) >= 10.0
 BuildArch:      noarch
 %sysusers_requires
 
@@ -49,6 +52,7 @@ Mirror redirector web service, which automatically scans the main server and mir
 %build
 # make {?_smp_mflags}
 %sysusers_generate_pre %{SOURCE2} %{name}
+%sysusers_generate_pre %{SOURCE4} %{name}-Exec
 
 %check
 
@@ -63,6 +67,8 @@ ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache-backstage-hashes
 ln -s ../sbin/service %{buildroot}%{_sbindir}/rcmirrorcache-subtree
 install -D -m 0644 %{SOURCE2} %{buildroot}%{_sysusersdir}/%{name}.conf
 install -D -m 0644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/%{name}.conf
+install -D -m 0644 %{SOURCE4} %{buildroot}%{_sysusersdir}/%{name}-Exec.conf
+install -D -m 0644 %{SOURCE5} %{buildroot}%{_tmpfilesdir}/%{name}-Exec.conf
 
 %pre -f %{name}.pre
 %service_add_pre %{mirrorcache_services}
@@ -79,25 +85,74 @@ install -D -m 0644 %{SOURCE3} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 %service_del_postun_without_restart mirrorcache-hypnotoad.service
 
 %files
-%doc README.md
-%license LICENSE
+%{_sysusersdir}/%{name}.conf
+%{_tmpfilesdir}/%{name}.conf
+%config(noreplace) %attr(-,root,mirrorcache) %{_sysconfdir}/mirrorcache/
+%ghost %dir %attr(0750,mirrorcache,-) %{_localstatedir}/lib/mirrorcache/
 %{_sbindir}/rcmirrorcache
 %{_sbindir}/rcmirrorcache-hypnotoad
 %{_sbindir}/rcmirrorcache-backstage
 %{_sbindir}/rcmirrorcache-backstage-hashes
 %{_sbindir}/rcmirrorcache-subtree
-%{_sysusersdir}/%{name}.conf
-%{_tmpfilesdir}/%{name}.conf
-%config(noreplace) %attr(-,root,mirrorcache) %{_sysconfdir}/mirrorcache/
-%ghost %dir %attr(0750,mirrorcache,-) %{_localstatedir}/lib/mirrorcache/
-# init
-%dir %{_unitdir}
 %{_unitdir}/mirrorcache.service
 %{_unitdir}/mirrorcache-hypnotoad.service
 %{_unitdir}/mirrorcache-backstage.service
 %{_unitdir}/mirrorcache-backstage-hashes.service
 %{_unitdir}/mirrorcache-subtree.service
+
+%changelog
+
+%package common
+
+Summary:        MirrorCache shared files
+License:        GPL-2.0-or-later
+Group:          Productivity/Networking/Web/Servers
+URL:            https://github.com/openSUSE/MirrorCache
+Requires:       %{common_requires}
+Requires:       perl(Minion) >= 10.0
+BuildArch:      noarch
+%sysusers_requires
+
+%description common
+Shared files for MirrorCache packages
+
+%files common
+%doc README.md
+%license LICENSE
+%{_sbindir}/rcmirrorcache
+%dir %{_unitdir}
 # web libs
 %{_datadir}/mirrorcache
 
-%changelog
+%package Exec
+
+Summary:        MirrorCache worker to execute scheduled tasks
+License:        GPL-2.0-or-later
+Group:          Productivity/Networking/Web/Servers
+URL:            https://github.com/openSUSE/MirrorCache
+Requires:       MirrorCache-common
+BuildArch:      noarch
+%sysusers_requires
+
+%description Exec
+MirrorCache worker to execute scheduled shell scripts
+
+%files Exec
+%{_sysusersdir}/%{name}-Exec.conf
+%{_tmpfilesdir}/%{name}-Exec.conf
+%ghost %dir %attr(0750,mirrorcache,-) %{_localstatedir}/lib/mirrorcache-exec/
+%{_unitdir}/mirrorcache-backstage-exec.service
+
+%pre -f %{name}-Exec.pre Exec
+%service_add_pre mirrorcache-backstage-exec.service
+
+%post Exec
+%tmpfiles_create %{_tmpfilesdir}/%{name}-Exec.conf
+%service_add_post mirrorcache-backstage-exec.service
+
+%preun Exec
+%service_del_preun mirrorcache-backstage-exec.service
+
+%postun Exec
+%service_del_postun mirrorcache-backstage-exec.service
+
