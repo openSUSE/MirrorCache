@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024 SUSE LLC
+# Copyright (C) 2021-2025 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -64,6 +64,7 @@ has root_subtree => ($ENV{MIRRORCACHE_SUBTREE} // "");
 
 has _vpn_var => $ENV{MIRRORCACHE_VPN};
 has vpn_prefix => ($ENV{MIRRORCACHE_VPN_PREFIX} ? lc($ENV{MIRRORCACHE_VPN_PREFIX}) : "10.");
+has vpn_prefix_neg => ($ENV{MIRRORCACHE_VPN_PREFIX_NEG} ? lc($ENV{MIRRORCACHE_VPN_PREFIX_NEG}) : "");
 
 has 'at';
 has '_mime';
@@ -139,6 +140,11 @@ sub vpn($self) {
             for my $pref (split /[\s]+/, $self->vpn_prefix) {
                 $match = 1 if (rindex($ip, $pref, 0) == 0);
             }
+            if ($match && $self->vpn_prefix_neg) {
+                for my $pref (split /[\s]+/, $self->vpn_prefix_neg) {
+                    $match = 0 if (rindex($ip, $pref, 0) == 0);
+                }
+            } 
             $self->_vpn($match);
         }
     }
