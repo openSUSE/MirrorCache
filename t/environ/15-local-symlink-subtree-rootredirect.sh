@@ -45,6 +45,7 @@ $mcsub/gen_env MIRRORCACHE_ROOT="'$mc/dt:testhost.com:testhost.vpn'" \
                MIRRORCACHE_SUBTREE=/updates \
                MIRRORCACHE_TOP_FOLDERS=tool \
                MIRRORCACHE_VPN_PREFIX='"11. 10.10"' \
+               MIRRORCACHE_VPN_PREFIX_NEG='"10.10.99"' \
                MIRRORCACHE_ROOT_COUNTRY=us
 
 $mcsub/start
@@ -64,9 +65,9 @@ $mcsub/curl /tool/v2/file1.1.dat.metalink   | grep -C10 $($ap8/print_address)/up
 $mcsub/curl /tool/v1/file1.1.dat.mirrorlist | grep -C30 $($ap7/print_address)/folder1/file1.1.dat | grep -C30 $($ap8/print_address)/updates/tool/v1/file1.1.dat | grep testhost.com/folder1/file1.1.dat
 $mcsub/curl /tool/v2/file1.1.dat.mirrorlist | grep -C30 $($ap8/print_address)/updates/tool/v2/file1.1.dat | grep testhost.com/folder2/file1.1.dat
 
-$mcsub/curl /tool/v1/file1.1.dat.metalink?IP=10.11.10.1  | grep testhost
+$mcsub/curl /tool/v1/file1.1.dat.metalink?IP=10.10.99.1  | grep testhost.com
 $mcsub/curl /tool/v1/file1.1.dat.metalink?IP=10.11.10.1  | grep testhost.com
-$mcsub/curl /tool/v1/file1.1.dat.metalink?IP=10.10.10.1  | grep testhost
+$mcsub/curl /tool/v1/file1.1.dat.metalink?IP=10.10.10.1  | grep testhost.vpn
 rc=0
 $mcsub/curl /tool/v1/file1.1.dat.metalink?IP=10.10.10.1  | grep testhost.com || rc=$?
 test $rc -gt 0
