@@ -5,6 +5,8 @@ mc=$(environ mc $(pwd))
 MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=0
 
 $mc/gen_env MIRRORCACHE_SCHEDULE_RETRY_INTERVAL=$MIRRORCACHE_SCHEDULE_RETRY_INTERVAL \
+    MIRRORCACHE_VPN_HEADER_VARIABLE='X-Company-Zone' \
+    MIRRORCACHE_VPN_HEADER_VALUE='engineering' \
     MIRRORCACHE_ROOT="'$mc/dt/root1:root1.com:root1.vpn|$mc/dt/root2:root2.com:root2.vpn|$mc/dt/root3:root3.com:root3.vpn'"
 
 mkdir -p $mc/dt/root1
@@ -43,6 +45,11 @@ $mc/sql "insert into server(hostname,urldir,enabled,country,region) select '$($a
 
 $mc/curl -Is /download/folder1/file1.1.dat | grep -i location: | grep root1.com
 $mc/curl -H 'X-Forwarded-For: 10.0.0.1' -Is /download/folder1/file1.1.dat | grep -i location: | grep root1.vpn
+
+$mc/curl -H 'X-Company-Zone: other'       -Is /download/folder1/file1.1.dat | grep -i location: | grep root1.com
+$mc/curl -H 'X-Company-Zone: engineering' -Is /download/folder1/file1.1.dat | grep -i location: | grep root1.vpn
+$mc/curl -H 'X-Forwarded-For: 10.0.0.1; X-Company-Zone: other'       -Is /download/folder1/file1.1.dat | grep -i location: | grep root1.com
+
 
 $mc/backstage/job folder_sync_schedule_from_misses
 $mc/backstage/job folder_sync_schedule
