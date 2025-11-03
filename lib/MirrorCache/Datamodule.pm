@@ -63,6 +63,8 @@ has '_root_longitude' => ($ENV{MIRRORCACHE_ROOT_LONGITUDE} ? int($ENV{MIRRORCACH
 has root_subtree => ($ENV{MIRRORCACHE_SUBTREE} // "");
 
 has _vpn_var => $ENV{MIRRORCACHE_VPN};
+has _vpn_header_variable => ($ENV{MIRRORCACHE_VPN_HEADER_VARIABLE} // "");
+has _vpn_header_value    => ($ENV{MIRRORCACHE_VPN_HEADER_VALUE} // "");
 has vpn_prefix => ($ENV{MIRRORCACHE_VPN_PREFIX} ? lc($ENV{MIRRORCACHE_VPN_PREFIX}) : "10.");
 has vpn_prefix_neg => ($ENV{MIRRORCACHE_VPN_PREFIX_NEG} ? lc($ENV{MIRRORCACHE_VPN_PREFIX_NEG}) : "");
 
@@ -114,6 +116,7 @@ sub reset($self, $c, $top_folder = undef) {
     $self->file_age(undef);
     $self->media_version(undef);
     $self->ext(undef);
+    $self->_vpn(undef);
 }
 
 sub ip_sha1($self) {
@@ -129,6 +132,22 @@ sub ip($self) {
 
 sub vpn($self) {
     return $self->_vpn_var if defined $self->_vpn_var;
+    if (my $var = $self->_vpn_header_variable) {
+        unless (defined $self->_vpn) {
+            if (my $val = scalar($self->_vpn_header_value)) {
+                eval {
+                    if (my $zone = $self->c->req->headers->header($var)) {
+                        if (fc($zone) eq fc($val)) {
+                            $self->_vpn(1);
+                        } else {
+                            $self->_vpn(0);
+                        }
+                    }
+                    1;
+                } or print STDERR "Error in detecting $var: $@";
+            }
+        }
+    }
 
     unless (defined $self->_vpn) {
         unless ($self->vpn_prefix) {
