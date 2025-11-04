@@ -465,3 +465,5 @@ create index if not exists agg_download_pkg_period_metapkg_id_dt_idx on agg_down
 alter table project add column if not exists shard varchar(32);
 -- 46 up
 -- noop
+-- 47 up
+alter table folder_diff add column if not exists mtime_latest bigint;

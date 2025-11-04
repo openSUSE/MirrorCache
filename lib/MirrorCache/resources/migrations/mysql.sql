@@ -480,3 +480,5 @@ alter table project add column if not exists shard varchar(32);
 -- delete duplicate rows and add PR to server_project
 delete from server_project where (server_id, project_id, dt) in (select x.server_id, x.project_id, x.dt from server_project x join server_project y on (y.server_id, y.project_id) = (x.server_id, x.project_id) and x.dt < y.dt);
 alter table server_project add primary key if not exists (server_id, project_id);
+-- 47 up
+alter table folder_diff add column if not exists mtime_latest bigint;

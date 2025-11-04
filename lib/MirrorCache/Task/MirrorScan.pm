@@ -47,17 +47,17 @@ sub _scan {
         unless my $guard = $minion->guard('mirror_scan' . $path,  20*60);
 
     $job->note($path => 1);
-    my ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+    my ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes, $dbfilemtimes);
     {
         return $job->finish('folder sync job is still active')
             unless my $guard_r = $minion->guard('folder_sync' . $path, 360);
 
-        ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes)
+        ($folder_id, $realfolder_id, $anotherpath, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes, $dbfilemtimes)
             = _dbfiles($app, $job, $path);
     }
     return undef unless $dbfiles;
 
-    my $count = _doscan($app, $job, $path, $realfolder_id, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes);
+    my $count = _doscan($app, $job, $path, $realfolder_id, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes, $dbfilemtimes);
     $job->note($count => 1);
     return $job->finish;
 }
@@ -88,6 +88,7 @@ sub _dbfiles {
     my @dbfiles = ();
     my %dbfileids = ();
     my %dbfileprefixes = ();
+    my %dbfilemtimes = ();
     my $max_dt = 0;
     for my $file ($schema->resultset('File')->search({folder_id => $folder_id})) {
         my $basename = $file->name;
@@ -96,14 +97,15 @@ sub _dbfiles {
         $dbfileprefixes{_reliable_prefix($basename)} = 1;
         push @dbfiles, $basename;
         $dbfileids{$basename} = $file->id;
+        $dbfilemtimes{$basename} = $file->mtime;
         $max_dt = $file->dt if !$max_dt || ( 0 > DateTime->compare($max_dt, $file->dt) );
     }
     @dbfiles = sort @dbfiles;
-    return $folder->id, $folder_id, $realpath, $latestdt, $max_dt, \@dbfiles, \%dbfileids, \%dbfileprefixes;
+    return $folder->id, $folder_id, $realpath, $latestdt, $max_dt, \@dbfiles, \%dbfileids, \%dbfileprefixes, \%dbfilemtimes;
 }
 
 sub _doscan {
-    my ($app, $job, $path, $realfolder_id, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes) = @_;
+    my ($app, $job, $path, $realfolder_id, $folder_id, $latestdt, $max_dt, $dbfiles, $dbfileids, $dbfileprefixes, $dbfilemtimes) = @_;
     my @dbfiles = @$dbfiles;
     my %dbfileids = %$dbfileids;
     my %dbfileprefixes = %$dbfileprefixes;
@@ -216,8 +218,20 @@ unless ($hasall) {
 }
             my $ctx = Digest::MD5->new;
             my @missing_files = ();
+            my $mtime_latest = 0;
             foreach my $file (@dbfiles) {
-                next if $mirrorfiles{$file} || substr($file,length($file)-1) eq '/' || $hasall;
+                next if substr($file,length($file)-1) eq '/';
+                if ($mirrorfiles{$file} || $hasall) {
+                    # track mtime only for versioned files
+                    next unless $file =~ m/[0-9]/;
+                    # exluding some versioned files that change timestamp
+                    next if $file =~ m/(license\.tar\.|info\.xml|\.asc$|\.txt|^yast2|\.pf2$|.patterns.xml.zst$|data.*xml|appdata-icons|)/;
+                    if (my $mtime = $dbfilemtimes->{$file}) {
+                        $mtime_latest = $mtime if !$mtime_latest || $mtime_latest < $mtime;
+                    }
+                    next;
+                }
+                ;
                 $ctx->add($file);
                 push @missing_files, $dbfileids{$file};
             }
@@ -228,6 +242,7 @@ unless ($hasall) {
                 $folder_diff = $schema->resultset('FolderDiff')->find_or_new({folder_id => $folder_id, hash => $digest});
                 unless($folder_diff->in_storage) {
                     $folder_diff->dt($latestdt);
+                    $folder_diff->mtime_latest($mtime_latest);
                     $folder_diff->realfolder_id($realfolder_id) if $realfolder_id && $realfolder_id != $folder_id;
                     $folder_diff->insert;
 
