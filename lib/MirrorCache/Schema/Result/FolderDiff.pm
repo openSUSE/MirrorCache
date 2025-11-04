@@ -61,6 +61,8 @@ __PACKAGE__->add_columns(
     data_type   => 'timestamp',
     is_nullable => 0
   },
+  "mtime_latest",
+  { data_type => 'bigint' },
   "realfolder_id",
   { data_type => "bigint", is_foreign_key => 1, is_nullable => 1 },
 );
