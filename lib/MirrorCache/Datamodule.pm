@@ -483,6 +483,14 @@ sub _init_req($self) {
     }
 }
 
+my $sanctioned_countries = {
+    map { $_ => 1 } qw(
+        al ad au bs ca is jp li fm mc me nz mk no sm sg kr ch tw ua gb us
+        at be bg hr cy cz dk ee fi fr de gr hu ie it lv lt lu mt nl pl pt ro sk si es se
+        je ai vg gi
+    )
+};
+
 sub _init_location($self) {
     my $query = $self->c->req->url->query;
     if (my $p = $query->param('IP')) {
@@ -510,7 +518,7 @@ sub _init_location($self) {
     }
     my $p = $query->param('AVOID_COUNTRY');
     my @avoid_countries = ();
-    @avoid_countries = ('by', 'ru') if $country eq 'ua';
+    @avoid_countries = ('by', 'ru') if $sanctioned_countries->{$country};
     if ($p) {
         for my $c (split ',', $p) {
             next unless length($c) == 2;
