@@ -519,6 +519,7 @@ sub _init_location($self) {
     my $p = $query->param('AVOID_COUNTRY');
     my @avoid_countries = ();
     @avoid_countries = ('by', 'ru') if $sanctioned_countries->{$country};
+    @avoid_countries = ('ua') if $country eq 'ru' || $country eq 'by';
     if ($p) {
         for my $c (split ',', $p) {
             next unless length($c) == 2;
