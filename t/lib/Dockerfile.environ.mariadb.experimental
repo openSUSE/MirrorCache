@@ -4,6 +4,7 @@ ENV container docker
 ENV LANG en_US.UTF-8
 
 RUN zypper -n in curl # rpm --import needs curl atm
+RUN curl -IL https://mirror.mariadb.org/yum/11.8/sles15-amd64/repodata/repomd.xml
 RUN zypper ar -f http://cdn.opensuse.org/repositories/openSUSE:infrastructure:MirrorCache/15.6 mc
 RUN zypper ar -f https://mirror.mariadb.org/yum/11.8/sles15-amd64 mariadb
 RUN rpm --import https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
