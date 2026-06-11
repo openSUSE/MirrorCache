@@ -62,7 +62,7 @@ if [[ -n "$MIRRORCACHE_CITY_MMDB" ]]; then
     [[ -f "$MIRRORCACHE_CITY_MMDB" ]] && mc_database+=" -v $MIRRORCACHE_CITY_MMDB:$MIRRORCACHE_CITY_MMDB"
 fi
 
-docker run $map_port $mc_database --env MIRRORCACHE_PERMANENT_JOBS=""  --env MIRRORCACHE_DB_PROVIDER=$dbprovider --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/project -- $ident.image
+docker run $map_port $mc_database --env MIRRORCACHE_PERMANENT_JOBS=""  --env MIRRORCACHE_DB_PROVIDER=$dbprovider --env MIRRORCACHE_DB_AIO="${MIRRORCACHE_DB_AIO:-}" --rm --name "$containername" --env REBUILD=1 -d -v"$thisdir/../../..":/opt/project -- $ident.image
 
 in_cleanup=0
 
@@ -94,6 +94,6 @@ echo "$*"
 [ -z $initscript ] || echo "bash -xe /opt/project/t/$initscript" | docker exec -i "$containername" bash -x
 
 set +ex
-docker exec -e TESTCASE="$testcase" -e MIRRORCACHE_DB_PROVIDER=$dbprovider -i "$containername" bash -c "useradd $(id -nu) -u $(id -u) || :; sudo -E -u \#$(id -u) bash" < "$testcase"
+docker exec -e TESTCASE="$testcase" -e MIRRORCACHE_DB_PROVIDER=$dbprovider -e MIRRORCACHE_DB_AIO="${MIRRORCACHE_DB_AIO:-}" -i "$containername" bash -c "useradd $(id -nu) -u $(id -u) || :; sudo -E -u \#$(id -u) bash" < "$testcase"
 ret=$?
 ( exit $ret )

@@ -13,6 +13,7 @@ jobs:
     environment:
       MIRRORCACHE_DB_PROVIDER: << parameters.db >>
       T_EXPERIMENTAL: << parameters.experimental >>
+      MIRRORCACHE_DB_AIO: "0"
     working_directory: ~/project
     steps:
       - checkout:
