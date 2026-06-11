@@ -6,6 +6,9 @@ echo __dbi='$(__workdir/db/print_dbi mc_test)'
 if test "${MIRRORCACHE_DB_PROVIDER}" == mariadb; then
     echo export TEST_MYSQL='${__dbi//\/ma\//\/db\//}'
     echo export MARIADB_TLS_DISABLE_PEER_VERIFICATION=1
+    if test "${MIRRORCACHE_DB_AIO:-1}" == 0; then
+        echo 'export MIRRORCACHE_DB_START_OPTS="--innodb-use-native-aio=0 ${MIRRORCACHE_DB_START_OPTS:-}"'
+    fi
 else
     echo export TEST_PG='${__dbi//\/pg\//\/db\//}'
 fi
