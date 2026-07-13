@@ -44,6 +44,8 @@ sub _sync {
         $job->note($realpath => 1);
 
         $schema->resultset('Folder')->add_redirect($path, $realpath);
+        $minion->enqueue('folder_pkg_sync' => [$realpath] => { queue => $job->info->{queue} });
+        return $job->finish("redirected to $realpath");
     }
 
     return $job->finish('not dir') unless ($root->is_dir($realpath));

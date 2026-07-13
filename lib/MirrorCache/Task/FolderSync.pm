@@ -49,6 +49,18 @@ sub _sync {
         $job->note($realpath => 1);
 
         $schema->resultset('Folder')->add_redirect($path, $realpath);
+        $app->backstage->enqueue('folder_sync', $realpath);
+
+        my $otherFolder = $schema->resultset('Folder')->find({path => $path});
+        if ($otherFolder) {
+            $otherFolder->update({
+                sync_last      => \'CURRENT_TIMESTAMP(3)',
+                sync_requested => \'coalesce(sync_requested, CURRENT_TIMESTAMP(3))',
+                sync_scheduled => \'coalesce(sync_scheduled, CURRENT_TIMESTAMP(3))',
+                scan_requested => \'CURRENT_TIMESTAMP(3)'
+            });
+        }
+        return $job->finish("redirected to $realpath");
     }
     my $proj = $schema->resultset('Rollout')->project_for_folder($path);
     my ($proj_type, $proj_prefix);
