@@ -648,6 +648,7 @@ sub _render_dir_from_db {
         my $basename = $child->{name};
         my $size     = $child->{size};
         my $mtime    = $child->{mtime};
+        $max_mtime   = $mtime unless $max_mtime && $mtime && ($max_mtime > $mtime);
         my $desc     = $folderDesc{$c->mcbranding}{$dir}{$basename};
         if ($json) {
             push @files, {
@@ -662,8 +663,6 @@ sub _render_dir_from_db {
             my $is_dir    = '/' eq substr($basename, -1)? 1 : 0;
             my $encoded   = Encode::decode_utf8( './' . $basename );
             my $mime_type = $dm->mime || 'text/plain';
-
-            $max_mtime = $mtime unless $max_mtime && $mtime && ($max_mtime > $mtime);
 
             push @files, {
                 url   => $encoded,
