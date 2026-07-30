@@ -180,21 +180,21 @@ sub stat_download {
     $sql = <<'END_SQL';
 select
   extract(epoch from ( select min(dt) from agg_download_pkg where metapkg_id = ? and period = 'day' ))::int as first_seen,
-  coalesce( (select sum(cnt) as cnt from agg_download_pkg where metapkg_id = ? and period = 'total' and dt = (select max(dt) from agg_download_pkg where period = 'total')), 0 ) as cnt_total,
-  coalesce( (select sum(cnt) as cnt from agg_download_pkg where metapkg_id = ? and period = 'hour'  and dt > (select max(dt) from agg_download_pkg where period = 'total')), 0 ) as cnt_today,
+  coalesce( (select sum(cnt) as cnt from agg_download_pkg where metapkg_id = ? and period = 'total' and dt = (select max(dt) from agg_download_pkg where metapkg_id = ? and period = 'total')), 0 ) as cnt_total,
+  coalesce( (select sum(cnt) as cnt from agg_download_pkg where metapkg_id = ? and period = 'hour'  and dt > (select max(dt) from agg_download_pkg where metapkg_id = ? and period = 'total')), 0 ) as cnt_today,
   sum(cnt) as cnt_30d,
   coalesce( sum(case when dt > now() - interval '7 day' then cnt else 0 end), 0 ) as cnt_7d,
   coalesce( sum(case when dt > now() - interval '1 day' then cnt else 0 end), 0) as cnt_1d
-from agg_download_pkg
-where metapkg_id = ? and period = 'day' and dt > now() - interval '30 day'
+  from agg_download_pkg
+  where metapkg_id = ? and period = 'day' and dt > now() - interval '30 day'
 END_SQL
     unless ($self->schema->pg) {
         $sql =~ s/::int//g;
         $sql =~ s/interval '(\d+) day'/interval $1 day/g;
-        $sql =~ s/extract\(epoch from/unix_timestamp(/g;
+        $sql =~ s/extract\(epoch from/unix_timestamp\(/g;
     }
 
-    my $res = $self->schema->storage->dbh->selectall_arrayref($sql, {Columns => {}}, $id, $id, $id, $id);
+    my $res = $self->schema->storage->dbh->selectall_arrayref($sql, {Columns => {}}, $id, $id, $id, $id, $id, $id);
     return $self->render(json => { data => $res });
 }
 

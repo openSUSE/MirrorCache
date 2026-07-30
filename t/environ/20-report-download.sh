@@ -137,6 +137,37 @@ $mc/curl -I /download/tumbleweed/repo/oss/x86_64/cargo1.64-1.64.0-1.1.x86_64.rpm
 $mc/curl /rest/package/cargo1.64/stat_download_curr | grep '{"cnt_curr":3}'
 
 
+# Verify the total package download bug fix (where totals reset if no downloads on the global max date)
+# 1. Clear minion locks to allow running stat_agg_pkg again
+$mc/sql "delete from minion_locks"
+
+# 2-4. Insert dummy package, move package 1 totals, and insert new day downloads.
+# We execute these as a single semicolon-separated SQL block to guarantee the exact same transaction-time snapshot of now().
+$mc/sql "
+insert into metapkg (name) values ('dummy-pkg');
+insert into agg_download_pkg (period, dt, metapkg_id, folder_id, country, cnt) select 'total', now() - interval '1 day', id, 0, 'us', 10 from metapkg where name = 'dummy-pkg';
+update agg_download_pkg set dt = now() - interval '2 day' where metapkg_id = 1 and period = 'total';
+delete from agg_download_pkg where period = 'day' and dt = now() and metapkg_id = 1 and folder_id = 0 and country = 'us';
+insert into agg_download_pkg (period, dt, metapkg_id, folder_id, country, cnt) select 'day', now(), 1, 0, 'us', 5;
+"
+
+# 5. Run the aggregator again
+$mc/backstage/job stat_agg_schedule
+$mc/backstage/shoot
+
+# 6. Verify that package 1's total count accumulates correctly (8 + 5 = 13) rather than resetting to 5.
+# Use dynamic max(dt) subqueries to ensure test is 100% robust on midnight/hour boundaries.
+$mc/sql_test 13 == "select sum(cnt) from agg_download_pkg where metapkg_id = 1 and period = 'total' and dt = (select max(dt) from agg_download_pkg where metapkg_id = 1 and period = 'total')"
+$mc/curl /rest/package/1/stat_download | grep '"cnt_total":"13"'
+
+# 7. Clean up our test records so we don't interfere with the remaining table-count-sensitive tests
+$mc/sql "delete from agg_download_pkg where metapkg_id = 1 and period = 'total' and dt = (select max(dt) from agg_download_pkg where metapkg_id = 1 and period = 'total')"
+$mc/sql "delete from agg_download_pkg where metapkg_id = 1 and period = 'day' and dt = (select max(dt) from agg_download_pkg where metapkg_id = 1 and period = 'day')"
+$mc/sql "delete from agg_download_pkg where metapkg_id = (select id from metapkg where name = 'dummy-pkg')"
+$mc/sql "delete from metapkg where name = 'dummy-pkg'"
+$mc/sql "update agg_download_pkg set dt = now() where metapkg_id = 1 and period = 'total'"
+
+
 echo testing cleanup, for it populate old data
 $mc/sql "update agg_download_pkg set dt = dt - interval '1 month'"
 $mc/sql_test 72 == "select count(*) from agg_download_pkg"

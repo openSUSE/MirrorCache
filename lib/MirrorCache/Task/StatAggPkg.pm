@@ -92,14 +92,11 @@ sub _agg_total {
 
     my $dbh = $app->schema->storage->dbh;
     my $sql = "
-insert into agg_download_pkg select '$period'::stat_period_t, date_trunc('day',now()), d1.metapkg_id, d1.folder_id, d1.country, coalesce(d2.cnt, 0) + sum(d1.cnt)
-from
-agg_download_pkg d1
-left join ( select max(dt) as dt from agg_download_pkg where period = '$period'::stat_period_t ) x on 1 = 1
-left join agg_download_pkg d2 on (d2.metapkg_id, d2.folder_id, d2.country, d2.period, d2.dt) = (d1.metapkg_id, d1.folder_id, d1.country, '$period'::stat_period_t, x.dt)
-where
-d1.period = 'day'::stat_period_t and d1.dt > coalesce(x.dt, now() - interval '1 year')
-group by d1.metapkg_id, d1.folder_id, d1.country, d2.cnt
+insert into agg_download_pkg select '$period'::stat_period_t, date_trunc('day',now()), d1.metapkg_id, d1.folder_id, d1.country, coalesce((select d2.cnt from agg_download_pkg d2 where d2.period = '$period'::stat_period_t and d2.metapkg_id = d1.metapkg_id and d2.folder_id = d1.folder_id and d2.country = d1.country order by d2.dt desc limit 1), 0) + sum(d1.cnt)
+from agg_download_pkg d1
+cross join ( select coalesce(max(dt), now() - interval '1 year') as dt from agg_download_pkg where period = '$period'::stat_period_t ) gx
+where d1.period = 'day'::stat_period_t and d1.dt > gx.dt
+group by d1.metapkg_id, d1.folder_id, d1.country
 ";
 
     if ($dbh->{Driver}->{Name} ne 'Pg') {
