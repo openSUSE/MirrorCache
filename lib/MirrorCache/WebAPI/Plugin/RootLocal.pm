@@ -99,13 +99,28 @@ sub is_dir {
 
 sub render_file {
     my ($self, $dm, $filepath, $not_miss) = @_;
-    # my $realpath = $self->realpath($filepath) unless $root_subtree;
-    # $filepath = $realpath if $realpath;
+    my $realpath = $self->realpath($filepath);
+    $filepath = $realpath if $realpath;
     my $c = $dm->c;
     my $redirect = $self->redirect($dm, $filepath);
     my $res;
     if ($redirect) {
-        $res = !!$c->redirect_to($redirect . $root_subtree . $filepath);
+        my $prefix = $root_subtree;
+        if ($root_subtree) {
+            my $inside = 0;
+            my $found = 0;
+            for my $root (@roots) {
+                if ( -e $root->[dir] . $root_subtree . $filepath ) {
+                    $inside = 1;
+                    $found = 1;
+                }
+                elsif ( -e $root->[dir] . $filepath ) {
+                    $found = 1;
+                }
+            }
+            $prefix = "" if $found && !$inside;
+        }
+        $res = !!$c->redirect_to($redirect . $prefix . $filepath);
     } else {
         my $rootpath = $self->rootpath($filepath);
         return !!$c->render(status => 404, text => "File $filepath not found") unless $rootpath;
@@ -162,7 +177,12 @@ sub realpath {
 
     if ($realpathlocal && (0 == rindex($realpathlocal, $rootpath, 0))) {
         my $realpath = substr($realpathlocal, length($rootpath));
-        return $realpath if $realpath ne $path;
+        if ($root_subtree && 0 == rindex($realpath, $root_subtree, 0)) {
+            my $relative_realpath = substr($realpath, length($root_subtree));
+            return $relative_realpath if $relative_realpath ne $path;
+        } else {
+            return $realpath if $realpath ne $path;
+        }
     }
     return undef;
 }
