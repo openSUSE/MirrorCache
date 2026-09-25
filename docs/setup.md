@@ -7,7 +7,14 @@
 MirrorCache can be configured with following environment variables:
 
   * MIRRORCACHE_ROOT (required): defines location of files, which needs redirection. It may be url, local folder or rsync address, e.g. `MIRRORCACHE_ROOT=http://download.opensuse.org` or `MIRRORCACHE_ROOT=/srv/mirrorcache` or `MIRRORCACHE_ROOT=rsync://user:password@myhost.com/module`. (Note that you must install additionally `perl-Digest-MD4` if rsync url needs password verification).
-  * MIRRORCACHE_AUTH_URL (optional) may contain remote openid server url (default https://www.opensuse.org/openid/user/). if explicitly set to empty value - all login attempt will be allowed and user set to 'Demo'.
+  * MIRRORCACHE_AUTH_METHOD (optional) authentication method: `OpenID` (default), `OAuth2`, or `Fake`.
+  * MIRRORCACHE_AUTH_URL (optional) may contain remote openid server url (default https://www.opensuse.org/openid/user/). If explicitly set to empty value, fake login is used and user set to 'Demo'.
+  * OAuth2 environment variables (when `MIRRORCACHE_AUTH_METHOD=OAuth2` or when provider is specified):
+    * `MIRRORCACHE_OAUTH2_PROVIDER`: `github`, `debian_salsa`, or `custom`
+    * `MIRRORCACHE_OAUTH2_KEY`: OAuth2 application client ID / key
+    * `MIRRORCACHE_OAUTH2_SECRET`: OAuth2 application client secret
+    * For `custom` provider: `MIRRORCACHE_OAUTH2_AUTHORIZE_URL`, `MIRRORCACHE_OAUTH2_TOKEN_URL`, `MIRRORCACHE_OAUTH2_USER_URL`, `MIRRORCACHE_OAUTH2_TOKEN_SCOPE`, `MIRRORCACHE_OAUTH2_TOKEN_LABEL`, `MIRRORCACHE_OAUTH2_ID_FROM`, `MIRRORCACHE_OAUTH2_FULLNAME_FROM`, `MIRRORCACHE_OAUTH2_NICKNAME_FROM`, `MIRRORCACHE_OAUTH2_EMAIL_FROM`, `MIRRORCACHE_OAUTH2_UNIQUE_NAME`
+    * Alternatively, configure via `conf.ini` under `[auth]` and `[oauth2]` sections.
   * MIRRORCACHE_TOP_FOLDERS (space separated values) may be set to automatically redirect /folder to /download/folder.
   * For reference of using MOJO_LISTEN variable refer Mojolicious documentation, e.g. `MOJO_LISTEN=http://*:8000`
   * It is recommended to run MirrorCache daemon behind another streamline WebService, e.g. Apache or haproxy. Thus `MOJO_REVERSE_PROXY=1` will be needed.

@@ -129,6 +129,7 @@ create table if not exists audit_event (
 create table if not exists acc (
   id serial NOT NULL,
   username varchar(64) NOT NULL,
+  provider varchar(64) DEFAULT '' NOT NULL,
   email varchar(128),
   fullname varchar(128),
   nickname varchar(64),
@@ -467,3 +468,5 @@ alter table project add column if not exists shard varchar(32);
 -- noop
 -- 47 up
 alter table folder_diff add column if not exists mtime_latest bigint;
+-- 48 up
+alter table acc add column if not exists provider varchar(64) default '' not null;

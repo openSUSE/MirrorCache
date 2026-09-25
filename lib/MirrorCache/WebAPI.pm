@@ -76,6 +76,13 @@ sub startup {
     $self->config->{_openid_secret} = $secret;
     $self->secrets([$secret]);
 
+    $self->config->{auth} //= {};
+    $self->config->{auth}{method} = $mcconfig->auth_method if $mcconfig->auth_method;
+    $self->config->{oauth2} //= {};
+    if (my $oauth2_cfg = $mcconfig->oauth2) {
+        $self->config->{oauth2}{$_} = $oauth2_cfg->{$_} for keys %$oauth2_cfg;
+    }
+
     push @{$self->commands->namespaces}, 'MirrorCache::WebAPI::Command';
 
     $self->plugin('DefaultHelpers');
@@ -157,6 +164,7 @@ sub _setup_webui {
     }
 
     # Optional initialization with access to the app
+    $self->auth_method;
     my $r = $self->routes->namespaces(['MirrorCache::WebAPI::Controller']);
     $r->get('/favicon.ico' => sub { my $c = shift; $c->render_static('favicon.ico') });
 

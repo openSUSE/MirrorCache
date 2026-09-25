@@ -53,6 +53,11 @@ sub destroy {
     $self->redirect_to('index');
 }
 
+sub return_page {
+    my ($self) = @_;
+    return $self->param('return_page') || $self->req->headers->referrer;
+}
+
 sub create {
     my ($self)      = @_;
     my $ref         = $self->req->headers->referrer;

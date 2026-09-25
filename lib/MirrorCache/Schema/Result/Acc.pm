@@ -33,6 +33,11 @@ __PACKAGE__->add_columns(
         data_type   => 'varchar',
         size        => 64,
     },
+    provider => {
+        data_type     => 'varchar',
+        size          => 64,
+        default_value => '',
+    },
     email => {
         data_type   => 'varchar',
         size        => 128,
