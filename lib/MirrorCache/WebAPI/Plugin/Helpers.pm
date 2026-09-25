@@ -100,26 +100,48 @@ sub register {
         });
 
     $app->helper(
+        'return_page' => sub {
+            my $c = shift;
+            return $c->param('return_page') || $c->req->headers->referrer;
+        });
+
+    $app->helper(
         'auth_method' => sub {
-            unless ($AUTH_METHOD) {
-                # load auth module
-                $AUTH_URL = $ENV{MIRRORCACHE_AUTH_URL};
-                # will use default address unless it is set to empty string or other value
-                $AUTH_URL = 'https://www.opensuse.org/openid/user/' unless defined($AUTH_URL);
-                # we probably can detect method from url when new method is added
-                $AUTH_METHOD = $AUTH_URL?  "OpenID" : "Fake";
-                my $auth_module = "MirrorCache::Auth::$AUTH_METHOD";
+            my $c = shift;
+            my $app = $c->app;
+            my $auth_method = $app->config->{auth} ? $app->config->{auth}->{method} : undef;
+            $auth_method ||= $ENV{MIRRORCACHE_AUTH_METHOD} || ($app->can('mcconfig') && $app->mcconfig ? $app->mcconfig->auth_method : undef);
+            if (!$auth_method && $app->config->{oauth2} && $app->config->{oauth2}->{provider}) {
+                $auth_method = 'OAuth2';
+            }
+            if (!$auth_method) {
+                my $auth_url = $ENV{MIRRORCACHE_AUTH_URL};
+                $auth_url = 'https://www.opensuse.org/openid/user/' unless defined($auth_url);
+                $auth_method = $auth_url ? 'OpenID' : 'Fake';
+            }
+            $app->config->{auth} //= {};
+            $app->config->{auth}->{method} = $auth_method;
+
+            unless ($app->config->{auth}->{_loaded}) {
+                my $auth_module = "MirrorCache::Auth::$auth_method";
                 if (my $err = load_class $auth_module) {
                     $err = 'Module not found' unless ref $err;
                     die "Unable to load auth module $auth_module: $err";
                 }
+                if (my $sub = $auth_module->can('auth_setup')) {
+                    $app->$sub;
+                }
+                $app->config->{auth}->{_loaded} = 1;
             }
-            return $AUTH_METHOD;
+            return $auth_method;
         });
     $app->helper(
         'auth_url' => sub {
-            shift->auth_method; # make sure it is initialized
-            return $AUTH_URL;
+            my $c = shift;
+            $c->auth_method; # make sure it is initialized
+            my $auth_url = $ENV{MIRRORCACHE_AUTH_URL};
+            $auth_url = 'https://www.opensuse.org/openid/user/' unless defined($auth_url);
+            return $auth_url;
         });
 
     $app->helper(

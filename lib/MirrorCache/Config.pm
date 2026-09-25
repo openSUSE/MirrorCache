@@ -23,7 +23,7 @@ use Config::IniFiles;
 #
 # For those values which may change it is better to use config file (the rest may be moved here as well)
 
-has root         => $ENV{MIRRORCACHE_ROOT};
+has root         => sub { $ENV{MIRRORCACHE_ROOT} };
 has root_nfs     => $ENV{MIRRORCACHE_ROOT_NFS};
 has dbuser       => $ENV{MIRRORCACHE_DBUSER};
 has dbpass       => $ENV{MIRRORCACHE_DBPASS};
@@ -63,6 +63,9 @@ has limit_mirrorlist_folder => int($ENV{MIRRORCACHE_LIMIT_MIRRORLIST_FOLDER} // 
 
 has geoip => undef;
 
+has auth_method => sub { $ENV{MIRRORCACHE_AUTH_METHOD} };
+has oauth2      => sub { {} };
+
 sub init($self, $cfgfile) {
     my $db_provider = $ENV{MIRRORCACHE_DB_PROVIDER};
 
@@ -89,7 +92,27 @@ sub init($self, $cfgfile) {
         if (my $v = $cfg->val('plugin', 'status')) {
             $self->plugin_status($v);
         }
+        if (my $v = $cfg->val('auth', 'method')) {
+            $self->auth_method($v);
+        }
+        my %oauth2;
+        if ($cfg->SectionExists('oauth2')) {
+            for my $k (qw/provider key secret authorize_url token_url user_url token_scope token_label id_from fullname_from nickname_from email_from unique_name/) {
+                my $v = $cfg->val('oauth2', $k);
+                $oauth2{$k} = $v if defined $v;
+            }
+        }
+        $self->oauth2(\%oauth2);
     }
+
+    my $oauth2 = $self->oauth2 // {};
+    for my $k (qw/provider key secret authorize_url token_url user_url token_scope token_label id_from fullname_from nickname_from email_from unique_name/) {
+        my $env_k = 'MIRRORCACHE_OAUTH2_' . uc($k);
+        $oauth2->{$k} = $ENV{$env_k} if defined $ENV{$env_k};
+    }
+    $self->oauth2($oauth2);
+    $self->auth_method($ENV{MIRRORCACHE_AUTH_METHOD}) if defined $ENV{MIRRORCACHE_AUTH_METHOD};
+    $self->auth_method('OAuth2') if !$self->auth_method && $oauth2->{provider};
 
     $db_provider = 'mysql' if !$db_provider && $ENV{TEST_MYSQL};
     $db_provider = 'postgresql' unless $db_provider;

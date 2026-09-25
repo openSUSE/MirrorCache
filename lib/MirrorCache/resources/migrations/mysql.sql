@@ -122,6 +122,7 @@ create table if not exists audit_event (
 create table if not exists acc (
   id int AUTO_INCREMENT primary key NOT NULL,
   username varchar(64) NOT NULL,
+  provider varchar(64) DEFAULT '' NOT NULL,
   email varchar(128),
   fullname varchar(128),
   nickname varchar(64),
@@ -482,3 +483,5 @@ delete from server_project where (server_id, project_id, dt) in (select x.server
 alter table server_project add primary key if not exists (server_id, project_id);
 -- 47 up
 alter table folder_diff add column if not exists mtime_latest bigint;
+-- 48 up
+alter table acc add column provider varchar(64) default '' not null;
