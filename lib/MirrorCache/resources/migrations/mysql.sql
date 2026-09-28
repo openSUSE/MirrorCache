@@ -484,4 +484,4 @@ alter table server_project add primary key if not exists (server_id, project_id)
 -- 47 up
 alter table folder_diff add column if not exists mtime_latest bigint;
 -- 48 up
-alter table acc add column provider varchar(64) default '' not null;
+alter table acc add column provider if not exists varchar(64) default '' not null;
