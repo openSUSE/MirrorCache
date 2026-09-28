@@ -192,6 +192,14 @@ sub _render_dir {
     my $rsFolder = shift;
     my $c = $dm->c;
 
+    if (!$dm->json) {
+        if ($c->current_user) {
+            $c->res->headers->cache_control('private, no-cache');
+        } else {
+            $c->res->headers->append(Vary => 'Cookie');
+        }
+    }
+
     my $folder_id = $dm->real_folder_id;
     eval {
         $folder_id = $dm->folder_id unless $folder_id;

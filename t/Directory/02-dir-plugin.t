@@ -45,10 +45,25 @@ sub MockHeaders::etag {
     $self->{etag} = $etag if defined $etag;
     return $self->{etag};
 }
+sub MockHeaders::cache_control {
+    my ($self, $val) = @_;
+    $self->{cache_control} = $val if defined $val;
+    return $self->{cache_control};
+}
+sub MockHeaders::append {
+    my ($self, $key, $val) = @_;
+    $self->{$key} = $self->{$key} ? "$self->{$key}, $val" : $val;
+}
+sub MockHeaders::vary {
+    my ($self, $val) = @_;
+    $self->{Vary} = $val if defined $val;
+    return $self->{Vary};
+}
 sub MockHeaders::add {
     my ($self, $key, $val) = @_;
     $self->{$key} = $val;
 }
+sub MockController::current_user { shift->{user} }
 
 # Mock the Controller
 my $c = bless {
@@ -91,6 +106,10 @@ sub MockDM::folder_sync_requested { shift->{folder_sync_requested} }
 sub MockDM::route { shift->{route} }
 sub MockDM::mime { shift->{mime} }
 sub MockDM::jsontable { shift->{jsontable} }
+sub MockDM::real_folder_id { shift->{real_folder_id} }
+sub MockDM::folder_id { my ($self, $val) = @_; $self->{folder_id} = $val if defined $val; $self->{folder_id} }
+sub MockDM::re_pattern { shift->{re_pattern} }
+sub MockDM::root_subtree { shift->{root_subtree} // '' }
 
 subtest 'render_dir_from_db max_mtime and warning-free comparison' => sub {
     my @warnings;
@@ -106,6 +125,27 @@ subtest 'render_dir_from_db max_mtime and warning-free comparison' => sub {
     # 2 files, so: 2-630416F4
     my $expected_etag = sprintf('%X', 2) . '-' . sprintf('%X', 1661212020);
     is $c->res->headers->etag, $expected_etag, "ETag matches expected value based on numeric mtime";
+};
+
+subtest '_render_dir sets Vary: Cookie for anonymous users and private for authenticated users' => sub {
+    # Test anonymous user
+    $c->{user} = undef;
+    $c->res->headers->{cache_control} = 'public, max-age=300';
+    $c->res->headers->{Vary} = undef;
+    $dm->{browse} = 1;
+    $dm->{json} = 0;
+
+    MirrorCache::WebAPI::Plugin::Dir::_render_dir($dm, '/some/dir');
+    is $c->res->headers->cache_control, 'public, max-age=300', 'cache-control remains public for anonymous';
+    like $c->res->headers->vary, qr/Cookie/, 'Vary: Cookie appended for anonymous';
+
+    # Test authenticated user
+    $c->{user} = { username => 'tux' };
+    $c->res->headers->{cache_control} = 'public, max-age=300';
+    $c->res->headers->{Vary} = undef;
+
+    MirrorCache::WebAPI::Plugin::Dir::_render_dir($dm, '/some/dir');
+    is $c->res->headers->cache_control, 'private, no-cache', 'cache-control set to private, no-cache for logged-in user';
 };
 
 done_testing();
