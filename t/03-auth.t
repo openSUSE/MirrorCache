@@ -243,7 +243,7 @@ EOF
     no warnings 'once';
     *MockSchema::resultset = sub { $mock_rs };
     *MockRS::create_user = sub ($self, $id, %attrs) {
-        my $u = bless { username => $id, %attrs }, 'MockUser';
+        my $u = bless {username => $id, %attrs}, 'MockUser';
         $db_users{$id} = $u;
         return $u;
     };
@@ -268,22 +268,107 @@ EOF
     my $msg_mock = Test::MockModule->new('Mojo::Message');
     my $get_tx = Mojo::Transaction->new;
     $ua_mock->redefine(get => sub ($ua, @args) { $get_tx });
-    $msg_mock->redefine(json => sub {
-        {
-            communityUidAsopenId => 'suse-user-123',
-            sub => 'alice',
-            name => 'Alice Developer',
-            email => 'alice@suse.com'
-        }
-    });
+    $msg_mock->redefine(
+        json => sub {
+            {
+                communityUidAsopenId => 'suse-user-123',
+                sub => 'alice',
+                name => 'Alice Developer',
+                email => 'alice@suse.com'
+            }
+        });
 
-    MirrorCache::Auth::OAuth2::update_user($c, $oauth2_cfg, $oauth2_cfg->{provider_config}, { access_token => 'suse-token' });
+    MirrorCache::Auth::OAuth2::update_user(
+        $c, $oauth2_cfg,
+        $oauth2_cfg->{provider_config},
+        {access_token => 'suse-token'});
     is $c->res->code, 302, 'status code 302 redirect';
     is $c->session->{user}, 'suse-user-123', 'session user set from communityUidAsopenId';
     is $db_users{'suse-user-123'}->{provider}, 'oauth2@suseid', 'user created with oauth2@suseid';
     is $db_users{'suse-user-123'}->{nickname}, 'alice', 'nickname set from sub';
     is $db_users{'suse-user-123'}->{fullname}, 'Alice Developer', 'fullname set from name';
     is $db_users{'suse-user-123'}->{email}, 'alice@suse.com', 'email set from email';
+};
+
+subtest 'openSUSE ID custom OAuth2 provider' => sub {
+    my $opensuse_ini = $tempdir->child("opensuse_oauth.ini");
+    $opensuse_ini->spew(<<"EOF");
+[default]
+root = http://localhost
+
+[auth]
+method = OAuth2
+
+[oauth2]
+provider = custom
+authorize_url = https://id.opensuse.org/openidc/Authorization?response_type=code
+token_url = https://id.opensuse.org/openidc/Token
+user_url = https://id.opensuse.org/openidc/UserInfo
+token_scope = openid profile email
+token_label = Bearer
+id_from = sub
+nickname_from = nickname
+unique_name = opensuse
+key = myopensusekey
+secret = mysecretsecret
+EOF
+
+    local $ENV{MIRRORCACHE_INI} = $opensuse_ini->to_string;
+    local $ENV{MIRRORCACHE_ROOT} = 'http://localhost';
+    local $ENV{MIRRORCACHE_INTERNAL_SETUP_WEBAPI} = 1;
+
+    my %db_users;
+    my $mock_rs = bless {}, 'MockRS';
+    my $t = Test::Mojo->new('MirrorCache::WebAPI');
+    $t->app->helper(schema => sub { bless {}, 'MockSchema' });
+    no warnings 'once';
+    *MockSchema::resultset = sub { $mock_rs };
+    *MockRS::create_user = sub ($self, $id, %attrs) {
+        my $u = bless {username => $id, %attrs}, 'MockUser';
+        $db_users{$id} = $u;
+        return $u;
+    };
+    *MockUser::username = sub ($self) { $self->{username} };
+    *MockUser::provider = sub ($self) { $self->{provider} };
+    *MockUser::nickname = sub ($self) { $self->{nickname} };
+
+    my $oauth2_cfg = $t->app->config->{oauth2};
+    is $oauth2_cfg->{provider}, 'custom', 'custom provider selected';
+    is $oauth2_cfg->{provider_config}->{unique_name}, 'opensuse', 'unique_name is opensuse';
+    is $oauth2_cfg->{provider_config}->{id_from}, 'sub', 'id_from is sub';
+    is $oauth2_cfg->{provider_config}->{nickname_from}, 'nickname', 'nickname_from is nickname';
+
+    $t->get_ok('/login')->status_is(302, 'got 302 redirect for login');
+    my $location = $t->tx->res->headers->header('Location');
+    like $location, qr{https://id\.opensuse\.org/openidc/Authorization}, 'redirects to openSUSE ID authorize URL';
+    like $location, qr{client_id=myopensusekey}, 'includes openSUSE ID client_id';
+    like $location, qr{openid}, 'includes openid in scope';
+
+    my $c = $t->app->build_controller;
+    my $ua_mock = Test::MockModule->new('Mojo::UserAgent');
+    my $msg_mock = Test::MockModule->new('Mojo::Message');
+    my $get_tx = Mojo::Transaction->new;
+    $ua_mock->redefine(get => sub ($ua, @args) { $get_tx });
+    $msg_mock->redefine(
+        json => sub {
+            {
+                sub => 'https://id.opensuse.org/user/tux',
+                nickname => 'tux',
+                name => 'Tux Penguin',
+                email => 'tux@opensuse.org'
+            }
+        });
+
+    MirrorCache::Auth::OAuth2::update_user(
+        $c, $oauth2_cfg,
+        $oauth2_cfg->{provider_config},
+        {access_token => 'opensuse-token'});
+    is $c->res->code, 302, 'status code 302 redirect';
+    is $c->session->{user}, 'https://id.opensuse.org/user/tux', 'session user set from sub';
+    is $db_users{'https://id.opensuse.org/user/tux'}->{provider}, 'oauth2@opensuse', 'user created with oauth2@opensuse';
+    is $db_users{'https://id.opensuse.org/user/tux'}->{nickname}, 'tux', 'nickname set from nickname';
+    is $db_users{'https://id.opensuse.org/user/tux'}->{fullname}, 'Tux Penguin', 'fullname set from name';
+    is $db_users{'https://id.opensuse.org/user/tux'}->{email}, 'tux@opensuse.org', 'email set from email';
 };
 
 done_testing;
