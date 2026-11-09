@@ -404,6 +404,18 @@ END_SQL
     $prep->execute($pathfrom, $pathto, $pathto);
 }
 
+sub delete_redirect {
+    my ($self, $pathfrom) = @_;
+    return unless $pathfrom;
+
+    my $rsource = $self->result_source;
+    my $schema  = $rsource->schema;
+    my $dbh     = $schema->storage->dbh;
+
+    my $prep = $dbh->prepare('DELETE FROM redirect WHERE pathfrom = ?');
+    return $prep->execute($pathfrom);
+}
+
 sub calculate_disk_usage {
     my ($self, $path) = @_;
 
