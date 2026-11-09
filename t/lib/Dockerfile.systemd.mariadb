@@ -12,7 +12,7 @@ RUN zypper -vvvn install systemd curl sudo iputils vi
 RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-Plugin-ClientIP \
     vim mariadb mariadb-server curl sudo git-core wget tar m4 \
     apache2 perl-Digest-MD4 tidy nginx perl-DBD-mysql perl-Mojo-mysql perl-Minion-Backend-mysql perl-DateTime-HiRes make \
-    perl-Config-IniFiles
+    perl-Config-IniFiles perl-Test-MockModule perl-Test-Most perl-Mojolicious-Plugin-OAuth2
 
 ADD src/city.mmdb /var/lib/GeoIP/GeoLite2-City.mmdb
 

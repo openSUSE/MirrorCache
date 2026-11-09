@@ -16,7 +16,7 @@ sub parse_version($filename) {
         return $1;
     }
 
-    if ($filename =~ m/(.*)_([^-]+)-([^-]+)\.(x86_64|noarch|i[3-6]86|ppc64|aarch64|arm64|amd64|s390|src).*\.drpm$/) {
+    if ($filename =~ m/(.*)_([^-]+)-([^-]+)\.(x86_64|noarch|i[3-6]86|ppc64le|ppc64|aarch64|arm64|amd64|s390|src).*\.drpm$/) {
         return $2;
     }
 
@@ -24,9 +24,12 @@ sub parse_version($filename) {
     my $ext = $fil->extname;
     my $basename = $fil->basename(".$ext");
 
-    if ($basename =~ m/(.*)(_|-)([^-]+)\.(x86_64|noarch|i[3-6]86|ppc64|aarch64|arm64|amd64|s390|src)$/) {
+    if ($basename =~ m/(.*)(_|-)([^-]+)\.(x86_64|noarch|i[3-6]86|ppc64le|ppc64|aarch64|arm64|amd64|s390|src)$/) {
         return $3;
     }
+
+    my (undef, $version) = parse_pkg_rpm($filename);
+    return $version if $version;
 
     return undef unless $filename =~ /.*_(\d+\.?\d*\.?\d*\.?\d*)-(\d*\.?\d*)?.*(\.deb)$/;
     return $1
@@ -51,7 +54,7 @@ sub parse_pkg($filename) {
 
 # return name, version, build, arch
 sub parse_pkg_rpm($basename) {
-    return undef unless ($basename =~ m/(.*)-([^-]+)-([^-]+)\.(x86_64|noarch|i[3-6]86|ppc64|aarch64|arm64|amd64|s390|src)$/);
+    return undef unless ($basename =~ m/(.*)-([^-]+)-([^-]+)\.(x86_64|noarch|i[3-6]86|ppc64le|ppc64|aarch64|arm64|amd64|s390|src)$/);
     return ($1, $2, $3, $4);
 }
 

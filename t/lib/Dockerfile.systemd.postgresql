@@ -11,7 +11,8 @@ RUN zypper -vvvn install systemd curl sudo iputils vi
 # install MirrorCache h/re to fetch all dependencies
 RUN zypper -vvv -n install MirrorCache perl-MaxMind-DB-Reader perl-Mojolicious-Plugin-ClientIP \
     vim postgresql postgresql-server curl sudo git-core wget tar m4 \
-    apache2 perl-Digest-MD4 tidy make perl-DateTime-HiRes perl-Config-IniFiles
+    apache2 perl-Digest-MD4 tidy make perl-DateTime-HiRes perl-Config-IniFiles \
+    perl-Test-MockModule perl-Test-Most perl-Mojolicious-Plugin-OAuth2
 
 # let pg initialize data dir in cache to save some time on every run
 RUN mkdir -p /run/postgresql && chown postgres:postgres /run/postgresql && chmod 775 /run/postgresql && \

@@ -6,6 +6,11 @@ MIRRORCACHE_DNS ?= 'DBI:Pg:database=mirrorcache'
 
 mkfile_path := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
+test_unit:
+	prove -Ilib -r t/*.t t/Directory/*.t
+
+unit_test: test_unit
+
 test_local:
 	( for f in $$(ls -t t/environ/*.sh); do bash -x $$f && continue; echo FAIL $$f; exit 1 ; done )
 

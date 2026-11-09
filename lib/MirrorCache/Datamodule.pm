@@ -638,7 +638,7 @@ sub _init_path($self) {
         if ( $path =~ m/.*\/([^\/]*-Current[^\/]*)$/ ) {
             $pedantic = 1;
         } else {
-            my $path_without_common_digit_patterns = $path =~ s/(Leap-\d\d\.\d|x86_64|s390x|ppc64|aarch64|E20|sha\d\d\d(\.asc)?$)\b//gr;
+            my $path_without_common_digit_patterns = $path =~ s/(Leap-\d\d\.\d|x86_64|s390x|ppc64le|ppc64|aarch64|E20|sha\d\d\d(\.asc)?$)\b//gr;
             $pedantic = 1 if $path_without_common_digit_patterns !~ m/.*\/([^\/]*\d\.?\d[^\/]*)$/;
         }
     }

@@ -61,6 +61,8 @@ sub _sync {
             });
         }
         return $job->finish("redirected to $realpath");
+    } else {
+        $schema->resultset('Folder')->delete_redirect($path);
     }
     my $proj = $schema->resultset('Rollout')->project_for_folder($path);
     my ($proj_type, $proj_prefix);

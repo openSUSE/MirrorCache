@@ -148,4 +148,34 @@ subtest '_render_dir sets Vary: Cookie for anonymous users and private for authe
     is $c->res->headers->cache_control, 'private, no-cache', 'cache-control set to private, no-cache for logged-in user';
 };
 
+subtest 'Datamodule pedantic unversioned detection for ppc64le' => sub {
+    require Mojo::URL;
+    require Mojo::Headers;
+    require MirrorCache::Datamodule;
+
+    my $mock_req_unver = bless {
+        headers => Mojo::Headers->new,
+        url => Mojo::URL->new('http://localhost/ports/ppc64le/tumbleweed/appliances/openSUSE-MicroOS.ppc64le.raw.xz'),
+    }, 'MockReqDM';
+    no warnings 'once';
+    *MockReqDM::headers = sub { shift->{headers} };
+    *MockReqDM::url = sub { shift->{url} };
+    *MockReqDM::is_secure = sub { 0 };
+    *MockReqDM::method = sub { 'GET' };
+    my $test_c_unver = bless { req => $mock_req_unver, stash => sub { '' } }, 'MockControllerDM';
+    *MockControllerDM::req = sub { shift->{req} };
+    *MockControllerDM::stash = sub { '' };
+
+    my $dm_unver = MirrorCache::Datamodule->new(c => $test_c_unver);
+    is $dm_unver->pedantic, 1, 'unversioned ppc64le file detected as pedantic (unversioned)';
+
+    my $mock_req_ver = bless {
+        headers => Mojo::Headers->new,
+        url => Mojo::URL->new('http://localhost/ports/ppc64le/tumbleweed/appliances/openSUSE-MicroOS.ppc64le-16.0.0.raw.xz'),
+    }, 'MockReqDM';
+    my $test_c_ver = bless { req => $mock_req_ver, stash => sub { '' } }, 'MockControllerDM';
+    my $dm_ver = MirrorCache::Datamodule->new(c => $test_c_ver);
+    is $dm_ver->pedantic, 0, 'versioned ppc64le file detected as not pedantic';
+};
+
 done_testing();

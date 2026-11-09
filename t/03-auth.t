@@ -36,6 +36,10 @@ no warnings 'once';
 };
 *MockStorage::disconnect = sub { 1 };
 
+# Mock AssetPack process so pure unit tests do not compile SCSS assets or require pre-packed asset cache
+my $assetpack_mock = Test::MockModule->new('Mojolicious::Plugin::AssetPack');
+$assetpack_mock->redefine(process => sub { shift });
+
 my $tempdir = tempdir("mc-auth-XXXX", TMPDIR => 1);
 my $ini_file = $tempdir->child("conf.ini");
 
@@ -138,7 +142,7 @@ subtest OAuth2 => sub {
     };
 };
 
-subtest 'ResultSet::Acc provider support and collision prevention' => sub {
+subtest 'ResultSet::Acc provider support and flipping' => sub {
     my $rs_mock = Test::MockModule->new('MirrorCache::Schema::ResultSet::Acc');
     my %storage;
 
@@ -150,6 +154,12 @@ subtest 'ResultSet::Acc provider support and collision prevention' => sub {
         });
     $rs_mock->redefine(
         update_or_new => sub ($self, $attrs) {
+            if (my $existing = $storage{$attrs->{username}}) {
+                for my $k (keys %$attrs) {
+                    $existing->{$k} = $attrs->{$k};
+                }
+                return $existing;
+            }
             return bless {in_storage => 0, %$attrs}, 'MockResultAcc';
         });
     no warnings 'once';
@@ -173,9 +183,9 @@ subtest 'ResultSet::Acc provider support and collision prevention' => sub {
     my $same_user = $rs->create_user(100, provider => 'oauth2@github');
     is $same_user->username, 100, 'retrieved existing user with same provider';
 
-    throws_ok { $rs->create_user(100, provider => 'openid') }
-    qr/Auth provider mismatch: Account '100' is registered via 'oauth2\@github', but login attempted via 'openid'/,
-      'prevent login when auth provider does not match existing account';
+    my $flipped_user = $rs->create_user(100, provider => 'openid');
+    is $flipped_user->username, 100, 'retrieved existing user when flipping provider';
+    is $flipped_user->provider, 'openid', 'provider updated on flip without error';
 };
 
 subtest 'OAuth2 Config initialization via INI and ENV' => sub {

@@ -65,6 +65,7 @@ input[type = text] {
                                       <option value="x86_64">x86_64</option>
                                       <option value="noarch">noarch</option>
                                       <option value="ppc64">ppc64</option>
+                                      <option value="ppc64le">ppc64le</option>
                                       <option value="aarch64">aarch64</option>
                                       <option value="arm64">arm64</option>
                                       <option value="amd64">amd64</option>
