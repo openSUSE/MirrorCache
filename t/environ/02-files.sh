@@ -15,6 +15,7 @@ unversionedfiles="
     Leap-15.3.x86_64-libvirt.box.sha256
     openSUSE-Leap-15.3-ARM-E20-efi.aarch64.raw.xz.sha256.asc
     openSUSE-Leap-15.3-NET-x86_64.iso
+    openSUSE-Leap-15.3-NET-ppc64le.iso
 "
 
 for x in $mc $ap7 $ap8; do
