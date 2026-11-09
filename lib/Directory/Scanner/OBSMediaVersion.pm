@@ -28,6 +28,9 @@ sub parse_version($filename) {
         return $3;
     }
 
+    my (undef, $version) = parse_pkg_rpm($filename);
+    return $version if $version;
+
     return undef unless $filename =~ /.*_(\d+\.?\d*\.?\d*\.?\d*)-(\d*\.?\d*)?.*(\.deb)$/;
     return $1
 }

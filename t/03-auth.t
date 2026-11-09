@@ -36,6 +36,10 @@ no warnings 'once';
 };
 *MockStorage::disconnect = sub { 1 };
 
+# Mock AssetPack process so pure unit tests do not compile SCSS assets or require pre-packed asset cache
+my $assetpack_mock = Test::MockModule->new('Mojolicious::Plugin::AssetPack');
+$assetpack_mock->redefine(process => sub { shift });
+
 my $tempdir = tempdir("mc-auth-XXXX", TMPDIR => 1);
 my $ini_file = $tempdir->child("conf.ini");
 
